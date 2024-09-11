@@ -1,0 +1,42 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test dir and binary, built with `go test -c`
+tests/
+*.test
+
+# Output of the go coverage tool.
+*.out
+
+# Go workspace file.
+go.work
+
+# Apple macOS system files.
+.DS_Store
+
+# Project environment config files.
+.env
+
+# IDE config directories.
+.idea/
+.vscode/
+
+# Dependency directories.
+node_modules/
+vendor/
+
+# Binary directories.
+bin/
+
+# Temp and local cache directories.
+dist/
+tmp/
+.parcel-cache/
+resources/node_modules/
+resources/static/
+resources/views/*.go
+resources/views/*/*.go
