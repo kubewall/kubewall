@@ -1,0 +1,5 @@
+media/
+.git
+*.md
+.idea/
+.vscode/

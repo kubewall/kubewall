@@ -1,0 +1,20 @@
+.list-table-max-height {
+  max-height: calc(100vh - 48px);
+}
+
+.event-table-max-height {
+  max-height: calc(100vh - 115px);
+  border-left-width: 1px;
+  border-right-width: 1px;
+}
+
+.horizontal_scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.horizontal_scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  text-overflow: clip;
+  overflow: auto;
+}

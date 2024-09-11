@@ -1,0 +1,7 @@
+.config-list {
+  max-height: calc(100vh - 160px);
+}
+
+.cluster-empty-table {
+  height: calc(100vh - 210px);
+}

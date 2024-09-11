@@ -1,0 +1,176 @@
+project_name: "kubewall"
+version: 2
+
+before:
+  hooks:
+    - sh -c "yarn --cwd client install && yarn --cwd client run build && rm -rf backend/routes/static && mv client/dist backend/routes/static"
+
+builds:
+  - main: main.go
+    dir: ./backend
+    binary: kubewall
+    goos: ["linux", "darwin", "windows", "freebsd"]
+    goarch: ["386", "amd64", "arm64"]
+    ldflags:
+      - -s
+      - -w
+      - -X "main.version={{.Version}}"
+    env:
+      - CGO_ENABLED=0
+
+universal_binaries:
+  - replace: true
+
+archives:
+  - format: tar.gz
+    # this name template makes the OS and Arch compatible with the results of `uname`.
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    # use zip for windows archives
+    format_overrides:
+      - goos: windows
+        format: zip
+
+sboms:
+  - artifacts: archive
+
+nfpms:
+  - builds:
+      - kubewall
+    vendor: kubewall
+    homepage: "https://github.com/kubewall/kubewall"
+    maintainer: "Abhimanyu Sharma <abhimanyusharma003@gmail.com>"
+    description: "kubewall is a single binary to manage multiple clusters."
+    license: "Apache License 2.0"
+    formats:
+      - deb
+      - rpm
+      - archlinux
+    bindir: /usr/bin
+    recommends:
+    - kubectl
+
+brews:
+  - repository:
+      owner: kubewall
+      name: homebrew-tap
+    name: kubewall
+    homepage: "https://github.com/kubewall/kubewall"
+    description: "kubewall is a single binary to manage multiple clusters."
+    license: "Apache License 2.0"
+    skip_upload: auto
+    commit_author:
+      name: abhimanyu003
+      email: abhimanyusharma003@gmail.com
+    directory: Formula
+    install: |-
+      bin.install "kubewall"
+    test: |
+      system "#{bin}/kubewall -v"
+
+scoops:
+  - repository:
+      owner: kubewall
+      name: scoop-bucket
+      token: "{{ .Env.GITHUB_TOKEN }}"
+    name: kubewall
+    homepage: "https://github.com/kubewall/kubewall"
+    description: "kubewall is a single binary to manage multiple clusters."
+    license: "Apache License 2.0"
+
+aurs:
+  - name: kubewall-bin
+    homepage: "https://github.com/kubewall/kubewall"
+    description: "kubewall is a single binary to manage multiple clusters."
+    maintainers:
+      - "Abhimanyu Sharma <abhimanyusharma003@gmail.com>"
+    license: "Apache License 2.0"
+    private_key: "{{ .Env.AUR_KEY }}"
+    git_url: "ssh://aur@aur.archlinux.org/kubewall-bin.git"
+    commit_author:
+      name: Abhimanyu Sharma
+      email: abhimanyusharma003@gmail.com
+
+dockers:
+  - skip_push: false
+    use: buildx
+    dockerfile: .goreleaser.Dockerfile
+    image_templates:
+      - ghcr.io/kubewall/{{ .ProjectName }}:{{ .Version }}-amd64
+      - docker.io/kubewall/{{ .ProjectName }}:{{ .Version }}-amd64
+    build_flag_templates:
+      - --platform=linux/amd64
+      - --label=org.opencontainers.image.version={{ .Version }}
+      - --label=org.opencontainers.image.revision={{ .Commit }}
+      - --label=org.opencontainers.image.title={{ .ProjectName }}
+      - --label=org.opencontainers.image.created={{ .Date }}
+      - --label=org.opencontainers.image.description=a single binary to manage multiple clusters
+      - --label=org.opencontainers.image.vendor=kubewall
+      - --label=org.opencontainers.image.licenses=Apache License 2.0
+      - --label=org.opencontainers.image.source=https://github.com/kubewall/kubewall
+      - --label=org.opencontainers.image.authors=Abhimanyu Sharma <abhimanyusharma003@gmail.com>
+
+  - skip_push: false
+    goarch: arm64
+    use: buildx
+    dockerfile: .goreleaser.Dockerfile
+    image_templates:
+      - ghcr.io/kubewall/{{ .ProjectName }}:{{ .Version }}-arm64
+      - docker.io/kubewall/{{ .ProjectName }}:{{ .Version }}-arm64
+    build_flag_templates:
+      - --platform=linux/arm64
+      - --label=org.opencontainers.image.version={{ .Version }}
+      - --label=org.opencontainers.image.revision={{ .Commit }}
+      - --label=org.opencontainers.image.title={{ .ProjectName }}
+      - --label=org.opencontainers.image.created={{ .Date }}
+      - --label=org.opencontainers.image.description=a single binary to manage multiple clusters
+      - --label=org.opencontainers.image.vendor=kubewall
+      - --label=org.opencontainers.image.licenses=Apache License 2.0
+      - --label=org.opencontainers.image.source=https://github.com/kubewall/kubewall
+      - --label=org.opencontainers.image.authors=Abhimanyu Sharma <abhimanyusharma003@gmail.com>
+docker_manifests:
+  - name_template: ghcr.io/kubewall/{{ .ProjectName }}:{{ .Version }}
+    image_templates:
+      - ghcr.io/kubewall/{{ .ProjectName }}:{{ .Version }}-amd64
+      - ghcr.io/kubewall/{{ .ProjectName }}:{{ .Version }}-arm64
+  - name_template: ghcr.io/kubewall/{{ .ProjectName }}:latest
+    image_templates:
+      - ghcr.io/kubewall/{{ .ProjectName }}:{{ .Version }}-amd64
+      - ghcr.io/kubewall/{{ .ProjectName }}:{{ .Version }}-arm64
+  - name_template: docker.io/kubewall/{{ .ProjectName }}:{{ .Version }}
+    image_templates:
+      - docker.io/kubewall/{{ .ProjectName }}:{{ .Version }}-amd64
+      - docker.io/kubewall/{{ .ProjectName }}:{{ .Version }}-arm64
+  - name_template: docker.io/kubewall/{{ .ProjectName }}:latest
+    image_templates:
+      - docker.io/kubewall/{{ .ProjectName }}:{{ .Version }}-amd64
+      - docker.io/kubewall/{{ .ProjectName }}:{{ .Version }}-arm64
+
+signs:
+  - cmd: cosign
+    signature: "${artifact}.sig"
+    certificate: "${artifact}.pem"
+    output: true
+    artifacts: checksum
+    args:
+      - sign-blob
+      - "--oidc-provider=github-actions"
+      - "--output-certificate=${certificate}"
+      - "--output-signature=${signature}"
+      - "${artifact}"
+      - --yes
+
+docker_signs:
+  - cmd: cosign
+    artifacts: manifests
+    output: true
+    args:
+      - "sign"
+      - "--oidc-provider=github-actions"
+      - "${artifact}@${digest}"
+      - --yes
