@@ -52,7 +52,7 @@ func NewServicesHandler(c echo.Context, container container.Container) *Services
 			QueryConfig:      config,
 			QueryCluster:     cluster,
 			InformerCacheKey: fmt.Sprintf("%s-%s-ServiceInformer", config, cluster),
-			Event:            event.NewEventCounter(time.Second * 1),
+			Event:            event.NewEventCounter(time.Millisecond * 250),
 			TransformFunc:    transformItems,
 		},
 	}
