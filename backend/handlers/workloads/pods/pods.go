@@ -64,7 +64,7 @@ func NewPodsHandler(c echo.Context, container container.Container) *PodsHandler 
 			QueryConfig:      config,
 			QueryCluster:     cluster,
 			InformerCacheKey: fmt.Sprintf("%s-%s-podInformer", config, cluster),
-			Event:            event.NewEventCounter(time.Second * 1),
+			Event:            event.NewEventCounter(time.Millisecond * 250),
 			TransformFunc:    transformItems,
 		},
 		restConfig: container.RestConfig(config, cluster),
@@ -125,7 +125,7 @@ func (h *PodsHandler) GetLogsWS(c echo.Context) error {
 	for _, containerName := range containerNames {
 		go h.fetchLogs(c.Request().Context(), namespace, name, containerName, logsChannel)
 	}
-	event := event.NewEventCounter(500 * time.Millisecond)
+	event := event.NewEventCounter(250 * time.Millisecond)
 	var logMessages []LogMessage
 	var mu sync.RWMutex
 

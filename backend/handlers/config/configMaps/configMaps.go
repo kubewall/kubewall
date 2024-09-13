@@ -52,7 +52,7 @@ func NewConfigMapsHandler(c echo.Context, container container.Container) *Config
 			QueryConfig:      config,
 			QueryCluster:     cluster,
 			InformerCacheKey: fmt.Sprintf("%s-%s-configMapInformer", config, cluster),
-			Event:            event.NewEventCounter(time.Second * 1),
+			Event:            event.NewEventCounter(time.Millisecond * 250),
 			TransformFunc:    transformItems,
 		},
 	}

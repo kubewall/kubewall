@@ -52,7 +52,7 @@ func NewIngressHandler(c echo.Context, container container.Container) *IngressHa
 			QueryConfig:      config,
 			QueryCluster:     cluster,
 			InformerCacheKey: fmt.Sprintf("%s-%s-IngressInformer", config, cluster),
-			Event:            event.NewEventCounter(time.Second * 1),
+			Event:            event.NewEventCounter(time.Millisecond * 250),
 			TransformFunc:    transformItems,
 		},
 	}

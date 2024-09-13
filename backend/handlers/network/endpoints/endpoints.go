@@ -52,7 +52,7 @@ func NewEndpointsHandler(c echo.Context, container container.Container) *Endpoin
 			QueryConfig:      config,
 			QueryCluster:     cluster,
 			InformerCacheKey: fmt.Sprintf("%s-%s-EndpointsInformer", config, cluster),
-			Event:            event.NewEventCounter(time.Second * 1),
+			Event:            event.NewEventCounter(time.Millisecond * 250),
 			TransformFunc:    transformItems,
 		},
 	}
