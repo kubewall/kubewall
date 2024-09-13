@@ -101,14 +101,16 @@ snapcrafts:
     publish: true
     summary: A single binary Kubernetes Open-Source Dashboard.
     description: |
-      kubewall is single binary Kubernetes Open-Source Dashboard..
+      kubewall is single binary Kubernetes Open-Source Dashboard.
     grade: stable
     confinement: strict
-    license: "Apache License 2.0"
+    license: "Apache-2.0"
     base: core20
+    channel_templates:
+      - stable
     apps:
       kubewall:
-        plugs: ["home", "network"]
+        plugs: ["home", "network", "network-bind"]
 
 dockers:
   - skip_push: false
