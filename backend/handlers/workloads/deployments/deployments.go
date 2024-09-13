@@ -88,7 +88,7 @@ func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
 
 func (h *DeploymentsHandler) GetPods(c echo.Context) error {
 	streamID := fmt.Sprintf("%s-%s-%s-deployments-pods", h.BaseHandler.QueryConfig, h.BaseHandler.QueryCluster, c.Param("name"))
-	h.DeploymentsPods(c, streamID)
+	go h.DeploymentsPods(c, streamID)
 	h.BaseHandler.Container.SSE().ServeHTTP(streamID, c.Response(), c.Request())
 	return nil
 }
