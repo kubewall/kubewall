@@ -190,3 +190,29 @@ docker_signs:
       - "--oidc-provider=github-actions"
       - "${artifact}@${digest}"
       - --yes
+
+release:
+  footer: |
+    ## Quick Download Links - {{ .Tag }}
+
+    **MacOS**
+    [Binary](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_Darwin_all.tar.gz) ( Multi-Architecture )
+
+    **Linux (Binaries)**
+    [amd64](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_Linux_x86_64.tar.gz) | [arm64](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_Linux_arm64.tar.gz) | [i386](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_Linux_i386.tar.gz)
+
+    **Windows (Exe)**
+    [amd64](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_Windows_x86_64.zip) | [arm64](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_Windows_arm64.zip) | [i386](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_Windows_i386.zip)
+
+    **FreeBSD (Binaries)**
+    [amd64](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_Freebsd_x86_64.tar.gz) | [arm64](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_Freebsd_arm64.tar.gz) | [i386](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_Freebsd_i386.tar.gz)
+
+    **Packages**
+    * **Debian / Ubuntu (.deb):**
+    [amd64](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_{{ replace .Tag "v" "" }}_linux_amd64.deb) | [arm64](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_{{ replace .Tag "v" "" }}_linux_arm64.deb) | [i386](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_{{ replace .Tag "v" "" }}_linux_386.deb)
+
+    * **Red Hat / CentOS / Fedora (.rpm):**
+    [amd64](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_{{ replace .Tag "v" "" }}_linux_amd64.rpm) | [arm64](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_{{ replace .Tag "v" "" }}_linux_arm64.rpm) | [i386](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_{{ replace .Tag "v" "" }}_linux_386.rpm)
+
+    * **Arch Linux (.pkg.tar.zst):**
+    [amd64](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_{{ replace .Tag "v" "" }}_linux_amd64.pkg.tar.zst) | [arm64](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_{{ replace .Tag "v" "" }}_linux_arm64.pkg.tar.zst) | [i386](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_{{ replace .Tag "v" "" }}_linux_386.pkg.tar.zst)
