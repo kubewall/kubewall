@@ -17,7 +17,7 @@ type Resource interface {
 	GetNamespace() string
 }
 
-func ResourceEventHandler[T Resource](handler *BaseHandler, additionalEvents ...func()) cache.ResourceEventHandlerFuncs {
+func ResourceEventHandler[T Resource](handler *BaseHandler, additionalEvents ...map[string]func()) cache.ResourceEventHandlerFuncs {
 	handleEvent := func(obj any) {
 		resource := obj.(T)
 		// GetList
@@ -31,7 +31,9 @@ func ResourceEventHandler[T Resource](handler *BaseHandler, additionalEvents ...
 		go handler.Event.AddEvent(streamName+"-yaml", handler.processYAMLEvents(resource.GetNamespace(), resource.GetName()))
 
 		for _, event := range additionalEvents {
-			go handler.Event.AddEvent("deployments", event)
+			for key, e := range event {
+				go handler.Event.AddEvent(key, e)
+			}
 		}
 	}
 

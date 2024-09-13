@@ -11,7 +11,6 @@ import (
 	v1 "k8s.io/api/apps/v1"
 	coreV1 "k8s.io/api/core/v1"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/kubewall/kubewall/backend/container"
@@ -65,13 +64,7 @@ func NewDeploymentsHandler(c echo.Context, container container.Container) *Deplo
 		},
 	}
 
-	additionalEvents := []func(){
-		func() {
-			handler.DeploymentsPods(c)
-		},
-	}
-
-	cache := base.ResourceEventHandler[*v1.Deployment](&handler.BaseHandler, additionalEvents...)
+	cache := base.ResourceEventHandler[*v1.Deployment](&handler.BaseHandler)
 	handler.BaseHandler.StartInformer(c, cache)
 	go handler.BaseHandler.Event.Run()
 	handler.BaseHandler.WaitForSync(c)
@@ -94,20 +87,14 @@ func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
 }
 
 func (h *DeploymentsHandler) GetPods(c echo.Context) error {
-	go func() {
-		<-c.Request().Context().Done()
-	}()
-
-	h.BaseHandler.Event.AddEvent(fmt.Sprintf("%s-deployments-pods", c.Param("name")), func() {
-		h.DeploymentsPods(c)
-	})
-
-	h.BaseHandler.Container.SSE().ServeHTTP(fmt.Sprintf("%s-deployments-pods", c.Param("name")), c.Response(), c.Request())
+	streamID := fmt.Sprintf("%s-%s-%s-deployments-pods", h.BaseHandler.QueryConfig, h.BaseHandler.QueryCluster, c.Param("name"))
+	h.DeploymentsPods(c, streamID)
+	h.BaseHandler.Container.SSE().ServeHTTP(streamID, c.Response(), c.Request())
 	return nil
 }
 
 // DeploymentsPods get list of pods for given deployment
-func (h *DeploymentsHandler) DeploymentsPods(c echo.Context) {
+func (h *DeploymentsHandler) DeploymentsPods(c echo.Context, streamID string) {
 	podsHandler := pods.NewPodsHandler(c, h.BaseHandler.Container)
 	storeList := podsHandler.BaseHandler.Informer.GetStore().List()
 
@@ -118,33 +105,8 @@ func (h *DeploymentsHandler) DeploymentsPods(c echo.Context) {
 		}
 	}
 
-	data, _ := json.Marshal(pods.TransformPodList(filterPodsByDeployment(podsList, c.Param("name"))))
-
-	h.BaseHandler.Container.SSE().Publish(fmt.Sprintf("%s-deployments-pods", c.Param("name")), &sse.Event{
+	data, _ := json.Marshal(pods.TransformPodList(pods.FilterPodsByDeploymentName(podsList, c.Param("name"))))
+	h.BaseHandler.Container.SSE().Publish(streamID, &sse.Event{
 		Data: data,
 	})
-}
-
-// filterPodsByDeployment filters the podsList that are part of the given deployment
-func filterPodsByDeployment(pods []coreV1.Pod, deploymentName string) []coreV1.Pod {
-	var filteredPods []coreV1.Pod
-
-	for _, pod := range pods {
-		// Check if the pod has ownerReferences
-		for _, ownerRef := range pod.OwnerReferences {
-			if ownerRef.Kind == "ReplicaSet" && ownerRef.Controller != nil && *ownerRef.Controller {
-				// Check if the ReplicaSet is owned by the deployment
-				if isOwnedByDeployment(ownerRef.Name, deploymentName) {
-					filteredPods = append(filteredPods, pod)
-				}
-			}
-		}
-	}
-
-	return filteredPods
-}
-
-// isOwnedByDeployment checks if the given ReplicaSet name is associated with the deployment
-func isOwnedByDeployment(replicaSetName, deploymentName string) bool {
-	return len(replicaSetName) >= len(deploymentName) && strings.HasPrefix(replicaSetName, deploymentName+"-")
 }
