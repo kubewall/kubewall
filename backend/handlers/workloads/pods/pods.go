@@ -71,7 +71,15 @@ func NewPodsHandler(c echo.Context, container container.Container) *PodsHandler 
 		clientSet:  container.ClientSet(config, cluster),
 	}
 
-	cache := base.ResourceEventHandler[*v1.Pod](&handler.BaseHandler)
+	additionalEvents := []map[string]func(){
+		{
+			"pods-deployments": func() {
+				handler.DeploymentsPods(c)
+			},
+		},
+	}
+
+	cache := base.ResourceEventHandler[*v1.Pod](&handler.BaseHandler, additionalEvents...)
 	handler.BaseHandler.StartInformer(c, cache)
 	go handler.BaseHandler.Event.Run()
 	handler.BaseHandler.WaitForSync(c)
