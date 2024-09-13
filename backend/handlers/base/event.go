@@ -13,7 +13,7 @@ import (
 )
 
 func (h *BaseHandler) buildEventStreamID(c echo.Context) string {
-	return fmt.Sprintf("%s-%s-events", c.QueryParam("namespace"), c.Param("name"))
+	return fmt.Sprintf("%s-%s-%s-%s-events", h.QueryConfig, h.QueryCluster, c.QueryParam("namespace"), c.Param("name"))
 }
 
 func (h *BaseHandler) fetchEvents(c echo.Context) []coreV1.Event {
@@ -29,7 +29,7 @@ func (h *BaseHandler) fetchEvents(c echo.Context) []coreV1.Event {
 		return []coreV1.Event{}
 	}
 
-	var events []coreV1.Event
+	events := make([]coreV1.Event, 0)
 	for _, event := range l.Items {
 		event.ManagedFields = nil
 		events = append(events, event)
@@ -48,6 +48,7 @@ func (h *BaseHandler) marshalEvents(events []coreV1.Event) []byte {
 	return data
 }
 
+// publishEvents: we need this common function for startEventTicker and GetEvents
 func (h *BaseHandler) publishEvents(streamID string, data []byte) {
 	h.Container.SSE().Publish(streamID, &sse.Event{
 		Data: data,
