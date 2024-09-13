@@ -43,6 +43,12 @@ docker run -p 7080:7080 -v kubewall:/.kubewall ghcr.io/kubewall/kubewall:latest
 brew install kubewall/tap/kubewall
 ```
 
+#### Snap
+
+```shell
+sudo snap install kubewall
+```
+
 #### Arch Linux
 
 ```shell
