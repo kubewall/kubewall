@@ -7,7 +7,7 @@
 
 A single binary to manage your multiple kubernetes clusters.
 
-**kubewall** provides simplify and rich real time interface to manage and investigate your clusters.
+**kubewall** provides a simple and rich real time interface to manage and investigate your clusters.
 
 
 **Key features of KubeWall include:**
@@ -18,14 +18,14 @@ A single binary to manage your multiple kubernetes clusters.
 * **Cluster management:** KubeWall enables you to manage multiple Kubernetes clusters from a single pane of glass, reducing the overhead of switching between different tools and interfaces.
 * **Detailed cluster insights:** KubeWall provides comprehensive insights into your Kubernetes clusters, manifest info of your pods, services, config and others.
 
-# :movie_camera: Into
+# :movie_camera: Intro
 
 ![kubewall](/media/readme.png)
 
 > [!Important]
 > Please keep in mind that kubewall is still under active development.
 > 
-> When not used over HTTP/2, SSE suffers from a limitation to the maximum number of open connections, which can be especially painful when opening multiple tabs, as the limit is per browser and is set to a very low number (6). We suggest to use HTTPS
+> When not used over HTTP/2, SSE suffers from a limitation to the maximum number of open connections, which can be especially painful when opening multiple tabs, as the limit is per browser and is set to a very low number (6). We suggest using HTTPS
 
 # :battery: Install
 
