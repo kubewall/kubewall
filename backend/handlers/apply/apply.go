@@ -40,16 +40,16 @@ func (h *ApplyHandler) PostApply(c echo.Context) error {
 	discoveryClient := h.BaseHandler.Container.DiscoveryClient(h.BaseHandler.QueryConfig, h.BaseHandler.QueryCluster)
 	inputYaml := []byte(c.FormValue("yaml"))
 
-	if checkKubectlCLIPresent() {
-		cluster := h.BaseHandler.Container.Config().KubeConfig[h.BaseHandler.QueryConfig]
-		output, err := applyYAML(cluster.AbsolutePath, h.BaseHandler.QueryCluster, string(inputYaml))
-		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
-		}
-		return c.JSON(http.StatusOK, echo.Map{
-			"success": output,
-		})
-	}
+	//if checkKubectlCLIPresent() {
+	//	cluster := h.BaseHandler.Container.Config().KubeConfig[h.BaseHandler.QueryConfig]
+	//	output, err := applyYAML(cluster.AbsolutePath, h.BaseHandler.QueryCluster, string(inputYaml))
+	//	if err != nil {
+	//		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	//	}
+	//	return c.JSON(http.StatusOK, echo.Map{
+	//		"success": output,
+	//	})
+	//}
 
 	applyOptions := NewApplyOptions(dynamicClient, discoveryClient)
 	err := applyOptions.Apply(c.Request().Context(), inputYaml)

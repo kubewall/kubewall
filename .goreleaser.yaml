@@ -11,12 +11,16 @@ builds:
     binary: kubewall
     goos: ["linux", "darwin", "windows", "freebsd"]
     goarch: ["386", "amd64", "arm64"]
+    flags:
+      - -trimpath
     ldflags:
       - -s
       - -w
-      - -X "main.version={{.Version}}"
+      - -X main.version={{.Version}}
+      - -X main.commit={{.ShortCommit}}
     env:
       - CGO_ENABLED=0
+
 
 universal_binaries:
   - replace: true
