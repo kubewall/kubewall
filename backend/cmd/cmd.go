@@ -37,33 +37,61 @@ func Execute() {
 func Serve(cmd *cobra.Command) error {
 	env := config.NewEnv()
 
-	k8sClientQPS, _ := cmd.Flags().GetInt("k8s-client-qps")
-	k9sClientBurst, _ := cmd.Flags().GetInt("k8s-client-burst")
+	k8sClientQPS, err := cmd.Flags().GetInt("k8s-client-qps")
+	if err != nil {
+		return err
+	}
+	k9sClientBurst, err := cmd.Flags().GetInt("k8s-client-burst")
+	if err != nil {
+		return err
+	}
+
 	cfg := config.NewAppConfig(Version, k8sClientQPS, k9sClientBurst)
 	cfg.LoadAppConfig()
 
 	c := container.NewContainer(env, cfg)
 	e := echo.New()
-
+	startBanner()
 	routes.ConfigureRoutes(e, c)
 
-	port, _ := cmd.Flags().GetString("port")
+	port, err := cmd.Flags().GetString("port")
+	if err != nil {
+		return err
+	}
 	if port[0] != ':' {
 		port = ":" + port
 	}
-	certFile, _ := cmd.Flags().GetString("certFile")
-	keyFile, _ := cmd.Flags().GetString("keyFile")
+
+	certFile, err := cmd.Flags().GetString("certFile")
+	if err != nil {
+		return err
+	}
+	keyFile, err := cmd.Flags().GetString("keyFile")
+	if err != nil {
+		return err
+	}
 
 	if certFile == "" || keyFile == "" {
-		err := e.Start(port)
-		if err != nil {
+		if err = e.Start(port); err != nil {
 			return err
 		}
 		return nil
 	}
-	err := e.StartTLS(port, certFile, keyFile)
-	if err != nil {
+	if err = e.StartTLS(port, certFile, keyFile); err != nil {
 		return err
 	}
 	return nil
+}
+
+func startBanner() {
+	fmt.Println(" _          _                        _ _ ")
+	fmt.Println("| | ___   _| |__   _____      ____ _| | |")
+	fmt.Println("| |/ / | | | '_ \\ / _ \\ \\ /\\ / / _` | | |")
+	fmt.Println("|   <| |_| | |_) |  __/\\ V  V / (_| | | |")
+	fmt.Println("|_|\\_\\\\__,_|_.__/ \\___| \\_/\\_/ \\__,_|_|_|")
+	fmt.Println("___________________________________________")
+	fmt.Println("version:", Version)
+	fmt.Println("commit:", Commit)
+	fmt.Println("https://github.com/kubewall/kubewall")
+	fmt.Println("___________________________________________")
 }
