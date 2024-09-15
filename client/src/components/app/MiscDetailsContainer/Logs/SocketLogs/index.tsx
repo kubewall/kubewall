@@ -22,11 +22,12 @@ type SocketLogsProps = {
 export function SocketLogs({ pod, containerName, namespace, podLogSearch, isFollowingLogs, configName, clusterName, podDetailsSpec }: SocketLogsProps) {
   const dispatch = useAppDispatch();
   const { logs } = useAppSelector((state: RootState) => state.podLogs);
-  const [socketUrl, setSocketUrl] = useState(`ws://localhost:2121/api/v1/pods/${pod}/logsWS?namespace=${namespace}&all-containers=true&config=${configName}&cluster=${clusterName}`);
+  const porotocol = window.location.protocol === 'http:' ? 'ws:' : 'wss:';
+  const port = process.env.NODE_ENV === 'production' ?  window.location.port : '7080';
+  const [socketUrl, setSocketUrl] = useState(`${porotocol}//${window.location.hostname}:${port}/api/v1/pods/${pod}/logsWS?namespace=${namespace}&all-containers=true&config=${configName}&cluster=${clusterName}`);
   const { lastMessage } = useWebSocket(socketUrl);
   const [localContainerName, setLocalContainerName] = useState(containerName);
   const logContainerRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     if (lastMessage !== null) {
       dispatch(addLog(JSON.parse(lastMessage.data)));
@@ -46,7 +47,7 @@ export function SocketLogs({ pod, containerName, namespace, podLogSearch, isFoll
     if (containerName) {
       containerQuery = `&container=${containerName}`;
     }
-    setSocketUrl(`ws://localhost:2121/api/v1/pods/${pod}/logsWS?namespace=${namespace}${containerQuery}&config=${configName}&cluster=${clusterName}`);
+    setSocketUrl(`${porotocol}//${window.location.hostname}:${port}/api/v1/pods/${pod}/logsWS?namespace=${namespace}${containerQuery}&config=${configName}&cluster=${clusterName}`);
     if (logs.length > 0 && localContainerName !== containerName) {
       dispatch(addLog([{ containerName: containerName, log: '', containerChange: true }]));
       setLocalContainerName(containerName);

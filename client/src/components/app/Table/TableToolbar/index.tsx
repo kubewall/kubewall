@@ -1,5 +1,6 @@
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
+import { AddResource } from "@/components/app/Common/AddResource";
 import { Button } from "@/components/ui/button";
 import { Cross2Icon } from "@radix-ui/react-icons";
 import { DataTableFacetedFilter } from "@/components/app/Table/TableFacetedFilter";
@@ -7,7 +8,7 @@ import { DataTableViewOptions } from "@/components/app/Table/TableViewOptions";
 import { DebouncedInput } from "@/components/app/Common/DeboucedInput";
 import { RootState } from "@/redux/store";
 import { Table } from "@tanstack/react-table";
-import { ThemeModeSelector } from "../../Common/ThemeModeSelector";
+import { ThemeModeSelector } from "@/components/app/Common/ThemeModeSelector";
 import { namespacesFilter } from "@/utils";
 import { updateListTableFilter } from "@/data/Misc/ListTableFilterSlice";
 
@@ -44,13 +45,6 @@ export function DataTableToolbar<TData>({
           }}
           className="h-8 basis-7/12 shadow-none"
         />
-        {/* {table.getColumn("status") && (
-          <DataTableFacetedFilter
-            column={table.getColumn("status")}
-            title="Status"
-            options={statuses}
-          />
-        )} */}
         {showNamespaceFilter && !loading && namespaces && namespaces.length > 0 && (
           <DataTableFacetedFilter
             column={table.getColumn("Namespace")}
@@ -76,6 +70,7 @@ export function DataTableToolbar<TData>({
         }
       </div>
       <DataTableViewOptions table={table} />
+      <AddResource/>
       <ThemeModeSelector />
     </div>
   );

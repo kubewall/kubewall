@@ -35,7 +35,6 @@ const YamlEditor = memo(function ({ instanceType, name, namespace, clusterName, 
   } = useAppSelector((state) => state.yaml);
 
   const queryParams = new URLSearchParams({
-    namespace,
     config: configName,
     cluster: clusterName
   }).toString();
@@ -57,24 +56,19 @@ const YamlEditor = memo(function ({ instanceType, name, namespace, clusterName, 
     }));
   };
 
-  const delayFetchYaml = () => {
-    setTimeout(() => {
-      dispatch(resetUpdateYaml());
-      setYamlUpdated(false);
-    });
-  };
-
   useEffect(() => {
     if (yamlUpdateResponse.message) {
       toast.success("Success", {
         description: yamlUpdateResponse.message,
       });
-      delayFetchYaml();
+      dispatch(resetUpdateYaml());
+      setYamlUpdated(false);
     } else if (error) {
       toast.error("Failure", {
         description: error.message,
       });
-      delayFetchYaml();
+      dispatch(resetUpdateYaml());
+      setYamlUpdated(false);
     }
   }, [yamlUpdateResponse, error]);
 

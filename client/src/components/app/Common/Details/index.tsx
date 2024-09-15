@@ -33,11 +33,23 @@ const KwDetails = () => {
     return <FourOFourError />;
   }
  
+  const getListPageQueryparams = () => {
+    const qp : Record<string, string> = {
+      resourcekind: resourcekind
+    };
+    if(resourceInitialData.label === 'Custom Resources') {
+      qp['group'] = group;
+      qp['kind'] = kind;
+      qp['resource'] = resource;
+      qp['version'] = version;
+    }
+    return new URLSearchParams(qp).toString();
+  };
  
   return (
     <>
       <span className="text-xs text-blue-600 dark:text-blue-500 hover:underline">
-        <Link to={`/${config}/${cluster}/list?resourcekind=${resourcekind}`} className="flex items-center pl-3 pt-4">
+        <Link to={`/${config}/${cluster}/list?${getListPageQueryparams()}`} className="flex items-center pl-3 pt-4">
           <CaretLeftIcon className="h-3.5 w-3.5" />
           {resourceInitialData.label}
         </Link>
