@@ -38,18 +38,21 @@ func NewApplyHandler(container container.Container, routeType base.RouteType) ec
 func (h *ApplyHandler) PostApply(c echo.Context) error {
 	dynamicClient := h.BaseHandler.Container.DynamicClient(h.BaseHandler.QueryConfig, h.BaseHandler.QueryCluster)
 	discoveryClient := h.BaseHandler.Container.DiscoveryClient(h.BaseHandler.QueryConfig, h.BaseHandler.QueryCluster)
+	if c.FormValue("yaml") == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "YAML is required")
+	}
 	inputYaml := []byte(c.FormValue("yaml"))
 
-	//if checkKubectlCLIPresent() {
-	//	cluster := h.BaseHandler.Container.Config().KubeConfig[h.BaseHandler.QueryConfig]
-	//	output, err := applyYAML(cluster.AbsolutePath, h.BaseHandler.QueryCluster, string(inputYaml))
-	//	if err != nil {
-	//		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
-	//	}
-	//	return c.JSON(http.StatusOK, echo.Map{
-	//		"success": output,
-	//	})
-	//}
+	if checkKubectlCLIPresent() {
+		cluster := h.BaseHandler.Container.Config().KubeConfig[h.BaseHandler.QueryConfig]
+		output, err := applyYAML(cluster.AbsolutePath, h.BaseHandler.QueryCluster, string(inputYaml))
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+		return c.JSON(http.StatusOK, echo.Map{
+			"success": output,
+		})
+	}
 
 	applyOptions := NewApplyOptions(dynamicClient, discoveryClient)
 	err := applyOptions.Apply(c.Request().Context(), inputYaml)

@@ -12,8 +12,8 @@ func checkKubectlCLIPresent() bool {
 	return err == nil
 }
 
-func applyYAML(kubeconfig, context string, yamlFile string) (string, error) {
-	cmd := exec.Command("kubectl", "apply", "-f", "-", "--kubeconfig", kubeconfig, "--context", context, "--insecure-skip-tls-verify")
+func applyYAML(kubeConfig, context, yamlFile string) (string, error) {
+	cmd := exec.Command("kubectl", "apply", "-f", "-", "--kubeconfig", kubeConfig, "--context", context, "--insecure-skip-tls-verify")
 	cmd.Stdin = strings.NewReader(yamlFile)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
