@@ -1,0 +1,9 @@
+.resource-editor {
+  max-height: calc(100vh - 50px);
+  max-width: 80%;
+}
+
+.resource-editor-int {
+  height: calc(100vh - 200px);
+  max-width: 100%;
+}
