@@ -119,7 +119,7 @@ const AddResource = () => {
 
       <DialogContent onInteractOutside={(event) => event.preventDefault()} className="w-full max-w-screen-lg flex flex-col" style={{ height: '80vh' }}>
         <DialogHeader>
-          <DialogTitle>Yaml/Manifest</DialogTitle>
+          <DialogTitle>YAML/Manifest</DialogTitle>
           <DialogDescription>
             Add the yaml/manifest file of the new resource you want to create and click Apply.
           </DialogDescription>
