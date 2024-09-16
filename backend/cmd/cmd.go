@@ -6,6 +6,7 @@ import (
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/routes"
 	"github.com/labstack/echo/v4"
+	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 	"os"
 )
@@ -16,6 +17,7 @@ func init() {
 	rootCmd.PersistentFlags().StringP("port", "p", ":7080", "port to listen on")
 	rootCmd.PersistentFlags().Int("k8s-client-qps", 50, "maximum QPS to the master from client")
 	rootCmd.PersistentFlags().Int("k8s-client-burst", 50, "Maximum burst for throttle")
+	rootCmd.PersistentFlags().Bool("no-open", false, "Do not open the default browser")
 }
 
 var rootCmd = &cobra.Command{
@@ -70,17 +72,39 @@ func Serve(cmd *cobra.Command) error {
 	if err != nil {
 		return err
 	}
+	noOpen, err := cmd.Flags().GetBool("no-open")
+	if err != nil {
+		return err
+	}
 
-	if certFile == "" || keyFile == "" {
-		if err = e.Start(port); err != nil {
+	isSecure := certFile != "" || keyFile != ""
+
+	openDefaultBrowser(noOpen, isSecure, port)
+
+	if isSecure {
+		if err = e.StartTLS(port, certFile, keyFile); err != nil {
 			return err
 		}
 		return nil
 	}
-	if err = e.StartTLS(port, certFile, keyFile); err != nil {
+
+	if err = e.Start(port); err != nil {
 		return err
 	}
 	return nil
+}
+
+func openDefaultBrowser(noOpen, isSecure bool, port string) {
+	if noOpen {
+		return
+	}
+	url := fmt.Sprintf("http://localhost%s", port)
+	if isSecure {
+		url = fmt.Sprintf("https://localhost%s", port)
+	}
+	// we are going to ignore error in this case
+	// this will allow container apps to run
+	browser.OpenURL(url)
 }
 
 func startBanner() {
