@@ -17,7 +17,7 @@ func init() {
 	rootCmd.PersistentFlags().StringP("port", "p", ":7080", "port to listen on")
 	rootCmd.PersistentFlags().Int("k8s-client-qps", 50, "maximum QPS to the master from client")
 	rootCmd.PersistentFlags().Int("k8s-client-burst", 50, "Maximum burst for throttle")
-	rootCmd.PersistentFlags().Bool("no-open", false, "Do not open the default browser")
+	rootCmd.PersistentFlags().Bool("no-open-browser", false, "Do not open the default browser")
 }
 
 var rootCmd = &cobra.Command{
@@ -72,7 +72,7 @@ func Serve(cmd *cobra.Command) error {
 	if err != nil {
 		return err
 	}
-	noOpen, err := cmd.Flags().GetBool("no-open")
+	noOpen, err := cmd.Flags().GetBool("no-open-browser")
 	if err != nil {
 		return err
 	}
