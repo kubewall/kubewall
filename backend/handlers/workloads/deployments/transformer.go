@@ -12,8 +12,13 @@ import (
 type DeploymentList struct {
 	Namespace string    `json:"namespace"`
 	Name      string    `json:"name"`
+	Spec      Spec      `json:"spec"`
 	Status    Status    `json:"status"`
 	Age       time.Time `json:"age"`
+}
+
+type Spec struct {
+	Replicas int `json:"replicas"`
 }
 
 type Status struct {
@@ -54,9 +59,16 @@ func TransformDeploymentList(deployments []appV1.Deployment) []DeploymentList {
 }
 
 func TransformDeploymentItem(d appV1.Deployment) DeploymentList {
+	specReplicas := 0
+	if d.Spec.Replicas != nil {
+		specReplicas = int(*d.Spec.Replicas)
+	}
 	return DeploymentList{
 		Namespace: d.GetNamespace(),
 		Name:      d.GetName(),
+		Spec: Spec{
+			Replicas: specReplicas,
+		},
 		Status: Status{
 			ObservedGeneration: d.Status.ObservedGeneration,
 			Replicas:           d.Status.Replicas,

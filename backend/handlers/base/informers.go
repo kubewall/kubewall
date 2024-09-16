@@ -82,7 +82,7 @@ func (h *BaseHandler) WaitForSync(c echo.Context) {
 	}
 }
 
-func (h *BaseHandler) isNamespaceResource(r string) bool {
+func (h *BaseHandler) IsNamespaceResource(r string) bool {
 	cacheKey := fmt.Sprintf("%s-%s-nonNamespacedResources", h.QueryConfig, h.QueryCluster)
 	c, exists := h.Container.Cache().Get(cacheKey)
 	if !exists {

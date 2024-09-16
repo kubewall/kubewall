@@ -103,10 +103,13 @@ func customResources(e *echo.Echo, appContainer container.Container) {
 	e.GET("api/v1/customresourcedefinitions/:name/events", crds.NewCRDHandler(appContainer, base.GetEvents))
 
 	e.GET("api/v1/customresources", resources.NewUnstructuredHandler(appContainer, base.GetList))
-	e.GET("api/v1/customresources/:name", resources.NewUnstructuredHandler(appContainer, resources.Get))
-	e.GET("api/v1/customresources/:namespace/:name", resources.NewUnstructuredHandler(appContainer, resources.Get))
+	// No namespace custom CRD's details and YAML
+	e.GET("api/v1/customresources/:name", resources.NewUnstructuredHandler(appContainer, resources.GetDetails))
+	e.GET("api/v1/customresources/:name/yaml", resources.NewUnstructuredHandler(appContainer, resources.GetYAML))
+
+	// Namespace CRDS details and yaml
+	e.GET("api/v1/customresources/:namespace/:name", resources.NewUnstructuredHandler(appContainer, resources.GetDetails))
 	e.GET("api/v1/customresources/:namespace/:name/yaml", resources.NewUnstructuredHandler(appContainer, resources.GetYAML))
-	e.GET("api/v1/customresources/:name/events", resources.NewUnstructuredHandler(appContainer, base.GetEvents))
 }
 
 func servicesRoutes(e *echo.Echo, appContainer container.Container) {
