@@ -48,7 +48,7 @@ const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => 
 
   return (
     <div className="logs flex-col md:flex border rounded-lg">
-      <div className="flex items-start justify-between space-y-2 py-4 flex-row items-center space-y-0 h-10 border-b bg-muted/50">
+      <div className="flex items-start justify-between py-4 flex-row items-center h-10 border-b bg-muted/50">
         <div className="mx-2 basis-9/12">
           <DebouncedInput
             placeholder="Search... (/)"

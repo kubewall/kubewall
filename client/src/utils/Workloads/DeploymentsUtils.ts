@@ -1,10 +1,10 @@
 import { DeploymentsResponse } from "@/types";
 
 const formatDeploymentsResponse = (deployments: DeploymentsResponse[]) => {
-  return deployments.map(({namespace, name, status, age, hasUpdated}) => ({
+  return deployments.map(({namespace, name, status, spec, age, hasUpdated}) => ({
     namespace:namespace,
     name: name,
-    ready: `${status.readyReplicas}/${status.replicas}`,
+    ready: `${status.readyReplicas}/${spec.replicas}`,
     desired: status.replicas,
     updated: status.updatedReplicas,
     available: status.availableReplicas,

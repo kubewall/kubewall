@@ -2,6 +2,9 @@ type DeploymentsResponse = {
   namespace: string;
   name: string;
   replicas: string;
+  spec: {
+    replicas: number
+  },
   status: {
     observedGeneration: number;
     replicas: number;

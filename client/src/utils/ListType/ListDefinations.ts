@@ -1,4 +1,4 @@
-import { CustomResourcesList, HeaderList } from "@/types";
+import { CustomResourcesPrinterColumns, HeaderList } from "@/types";
 
 import { ActionCreatorWithPayload } from "@reduxjs/toolkit";
 
@@ -351,14 +351,14 @@ const daemonSetsColumnConfig = (config: string, cluster: string) => ({
 
 const deploymentsColumnConfig = (config: string, cluster: string) => ({
   headersList: [
-    { title: 'Namespace', accessorKey: 'namespace'},
-    { title: 'Name', accessorKey: 'name'},
-    { title: 'Ready', accessorKey: 'ready', enableSorting: false},
-    { title: 'Desired', accessorKey: 'desired'},
-    { title: 'Updated', accessorKey: 'updated'},
-    { title: 'Available', accessorKey: 'available'},
-    { title: 'Conditions', accessorKey: 'conditions'},
-    { title: 'Age', accessorKey: 'age'}
+    { title: 'Namespace', accessorKey: 'namespace' },
+    { title: 'Name', accessorKey: 'name' },
+    { title: 'Ready', accessorKey: 'ready', enableSorting: false },
+    { title: 'Desired', accessorKey: 'desired' },
+    { title: 'Updated', accessorKey: 'updated' },
+    { title: 'Available', accessorKey: 'available' },
+    { title: 'Conditions', accessorKey: 'conditions' },
+    { title: 'Age', accessorKey: 'age' }
   ],
   queryParams: { config, cluster },
   showNamespaceFilter: true
@@ -379,11 +379,11 @@ const jobsColumnConfig = (config: string, cluster: string) => ({
 
 const replicaSetsColumnConfig = (config: string, cluster: string) => ({
   headersList: [
-    { title: 'Namespace', accessorKey: 'namespace'},
-    { title: 'Name', accessorKey: 'name'},
+    { title: 'Namespace', accessorKey: 'namespace' },
+    { title: 'Name', accessorKey: 'name' },
     { title: 'Ready', accessorKey: 'ready', enableSorting: false },
-    { title: 'Available', accessorKey: 'available'},
-    { title: 'Age', accessorKey: 'age'}
+    { title: 'Available', accessorKey: 'available' },
+    { title: 'Age', accessorKey: 'age' }
   ],
   queryParams: { config, cluster },
   showNamespaceFilter: true
@@ -402,25 +402,12 @@ const stateSetsColumnConfig = (config: string, cluster: string) => ({
 });
 
 // Custom Resources
-const customResourcesColumnConfig = (customResourcesList: CustomResourcesList, config: string, cluster: string, group?: string, kind?: string, resource?: string, version?: string) => ({
+const customResourcesColumnConfig = ( additionalPrinterColumns: CustomResourcesPrinterColumns[] = [], config: string, cluster: string, loading: string, group?: string, kind?: string, resource?: string, version?: string) => ({
   headersList: [
-    {
-      title: 'Namespace',
-      accessorKey: `${customResourcesList.list.length > 0 ? 'metadata.namespace': ''}`,
-    },
-    {
-      title: 'Name',
-      accessorKey: `${customResourcesList.list.length > 0 ? 'metadata.name': ''}`,
-    },
-    {
-      title: 'Age',
-      accessorKey: `${customResourcesList.list.length > 0 ? 'metadata.creationTimestamp': ''}`,
-      enableSorting: false
-    },
-    ...customResourcesList.additionalPrinterColumns.map((columns) => {
+    ...additionalPrinterColumns.map((columns) => {
       return {
         title: columns.name,
-        accessorKey: columns.jsonPath.slice(1)
+        accessorKey: loading ? '' : columns.jsonPath.slice(1)
       };
     })
   ],
@@ -432,7 +419,7 @@ const customResourcesColumnConfig = (customResourcesList: CustomResourcesList, c
     resource,
     version
   },
-  showNamespaceFilter: false
+  showNamespaceFilter: additionalPrinterColumns.filter(({name}) => name === 'Namespace').length > 0
 });
 
 export {

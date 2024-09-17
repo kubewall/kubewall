@@ -52,7 +52,7 @@ const TableCells = ({
     if (instanceType !== CUSTOM_RESOURCES_LIST_ENDPOINT) {
       link = `${configName}/${clusterName}/details?resourcekind=${instanceType.toLowerCase()}&resourcename=${value}${namespace ? `&namespace=${namespace}` : ''}`;
     } else {
-      link = `${configName}/${clusterName}/details?resourcekind=${instanceType.toLowerCase()}&resourcename=${value}&namespace=${namespace}&${queryParams}`;
+      link = `${configName}/${clusterName}/details?resourcekind=${instanceType.toLowerCase()}&resourcename=${value}&${queryParams}${namespace ? `&namespace=${namespace}` : ''}`;
     }
     return <NameCell
       cellValue={value}

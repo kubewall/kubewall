@@ -77,7 +77,7 @@ export function KubeWall() {
                     <Link
                       to="/kwconfig"
                       href="#"
-                      className={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'h-10 w-10', 'border-2', 'shadow-none', 'mt-1')}
+                      className={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'h-10 w-10', 'border', 'shadow-none', 'mt-1', 'ml-0.5')}
                     >
                       <PlusCircledIcon className="w-5 h-5" />
                       <span className="sr-only">Add Cluster</span>

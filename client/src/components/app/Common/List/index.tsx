@@ -134,7 +134,7 @@ import { updateStorageClassesList } from "@/data/Storages/StorageClasses/Storage
 import { useAppSelector } from "@/redux/hooks";
 
 type ArrayElement<ArrayType extends readonly unknown[]> =
-ArrayType extends readonly (infer ElementType)[] ? ElementType : never;
+  ArrayType extends readonly (infer ElementType)[] ? ElementType : never;
 
 export function KwList() {
   const { leases, loading: leasesLoading } = useAppSelector((state: RootState) => state.leases);
@@ -166,6 +166,7 @@ export function KwList() {
   const { jobs, loading: jobsLoading } = useAppSelector((state: RootState) => state.jobs);
   const { replicaSets, loading: replicaSetsLoading } = useAppSelector((state: RootState) => state.replicaSets);
   const { statefulSets, loading: statefulSetsLoading } = useAppSelector((state: RootState) => state.statefulSets);
+  const { customResourcesNavigation } = useAppSelector((state: RootState) => state.customResources);
   const { customResourcesList, loading: customResourcesListLoading } = useAppSelector((state: RootState) => state.customResourcesList);
 
   const { config, cluster } = kwList.useParams();
@@ -231,7 +232,8 @@ export function KwList() {
     } if (resourcekind === STATEFUL_SETS_ENDPOINT) {
       return getTableConfig<StatefulSetsHeader>(statefulSets, STATEFUL_SETS_ENDPOINT, updateStatefulSets, statefulSetsLoading, stateSetsColumnConfig(config, cluster));
     } if (resourcekind === CUSTOM_RESOURCES_LIST_ENDPOINT) {
-      return getTableConfig<CustomResourceHeaders>(customResourcesList.list, CUSTOM_RESOURCES_LIST_ENDPOINT, updateCustomResourcesList, customResourcesListLoading, customResourcesColumnConfig(customResourcesList, config, cluster, group, kind, resource, version));
+      const additionalPrinterColumns = customResourcesNavigation[group||'']?.resources.filter(({name}) => name === kind) || [];
+      return getTableConfig<CustomResourceHeaders>(customResourcesList.list, CUSTOM_RESOURCES_LIST_ENDPOINT, updateCustomResourcesList, customResourcesListLoading, customResourcesColumnConfig(additionalPrinterColumns[0]?.additionalPrinterColumns, config, cluster, customResourcesListLoading, group, kind, resource, version));
     }
     return;
   };
@@ -243,18 +245,18 @@ export function KwList() {
   }
 
   return (
-    CreateTable<ArrayElement<typeof tableData.data>, HeaderList>({
-      clusterName: cluster,
-      configName: config,
-      headersList: tableData.headersList,
-      loading: tableData.loading,
-      count: tableData.data.length,
-      data: tableData.data,
-      queryParmObject: tableData.queryParams,
-      instanceType: tableData.instaceType,
-      endpoint: tableData.instaceType,
-      dispatchMethod: tableData.dispatchMethod,
-      showNamespaceFilter: tableData.showNamespaceFilter
-    })
+    <CreateTable
+      clusterName={cluster}
+      configName={config}
+      headersList={tableData.headersList as HeaderList[]}
+      loading={tableData.loading}
+      count={tableData.data.length}
+      data={tableData.data as ArrayElement<typeof tableData.data>[]}
+      queryParmObject={tableData.queryParams}
+      instanceType={tableData.instaceType}
+      endpoint={tableData.instaceType}
+      dispatchMethod={tableData.dispatchMethod}
+      showNamespaceFilter={tableData.showNamespaceFilter}
+    />
   );
 }
