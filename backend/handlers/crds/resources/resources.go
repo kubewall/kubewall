@@ -161,20 +161,6 @@ func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
 
 func FilterAdditionalPrinterColumns(additionalPrinterColumns []apiextensionsv1.CustomResourceColumnDefinition, isNamespaced bool) []apiextensionsv1.CustomResourceColumnDefinition {
 	output := make([]apiextensionsv1.CustomResourceColumnDefinition, 0)
-	for _, column := range additionalPrinterColumns {
-		if column.Name != "Age" && column.Name != "Name" && column.Name != "Namespace" {
-			output = append(output, column)
-		}
-	}
-	name := apiextensionsv1.CustomResourceColumnDefinition{
-		Name:        "Name",
-		Type:        "string",
-		Format:      "",
-		Description: "",
-		Priority:    0,
-		JSONPath:    ".metadata.name",
-	}
-	output = append(output, name)
 	if isNamespaced {
 		age := apiextensionsv1.CustomResourceColumnDefinition{
 			Name:        "Namespace",
@@ -185,6 +171,21 @@ func FilterAdditionalPrinterColumns(additionalPrinterColumns []apiextensionsv1.C
 			JSONPath:    ".metadata.namespace",
 		}
 		output = append(output, age)
+	}
+	name := apiextensionsv1.CustomResourceColumnDefinition{
+		Name:        "Name",
+		Type:        "string",
+		Format:      "",
+		Description: "",
+		Priority:    0,
+		JSONPath:    ".metadata.name",
+	}
+	output = append(output, name)
+
+	for _, column := range additionalPrinterColumns {
+		if column.Name != "Age" && column.Name != "Name" && column.Name != "Namespace" {
+			output = append(output, column)
+		}
 	}
 
 	age := apiextensionsv1.CustomResourceColumnDefinition{
