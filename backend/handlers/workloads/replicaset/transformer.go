@@ -11,8 +11,13 @@ import (
 type ReplicaSetList struct {
 	Namespace string    `json:"namespace"`
 	Name      string    `json:"name"`
+	Spec      Spec      `json:"spec"`
 	Status    Status    `json:"status"`
 	Age       time.Time `json:"age"`
+}
+
+type Spec struct {
+	Replicas int `json:"replicas"`
 }
 
 type Status struct {
@@ -38,9 +43,17 @@ func TransformReplicaSetList(deployments []v1.ReplicaSet) []ReplicaSetList {
 }
 
 func TransformReplicaSetItem(d v1.ReplicaSet) ReplicaSetList {
+	specReplicas := 0
+	if d.Spec.Replicas != nil {
+		specReplicas = int(*d.Spec.Replicas)
+	}
+
 	return ReplicaSetList{
 		Namespace: d.GetNamespace(),
 		Name:      d.GetName(),
+		Spec: Spec{
+			Replicas: specReplicas,
+		},
 		Status: Status{
 			Replicas:             d.Status.Replicas,
 			FullyLabeledReplicas: d.Status.FullyLabeledReplicas,
