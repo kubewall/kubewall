@@ -1,7 +1,7 @@
 # kubewall
 
 [Install](https://github.com/kubewall/kubewall?tab=readme-ov-file#battery-install)
-| [Guide](https://github.com/abhimanyu003/kw?tab=readme-ov-file#books-guide)
+| [Guide](https://github.com/kubewall/kubewall?tab=readme-ov-file#books-guide)
 | [Releases](https://github.com/kubewall/kubewall/releases)
 | [Source Code](https://github.com/kubewall/kubewall)
 
