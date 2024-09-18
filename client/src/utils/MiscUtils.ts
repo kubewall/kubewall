@@ -21,7 +21,7 @@ const defaultSkeletonRow = () => Array(30).fill({});
 const createEventStreamQueryObject = (config: string, cluster: string, namespace = '') => ({
   config,
   cluster,
-  namespace
+  ...(namespace ? {namespace} : {})
 });
 
 const getEventStreamUrl = (stream='', queryParmObject: Record<string, string>, extraRoutes = '', extraQueryParams = '') => {

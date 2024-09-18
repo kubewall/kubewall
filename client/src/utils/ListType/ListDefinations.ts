@@ -342,7 +342,6 @@ const daemonSetsColumnConfig = (config: string, cluster: string) => ({
     { title: 'Ready', accessorKey: 'ready', enableSorting: false },
     { title: 'Updated', accessorKey: 'updated' },
     { title: 'Available', accessorKey: 'available' },
-    { title: 'Node Selector', accessorKey: 'nodeSelector' },
     { title: 'Age', accessorKey: 'age' }
   ],
   queryParams: { config, cluster },
@@ -402,7 +401,7 @@ const stateSetsColumnConfig = (config: string, cluster: string) => ({
 });
 
 // Custom Resources
-const customResourcesColumnConfig = ( additionalPrinterColumns: CustomResourcesPrinterColumns[] = [], config: string, cluster: string, loading: string, group?: string, kind?: string, resource?: string, version?: string) => ({
+const customResourcesColumnConfig = ( additionalPrinterColumns: CustomResourcesPrinterColumns[] = [], config: string, cluster: string, loading: boolean, group?: string, kind?: string, resource?: string, version?: string) => ({
   headersList: [
     ...additionalPrinterColumns.map((columns) => {
       return {

@@ -90,7 +90,7 @@ const KwDetails = () => {
                       name={resourcename}
                       configName={config}
                       clusterName={cluster}
-                      instanceType={`${resourcekind}${resourceInitialData.label === 'Custom Resources' ?  '/' + namespace : ''}`}
+                      instanceType={`${resourcekind}${resourceInitialData.label === 'Custom Resources' && namespace ?  '/' + namespace : ''}`}
                       namespace={namespace || ''}
                       extraQuery={resourceInitialData.label === 'Custom Resources' ? '&' + new URLSearchParams({group,kind,resource,version}).toString() : ''}
                     />

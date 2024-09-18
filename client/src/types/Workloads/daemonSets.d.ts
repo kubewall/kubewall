@@ -2,7 +2,6 @@ type DaemonSetsResponse = {
   namespace: string,
   name: string,
   generation: number,
-  nodeSelector: string,
   age: string,
   status: {
     currentNumberScheduled: number,
@@ -23,7 +22,6 @@ type DaemonSetsHeader = {
   ready: string,
   updated: number,
   available: number,
-  nodeSelector: string,
   age: string
 }
 
