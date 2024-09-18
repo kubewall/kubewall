@@ -1,3 +1,5 @@
+import { CustomResourcesPrinterColumns } from "./CustomResources";
+
 type HeaderList = {
   title: string;
   // eslint-disable-next-line  @typescript-eslint/no-explicit-any
@@ -77,13 +79,15 @@ type CustomResources = {
       },
       scope: string
   },
-  versions: number
+  versions: number,
+  additionalPrinterColumns: CustomResourcesPrinterColumns[];
 };
 
 type CustomResourcesNavigationKeys = {
   resources: {
     name: string;
     route: string;
+    additionalPrinterColumns: CustomResourcesPrinterColumns[];
   }[];
 };
 

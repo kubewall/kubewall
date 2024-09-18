@@ -76,7 +76,7 @@ func customResourceColumnDefinition(item apiextensionsv1.CustomResourceDefinitio
 	printerColumns := make([]apiextensionsv1.CustomResourceColumnDefinition, 0)
 	for _, v := range item.Spec.Versions {
 		if v.Name == activeVersion {
-			printerColumns = resources.FilterAdditionalPrinterColumns(v.AdditionalPrinterColumns)
+			printerColumns = resources.FilterAdditionalPrinterColumns(v.AdditionalPrinterColumns, item.Spec.Scope == "Namespaced")
 		}
 	}
 	return printerColumns

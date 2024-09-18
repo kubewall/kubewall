@@ -40,7 +40,13 @@ function GenerateColumns<T, C extends HeaderList>({
           enableSorting: headerList.enableSorting ?? true,
         };
       }),
-    [count]
+    [count,
+      clusterName,
+      configName,
+      loading,
+      headersList,
+      instanceType,
+      queryParams]
   );
 }
 

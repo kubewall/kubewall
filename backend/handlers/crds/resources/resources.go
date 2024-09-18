@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	Get     = 10
-	GetYAML = 12
+	GetDetails = 10
+	GetYAML    = 12
 )
 
 type Output struct {
@@ -65,7 +65,7 @@ func NewUnstructuredHandler(container container.Container, routeType base.RouteT
 		switch routeType {
 		case base.GetList:
 			return handler.BaseHandler.GetList(c)
-		case Get:
+		case GetDetails:
 			return handler.Get(c)
 		case base.GetEvents:
 			return handler.BaseHandler.GetEvents(c)
@@ -78,40 +78,37 @@ func NewUnstructuredHandler(container container.Container, routeType base.RouteT
 }
 
 func (h *UnstructuredHandler) Get(c echo.Context) error {
-	go func() {
-		<-c.Request().Context().Done()
-	}()
-
-	key := fmt.Sprintf("%s/%s", c.Param("namespace"), c.Param("name"))
+	itemKey := fmt.Sprintf("%s/%s", c.Param("namespace"), c.Param("name"))
 	if len(c.Param("namespace")) == 0 {
-		key = c.Param("name")
+		itemKey = c.Param("name")
 	}
 
-	h.BaseHandler.Event.AddEvent(key, h.ProcessDetails(c.Param("namespace"), c.Param("name")))
-	h.BaseHandler.Container.SSE().ServeHTTP(key, c.Response(), c.Request())
+	streamKey := fmt.Sprintf("%s-%s-%s", h.BaseHandler.QueryConfig, h.BaseHandler.QueryCluster, itemKey)
+	streamKey = strings.ReplaceAll(streamKey, "/", "-")
+	go h.BaseHandler.Event.AddEvent(streamKey, h.ProcessDetails(itemKey, streamKey))
+	h.BaseHandler.Container.SSE().ServeHTTP(streamKey, c.Response(), c.Request())
 
 	return nil
 }
 
-func (h *UnstructuredHandler) ProcessDetails(namespace, name string) func() {
+func (h *UnstructuredHandler) ProcessDetails(itemKey, steamKey string) func() {
 	return func() {
 		var b []byte
-		streamID := fmt.Sprintf("%s/%s", namespace, name)
-		l, exists, err := h.BaseHandler.Informer.GetStore().GetByKey(streamID)
+		l, exists, err := h.BaseHandler.Informer.GetStore().GetByKey(itemKey)
 		if err != nil || !exists {
 			b = []byte("{}")
 		} else {
 			b, _ = json.Marshal(l)
 		}
 
-		h.BaseHandler.Container.SSE().Publish(streamID, &sse.Event{
+		h.BaseHandler.Container.SSE().Publish(steamKey, &sse.Event{
 			Data: b,
 		})
 	}
 }
 
 func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
-	var output Output
+	output := Output{}
 	list := make([]unstructured.Unstructured, 0)
 	customResourceDefinitions := make([]apiextensionsv1.CustomResourceDefinition, 0)
 
@@ -143,12 +140,11 @@ func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
 
 	selectedGroup, selectedVersion := apiVersion[0], apiVersion[1]
 	kind := list[0].GetKind()
-
 	for _, crd := range customResourceDefinitions {
 		if crd.Spec.Group == selectedGroup && crd.Spec.Names.Kind == kind {
 			for _, version := range crd.Spec.Versions {
 				if version.Name == selectedVersion {
-					output.AdditionalPrinterColumns = FilterAdditionalPrinterColumns(version.AdditionalPrinterColumns)
+					output.AdditionalPrinterColumns = FilterAdditionalPrinterColumns(version.AdditionalPrinterColumns, b.IsNamespaceResource(kind))
 					break
 				}
 			}
@@ -163,12 +159,43 @@ func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
 	return json.Marshal(output)
 }
 
-func FilterAdditionalPrinterColumns(additionalPrinterColumns []apiextensionsv1.CustomResourceColumnDefinition) []apiextensionsv1.CustomResourceColumnDefinition {
+func FilterAdditionalPrinterColumns(additionalPrinterColumns []apiextensionsv1.CustomResourceColumnDefinition, isNamespaced bool) []apiextensionsv1.CustomResourceColumnDefinition {
 	output := make([]apiextensionsv1.CustomResourceColumnDefinition, 0)
 	for _, column := range additionalPrinterColumns {
 		if column.Name != "Age" && column.Name != "Name" && column.Name != "Namespace" {
 			output = append(output, column)
 		}
 	}
+	name := apiextensionsv1.CustomResourceColumnDefinition{
+		Name:        "Name",
+		Type:        "string",
+		Format:      "",
+		Description: "",
+		Priority:    0,
+		JSONPath:    ".metadata.name",
+	}
+	output = append([]apiextensionsv1.CustomResourceColumnDefinition{name}, output...)
+	if isNamespaced {
+		namespace := apiextensionsv1.CustomResourceColumnDefinition{
+			Name:        "Namespace",
+			Type:        "string",
+			Format:      "",
+			Description: "",
+			Priority:    0,
+			JSONPath:    ".metadata.namespace",
+		}
+		output = append([]apiextensionsv1.CustomResourceColumnDefinition{namespace}, output...)
+	}
+
+	age := apiextensionsv1.CustomResourceColumnDefinition{
+		Name:        "Age",
+		Type:        "Date",
+		Format:      "",
+		Description: "",
+		Priority:    0,
+		JSONPath:    ".metadata.creationTimestamp",
+	}
+	output = append(output, age)
+
 	return output
 }

@@ -157,7 +157,7 @@ const useFetchDataForDetails = ({
   } else if (resourcekind === STORAGE_CLASSES_ENDPOINT) {
     data = { label: 'Storage Classes', dispatchMethod: updateStorageClassDetails, loading: storageClassDetailsLoading, endpoint: STORAGE_CLASSES_ENDPOINT };
   } else if (resourcekind === CUSTOM_RESOURCES_LIST_ENDPOINT) {
-    data = { label: 'Custom Resources', dispatchMethod: updateCustomResourceDetails, loading: customResourceDetailsLoading, endpoint: `${CUSTOM_RESOURCES_LIST_ENDPOINT}/${namespace}` };
+    data = { label: 'Custom Resources', dispatchMethod: updateCustomResourceDetails, loading: customResourceDetailsLoading, endpoint: `${CUSTOM_RESOURCES_LIST_ENDPOINT}${namespace ? `/${namespace}`: ''}` };
   }  else {
     data = null;
   }

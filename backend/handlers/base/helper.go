@@ -9,7 +9,7 @@ import (
 )
 
 func (h *BaseHandler) getStreamIDAndItem(namespace, name string) (string, any, bool, error) {
-	if h.isNamespaceResource(h.Kind) {
+	if h.IsNamespaceResource(h.Kind) {
 		streamID := fmt.Sprintf("%s-%s-%s-%s", h.QueryConfig, h.QueryCluster, namespace, name)
 		item, exists, err := h.Informer.GetStore().GetByKey(fmt.Sprintf("%s/%s", namespace, name))
 		return streamID, item, exists, err

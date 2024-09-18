@@ -45,7 +45,6 @@ const CreateTable = <T, C extends HeaderList>({
     url: getEventStreamUrl(endpoint, queryParmObject),
     sendMessage,
   });
-
   return (
     <div className="col-span-7">
       <div className="h-full">
@@ -61,7 +60,7 @@ const CreateTable = <T, C extends HeaderList>({
           })}
           data={loading ? defaultSkeletonRow() : data}
           showNamespaceFilter={showNamespaceFilter}
-          tableWidthCss="list-table-max-height"
+          tableWidthCss="list-table-max-height h-screen"
           loading={loading}
         />
       </div>

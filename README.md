@@ -103,6 +103,7 @@ Flags:
       --k8s-client-burst int   Maximum burst for throttle (default 50)
       --k8s-client-qps int     maximum QPS to the master from client (default 50)
       --keyFile string         absolute path to key file
+      --no-open-browser        Do not open the default browser
   -p, --port string            port to listen on (default ":7080")
 
 Use "kubewall [command] --help" for more information about a command.

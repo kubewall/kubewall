@@ -46,11 +46,11 @@ const kwDetails = createRoute({
   validateSearch: (search: Record<string, unknown>): kwDetailsSearch => ({
     resourcekind: String(search.resourcekind) || '',
     resourcename: String(search.resourcename) || '',
-    group: String(search.group) || '',
-    kind: String(search.kind) || '',
-    resource: String(search.resource) || '',
-    version: String(search.version) || '',
-    namespace: String(search.namespace) || '',
+    group: search.group ? String(search.group) : '',
+    kind: search.kind? String(search.kind) : '',
+    resource: search.resource ? String(search.resource) : '',
+    version:search.version ? String(search.version) : '',
+    namespace: search.namespace ? String(search.namespace) : '',
   })
 });
 

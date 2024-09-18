@@ -92,7 +92,7 @@ const getDeploymentDetailsConfig = (details: DeploymentDetails, loading: boolean
     { label: 'Age', value: defaultOrValue(details.metadata.creationTimestamp) },
     { label: 'Generation', value: defaultOrValue(details.metadata.generation) },
     { label: 'Observed Generation', value: defaultOrValue(details.status.observedGeneration) },
-    { label: 'Replicas', value: defaultOrValue(details.status.replicas) },
+    { label: 'Replicas', value: defaultOrValue(details.spec.replicas) },
     { label: 'Updated Replicas', value: defaultOrValue(details.status.updatedReplicas) },
     { label: 'Ready Replicas', value: defaultOrValue(details.status.readyReplicas) },
     { label: 'Available Replicas', value: defaultOrValue(details.status.availableReplicas) },

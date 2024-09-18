@@ -58,6 +58,7 @@ export function Events({ instanceType, name, namespace, configName, clusterName,
       showToolbar={false}
       tableWidthCss="event-table-max-height rounded-lg"
       showNamespaceFilter={false}
+      isEventTable={true}
     />
   );
 }

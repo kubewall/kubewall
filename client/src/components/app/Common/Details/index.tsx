@@ -11,6 +11,7 @@ import { PODS_ENDPOINT } from "@/constants";
 import { PodLogs } from "../../MiscDetailsContainer";
 import { RootState } from "@/redux/store";
 import { YamlEditor } from "../../Details/YamlEditor";
+import { clearLogs } from "@/data/Workloads/Pods/PodLogsSlice";
 import { kwDetails } from "@/routes";
 import { resetYamlDetails } from "@/data/Yaml/YamlSlice";
 import { useAppSelector } from "@/redux/hooks";
@@ -25,6 +26,7 @@ const KwDetails = () => {
 
   useEffect(() => {
     dispatch(resetYamlDetails());
+    dispatch(clearLogs());
   },[]);
 
   const resourceInitialData = useFetchDataForDetails({cluster, config, group, kind, namespace, resource, resourcekind, resourcename, version});
@@ -88,7 +90,7 @@ const KwDetails = () => {
                       name={resourcename}
                       configName={config}
                       clusterName={cluster}
-                      instanceType={`${resourcekind}${resourceInitialData.label === 'Custom Resources' ?  '/' + namespace : ''}`}
+                      instanceType={`${resourcekind}${resourceInitialData.label === 'Custom Resources' && namespace ?  '/' + namespace : ''}`}
                       namespace={namespace || ''}
                       extraQuery={resourceInitialData.label === 'Custom Resources' ? '&' + new URLSearchParams({group,kind,resource,version}).toString() : ''}
                     />

@@ -21,7 +21,7 @@ const defaultSkeletonRow = () => Array(30).fill({});
 const createEventStreamQueryObject = (config: string, cluster: string, namespace = '') => ({
   config,
   cluster,
-  namespace
+  ...(namespace ? {namespace} : {})
 });
 
 const getEventStreamUrl = (stream='', queryParmObject: Record<string, string>, extraRoutes = '', extraQueryParams = '') => {
@@ -36,13 +36,15 @@ const formatCustomResources = (customResources: CustomResources[]) => {
     if (acc[item.spec.group]) {
       acc[item.spec.group].resources.push({
         name: item.spec.names.kind,
-        route: item.queryParam
+        route: item.queryParam,
+        additionalPrinterColumns: item.additionalPrinterColumns,
       });
     } else {
       acc[item.spec.group] = {
         resources: [{
           name: item.spec.names.kind,
-          route: item.queryParam
+          route: item.queryParam,
+          additionalPrinterColumns: item.additionalPrinterColumns,
         }]
       };
     }

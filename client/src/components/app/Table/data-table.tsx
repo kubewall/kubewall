@@ -37,6 +37,7 @@ type DataTableProps<TData, TValue> = {
   showNamespaceFilter: boolean;
   showToolbar?: boolean;
   loading?: boolean;
+  isEventTable?: boolean;
 }
 // eslint-disable-next-line  @typescript-eslint/no-explicit-any
 const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
@@ -59,6 +60,7 @@ export function DataTable<TData, TValue>({
   showNamespaceFilter,
   showToolbar = true,
   loading = false,
+  isEventTable = false,
 }: DataTableProps<TData, TValue>) {
 
   const {
@@ -141,7 +143,7 @@ export function DataTable<TData, TValue>({
                 </TableRow>
               ))
             ) : (
-              <TableRow className="empty-table">
+              <TableRow className={isEventTable ? 'empty-table-events' :'empty-table'}>
                 <TableCell
                   colSpan={columns.length}
                   className="text-center"
