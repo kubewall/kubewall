@@ -69,7 +69,6 @@ func NewPodsHandler(c echo.Context, container container.Container) *PodsHandler 
 			Informer:         informer,
 			QueryConfig:      config,
 			QueryCluster:     cluster,
-			RestClient:       container.ClientSet(config, cluster).CoreV1().RESTClient(),
 			InformerCacheKey: fmt.Sprintf("%s-%s-podInformer", config, cluster),
 			Event:            event.NewEventCounter(time.Millisecond * 250),
 			TransformFunc:    transformItems,
