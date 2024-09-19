@@ -3,6 +3,8 @@ package pods
 import (
 	"fmt"
 	"github.com/maruel/natural"
+	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/metrics/pkg/apis/metrics/v1beta1"
 	"sort"
 	"time"
 
@@ -15,6 +17,8 @@ type PodList struct {
 	Node          string    `json:"node"`
 	Ready         string    `json:"ready"`
 	Status        string    `json:"status"`
+	CPU           string    `json:"cpu"`
+	Memory        string    `json:"memory"`
 	Restarts      string    `json:"restarts"`
 	LastRestartAt string    `json:"lastRestartAt"`
 	PodIP         string    `json:"podIP"`
@@ -23,11 +27,16 @@ type PodList struct {
 	HasUpdated    bool      `json:"hasUpdated"`
 }
 
-func TransformPodList(pods []coreV1.Pod) []PodList {
+func TransformPodList(pods []coreV1.Pod, podMetricsList *v1beta1.PodMetricsList) []PodList {
 	list := make([]PodList, 0)
+	podsMetricsMap := GetPodsMetrics(podMetricsList)
 
 	for _, p := range pods {
-		list = append(list, TransformPodListItem(p))
+		item := TransformPodListItem(p)
+		item.CPU = podsMetricsMap[item.Name]["cpu"]
+		item.Memory = podsMetricsMap[item.Name]["memory"]
+
+		list = append(list, item)
 	}
 
 	sort.Slice(list, func(i, j int) bool {
@@ -35,6 +44,33 @@ func TransformPodList(pods []coreV1.Pod) []PodList {
 	})
 
 	return list
+}
+
+func GetPodsMetrics(podMetrics *v1beta1.PodMetricsList) map[string]map[string]string {
+	podsMetrics := make(map[string]map[string]string)
+
+	if podMetrics == nil {
+		return podsMetrics
+	}
+
+	for _, podMetric := range podMetrics.Items {
+		podsMetrics[podMetric.Name] = make(map[string]string)
+		// Initialize totals for CPU and memory usage
+		totalCPUUsage := resource.NewQuantity(0, resource.DecimalSI)
+		totalMemoryUsage := resource.NewQuantity(0, resource.BinarySI)
+
+		// Iterate over each container in the pod and aggregate the metrics
+		for _, container := range podMetric.Containers {
+			cpuUsage := container.Usage["cpu"]
+			memoryUsage := container.Usage["memory"]
+
+			totalCPUUsage.Add(cpuUsage)
+			totalMemoryUsage.Add(memoryUsage)
+		}
+		podsMetrics[podMetric.Name]["cpu"] = fmt.Sprintf("%f", totalCPUUsage.AsApproximateFloat64())
+		podsMetrics[podMetric.Name]["memory"] = fmt.Sprintf("%.2f", totalMemoryUsage.AsApproximateFloat64()/(1<<20))
+	}
+	return podsMetrics
 }
 
 func TransformPodListItem(pod coreV1.Pod) PodList {

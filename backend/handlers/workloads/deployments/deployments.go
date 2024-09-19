@@ -7,9 +7,7 @@ import (
 	"github.com/kubewall/kubewall/backend/handlers/base"
 	"github.com/kubewall/kubewall/backend/handlers/helpers"
 	"github.com/kubewall/kubewall/backend/handlers/workloads/pods"
-	"github.com/r3labs/sse/v2"
 	v1 "k8s.io/api/apps/v1"
-	coreV1 "k8s.io/api/core/v1"
 	"net/http"
 	"time"
 
@@ -88,25 +86,13 @@ func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
 
 func (h *DeploymentsHandler) GetPods(c echo.Context) error {
 	streamID := fmt.Sprintf("%s-%s-%s-deployments-pods", h.BaseHandler.QueryConfig, h.BaseHandler.QueryCluster, c.Param("name"))
-	go h.DeploymentsPods(c, streamID)
+	go h.DeploymentsPods(c)
 	h.BaseHandler.Container.SSE().ServeHTTP(streamID, c.Response(), c.Request())
 	return nil
 }
 
 // DeploymentsPods get list of pods for given deployment
-func (h *DeploymentsHandler) DeploymentsPods(c echo.Context, streamID string) {
+func (h *DeploymentsHandler) DeploymentsPods(c echo.Context) {
 	podsHandler := pods.NewPodsHandler(c, h.BaseHandler.Container)
-	storeList := podsHandler.BaseHandler.Informer.GetStore().List()
-
-	var podsList []coreV1.Pod
-	for _, obj := range storeList {
-		if item, ok := obj.(*coreV1.Pod); ok {
-			podsList = append(podsList, *item)
-		}
-	}
-
-	data, _ := json.Marshal(pods.TransformPodList(pods.FilterPodsByDeploymentName(podsList, c.Param("name"))))
-	h.BaseHandler.Container.SSE().Publish(streamID, &sse.Event{
-		Data: data,
-	})
+	podsHandler.DeploymentsPods(c)
 }

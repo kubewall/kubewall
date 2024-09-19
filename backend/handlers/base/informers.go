@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/charmbracelet/log"
+	"github.com/kubewall/kubewall/backend/routes/middleware"
 	"github.com/labstack/echo/v4"
 	"github.com/r3labs/sse/v2"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -83,7 +84,7 @@ func (h *BaseHandler) WaitForSync(c echo.Context) {
 }
 
 func (h *BaseHandler) IsNamespaceResource(r string) bool {
-	cacheKey := fmt.Sprintf("%s-%s-nonNamespacedResources", h.QueryConfig, h.QueryCluster)
+	cacheKey := fmt.Sprintf(middleware.NonNamespacedResources, h.QueryConfig, h.QueryCluster)
 	c, exists := h.Container.Cache().Get(cacheKey)
 	if !exists {
 		return false
