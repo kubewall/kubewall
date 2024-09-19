@@ -5,7 +5,7 @@ type PodsHeaders = {
   ready: string;
   status: string;
   cpu: string;
-  memoryUsage: string;
+  memory: string;
   restarts: string;
   lastRestartAt: string;
   lastRestartReason: string;

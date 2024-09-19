@@ -86,8 +86,9 @@ export function KubeConfiguration() {
       <div className='h-screen px-[1%] py-[1%]'>
         <div className="flex flex-col space-y-8 md:flex p-2">
           <div className="flex items-center justify-between space-y-2">
-            <div>
+            <div className="flex items-end">
               <img className="w-40" src={getSystemTheme() === 'light' ? kwLogoLight : kwLogoDark} alt="kubewall" />
+              <span className="ml-2 text-xs">({clusters.version})</span>
             </div>
             <AddConfig />
           </div>

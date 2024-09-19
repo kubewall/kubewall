@@ -310,6 +310,8 @@ const podsColumnConfig = (config: string, cluster: string) => ({
     { title: 'Node', accessorKey: 'node', },
     { title: 'Ready', accessorKey: 'ready', enableSorting: false },
     { title: 'Status', accessorKey: 'status', },
+    { title: 'CPU', accessorKey: 'cpu', },
+    { title: 'Memory', accessorKey: 'memory', },
     { title: 'Restarts', accessorKey: 'restarts', },
     { title: 'Last Restart', accessorKey: 'lastRestartAt', },
     { title: 'IP', accessorKey: 'podIP', },

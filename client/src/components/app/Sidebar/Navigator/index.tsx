@@ -4,7 +4,7 @@ import { memo, useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { NAVIGATION_ROUTE } from "@/constants";
 import { RootState } from "@/redux/store";
 import { resetListTableFilter } from "@/data/Misc/ListTableFilterSlice";
@@ -47,11 +47,17 @@ const SidebarNavigator = memo(function () {
 
   return (
     <>
-      <Input
-        className="h-8 mt-2 shadow-none"
-        placeholder="Open... (⌘K)"
+      <Button
+        variant="outline"
+        size="lg"
+        className="h-8 mt-2 shadow-none flex justify-between items-center w-full px-1 hover:bg-gray-50"
         onClick={() => setOpen((open) => !open)}
-      />
+      >
+        <span className="text-xs font-normal">Open...</span>
+        <kbd className="bg-gray-100 dark:text-primary-foreground px-2 py-0.5 rounded-md text-[10px] font-medium">
+          ⌘ K
+        </kbd>
+      </Button>
       <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandInput placeholder="Search..." />
         <CommandList>
@@ -61,14 +67,14 @@ const SidebarNavigator = memo(function () {
               return (
                 <CommandGroup heading={route} key={route}>
                   {
-                    NAVIGATION_ROUTE[route].map(({name, route: routeValue}) => {
+                    NAVIGATION_ROUTE[route].map(({ name, route: routeValue }) => {
                       return (
                         <CommandItem key={routeValue} className="group cursor-pointer" onSelect={() => onSelectResources(routeValue)}>
                           <CubeIcon className="mr-2 h-4 w-4" />
                           <span>
                             {name}
                           </span>
-                          <CommandShortcut className="invisible group-aria-[selected=true]:visible"><EnterIcon/></CommandShortcut>
+                          <CommandShortcut className="invisible group-aria-[selected=true]:visible"><EnterIcon /></CommandShortcut>
                         </CommandItem>
                       );
                     })
@@ -93,7 +99,7 @@ const SidebarNavigator = memo(function () {
                           <span>
                             {customResource.name} <span className="text-xs">({customResourceGroup})</span>
                           </span>
-                          <CommandShortcut className="invisible group-aria-[selected=true]:visible"><EnterIcon/></CommandShortcut>
+                          <CommandShortcut className="invisible group-aria-[selected=true]:visible"><EnterIcon /></CommandShortcut>
                         </CommandItem>
                       );
                     })

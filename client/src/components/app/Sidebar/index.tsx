@@ -105,7 +105,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
   return (
     <div className={cn("col-span-1", className)}>
       <div className="h-screen flex space-y-4 py-1">
-        <div className="px-3 py-2 basis-[100%]">
+        <div className="px-2 py-2 basis-[100%]">
           <div className="flex items-center justify-between">
             <img className="w-28" src={getSystemTheme() === 'light' ? kwLogoLight : kwLogoDark} alt="kubewall" />
           </div>

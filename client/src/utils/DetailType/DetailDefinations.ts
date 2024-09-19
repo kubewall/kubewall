@@ -402,7 +402,7 @@ const getRoleBindingDetailsConfig = (details: RoleBindingDetails, loading: boole
 });
 
 const getClusterRoleDetailsConfig = (details: ClusterRoleDetails, loading: boolean) => ({
-  subHeading: !details.metadata ? '' : `${details.metadata.namespace}/${details.metadata.name}`,
+  subHeading: !details.metadata ? '' : `${details.metadata.name}`,
   detailCard: [
     { label: 'Name', value: defaultOrValue(details.metadata.name) },
     { label: 'Resource Version', value: defaultOrValue(details.metadata.resourceVersion) },
