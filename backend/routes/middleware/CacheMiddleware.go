@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-const NonNamespacedResources = "%s-%s-nonNamespacedResources"
+const NoNamespacedResources = "%s-%s-nonNamespacedResources"
 const MetricAPIAvailableKey = "%s-%s-metricAPIAvailableKey"
 
 func CacheMiddleware(container container.Container) echo.MiddlewareFunc {
@@ -22,14 +22,14 @@ func CacheMiddleware(container container.Container) echo.MiddlewareFunc {
 			config := c.QueryParam("config")
 			cluster := c.QueryParam("cluster")
 
-			noneNamespacedResourceKey := fmt.Sprintf(NonNamespacedResources, config, cluster)
+			noNamespacedResourceKey := fmt.Sprintf(NoNamespacedResources, config, cluster)
 			metricAPIAvailableKey := fmt.Sprintf(MetricAPIAvailableKey, config, cluster)
 
 			if container.Cache().Has(metricAPIAvailableKey) == false {
 				container.Cache().Set(metricAPIAvailableKey, isMetricsAPIAvailable(container.ClientSet(config, cluster)))
 			}
 
-			if container.Cache().Has(noneNamespacedResourceKey) {
+			if container.Cache().Has(noNamespacedResourceKey) {
 				return next(c)
 			}
 			apiResources, err := container.ClientSet(config, cluster).Discovery().ServerPreferredResources()
@@ -45,7 +45,7 @@ func CacheMiddleware(container container.Container) echo.MiddlewareFunc {
 					}
 				}
 			}
-			container.Cache().Set(noneNamespacedResourceKey, resources)
+			container.Cache().Set(noNamespacedResourceKey, resources)
 
 			return next(c)
 		}
