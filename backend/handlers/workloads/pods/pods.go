@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/charmbracelet/log"
+	"github.com/kubewall/kubewall/backend/handlers/workloads/replicaset"
 	"github.com/kubewall/kubewall/backend/routes/middleware"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/metrics/pkg/apis/metrics/v1beta1"
@@ -28,9 +29,10 @@ import (
 )
 
 type PodsHandler struct {
-	BaseHandler base.BaseHandler
-	clientSet   *kubernetes.Clientset
-	restConfig  *rest.Config
+	BaseHandler       base.BaseHandler
+	clientSet         *kubernetes.Clientset
+	restConfig        *rest.Config
+	replicasetHandler *replicaset.ReplicaSetHandler
 }
 
 func NewPodsRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
@@ -72,8 +74,9 @@ func NewPodsHandler(c echo.Context, container container.Container) *PodsHandler 
 			Event:            event.NewEventCounter(time.Millisecond * 250),
 			TransformFunc:    transformItems,
 		},
-		restConfig: container.RestConfig(config, cluster),
-		clientSet:  container.ClientSet(config, cluster),
+		restConfig:        container.RestConfig(config, cluster),
+		clientSet:         container.ClientSet(config, cluster),
+		replicasetHandler: replicaset.NewReplicaSetHandler(c, container),
 	}
 
 	additionalEvents := []map[string]func(){

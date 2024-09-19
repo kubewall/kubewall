@@ -3,7 +3,6 @@ package pods
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/kubewall/kubewall/backend/handlers/workloads/replicaset"
 	appV1 "k8s.io/api/apps/v1"
 	"strings"
 
@@ -46,7 +45,7 @@ func (h *PodsHandler) FindPodDeploymentOwner(c echo.Context, pod v1.Pod) string 
 	// Get the deployment name from the pod's owner references
 	for _, owner := range pod.OwnerReferences {
 		if owner.Kind == "ReplicaSet" {
-			item, exists, err := replicaset.NewReplicaSetHandler(c, h.BaseHandler.Container).BaseHandler.Informer.GetStore().GetByKey(fmt.Sprintf("%s/%s", pod.GetNamespace(), owner.Name))
+			item, exists, err := h.replicasetHandler.BaseHandler.Informer.GetStore().GetByKey(fmt.Sprintf("%s/%s", pod.GetNamespace(), owner.Name))
 			if err != nil || exists == false {
 				return ""
 			}
