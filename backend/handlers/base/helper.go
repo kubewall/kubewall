@@ -87,17 +87,17 @@ func (h *BaseHandler) isResourceUpdated(entry map[string]any, resourceName strin
 func (h *BaseHandler) IsNamespacedResource(r string) bool {
 	result, exists := helpers.IsNamespacedResource(h.Container, h.QueryConfig, h.QueryCluster, r)
 	if !exists {
-		helpers.ReCacheAllResources(h.Container, h.QueryConfig, h.QueryCluster)
+		helpers.RefreshAllResourcesCache(h.Container, h.QueryConfig, h.QueryCluster)
 		result, _ = helpers.IsNamespacedResource(h.Container, h.QueryConfig, h.QueryCluster, r)
 	}
 	return result
 }
 
 func (h *BaseHandler) GetResourceNameFromKind(kind string) string {
-	name, exists := helpers.GetResourceNameFromKind(h.Container, h.QueryConfig, h.QueryCluster, kind)
+	name, exists := helpers.FindResourceNameByKind(h.Container, h.QueryConfig, h.QueryCluster, kind)
 	if !exists {
-		helpers.ReCacheAllResources(h.Container, h.QueryConfig, h.QueryCluster)
-		name, _ = helpers.GetResourceNameFromKind(h.Container, h.QueryConfig, h.QueryCluster, kind)
+		helpers.RefreshAllResourcesCache(h.Container, h.QueryConfig, h.QueryCluster)
+		name, _ = helpers.FindResourceNameByKind(h.Container, h.QueryConfig, h.QueryCluster, kind)
 	}
 
 	return name

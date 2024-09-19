@@ -45,12 +45,12 @@ func GetAllResourcesFromCache(container container.Container, config, cluster str
 	return c.([]Resources), nil
 }
 
-func ReCacheAllResources(container container.Container, config, cluster string) error {
+func RefreshAllResourcesCache(container container.Container, config, cluster string) error {
 	container.Cache().Delete(fmt.Sprintf(AllResourcesCacheKeyFormat, config, cluster))
 	return CacheAllResources(container, config, cluster)
 }
 
-func GetResourceNameFromKind(container container.Container, config, cluster, kind string) (string, bool) {
+func FindResourceNameByKind(container container.Container, config, cluster, kind string) (string, bool) {
 	resources, _ := GetAllResourcesFromCache(container, config, cluster)
 	for _, resource := range resources {
 		if strings.EqualFold(kind, resource.Kind) {
