@@ -32,7 +32,7 @@ func NewCRDHandler(container container.Container, routeType base.RouteType) echo
 				Informer:         informer,
 				QueryConfig:      config,
 				QueryCluster:     cluster,
-				InformerCacheKey: fmt.Sprintf("%s-%s-CustomResourceDefinitionInformer", config, cluster),
+				InformerCacheKey: fmt.Sprintf("%s-%s-customResourceDefinitionInformer", config, cluster),
 				Event:            event.NewEventCounter(time.Millisecond * 250),
 				TransformFunc:    transformItems,
 			},

@@ -64,7 +64,6 @@ func (h *PodsHandler) FindPodDeploymentOwner(c echo.Context, pod v1.Pod) string 
 
 func FilterPodsByDeploymentName(pods []v1.Pod, deploymentName string) []v1.Pod {
 	filteredPods := make([]v1.Pod, 0)
-
 	for _, pod := range pods {
 		// Check if the pod has ownerReferences
 		for _, ownerRef := range pod.OwnerReferences {

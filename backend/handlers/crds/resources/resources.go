@@ -144,7 +144,7 @@ func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
 		if crd.Spec.Group == selectedGroup && crd.Spec.Names.Kind == kind {
 			for _, version := range crd.Spec.Versions {
 				if version.Name == selectedVersion {
-					output.AdditionalPrinterColumns = FilterAdditionalPrinterColumns(version.AdditionalPrinterColumns, b.IsNamespaceResource(kind))
+					output.AdditionalPrinterColumns = FilterAdditionalPrinterColumns(version.AdditionalPrinterColumns, b.IsNamespacedResource(kind))
 					break
 				}
 			}

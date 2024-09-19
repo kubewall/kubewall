@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/charmbracelet/log"
 	"github.com/kubewall/kubewall/backend/handlers/workloads/replicaset"
-	"github.com/kubewall/kubewall/backend/routes/middleware"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/metrics/pkg/apis/metrics/v1beta1"
 	"sync"
@@ -70,6 +69,7 @@ func NewPodsHandler(c echo.Context, container container.Container) *PodsHandler 
 			Informer:         informer,
 			QueryConfig:      config,
 			QueryCluster:     cluster,
+			RestClient:       container.ClientSet(config, cluster).CoreV1().RESTClient(),
 			InformerCacheKey: fmt.Sprintf("%s-%s-podInformer", config, cluster),
 			Event:            event.NewEventCounter(time.Millisecond * 250),
 			TransformFunc:    transformItems,
@@ -109,7 +109,8 @@ func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
 }
 
 func GetPodsMetricsList(b *base.BaseHandler) *v1beta1.PodMetricsList {
-	value, exists := b.Container.Cache().Get(fmt.Sprintf(middleware.MetricAPIAvailableKey, b.QueryConfig, b.QueryCluster))
+	cacheKey := fmt.Sprintf(helpers.IsMetricServerAvailableCacheKeyFormat, b.QueryConfig, b.QueryCluster)
+	value, exists := b.Container.Cache().Get(cacheKey)
 	if value == false || exists == false {
 		return nil
 	}

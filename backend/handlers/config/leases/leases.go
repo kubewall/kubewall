@@ -51,7 +51,7 @@ func NewLeasesHandler(c echo.Context, container container.Container) *LeasesHand
 			Informer:         informer,
 			QueryConfig:      config,
 			QueryCluster:     cluster,
-			InformerCacheKey: fmt.Sprintf("%s-%s-LeaseInformer", config, cluster),
+			InformerCacheKey: fmt.Sprintf("%s-%s-leaseInformer", config, cluster),
 			Event:            event.NewEventCounter(time.Millisecond * 250),
 			TransformFunc:    transformItems,
 		},
