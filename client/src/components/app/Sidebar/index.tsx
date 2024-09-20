@@ -1,5 +1,6 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { CUSTOM_RESOURCES_ENDPOINT, NAVIGATION_ROUTE } from "@/constants";
+import { DatabaseIcon, LayersIcon, LayoutGridIcon, NetworkIcon, ShieldHalf, SlidersHorizontalIcon, UngroupIcon } from "lucide-react";
 import { createEventStreamQueryObject, getEventStreamUrl, getSystemTheme } from "@/utils";
 import { memo, useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
@@ -102,6 +103,24 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
     sendMessage
   });
 
+  const getResourceIcon = (resourceType: string) => {
+    switch (resourceType) {
+      case 'cluster':
+        return <LayoutGridIcon width={20} />
+      case 'workloads':
+        return <UngroupIcon width={20} />
+      case 'configuration':
+        return <SlidersHorizontalIcon width={20} />
+      case 'accesscontrol':
+        return <ShieldHalf width={20} />
+      case 'network':
+        return <NetworkIcon width={20} />
+      case 'storage':
+        return <DatabaseIcon width={20} />
+      default:
+        return <LayersIcon width={20} />
+    }
+  }
   return (
     <div className={cn("col-span-1", className)}>
       <div className="h-screen flex space-y-4 py-1">
@@ -116,7 +135,15 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                 Object.keys(NAVIGATION_ROUTE).map((route) => {
                   return (
                     <AccordionItem value={route} key={route}>
-                      <AccordionTrigger onClick={() => { setActiveAccordion(route); }}>{route}</AccordionTrigger>
+                      <AccordionTrigger onClick={() => { setActiveAccordion(route); }}>
+                        <div className="flex items-center space-x-1">
+                          {getResourceIcon(route.toLowerCase().split(' ').join(''))}
+                          <span>{route}</span>
+                        </div>
+
+                      </AccordionTrigger>
+                      {/* </div> */}
+
                       <AccordionContent>
                         {
                           NAVIGATION_ROUTE[route].map(({ name, route: routeValue }) => {
@@ -139,7 +166,12 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                 })
               }
               <AccordionItem value='customResources' key='customResources'>
-                <AccordionTrigger onClick={() => { setActiveAccordion('customResources'); }}>Custom Resources</AccordionTrigger>
+                <AccordionTrigger onClick={() => { setActiveAccordion('customResources'); }}>
+                  <div className="flex items-center space-x-1">
+                    {getResourceIcon('customesources')}
+                    <span>Custom Resources</span>
+                  </div>
+                </AccordionTrigger>
                 <AccordionContent>
                   <Accordion type="single" value={activeCustomResourcesAccordian}>
                     {
