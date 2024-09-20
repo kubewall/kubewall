@@ -79,6 +79,17 @@ scoop install kubewall
 Manually
 Download the pre-compiled binaries from the [Release!](https://github.com/kubewall/kubewall/releases) page and copy them to the desired location or system path.
 
+> [!TIP] 
+> After installation, you can access **kubewall** at `http://localhost:7080`
+>
+>  If you're running it in a Kubernetes cluster or on an on-premises server, we recommend using **HTTPS**.
+>
+>  You can start **kubewall** with **HTTPS** using the following command:
+>
+> ```
+> $ kubewall --certFile=/path/to/cert.pem --keyFile=/path/to/key.pem
+> ```
+
 # :books: Guide
 
 ### Flags
