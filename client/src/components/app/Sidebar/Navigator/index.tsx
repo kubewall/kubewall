@@ -4,7 +4,7 @@ import { memo, useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 
-import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { NAVIGATION_ROUTE } from "@/constants";
 import { RootState } from "@/redux/store";
 import { resetListTableFilter } from "@/data/Misc/ListTableFilterSlice";
@@ -47,17 +47,11 @@ const SidebarNavigator = memo(function () {
 
   return (
     <>
-      <Button
-        variant="outline"
-        size="lg"
-        className="h-8 mt-2 shadow-none flex justify-between items-center w-full px-1 hover:bg-gray-50"
+      <Input
+        className="h-8 mt-2 shadow-none"
+        placeholder="Open... (⌘K)"
         onClick={() => setOpen((open) => !open)}
-      >
-        <span className="text-xs font-normal">Open...</span>
-        <kbd className="bg-gray-100 dark:text-primary-foreground px-2 py-0.5 rounded-md text-[10px] font-medium">
-          ⌘ K
-        </kbd>
-      </Button>
+      />
       <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandInput placeholder="Search..." />
         <CommandList>
