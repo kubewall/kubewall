@@ -100,7 +100,8 @@ func (h *BaseHandler) Delete(c echo.Context) error {
 
 	failures := make([]Failures, 0)
 	for _, v := range *r {
-		result := h.RestClient.Delete().Resource(h.GetResourceNameFromKind(h.Kind)).Name(v.Name).Namespace(v.Namespace).Do(c.Request().Context())
+		resource := h.GetResourceByKind(h.Kind)
+		result := h.RestClient.Delete().Resource(resource.Name).Name(v.Name).NamespaceIfScoped(v.Namespace, resource.Namespaced).Do(c.Request().Context())
 		if result.Error() != nil {
 			failures = append(failures, Failures{
 				Namespace: v.Namespace,

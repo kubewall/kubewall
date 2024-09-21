@@ -50,24 +50,14 @@ func RefreshAllResourcesCache(container container.Container, config, cluster str
 	return CacheAllResources(container, config, cluster)
 }
 
-func FindResourceNameByKind(container container.Container, config, cluster, kind string) (string, bool) {
+func FindResourceByKind(container container.Container, config, cluster, kind string) (Resources, bool) {
 	resources, _ := GetAllResourcesFromCache(container, config, cluster)
 	for _, resource := range resources {
 		if strings.EqualFold(kind, resource.Kind) {
-			return resource.Name, true
+			return resource, true
 		}
 	}
-	return "", false
-}
-
-func IsNamespacedResource(container container.Container, config, cluster, kind string) (bool, bool) {
-	resources, _ := GetAllResourcesFromCache(container, config, cluster)
-	for _, resource := range resources {
-		if strings.EqualFold(kind, resource.Kind) {
-			return resource.Namespaced, true
-		}
-	}
-	return false, false
+	return Resources{}, false
 }
 
 func CacheIfIsMetricsAPIAvailable(container container.Container, config string, cluster string) bool {

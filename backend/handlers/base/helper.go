@@ -84,21 +84,21 @@ func (h *BaseHandler) isResourceUpdated(entry map[string]any, resourceName strin
 	return false
 }
 
-func (h *BaseHandler) IsNamespacedResource(r string) bool {
-	result, exists := helpers.IsNamespacedResource(h.Container, h.QueryConfig, h.QueryCluster, r)
+func (h *BaseHandler) IsNamespacedResource(kind string) bool {
+	resource, exists := helpers.FindResourceByKind(h.Container, h.QueryConfig, h.QueryCluster, kind)
 	if !exists {
 		helpers.RefreshAllResourcesCache(h.Container, h.QueryConfig, h.QueryCluster)
-		result, _ = helpers.IsNamespacedResource(h.Container, h.QueryConfig, h.QueryCluster, r)
+		resource, _ = helpers.FindResourceByKind(h.Container, h.QueryConfig, h.QueryCluster, kind)
 	}
-	return result
+	return resource.Namespaced
 }
 
-func (h *BaseHandler) GetResourceNameFromKind(kind string) string {
-	name, exists := helpers.FindResourceNameByKind(h.Container, h.QueryConfig, h.QueryCluster, kind)
-	if !exists {
+func (h *BaseHandler) GetResourceByKind(kind string) helpers.Resources {
+	resource, exists := helpers.FindResourceByKind(h.Container, h.QueryConfig, h.QueryCluster, kind)
+	if !exists || resource.Name == "" {
 		helpers.RefreshAllResourcesCache(h.Container, h.QueryConfig, h.QueryCluster)
-		name, _ = helpers.FindResourceNameByKind(h.Container, h.QueryConfig, h.QueryCluster, kind)
+		resource, _ = helpers.FindResourceByKind(h.Container, h.QueryConfig, h.QueryCluster, kind)
 	}
 
-	return name
+	return resource
 }
