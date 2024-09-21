@@ -32,6 +32,8 @@ func NewStatefulSetRouteHandler(container container.Container, routeType base.Ro
 			return handler.BaseHandler.GetEvents(c)
 		case base.GetYaml:
 			return handler.BaseHandler.GetYaml(c)
+		case base.Delete:
+			return handler.BaseHandler.Delete(c)
 		default:
 			return echo.NewHTTPError(http.StatusInternalServerError, "Unknown route type")
 		}
@@ -50,6 +52,7 @@ func NewSatefulSetHandler(c echo.Context, container container.Container) *Statef
 			Kind:             "SatefulSet",
 			Container:        container,
 			Informer:         informer,
+			RestClient:       container.ClientSet(config, cluster).AppsV1().RESTClient(),
 			QueryConfig:      config,
 			QueryCluster:     cluster,
 			InformerCacheKey: fmt.Sprintf("%s-%s-statefulSetInformer", config, cluster),

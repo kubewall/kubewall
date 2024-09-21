@@ -31,6 +31,8 @@ func NewHorizontalPodAutoscalersRouteHandler(container container.Container, rout
 			return handler.BaseHandler.GetEvents(c)
 		case base.GetYaml:
 			return handler.BaseHandler.GetYaml(c)
+		case base.Delete:
+			return handler.BaseHandler.Delete(c)
 		default:
 			return echo.NewHTTPError(http.StatusInternalServerError, "Unknown route type")
 		}
@@ -49,6 +51,7 @@ func NewHorizontalPodAutoScalerHandler(c echo.Context, container container.Conta
 			Kind:             "HorizontalPodAutoscaler",
 			Container:        container,
 			Informer:         informer,
+			RestClient:       container.ClientSet(config, cluster).AutoscalingV2().RESTClient(),
 			QueryConfig:      config,
 			QueryCluster:     cluster,
 			InformerCacheKey: fmt.Sprintf("%s-%s-horizontalPodAutoscalerInformer", config, cluster),

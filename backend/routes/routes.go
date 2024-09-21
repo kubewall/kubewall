@@ -81,6 +81,7 @@ func ConfigureRoutes(e *echo.Echo, appContainer container.Container) {
 	e.GET("api/v1/namespaces/:name", namespaces.NewNamespacesRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/namespaces/:name/yaml", namespaces.NewNamespacesRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/namespaces/:name/events", namespaces.NewNamespacesRouteHandler(appContainer, base.GetEvents))
+	e.DELETE("api/v1/namespaces", namespaces.NewNamespacesRouteHandler(appContainer, base.Delete))
 
 	// Nodes
 	e.GET("api/v1/nodes", nodes.NewNodeRouteHandler(appContainer, base.GetList))
@@ -101,6 +102,7 @@ func customResources(e *echo.Echo, appContainer container.Container) {
 	e.GET("api/v1/customresourcedefinitions/:name", crds.NewCRDHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/customresourcedefinitions/:name/yaml", crds.NewCRDHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/customresourcedefinitions/:name/events", crds.NewCRDHandler(appContainer, base.GetEvents))
+	e.GET("api/v1/customresourcedefinitions", crds.NewCRDHandler(appContainer, base.Delete))
 
 	e.GET("api/v1/customresources", resources.NewUnstructuredHandler(appContainer, base.GetList))
 	// No namespace custom CRD's details and YAML
@@ -118,18 +120,21 @@ func servicesRoutes(e *echo.Echo, appContainer container.Container) {
 	e.GET("api/v1/services/:name", services.NewServicesRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/services/:name/yaml", services.NewServicesRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/services/:name/events", services.NewServicesRouteHandler(appContainer, base.GetEvents))
+	e.DELETE("api/v1/services", services.NewServicesRouteHandler(appContainer, base.Delete))
 
 	// Endpoints
 	e.GET("api/v1/endpoints", endpoints.NewEndpointsRouteHandler(appContainer, base.GetList))
 	e.GET("api/v1/endpoints/:name", endpoints.NewEndpointsRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/endpoints/:name/yaml", endpoints.NewEndpointsRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/endpoints/:name/events", endpoints.NewEndpointsRouteHandler(appContainer, base.GetEvents))
+	e.DELETE("api/v1/endpoints", endpoints.NewEndpointsRouteHandler(appContainer, base.Delete))
 
 	// Ingresses
 	e.GET("api/v1/ingresses", ingresses.NewIngressRouteHandler(appContainer, base.GetList))
 	e.GET("api/v1/ingresses/:name", ingresses.NewIngressRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/ingresses/:name/yaml", ingresses.NewIngressRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/ingresses/:name/events", ingresses.NewIngressRouteHandler(appContainer, base.GetEvents))
+	e.DELETE("api/v1/ingresses", ingresses.NewIngressRouteHandler(appContainer, base.Delete))
 }
 
 func storageRoutes(e *echo.Echo, appContainer container.Container) {
@@ -138,18 +143,21 @@ func storageRoutes(e *echo.Echo, appContainer container.Container) {
 	e.GET("api/v1/persistentvolumes/:name", persistentvolumes.NewPersistentVolumeRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/persistentvolumes/:name/yaml", persistentvolumes.NewPersistentVolumeRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/persistentvolumes/:name/events", persistentvolumes.NewPersistentVolumeRouteHandler(appContainer, base.GetEvents))
+	e.DELETE("api/v1/persistentvolumes", persistentvolumes.NewPersistentVolumeRouteHandler(appContainer, base.Delete))
 
 	// PVC
 	e.GET("api/v1/persistentvolumeclaims", persistentvolumeclaims.NewPersistentVolumeClaimsRouteHandler(appContainer, base.GetList))
 	e.GET("api/v1/persistentvolumeclaims/:name", persistentvolumeclaims.NewPersistentVolumeClaimsRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/persistentvolumeclaims/:name/yaml", persistentvolumeclaims.NewPersistentVolumeClaimsRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/persistentvolumeclaims/:name/events", persistentvolumeclaims.NewPersistentVolumeClaimsRouteHandler(appContainer, base.GetEvents))
+	e.DELETE("api/v1/persistentvolumeclaims", persistentvolumeclaims.NewPersistentVolumeClaimsRouteHandler(appContainer, base.Delete))
 
 	// Storage Class
 	e.GET("api/v1/storageclasses", storageclasses.NewStorageClassRouteHandler(appContainer, base.GetList))
 	e.GET("api/v1/storageclasses/:name", storageclasses.NewStorageClassRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/storageclasses/:name/yaml", storageclasses.NewStorageClassRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/storageclasses/:name/events", storageclasses.NewStorageClassRouteHandler(appContainer, base.GetEvents))
+	e.DELETE("api/v1/storageclasses", storageclasses.NewStorageClassRouteHandler(appContainer, base.Delete))
 }
 
 func configRoutes(e *echo.Echo, appContainer container.Container) {
@@ -158,54 +166,63 @@ func configRoutes(e *echo.Echo, appContainer container.Container) {
 	e.GET("api/v1/configmaps/:name", configmaps.NewConfigMapsRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/configmaps/:name/yaml", configmaps.NewConfigMapsRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/configmaps/:name/events", configmaps.NewConfigMapsRouteHandler(appContainer, base.GetEvents))
+	e.DELETE("api/v1/configmaps", configmaps.NewConfigMapsRouteHandler(appContainer, base.Delete))
 
 	// Secrets
 	e.GET("api/v1/secrets", secrets.NewSecretsRouteHandler(appContainer, base.GetList))
 	e.GET("api/v1/secrets/:name", secrets.NewSecretsRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/secrets/:name/yaml", secrets.NewSecretsRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/secrets/:name/events", secrets.NewSecretsRouteHandler(appContainer, base.GetEvents))
+	e.DELETE("api/v1/secrets", secrets.NewSecretsRouteHandler(appContainer, base.Delete))
 
 	// ResourceQuotas
 	e.GET("api/v1/resourcequotas", resourcequotas.NewResourceQuotaRouteHandler(appContainer, base.GetList))
 	e.GET("api/v1/resourcequotas/:name", resourcequotas.NewResourceQuotaRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/resourcequotas/:name/yaml", resourcequotas.NewResourceQuotaRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/resourcequotas/:name/events", resourcequotas.NewResourceQuotaRouteHandler(appContainer, base.GetEvents))
+	e.DELETE("api/v1/resourcequotas", resourcequotas.NewResourceQuotaRouteHandler(appContainer, base.Delete))
 
 	// LimitRanges
 	e.GET("api/v1/limitranges", limitranges.NewLimitRangesRouteHandler(appContainer, base.GetList))
 	e.GET("api/v1/limitranges/:name", limitranges.NewLimitRangesRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/limitranges/:name/yaml", limitranges.NewLimitRangesRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/limitranges/:name/events", limitranges.NewLimitRangesRouteHandler(appContainer, base.GetEvents))
+	e.DELETE("api/v1/limitranges", limitranges.NewLimitRangesRouteHandler(appContainer, base.Delete))
 
 	// HAP
 	e.GET("api/v1/horizontalpodautoscalers", horizontalpodautoscalers.NewHorizontalPodAutoscalersRouteHandler(appContainer, base.GetList))
 	e.GET("api/v1/horizontalpodautoscalers/:name", horizontalpodautoscalers.NewHorizontalPodAutoscalersRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/horizontalpodautoscalers/:name/yaml", horizontalpodautoscalers.NewHorizontalPodAutoscalersRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/horizontalpodautoscalers/:name/events", horizontalpodautoscalers.NewHorizontalPodAutoscalersRouteHandler(appContainer, base.GetEvents))
+	e.DELETE("api/v1/horizontalpodautoscalers", horizontalpodautoscalers.NewHorizontalPodAutoscalersRouteHandler(appContainer, base.Delete))
 
 	// LimitRanges
 	e.GET("api/v1/poddisruptionbudgets", poddisruptionbudgets.NewPodDisruptionBudgetRouteHandler(appContainer, base.GetList))
 	e.GET("api/v1/poddisruptionbudgets/:name", poddisruptionbudgets.NewPodDisruptionBudgetRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/poddisruptionbudgets/:name/yaml", poddisruptionbudgets.NewPodDisruptionBudgetRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/poddisruptionbudgets/:name/events", poddisruptionbudgets.NewPodDisruptionBudgetRouteHandler(appContainer, base.GetEvents))
+	e.DELETE("api/v1/poddisruptionbudgets", poddisruptionbudgets.NewPodDisruptionBudgetRouteHandler(appContainer, base.Delete))
 
 	// priorityclasses
 	e.GET("api/v1/priorityclasses", priorityclasses.NewPriorityClassRouteHandler(appContainer, base.GetList))
 	e.GET("api/v1/priorityclasses/:name", priorityclasses.NewPriorityClassRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/priorityclasses/:name/yaml", priorityclasses.NewPriorityClassRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/priorityclasses/:name/events", priorityclasses.NewPriorityClassRouteHandler(appContainer, base.GetEvents))
+	e.DELETE("api/v1/priorityclasses", priorityclasses.NewPriorityClassRouteHandler(appContainer, base.Delete))
 
 	// runtimeclasses
 	e.GET("api/v1/runtimeclasses", runtimeclasses.NewRunTimeClassRouteHandler(appContainer, base.GetList))
 	e.GET("api/v1/runtimeclasses/:name", runtimeclasses.NewRunTimeClassRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/runtimeclasses/:name/yaml", runtimeclasses.NewRunTimeClassRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/runtimeclasses/:name/events", runtimeclasses.NewRunTimeClassRouteHandler(appContainer, base.GetEvents))
+	e.DELETE("api/v1/runtimeclasses", runtimeclasses.NewRunTimeClassRouteHandler(appContainer, base.Delete))
 
 	// leases
 	e.GET("api/v1/leases", leases.NewLeaseRouteHandler(appContainer, base.GetList))
 	e.GET("api/v1/leases/:name", leases.NewLeaseRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/leases/:name/yaml", leases.NewLeaseRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/leases/:name/events", leases.NewLeaseRouteHandler(appContainer, base.GetEvents))
+	e.DELETE("api/v1/leases", leases.NewLeaseRouteHandler(appContainer, base.Delete))
 }
 
 func workloadRoutes(e *echo.Echo, appContainer container.Container) {
@@ -216,6 +233,7 @@ func workloadRoutes(e *echo.Echo, appContainer container.Container) {
 	e.GET("api/v1/pods/:name/logs", pods.NewPodsRouteHandler(appContainer, base.GetLogs))
 	e.GET("api/v1/pods/:name/logsWS", pods.NewPodsRouteHandler(appContainer, base.GetLogsWS))
 	e.GET("api/v1/pods/:name/events", pods.NewPodsRouteHandler(appContainer, base.GetEvents))
+	e.DELETE("api/v1/pods", pods.NewPodsRouteHandler(appContainer, base.Delete))
 
 	// Deployments
 	e.GET("api/v1/deployments", deployments.NewDeploymentRouteHandler(appContainer, base.GetList))
@@ -223,36 +241,42 @@ func workloadRoutes(e *echo.Echo, appContainer container.Container) {
 	e.GET("api/v1/deployments/:name/yaml", deployments.NewDeploymentRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/deployments/:name/events", deployments.NewDeploymentRouteHandler(appContainer, base.GetEvents))
 	e.GET("api/v1/deployments/:name/pods", deployments.NewDeploymentRouteHandler(appContainer, deployments.GetPods))
+	e.DELETE("api/v1/deployments", deployments.NewDeploymentRouteHandler(appContainer, base.Delete))
 
 	// Daemonsets
 	e.GET("api/v1/daemonsets", daemonsets.NewDaemonSetsRouteHandler(appContainer, base.GetList))
 	e.GET("api/v1/daemonsets/:name", daemonsets.NewDaemonSetsRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/daemonsets/:name/yaml", daemonsets.NewDaemonSetsRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/daemonsets/:name/events", daemonsets.NewDaemonSetsRouteHandler(appContainer, base.GetEvents))
+	e.DELETE("api/v1/daemonsets", daemonsets.NewDaemonSetsRouteHandler(appContainer, base.Delete))
 
 	// ReplicaSets
 	e.GET("api/v1/replicasets", replicaset.NewReplicaSetRouteHandler(appContainer, base.GetList))
 	e.GET("api/v1/replicasets/:name", replicaset.NewReplicaSetRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/replicasets/:name/yaml", replicaset.NewReplicaSetRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/replicasets/:name/events", replicaset.NewReplicaSetRouteHandler(appContainer, base.GetEvents))
+	e.DELETE("api/v1/replicasets", replicaset.NewReplicaSetRouteHandler(appContainer, base.Delete))
 
 	// StatefulSets
 	e.GET("api/v1/statefulsets", statefulset.NewStatefulSetRouteHandler(appContainer, base.GetList))
 	e.GET("api/v1/statefulsets/:name", statefulset.NewStatefulSetRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/statefulsets/:name/yaml", statefulset.NewStatefulSetRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/statefulsets/:name/events", statefulset.NewStatefulSetRouteHandler(appContainer, base.GetEvents))
+	e.DELETE("api/v1/statefulsets", statefulset.NewStatefulSetRouteHandler(appContainer, base.Delete))
 
 	// Jobs
 	e.GET("api/v1/jobs", jobs.NewJobsRouteHandler(appContainer, base.GetList))
 	e.GET("api/v1/jobs/:name", jobs.NewJobsRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/jobs/:name/yaml", jobs.NewJobsRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/jobs/:name/events", jobs.NewJobsRouteHandler(appContainer, base.GetEvents))
+	e.DELETE("api/v1/jobs", jobs.NewJobsRouteHandler(appContainer, base.Delete))
 
 	// CronJobs
 	e.GET("api/v1/cronjobs", cronjobs.NewCronJobsRouteHandler(appContainer, base.GetList))
 	e.GET("api/v1/cronjobs/:name", cronjobs.NewCronJobsRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/cronjobs/:name/yaml", cronjobs.NewCronJobsRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/cronjobs/:name/events", cronjobs.NewCronJobsRouteHandler(appContainer, base.GetEvents))
+	e.DELETE("api/v1/cronjobs", cronjobs.NewCronJobsRouteHandler(appContainer, base.Delete))
 }
 
 func accessControlRoutes(e *echo.Echo, appContainer container.Container) {
@@ -260,30 +284,35 @@ func accessControlRoutes(e *echo.Echo, appContainer container.Container) {
 	e.GET("api/v1/serviceaccounts/:name", serviceaccounts.NewServiceAccountsRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/serviceaccounts/:name/yaml", serviceaccounts.NewServiceAccountsRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/serviceaccounts/:name/events", serviceaccounts.NewServiceAccountsRouteHandler(appContainer, base.GetEvents))
+	e.DELETE("api/v1/serviceaccounts", serviceaccounts.NewServiceAccountsRouteHandler(appContainer, base.Delete))
 
 	// Roles
 	e.GET("api/v1/roles", roles.NewRoleRouteHandler(appContainer, base.GetList))
 	e.GET("api/v1/roles/:name", roles.NewRoleRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/roles/:name/yaml", roles.NewRoleRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/roles/:name/events", roles.NewRoleRouteHandler(appContainer, base.GetEvents))
+	e.DELETE("api/v1/roles", roles.NewRoleRouteHandler(appContainer, base.Delete))
 
 	// Role Bindings
 	e.GET("api/v1/rolebindings", rolebindings.NewRoleBindingsRouteHandler(appContainer, base.GetList))
 	e.GET("api/v1/rolebindings/:name", rolebindings.NewRoleBindingsRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/rolebindings/:name/yaml", rolebindings.NewRoleBindingsRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/rolebindings/:name/events", rolebindings.NewRoleBindingsRouteHandler(appContainer, base.GetEvents))
+	e.DELETE("api/v1/rolebindings", rolebindings.NewRoleBindingsRouteHandler(appContainer, base.Delete))
 
 	// Cluster Roles
 	e.GET("api/v1/clusterroles", clusterroles.NewClusterRoleRouteHandler(appContainer, base.GetList))
 	e.GET("api/v1/clusterroles/:name", clusterroles.NewClusterRoleRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/clusterroles/:name/yaml", clusterroles.NewClusterRoleRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/clusterroles/:name/events", clusterroles.NewClusterRoleRouteHandler(appContainer, base.GetEvents))
+	e.DELETE("api/v1/clusterroles", clusterroles.NewClusterRoleRouteHandler(appContainer, base.Delete))
 
 	// Cluster Role Bindings
 	e.GET("api/v1/clusterrolebindings", clusterrolebindings.NewClusterRoleBindingsRouteHandler(appContainer, base.GetList))
 	e.GET("api/v1/clusterrolebindings/:name", clusterrolebindings.NewClusterRoleBindingsRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/clusterrolebindings/:name/yaml", clusterrolebindings.NewClusterRoleBindingsRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/clusterrolebindings/:name/events", clusterrolebindings.NewClusterRoleBindingsRouteHandler(appContainer, base.GetEvents))
+	e.DELETE("api/v1/clusterrolebindings", clusterrolebindings.NewClusterRoleBindingsRouteHandler(appContainer, base.Delete))
 }
 
 func setCORSConfig(e *echo.Echo) {
