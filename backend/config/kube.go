@@ -53,13 +53,13 @@ func LoadInClusterConfig() (KubeConfigInfo, error) {
 	if err != nil {
 		return KubeConfigInfo{}, err
 	}
-	kubeConfig.Name = "incluster"
+	kubeConfig.Name = InClusterKey
 	newConfig := KubeConfigInfo{
-		Name:         "incluster",
+		Name:         InClusterKey,
 		AbsolutePath: "",
 		FileExists:   true,
 		Clusters: map[string]*Cluster{
-			"incluster": kubeConfig,
+			InClusterKey: kubeConfig,
 		},
 	}
 	return newConfig, nil
