@@ -41,10 +41,10 @@ func TransformServices(pvs []v1.Service) []Services {
 }
 
 func TransformServiceItem(item v1.Service) Services {
-	var ports []string
+	ports := make([]string, 0)
 
 	for _, port := range item.Spec.Ports {
-		ports = append(ports, fmt.Sprintf("%d:%d/%s", port.NodePort, port.TargetPort.IntVal, port.Protocol))
+		ports = append(ports, fmt.Sprintf("%d/%s", port.Port, port.Protocol))
 	}
 	return Services{
 		Namespace: item.GetNamespace(),
