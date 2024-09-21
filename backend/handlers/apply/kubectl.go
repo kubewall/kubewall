@@ -13,7 +13,12 @@ func checkKubectlCLIPresent() bool {
 }
 
 func applyYAML(kubeConfig, context, yamlFile string) (string, error) {
-	cmd := exec.Command("kubectl", "apply", "-f", "-", "--kubeconfig", kubeConfig, "--context", context, "--insecure-skip-tls-verify")
+	var cmd *exec.Cmd
+	if context == "incluster" {
+		cmd = exec.Command("kubectl", "apply", "-f", "-", "--kubeconfig", kubeConfig, "--insecure-skip-tls-verify")
+	} else {
+		cmd = exec.Command("kubectl", "apply", "-f", "-", "--kubeconfig", kubeConfig, "--context", context, "--insecure-skip-tls-verify")
+	}
 	cmd.Stdin = strings.NewReader(yamlFile)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
