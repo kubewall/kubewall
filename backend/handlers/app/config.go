@@ -80,7 +80,7 @@ func (h *AppConfigHandler) PostBearer(c echo.Context) error {
 }
 
 func (h *AppConfigHandler) PostCertificate(c echo.Context) error {
-	serverIP := strings.TrimSpace(c.FormValue("server_ip"))
+	serverIP := strings.TrimSpace(c.FormValue("serverIP"))
 	name := strings.TrimSpace(c.FormValue("name"))
 	clientCertData := base64.StdEncoding.EncodeToString([]byte(strings.TrimSpace(c.FormValue("clientCertData"))))
 	clientKeyData := base64.StdEncoding.EncodeToString([]byte(strings.TrimSpace(c.FormValue("clientKeyData"))))
