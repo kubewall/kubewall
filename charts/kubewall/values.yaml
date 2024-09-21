@@ -1,0 +1,51 @@
+
+tls:
+  secretName: ""
+  host: kubewall.local
+
+replicaCount: 1
+
+k8s_client_burst: ""
+k8s_client_qps: ""
+
+image:
+  repository: ghcr.io/kubewall/kubewall
+  pullPolicy: IfNotPresent
+  tag: latest
+
+serviceAccount:
+  name: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 8443
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
