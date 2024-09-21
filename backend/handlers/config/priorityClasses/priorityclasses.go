@@ -33,7 +33,7 @@ func NewPriorityClassRouteHandler(container container.Container, routeType base.
 				Informer:         informer,
 				QueryConfig:      config,
 				QueryCluster:     cluster,
-				InformerCacheKey: fmt.Sprintf("%s-%s-PriorityClassInformer", config, cluster),
+				InformerCacheKey: fmt.Sprintf("%s-%s-priorityClassInformer", config, cluster),
 				Event:            event.NewEventCounter(time.Millisecond * 250),
 				TransformFunc:    transformItems,
 			},

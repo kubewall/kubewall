@@ -8,7 +8,6 @@ import (
 	"github.com/r3labs/sse/v2"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
-	"strings"
 	"time"
 )
 
@@ -80,23 +79,6 @@ func (h *BaseHandler) WaitForSync(c echo.Context) {
 		log.Error("failed to load informer for sync")
 		return
 	}
-}
-
-func (h *BaseHandler) IsNamespaceResource(r string) bool {
-	cacheKey := fmt.Sprintf("%s-%s-nonNamespacedResources", h.QueryConfig, h.QueryCluster)
-	c, exists := h.Container.Cache().Get(cacheKey)
-	if !exists {
-		return false
-	}
-	nonNamespacedResources := c.([]string)
-
-	for _, resource := range nonNamespacedResources {
-		if strings.EqualFold(r, resource) {
-			return false
-		}
-	}
-
-	return true
 }
 
 func (h *BaseHandler) processListEvents(resourceName string) func() {

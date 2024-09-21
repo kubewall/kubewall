@@ -3,18 +3,18 @@ package config
 import (
 	"fmt"
 	"github.com/charmbracelet/log"
+	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/dynamicinformer"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd/api"
-
-	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/clientcmd/api"
+	metricsclient "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
 type KubeConfigInfo struct {
@@ -36,6 +36,7 @@ type Cluster struct {
 	SharedInformerFactory    informers.SharedInformerFactory              `json:"-"`
 	ExtensionInformerFactory apiextensionsinformers.SharedInformerFactory `json:"-"`
 	DynamicInformerFactory   dynamicinformer.DynamicSharedInformerFactory `json:"-"`
+	MetricClient             *metricsclient.Clientset                     `json:"-"`
 }
 
 func (c *Cluster) MarkAsConnected() *Cluster {
@@ -97,6 +98,7 @@ func LoadK8ConfigFromFile(path string) (map[string]*Cluster, error) {
 			SharedInformerFactory:    kubeConfig.SharedInformerFactory,
 			ExtensionInformerFactory: kubeConfig.ExtensionInformerFactory,
 			DynamicInformerFactory:   kubeConfig.DynamicInformerFactory,
+			MetricClient:             kubeConfig.MetricClient,
 		}
 
 		clusters[key] = cfg
@@ -151,6 +153,11 @@ func loadClientConfig(restConfig *rest.Config) (*Cluster, error) {
 		return nil, fmt.Errorf("error creating Kubernetes NewDiscoveryClientForConfig: %w", err)
 	}
 
+	metricClient, err := metricsclient.NewForConfig(restConfig)
+	if err != nil {
+		return nil, fmt.Errorf("error creating Kubernetes NewDiscoveryClientForConfig: %w", err)
+	}
+
 	return &Cluster{
 		RestConfig:               restConfig,
 		ClientSet:                clientSet,
@@ -159,5 +166,6 @@ func loadClientConfig(restConfig *rest.Config) (*Cluster, error) {
 		SharedInformerFactory:    sharedInformerFactory,
 		ExtensionInformerFactory: externalInformer,
 		DynamicInformerFactory:   dynamicinformer,
+		MetricClient:             metricClient,
 	}, nil
 }

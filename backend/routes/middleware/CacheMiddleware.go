@@ -3,8 +3,8 @@ package middleware
 import (
 	"fmt"
 	"github.com/kubewall/kubewall/backend/container"
+	"github.com/kubewall/kubewall/backend/handlers/helpers"
 	"github.com/labstack/echo/v4"
-	"net/http"
 	"strings"
 )
 
@@ -17,25 +17,17 @@ func CacheMiddleware(container container.Container) echo.MiddlewareFunc {
 
 			config := c.QueryParam("config")
 			cluster := c.QueryParam("cluster")
-			cacheKey := fmt.Sprintf("%s-%s-nonNamespacedResources", config, cluster)
 
-			if container.Cache().Has(cacheKey) {
-				return next(c)
-			}
-			apiResources, err := container.ClientSet(config, cluster).Discovery().ServerPreferredResources()
-			if err != nil {
-				return c.JSON(http.StatusInternalServerError, err)
+			allResourcesKey := fmt.Sprintf(helpers.AllResourcesCacheKeyFormat, config, cluster)
+			metricAPIAvailableKey := fmt.Sprintf(helpers.IsMetricServerAvailableCacheKeyFormat, config, cluster)
+
+			if !container.Cache().Has(metricAPIAvailableKey) {
+				helpers.CacheIfIsMetricsAPIAvailable(container, config, cluster)
 			}
 
-			var resources []string
-			for _, group := range apiResources {
-				for _, resource := range group.APIResources {
-					if !resource.Namespaced {
-						resources = append(resources, resource.Kind)
-					}
-				}
+			if !container.Cache().Has(allResourcesKey) {
+				helpers.CacheAllResources(container, config, cluster)
 			}
-			container.Cache().Set(cacheKey, resources)
 
 			return next(c)
 		}

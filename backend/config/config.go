@@ -1,6 +1,7 @@
 package config
 
 import (
+	"k8s.io/client-go/util/homedir"
 	"os"
 	"path/filepath"
 )
@@ -49,8 +50,8 @@ func NewAppConfig(version string, k8sqps, k8sburst int) *AppConfig {
 }
 
 func (c *AppConfig) LoadAppConfig() {
-	c.buildKubeConfigs(filepath.Join(homeDir(), defaultKubeConfigDir))
-	c.buildKubeConfigs(filepath.Join(homeDir(), appConfigDir, appKubeConfigDir))
+	c.buildKubeConfigs(filepath.Join(homedir.HomeDir(), defaultKubeConfigDir))
+	c.buildKubeConfigs(filepath.Join(homedir.HomeDir(), appConfigDir, appKubeConfigDir))
 
 	i, err := LoadInClusterConfig()
 	if err == nil {
@@ -73,13 +74,6 @@ func (c *AppConfig) buildKubeConfigs(dirPath string) {
 	}
 }
 
-func homeDir() string {
-	if h := os.Getenv("HOME"); h != "" {
-		return h
-	}
-	return os.Getenv("USERPROFILE")
-}
-
 func readAllFilesInDir(dirPath string) []string {
 	var files []string
 	dirFiles, _ := os.ReadDir(dirPath)
@@ -94,11 +88,11 @@ func readAllFilesInDir(dirPath string) []string {
 
 func (c *AppConfig) RemoveKubeConfig(uuid string) error {
 	delete(c.KubeConfig, uuid)
-	return os.Remove(filepath.Join(homeDir(), appConfigDir, appKubeConfigDir, uuid))
+	return os.Remove(filepath.Join(homedir.HomeDir(), appConfigDir, appKubeConfigDir, uuid))
 }
 
 func (c *AppConfig) SaveKubeConfig(uuid string) {
-	filePath := filepath.Join(homeDir(), appConfigDir, appKubeConfigDir, uuid)
+	filePath := filepath.Join(homedir.HomeDir(), appConfigDir, appKubeConfigDir, uuid)
 	if clusters, err := LoadK8ConfigFromFile(filePath); err == nil {
 		if len(clusters) > 0 {
 			c.KubeConfig[filepath.Base(filePath)] = &KubeConfigInfo{
@@ -112,8 +106,8 @@ func (c *AppConfig) SaveKubeConfig(uuid string) {
 }
 
 func createEnvDirAndFile() {
-	ensureDirExists(filepath.Join(homeDir(), appConfigDir))
-	ensureDirExists(filepath.Join(homeDir(), appConfigDir, appKubeConfigDir))
+	ensureDirExists(filepath.Join(homedir.HomeDir(), appConfigDir))
+	ensureDirExists(filepath.Join(homedir.HomeDir(), appConfigDir, appKubeConfigDir))
 }
 
 func ensureDirExists(dirPath string) {

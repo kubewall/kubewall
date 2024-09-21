@@ -61,14 +61,14 @@ const SidebarNavigator = memo(function () {
               return (
                 <CommandGroup heading={route} key={route}>
                   {
-                    NAVIGATION_ROUTE[route].map(({name, route: routeValue}) => {
+                    NAVIGATION_ROUTE[route].map(({ name, route: routeValue }) => {
                       return (
                         <CommandItem key={routeValue} className="group cursor-pointer" onSelect={() => onSelectResources(routeValue)}>
                           <CubeIcon className="mr-2 h-4 w-4" />
                           <span>
                             {name}
                           </span>
-                          <CommandShortcut className="invisible group-aria-[selected=true]:visible"><EnterIcon/></CommandShortcut>
+                          <CommandShortcut className="invisible group-aria-[selected=true]:visible"><EnterIcon /></CommandShortcut>
                         </CommandItem>
                       );
                     })
@@ -93,7 +93,7 @@ const SidebarNavigator = memo(function () {
                           <span>
                             {customResource.name} <span className="text-xs">({customResourceGroup})</span>
                           </span>
-                          <CommandShortcut className="invisible group-aria-[selected=true]:visible"><EnterIcon/></CommandShortcut>
+                          <CommandShortcut className="invisible group-aria-[selected=true]:visible"><EnterIcon /></CommandShortcut>
                         </CommandItem>
                       );
                     })

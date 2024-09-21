@@ -5,6 +5,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/dynamicinformer"
 	"k8s.io/client-go/rest"
+	metricsclient "k8s.io/metrics/pkg/client/clientset/versioned"
 	"net/http"
 	"sync"
 	"time"
@@ -29,6 +30,7 @@ type Container interface {
 	ClientSet(config, cluster string) *kubernetes.Clientset
 	DynamicClient(config, cluster string) *dynamic.DynamicClient
 	DiscoveryClient(config, cluster string) *discovery.DiscoveryClient
+	MetricClient(config, cluster string) *metricsclient.Clientset
 	SharedInformerFactory(config, cluster string) informers.SharedInformerFactory
 	ExtensionSharedFactoryInformer(config, cluster string) apiextensionsinformers.SharedInformerFactory
 	DynamicSharedInformerFactory(config, cluster string) dynamicinformer.DynamicSharedInformerFactory
@@ -115,6 +117,12 @@ func (c *container) DiscoveryClient(config, cluster string) *discovery.Discovery
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
 	cfg.MarkAsConnected()
 	return cfg.DiscoveryClient
+}
+
+func (c *container) MetricClient(config, cluster string) *metricsclient.Clientset {
+	cfg := c.config.KubeConfig[config].Clusters[cluster]
+	cfg.MarkAsConnected()
+	return cfg.MetricClient
 }
 
 func (c *container) SharedInformerFactory(config, cluster string) informers.SharedInformerFactory {

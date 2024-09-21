@@ -51,7 +51,7 @@ func NewRunTimeClassHandler(c echo.Context, container container.Container) *RunT
 			Informer:         informer,
 			QueryConfig:      config,
 			QueryCluster:     cluster,
-			InformerCacheKey: fmt.Sprintf("%s-%s-RuntimeClassInformer", config, cluster),
+			InformerCacheKey: fmt.Sprintf("%s-%s-runtimeClassInformer", config, cluster),
 			Event:            event.NewEventCounter(time.Millisecond * 250),
 			TransformFunc:    transformItems,
 		},

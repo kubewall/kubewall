@@ -20,7 +20,12 @@ const podsSlice = createSlice({
   initialState,
   reducers: {
     updatePodsList: (state, action) => {
-      state.pods = action.payload;
+      state.pods = action.payload.map((pod: Pods) => {
+        return {
+          ...pod,
+          ...(pod.memory ? {memory: `${pod.memory} MiB`}: {})
+        }
+      });
       state.loading = false;
     }
   },

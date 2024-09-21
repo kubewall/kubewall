@@ -36,11 +36,11 @@ return (
     direction="horizontal"
     className="h-screen items-stretch"
   >
-    <ResizablePanel defaultSize={11}>
+    <ResizablePanel defaultSize={13}>
       <Sidebar />
     </ResizablePanel>
     <ResizableHandle withHandle />
-    <ResizablePanel defaultSize={89}>
+    <ResizablePanel defaultSize={87}>
       <Outlet />
     </ResizablePanel>
   </ResizablePanelGroup>

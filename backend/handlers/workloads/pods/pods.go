@@ -1,7 +1,12 @@
 package pods
 
 import (
+	"context"
 	"fmt"
+	"github.com/charmbracelet/log"
+	"github.com/kubewall/kubewall/backend/handlers/workloads/replicaset"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/metrics/pkg/apis/metrics/v1beta1"
 	"sync"
 
 	"github.com/kubewall/kubewall/backend/handlers/base"
@@ -23,9 +28,10 @@ import (
 )
 
 type PodsHandler struct {
-	BaseHandler base.BaseHandler
-	clientSet   *kubernetes.Clientset
-	restConfig  *rest.Config
+	BaseHandler       base.BaseHandler
+	clientSet         *kubernetes.Clientset
+	restConfig        *rest.Config
+	replicasetHandler *replicaset.ReplicaSetHandler
 }
 
 func NewPodsRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
@@ -67,8 +73,9 @@ func NewPodsHandler(c echo.Context, container container.Container) *PodsHandler 
 			Event:            event.NewEventCounter(time.Millisecond * 250),
 			TransformFunc:    transformItems,
 		},
-		restConfig: container.RestConfig(config, cluster),
-		clientSet:  container.ClientSet(config, cluster),
+		restConfig:        container.RestConfig(config, cluster),
+		clientSet:         container.ClientSet(config, cluster),
+		replicasetHandler: replicaset.NewReplicaSetHandler(c, container),
 	}
 
 	additionalEvents := []map[string]func(){
@@ -89,15 +96,32 @@ func NewPodsHandler(c echo.Context, container container.Container) *PodsHandler 
 
 func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
 	var list []v1.Pod
-
 	for _, obj := range items {
 		if item, ok := obj.(*v1.Pod); ok {
 			list = append(list, *item)
 		}
 	}
-	t := TransformPodList(list)
+	podMetricsList := GetPodsMetricsList(b)
+	t := TransformPodList(list, podMetricsList)
 
 	return json.Marshal(t)
+}
+
+func GetPodsMetricsList(b *base.BaseHandler) *v1beta1.PodMetricsList {
+	cacheKey := fmt.Sprintf(helpers.IsMetricServerAvailableCacheKeyFormat, b.QueryConfig, b.QueryCluster)
+	value, exists := b.Container.Cache().Get(cacheKey)
+	if value == false || exists == false {
+		return nil
+	}
+	podMetrics, err := b.Container.
+		MetricClient(b.QueryConfig, b.QueryCluster).
+		MetricsV1beta1().
+		PodMetricses("").
+		List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		log.Errorf("Error getting pod metrics: %v", err)
+	}
+	return podMetrics
 }
 
 func (h *PodsHandler) GetLogsWS(c echo.Context) error {

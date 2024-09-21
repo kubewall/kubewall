@@ -45,11 +45,10 @@ func (h *BaseHandler) GetDetails(c echo.Context) error {
 	if err != nil {
 		return c.String(http.StatusBadRequest, err.Error())
 	}
-	go func() {
-		h.Container.SSE().Publish(streamID, &sse.Event{
-			Data: h.marshalDetailData(item, exists),
-		})
-	}()
+	go h.Container.SSE().Publish(streamID, &sse.Event{
+		Data: h.marshalDetailData(item, exists),
+	})
+
 	h.Container.SSE().ServeHTTP(streamID, c.Response(), c.Request())
 	return nil
 }
@@ -59,11 +58,9 @@ func (h *BaseHandler) GetYaml(c echo.Context) error {
 	if err != nil {
 		return c.String(http.StatusBadRequest, err.Error())
 	}
-	go func() {
-		h.Container.SSE().Publish(fmt.Sprintf("%s-yaml", streamID), &sse.Event{
-			Data: h.marshalYAML(item, exists),
-		})
-	}()
+	go h.Container.SSE().Publish(fmt.Sprintf("%s-yaml", streamID), &sse.Event{
+		Data: h.marshalYAML(item, exists),
+	})
 
 	h.Container.SSE().ServeHTTP(fmt.Sprintf("%s-yaml", streamID), c.Response(), c.Request())
 	return nil

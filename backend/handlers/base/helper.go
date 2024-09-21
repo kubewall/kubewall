@@ -3,13 +3,14 @@ package base
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/kubewall/kubewall/backend/handlers/helpers"
 	"github.com/labstack/echo/v4"
 	"sigs.k8s.io/yaml"
 	"strings"
 )
 
 func (h *BaseHandler) getStreamIDAndItem(namespace, name string) (string, any, bool, error) {
-	if h.IsNamespaceResource(h.Kind) {
+	if h.IsNamespacedResource(h.Kind) {
 		streamID := fmt.Sprintf("%s-%s-%s-%s", h.QueryConfig, h.QueryCluster, namespace, name)
 		item, exists, err := h.Informer.GetStore().GetByKey(fmt.Sprintf("%s/%s", namespace, name))
 		return streamID, item, exists, err
@@ -81,4 +82,23 @@ func (h *BaseHandler) isResourceUpdated(entry map[string]any, resourceName strin
 		return strings.EqualFold(resourceName, name)
 	}
 	return false
+}
+
+func (h *BaseHandler) IsNamespacedResource(r string) bool {
+	result, exists := helpers.IsNamespacedResource(h.Container, h.QueryConfig, h.QueryCluster, r)
+	if !exists {
+		helpers.RefreshAllResourcesCache(h.Container, h.QueryConfig, h.QueryCluster)
+		result, _ = helpers.IsNamespacedResource(h.Container, h.QueryConfig, h.QueryCluster, r)
+	}
+	return result
+}
+
+func (h *BaseHandler) GetResourceNameFromKind(kind string) string {
+	name, exists := helpers.FindResourceNameByKind(h.Container, h.QueryConfig, h.QueryCluster, kind)
+	if !exists {
+		helpers.RefreshAllResourcesCache(h.Container, h.QueryConfig, h.QueryCluster)
+		name, _ = helpers.FindResourceNameByKind(h.Container, h.QueryConfig, h.QueryCluster, kind)
+	}
+
+	return name
 }
