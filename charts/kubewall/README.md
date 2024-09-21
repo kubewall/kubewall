@@ -16,6 +16,13 @@ $ kubectl -n kubewall-system create secret tls kubewall-tls-secret --cert=tls.cr
 
 $ helm install -n kubewall-system kubewall oci://ghcr.io/kubewall/kubewall --version v0.0.4 --create-namespace --set tls.secretName=kubewall-tls-secret
 
+
+# By default it creates a service account in the specified release namespace with admin rbac binding
+# If you want kubewall to use your own service account serviceAccount.create=false serviceAccount.name=<yourServiceAccountInReleaseNamespace>
+
+
+$ helm install -n kubewall-system kubewall oci://ghcr.io/kubewall/kubewall --version v0.0.4 --create-namespace --set serviceAccount.create=false --set serviceAccount.name=<yourserviceAccountName>
+
 ```
 
 ## Upgrade Chart

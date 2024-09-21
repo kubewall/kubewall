@@ -51,14 +51,6 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
-Create the name of the service account to use
-*/}}
-{{- define "kubewall.serviceAccountName" -}}
-{{- default "default" .Values.serviceAccount.name }}
-{{- end }}
-
-
-{{/*
 Generate certificates
 */}}
 {{- define "helm-chart.gen-certs" -}}
@@ -79,4 +71,15 @@ kubewall-tls-secret
 
 {{- define "helm-chart.kubewall-tls-secret-name" -}}
 {{ .Values.tls.secretName | default (include "helm-chart.default-tls-secret-name" .) }}
+{{- end }}
+
+{{/*
+Create the name of the service account to use
+*/}}
+{{- define "kubewall.serviceAccountName" -}}
+{{- if .Values.serviceAccount.create }}
+{{- default (include "kubewall.fullname" .) .Values.serviceAccount.name }}
+{{- else }}
+{{- default "default" .Values.serviceAccount.name }}
+{{- end }}
 {{- end }}
