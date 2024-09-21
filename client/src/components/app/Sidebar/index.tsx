@@ -106,19 +106,19 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
   const getResourceIcon = (resourceType: string) => {
     switch (resourceType) {
       case 'cluster':
-        return <LayoutGridIcon width={20} />
+        return <LayoutGridIcon width={16} />
       case 'workloads':
-        return <UngroupIcon width={20} />
+        return <UngroupIcon width={16} />
       case 'configuration':
-        return <SlidersHorizontalIcon width={20} />
+        return <SlidersHorizontalIcon width={16} />
       case 'accesscontrol':
-        return <ShieldHalf width={20} />
+        return <ShieldHalf width={16} />
       case 'network':
-        return <NetworkIcon width={20} />
+        return <NetworkIcon width={16} />
       case 'storage':
-        return <DatabaseIcon width={20} />
+        return <DatabaseIcon width={16} />
       default:
-        return <LayersIcon width={20} />
+        return <LayersIcon width={16} />
     }
   }
   return (

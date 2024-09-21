@@ -1,8 +1,18 @@
 import { KwEventSource } from "@/types";
+import { checkIfNotIpAddress } from "@/utils";
 import { useEffect } from "react";
 
 const useEventSource = ({url, sendMessage} : KwEventSource) => {
-  const updatedUrl = window.location.protocol === 'http:' ? `http://${new Date().getTime()}.${window.location.host}${url}` : url;
+  let updatedUrl = '';
+  if(window.location.protocol === 'http:') {
+    if (checkIfNotIpAddress(url)) {
+      updatedUrl = `http://${new Date().getTime()}.${window.location.host}${url}`;
+    } else {
+      updatedUrl = `http://${window.location.host}${url}`;
+    }
+  } else {
+    updatedUrl = url;
+  }
   useEffect(() => {
     // opening a connection to the server to begin receiving events from it
     const eventSource = new EventSource(updatedUrl);
