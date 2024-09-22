@@ -123,7 +123,7 @@ func GetPodsMetricsList(b *base.BaseHandler) *v1beta1.PodMetricsList {
 		PodMetricses("").
 		List(context.Background(), metav1.ListOptions{})
 	if err != nil {
-		log.Errorf("Error getting pod metrics: %v", err)
+		log.Error("failed to get pod metrics", "err", err)
 	}
 	return podMetrics
 }
