@@ -102,7 +102,7 @@ func customResources(e *echo.Echo, appContainer container.Container) {
 	e.GET("api/v1/customresourcedefinitions/:name", crds.NewCRDHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/customresourcedefinitions/:name/yaml", crds.NewCRDHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/customresourcedefinitions/:name/events", crds.NewCRDHandler(appContainer, base.GetEvents))
-	e.GET("api/v1/customresourcedefinitions", crds.NewCRDHandler(appContainer, base.Delete))
+	e.DELETE("api/v1/customresourcedefinitions", crds.NewCRDHandler(appContainer, base.Delete))
 
 	e.GET("api/v1/customresources", resources.NewUnstructuredHandler(appContainer, base.GetList))
 	// No namespace custom CRD's details and YAML
