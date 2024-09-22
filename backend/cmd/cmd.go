@@ -6,6 +6,7 @@ import (
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/routes"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 	"os"
@@ -82,6 +83,7 @@ func Serve(cmd *cobra.Command) error {
 	openDefaultBrowser(noOpen, isSecure, port)
 
 	if isSecure {
+		e.Pre(middleware.HTTPSRedirect())
 		if err = e.StartTLS(port, certFile, keyFile); err != nil {
 			return err
 		}
