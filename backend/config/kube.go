@@ -77,14 +77,14 @@ func LoadK8ConfigFromFile(path string) (map[string]*Cluster, error) {
 	for key, cluster := range cmdConfig.Contexts {
 		rc, err := restConfig(*cmdConfig, key)
 		if err != nil {
-			log.Error("failed to load restConfig for cluster", "err", err)
+			log.Warn("failed to load restConfig for cluster", "err", err)
 			// here we will ignore any invalid context and continue for next
 			continue
 		}
 
 		kubeConfig, err := loadClientConfig(rc)
 		if err != nil {
-			log.Error("failed to load clientConfig for cluster", "err", err)
+			log.Warn("failed to load clientConfig for cluster", "err", err)
 			// here we will ignore any invalid context and continue for next
 			continue
 		}
