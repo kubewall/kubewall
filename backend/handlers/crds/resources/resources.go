@@ -10,6 +10,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/r3labs/sse/v2"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"net/http"
@@ -71,6 +72,8 @@ func NewUnstructuredHandler(container container.Container, routeType base.RouteT
 			return handler.BaseHandler.GetEvents(c)
 		case GetYAML:
 			return handler.BaseHandler.GetYaml(c)
+		case base.Delete:
+			return handler.Delete(c)
 		default:
 			return echo.NewHTTPError(http.StatusInternalServerError, "Unknown route type")
 		}
@@ -105,6 +108,62 @@ func (h *UnstructuredHandler) ProcessDetails(itemKey, steamKey string) func() {
 			Data: b,
 		})
 	}
+}
+
+func (h *UnstructuredHandler) Delete(c echo.Context) error {
+	group := c.QueryParam("group")
+	version := c.QueryParam("version")
+	resource := c.QueryParam("resource")
+
+	type InputData struct {
+		Name      string `json:"name"`
+		Namespace string `json:"namespace"`
+	}
+	type Failures struct {
+		Namespace string `json:"namespace"`
+		Name      string `json:"name"`
+		Message   string `json:"message"`
+	}
+
+	r := new([]InputData)
+	if err := c.Bind(r); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	failures := make([]Failures, 0)
+	for _, item := range *r {
+		var err error
+		gvr := schema.GroupVersionResource{
+			Group:    group,    // replace with your custom resource group
+			Version:  version,  // replace with your custom resource version
+			Resource: resource, // replace with the plural name of your custom resource
+		}
+
+		if item.Namespace == "" {
+			err = h.BaseHandler.Container.
+				DynamicClient(h.BaseHandler.QueryConfig, h.BaseHandler.QueryCluster).
+				Resource(gvr).
+				Namespace(item.Namespace).
+				Delete(c.Request().Context(), item.Name, metav1.DeleteOptions{})
+		} else {
+			err = h.BaseHandler.Container.
+				DynamicClient(h.BaseHandler.QueryConfig, h.BaseHandler.QueryCluster).
+				Resource(gvr).
+				Delete(c.Request().Context(), item.Name, metav1.DeleteOptions{})
+		}
+
+		if err != nil {
+			failures = append(failures, Failures{
+				Namespace: item.Namespace,
+				Name:      item.Name,
+				Message:   err.Error(),
+			})
+		}
+	}
+
+	return c.JSON(http.StatusOK, map[string]any{
+		"failures": failures,
+	})
 }
 
 func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
