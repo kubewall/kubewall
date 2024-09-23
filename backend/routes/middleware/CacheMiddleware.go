@@ -11,7 +11,7 @@ import (
 func CacheMiddleware(container container.Container) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			if strings.Contains(c.Path(), "api/v1/app") || c.Path() == "" || c.Path() == "/" {
+			if strings.Contains(c.Path(), "api/v1/app") || c.Path() == "" || c.Path() == "/" || c.Path() == "/healthz" {
 				return next(c)
 			}
 

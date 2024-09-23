@@ -65,6 +65,9 @@ func ConfigureRoutes(e *echo.Echo, appContainer container.Container) {
 		Root:       "static",
 		Filesystem: http.FS(embeddedFiles),
 	}))
+	e.GET("/healthz", func(c echo.Context) error {
+		return c.String(http.StatusOK, "OK")
+	})
 
 	e.POST("api/v1/app/apply", apply.NewApplyHandler(appContainer, apply.POSTApply))
 
