@@ -1,11 +1,11 @@
-import { HeaderList, TableColumns } from '@/types';
+import { ClusterDetails, HeaderList, TableColumns } from '@/types';
 
 import { ColumnDef } from '@tanstack/react-table';
 import { DefaultHeader } from '@/components/app/Table';
 import { TableCells } from '@/components/app/Table/TableCells';
 import { useMemo } from 'react';
 
-function GenerateColumns<T, C extends HeaderList>({
+function GenerateColumns<T extends ClusterDetails, C extends HeaderList>({
   count,
   clusterName,
   configName,
@@ -18,7 +18,7 @@ function GenerateColumns<T, C extends HeaderList>({
     () =>
       headersList.map((headerList) => {
         return {
-          header: ({ column }) => <DefaultHeader column={column} title={headerList.title} />,
+          header: ({ column }) => <DefaultHeader column={column} title={headerList.title === 'Select' ? '' : headerList.title} />,
           accessorKey: headerList.accessorKey,
           id: headerList.title,
           cell: ({ row, getValue }) => (
@@ -32,12 +32,14 @@ function GenerateColumns<T, C extends HeaderList>({
               type={headerList.title}
               value={String(getValue())}
               queryParams={queryParams}
+              row={row}
             />
           ),
           filterFn: (row, id, value) => {
             return value.includes(row.getValue(id));
           },
           enableSorting: headerList.enableSorting ?? true,
+          enableGlobalFilter: !!headerList.enableGlobalFilter
         };
       }),
     [count,

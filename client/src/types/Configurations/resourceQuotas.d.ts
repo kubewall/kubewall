@@ -2,7 +2,7 @@ type ResourceQuotasHeaders = {
   namespace: string,
   name: string,
   age: string
-};
+} & ResourceQuotasHeaders;
 
 type ResourceQuotasResponse = {
   hasUpdated: boolean;

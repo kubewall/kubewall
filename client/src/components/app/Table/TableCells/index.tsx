@@ -4,22 +4,25 @@ import { ClusterDetails } from '@/types';
 import { ConditionCell } from './conditionCell';
 import { CurrentByDesiredCell } from './currentByDesiredCell';
 import { DefaultCell } from './defaultCell';
+import { IndeterminateCheckbox } from './selectCell';
 import { MultiValueCell } from './multiValueCell';
 import { NameCell } from './nameCell';
+import { Row } from '@tanstack/react-table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusCell } from './statusCell';
 import { TimeCell } from './timeCell';
 
-type TableCellType = {
+type TableCellType<T> = {
   type: string;
   value: string;
   namespace: string;
   instanceType: string;
   loading: boolean;
+  row: Row<T>;
   queryParams?: string;
 } & ClusterDetails;
 
-const TableCells = ({
+const TableCells = <T extends ClusterDetails>({
   clusterName,
   configName,
   instanceType,
@@ -27,14 +30,27 @@ const TableCells = ({
   namespace,
   type,
   value,
-  queryParams
-}: TableCellType) => {
+  queryParams,
+  row
+}: TableCellType<T>) => {
   if (loading) {
     return <Skeleton className="h-4" />;
   }
-  if(value === undefined || value === 'undefined') {
+  if (type === 'Select') {
+    return (<div className="pl-2">
+      <IndeterminateCheckbox
+        {...{
+          checked: row.getIsSelected(),
+          disabled: !row.getCanSelect(),
+          onClick: row.getToggleSelectedHandler(),
+        }}
+      />
+    </div>)
+  }
+  if (value === undefined || value === 'undefined') {
     return <DefaultCell cellValue='' />;
   }
+
   if (type === 'Conditions') {
     return <ConditionCell cellValue={value} />;
   }
@@ -71,7 +87,7 @@ const TableCells = ({
       instanceType === ENDPOINTS_ENDPOINT ||
       instanceType === SERVICES_ENDPOINT ||
       instanceType === ROLE_BINDINGS_ENDPOINT ||
-      instanceType === NODES_ENDPOINT || 
+      instanceType === NODES_ENDPOINT ||
       instanceType === SECRETS_ENDPOINT ||
       instanceType === CONFIG_MAPS_ENDPOINT
     )

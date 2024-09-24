@@ -1,8 +1,8 @@
+import { ClusterDetails, HeaderList } from "@/types";
 import { defaultSkeletonRow, getEventStreamUrl } from "@/utils";
 
 import { ActionCreatorWithPayload } from "@reduxjs/toolkit";
 import { DataTable } from "@/components/app/Table";
-import { HeaderList } from "@/types";
 import { useAppDispatch } from "@/redux/hooks";
 import { useEventSource } from "../EventSource";
 import useGenerateColumns from "../TableColumns";
@@ -22,7 +22,7 @@ type CreateTableProps<T, C extends HeaderList> = {
   showNamespaceFilter: boolean;
 };
 
-const CreateTable = <T, C extends HeaderList>({
+const CreateTable = <T extends ClusterDetails, C extends HeaderList>({
   clusterName,
   configName,
   loading,

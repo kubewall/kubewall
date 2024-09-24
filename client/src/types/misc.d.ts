@@ -6,6 +6,7 @@ type HeaderList = {
   accessorFn?: (property: any) => void
   accessorKey?: string;
   enableSorting?: boolean;
+  enableGlobalFilter?: boolean;
 }
 
 type ResourceDetailsSearch = {

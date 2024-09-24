@@ -27,8 +27,9 @@ const getTableConfig = <T>(
 
 const leasesColumnConfig = (config: string, cluster: string) => ({
   headersList: [
-    { title: 'Namespace', accessorKey: 'namespace' },
-    { title: 'Name', accessorKey: 'name' },
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Namespace', accessorKey: 'namespace', enableGlobalFilter: true },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
     { title: 'Holder Identity', accessorKey: 'holderIdentity' },
     { title: 'Lease Duration Seconds', accessorKey: 'leaseDurationSeconds' },
     { title: 'Age', accessorKey: 'age' },
@@ -39,7 +40,8 @@ const leasesColumnConfig = (config: string, cluster: string) => ({
 
 const namespacesColumnConfig = (config: string, cluster: string) => ({
   headersList: [
-    { title: 'Name', accessorKey: 'name' },
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
     { title: 'Age', accessorKey: 'age' },
     { title: 'Phase', accessorKey: 'phase' },
     { title: 'UID', accessorKey: 'uid' },
@@ -50,7 +52,7 @@ const namespacesColumnConfig = (config: string, cluster: string) => ({
 
 const nodesColumnConfig = (config: string, cluster: string) => ({
   headersList: [
-    { title: 'Name', accessorKey: 'name' },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
     { title: 'Resource Version', accessorKey: 'resourceVersion' },
     { title: 'Age', accessorKey: 'age' },
     { title: 'Roles', accessorKey: 'roles' },
@@ -74,8 +76,9 @@ const nodesColumnConfig = (config: string, cluster: string) => ({
 
 const configMapsColumnConfig = (config: string, cluster: string) => ({
   headersList: [
-    { title: 'Namespace', accessorKey: 'namespace' },
-    { title: 'Name', accessorKey: 'name' },
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Namespace', accessorKey: 'namespace', enableGlobalFilter: true },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
     { title: 'Keys Count', accessorKey: 'count' },
     { title: 'Keys', accessorKey: 'keys' },
     { title: 'Age', accessorKey: 'age' }
@@ -86,8 +89,9 @@ const configMapsColumnConfig = (config: string, cluster: string) => ({
 
 const hpasColumnConfig = (config: string, cluster: string) => ({
   headersList: [
-    { title: 'Namespace', accessorKey: 'namespace' },
-    { title: 'Name', accessorKey: 'name' },
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Namespace', accessorKey: 'namespace', enableGlobalFilter: true },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
     { title: 'Minimum Pods', accessorKey: 'minPods' },
     { title: 'Maximum Pods', accessorKey: 'maxPods' },
     { title: 'Age', accessorKey: 'age' }
@@ -98,8 +102,9 @@ const hpasColumnConfig = (config: string, cluster: string) => ({
 
 const limitRangesColumnConfig = (config: string, cluster: string) => ({
   headersList: [
-    { title: 'Namespace', accessorKey: 'namespace' },
-    { title: 'Name', accessorKey: 'name' },
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Namespace', accessorKey: 'namespace', enableGlobalFilter: true },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
     { title: 'Limit Count', accessorKey: 'limitCount' },
     { title: 'Age', accessorKey: 'age' }
   ],
@@ -109,8 +114,9 @@ const limitRangesColumnConfig = (config: string, cluster: string) => ({
 
 const podDisruptionBudgetsColumnConfig = (config: string, cluster: string) => ({
   headersList: [
-    { title: 'Namespace', accessorKey: 'namespace' },
-    { title: 'Name', accessorKey: 'name' },
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Namespace', accessorKey: 'namespace', enableGlobalFilter: true },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
     { title: 'Minimum Available', accessorKey: 'minAvailable' },
     { title: 'Maximum Unavailable', accessorKey: 'maxUnavailable' },
     { title: 'Current Healthy', accessorKey: 'currentHealthy' },
@@ -122,7 +128,8 @@ const podDisruptionBudgetsColumnConfig = (config: string, cluster: string) => ({
 
 const priorityClassesColumnConfig = (config: string, cluster: string) => ({
   headersList: [
-    { title: 'Name', accessorKey: 'name' },
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
     { title: 'Value', accessorKey: 'value' },
     { title: 'Global Default', accessorKey: 'globalDefault' },
     { title: 'Preemption Policy', accessorKey: 'preemptionPolicy' },
@@ -134,8 +141,9 @@ const priorityClassesColumnConfig = (config: string, cluster: string) => ({
 
 const resourceQuotasColumnConfig = (config: string, cluster: string) => ({
   headersList: [
-    { title: 'Namespace', accessorKey: 'namespace' },
-    { title: 'Name', accessorKey: 'name' },
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Namespace', accessorKey: 'namespace', enableGlobalFilter: true },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
     { title: 'Age', accessorKey: 'age' }
   ],
   queryParams: { config, cluster },
@@ -144,7 +152,8 @@ const resourceQuotasColumnConfig = (config: string, cluster: string) => ({
 
 const runtimeClassesColumnConfig = (config: string, cluster: string) => ({
   headersList: [
-    { title: 'Name', accessorKey: 'name' },
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
     { title: 'Handler', accessorKey: 'handler' },
     { title: 'Age', accessorKey: 'age' }
   ],
@@ -154,8 +163,9 @@ const runtimeClassesColumnConfig = (config: string, cluster: string) => ({
 
 const secretsColumnConfig = (config: string, cluster: string) => ({
   headersList: [
-    { title: 'Namespace', accessorKey: 'namespace' },
-    { title: 'Name', accessorKey: 'name' },
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Namespace', accessorKey: 'namespace', enableGlobalFilter: true },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
     { title: 'Type', accessorKey: 'type' },
     { title: 'Keys', accessorKey: 'keys' },
     { title: 'Age', accessorKey: 'age' }
@@ -168,7 +178,8 @@ const secretsColumnConfig = (config: string, cluster: string) => ({
 
 const clusterRoleBindingsColumnConfig = (config: string, cluster: string) => ({
   headersList: [
-    { title: 'Name', accessorKey: 'name' },
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
     { title: 'Bindings', accessorKey: 'bindings' },
     { title: 'Age', accessorKey: 'age' }
   ],
@@ -178,7 +189,8 @@ const clusterRoleBindingsColumnConfig = (config: string, cluster: string) => ({
 
 const clusterRolesColumnConfig = (config: string, cluster: string) => ({
   headersList: [
-    { title: 'Name', accessorKey: 'name' },
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
     { title: 'Rules', accessorKey: 'rules' },
     { title: 'Age', accessorKey: 'age' }
   ],
@@ -188,8 +200,9 @@ const clusterRolesColumnConfig = (config: string, cluster: string) => ({
 
 const roleBindingsColumnConfig = (config: string, cluster: string) => ({
   headersList: [
-    { title: 'Namespace', accessorKey: 'namespace' },
-    { title: 'Name', accessorKey: 'name' },
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Namespace', accessorKey: 'namespace', enableGlobalFilter: true },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
     { title: 'Bindings', accessorKey: 'bindings' },
     { title: 'Age', accessorKey: 'age' }
   ],
@@ -199,8 +212,9 @@ const roleBindingsColumnConfig = (config: string, cluster: string) => ({
 
 const rolesColumnConfig = (config: string, cluster: string) => ({
   headersList: [
-    { title: 'Namespace', accessorKey: 'namespace' },
-    { title: 'Name', accessorKey: 'name' },
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Namespace', accessorKey: 'namespace', enableGlobalFilter: true },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
     { title: 'Rules', accessorKey: 'rules' },
     { title: 'Age', accessorKey: 'age' }
   ],
@@ -210,8 +224,9 @@ const rolesColumnConfig = (config: string, cluster: string) => ({
 
 const serviceAccountsColumnConfig = (config: string, cluster: string) => ({
   headersList: [
-    { title: 'Namespace', accessorKey: 'namespace' },
-    { title: 'Name', accessorKey: 'name' },
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Namespace', accessorKey: 'namespace', enableGlobalFilter: true },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
     { title: 'Secrets', accessorKey: 'secrets' },
     { title: 'Age', accessorKey: 'age' }
   ],
@@ -223,8 +238,9 @@ const serviceAccountsColumnConfig = (config: string, cluster: string) => ({
 
 const endpointsColumnConfig = (config: string, cluster: string) => ({
   headersList: [
-    { title: 'Namespace', accessorKey: 'namespace' },
-    { title: 'Name', accessorKey: 'name' },
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Namespace', accessorKey: 'namespace', enableGlobalFilter: true },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
     { title: 'Addresses', accessorKey: 'addresses' },
     { title: 'Ports', accessorKey: 'ports' },
     { title: 'Age', accessorKey: 'age' }
@@ -235,8 +251,9 @@ const endpointsColumnConfig = (config: string, cluster: string) => ({
 
 const ingressesColumnConfig = (config: string, cluster: string) => ({
   headersList: [
-    { title: 'Namespace', accessorKey: 'namespace' },
-    { title: 'Name', accessorKey: 'name' },
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Namespace', accessorKey: 'namespace', enableGlobalFilter: true },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
     { title: 'Rules', accessorKey: 'rules' },
     { title: 'Age', accessorKey: 'age' }
   ],
@@ -246,10 +263,11 @@ const ingressesColumnConfig = (config: string, cluster: string) => ({
 
 const servicesColumnConfig = (config: string, cluster: string) => ({
   headersList: [
-    { title: 'Namespace', accessorKey: 'namespace' },
-    { title: 'Name', accessorKey: 'name' },
-    { title: 'Ports', accessorKey: 'ports' },
-    { title: 'Cluster IP', accessorKey: 'clusterIP' },
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Namespace', accessorKey: 'namespace', enableGlobalFilter: true},
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
+    { title: 'Ports', accessorKey: 'ports', enableGlobalFilter: true },
+    { title: 'Cluster IP', accessorKey: 'clusterIP', enableGlobalFilter: true },
     { title: 'Session Affinity', accessorKey: 'sessionAffinity' },
     { title: 'IP Family Policy', accessorKey: 'ipFamilyPolicy' },
     { title: 'Internal Traffic Policy', accessorKey: 'internalTrafficPolicy' },
@@ -263,8 +281,9 @@ const servicesColumnConfig = (config: string, cluster: string) => ({
 
 const persistentVolumeClaimsColumnConfig = (config: string, cluster: string) => ({
   headersList: [
-    { title: 'Namespace', accessorKey: 'namespace' },
-    { title: 'Name', accessorKey: 'name' },
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Namespace', accessorKey: 'namespace', enableGlobalFilter: true },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
     { title: 'Storage Class Name', accessorKey: 'storageClassName' },
     { title: 'Volume Name', accessorKey: 'volumeName' },
     { title: 'Volume Mode', accessorKey: 'volumeMode' },
@@ -278,7 +297,8 @@ const persistentVolumeClaimsColumnConfig = (config: string, cluster: string) => 
 
 const persistentVolumesColumnConfig = (config: string, cluster: string) => ({
   headersList: [
-    { title: 'Name', accessorKey: 'name' },
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
     { title: 'Storage Class Name', accessorKey: 'storageClassName' },
     { title: 'Volume Mode', accessorKey: 'volumeMode' },
     { title: 'Claim Ref', accessorKey: 'claimRef' },
@@ -291,7 +311,8 @@ const persistentVolumesColumnConfig = (config: string, cluster: string) => ({
 
 const storageClassesColumnConfig = (config: string, cluster: string) => ({
   headersList: [
-    { title: 'Name', accessorKey: 'name' },
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
     { title: 'Provisioner', accessorKey: 'provisioner' },
     { title: 'Reclaim Policy', accessorKey: 'reclaimPolicy' },
     { title: 'Volume Binding Mode', accessorKey: 'VolumeBindingMode' },
@@ -305,18 +326,19 @@ const storageClassesColumnConfig = (config: string, cluster: string) => ({
 
 const podsColumnConfig = (config: string, cluster: string) => ({
   headersList: [
-    { title: 'Namespace', accessorKey: 'namespace', },
-    { title: 'Name', accessorKey: 'name', },
-    { title: 'Node', accessorKey: 'node', },
-    { title: 'Ready', accessorKey: 'ready', enableSorting: false },
-    { title: 'Status', accessorKey: 'status', },
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Namespace', accessorKey: 'namespace', enableGlobalFilter: true},
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
+    { title: 'Node', accessorKey: 'node', enableGlobalFilter: true},
+    { title: 'Ready', accessorKey: 'ready', enableSorting: false, },
+    { title: 'Status', accessorKey: 'status', enableGlobalFilter: true},
     { title: 'CPU', accessorKey: 'cpu', },
     { title: 'Memory', accessorKey: 'memory', },
     { title: 'Restarts', accessorKey: 'restarts', },
     { title: 'Last Restart', accessorKey: 'lastRestartAt', },
-    { title: 'IP', accessorKey: 'podIP', },
+    { title: 'IP', accessorKey: 'podIP', enableGlobalFilter: true},
     { title: 'QOS', accessorKey: 'qos', },
-    { title: 'Age', accessorKey: 'age', enableSorting: false }
+    { title: 'Age', accessorKey: 'age', enableSorting: false, }
   ],
   queryParams: { config, cluster },
   showNamespaceFilter: true
@@ -324,8 +346,9 @@ const podsColumnConfig = (config: string, cluster: string) => ({
 
 const cronJobsColumnConfig = (config: string, cluster: string) => ({
   headersList: [
-    { title: 'Namespace', accessorKey: 'namespace' },
-    { title: 'Name', accessorKey: 'name' },
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Namespace', accessorKey: 'namespace', enableGlobalFilter: true },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
     { title: 'Schedule', accessorKey: 'schedule' },
     { title: 'Active Jobs', accessorKey: 'activeJobs' },
     { title: 'Last Schedule', accessorKey: 'lastSchedule' },
@@ -338,8 +361,9 @@ const cronJobsColumnConfig = (config: string, cluster: string) => ({
 
 const daemonSetsColumnConfig = (config: string, cluster: string) => ({
   headersList: [
-    { title: 'Namespace', accessorKey: 'namespace' },
-    { title: 'Name', accessorKey: 'name' },
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Namespace', accessorKey: 'namespace', enableGlobalFilter: true },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
     { title: 'Current', accessorKey: 'current', enableSorting: false },
     { title: 'Ready', accessorKey: 'ready', enableSorting: false },
     { title: 'Updated', accessorKey: 'updated' },
@@ -352,8 +376,9 @@ const daemonSetsColumnConfig = (config: string, cluster: string) => ({
 
 const deploymentsColumnConfig = (config: string, cluster: string) => ({
   headersList: [
-    { title: 'Namespace', accessorKey: 'namespace' },
-    { title: 'Name', accessorKey: 'name' },
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Namespace', accessorKey: 'namespace', enableGlobalFilter: true },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
     { title: 'Ready', accessorKey: 'ready', enableSorting: false },
     { title: 'Desired', accessorKey: 'desired' },
     { title: 'Updated', accessorKey: 'updated' },
@@ -367,8 +392,9 @@ const deploymentsColumnConfig = (config: string, cluster: string) => ({
 
 const jobsColumnConfig = (config: string, cluster: string) => ({
   headersList: [
-    { title: 'Namespace', accessorKey: 'namespace' },
-    { title: 'Name', accessorKey: 'name' },
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Namespace', accessorKey: 'namespace', enableGlobalFilter: true },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
     { title: 'Completions', accessorKey: 'completions', enableSorting: false },
     { title: 'Conditions', accessorKey: 'conditions' },
     { title: 'Duration', accessorKey: 'duration' },
@@ -380,8 +406,9 @@ const jobsColumnConfig = (config: string, cluster: string) => ({
 
 const replicaSetsColumnConfig = (config: string, cluster: string) => ({
   headersList: [
-    { title: 'Namespace', accessorKey: 'namespace' },
-    { title: 'Name', accessorKey: 'name' },
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Namespace', accessorKey: 'namespace', enableGlobalFilter: true },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
     { title: 'Ready', accessorKey: 'ready', enableSorting: false },
     { title: 'Available', accessorKey: 'available' },
     { title: 'Age', accessorKey: 'age' }
@@ -392,8 +419,9 @@ const replicaSetsColumnConfig = (config: string, cluster: string) => ({
 
 const stateSetsColumnConfig = (config: string, cluster: string) => ({
   headersList: [
-    { title: 'Namespace', accessorKey: 'namespace' },
-    { title: 'Name', accessorKey: 'name' },
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Namespace', accessorKey: 'namespace', enableGlobalFilter: true },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
     { title: 'Ready', accessorKey: 'ready', enableSorting: false },
     { title: 'Available', accessorKey: 'available' },
     { title: 'Age', accessorKey: 'age' }
@@ -403,7 +431,7 @@ const stateSetsColumnConfig = (config: string, cluster: string) => ({
 });
 
 // Custom Resources
-const customResourcesColumnConfig = ( additionalPrinterColumns: CustomResourcesPrinterColumns[] = [], config: string, cluster: string, loading: boolean, group?: string, kind?: string, resource?: string, version?: string) => ({
+const customResourcesColumnConfig = (additionalPrinterColumns: CustomResourcesPrinterColumns[] = [], config: string, cluster: string, loading: boolean, group?: string, kind?: string, resource?: string, version?: string) => ({
   headersList: [
     ...additionalPrinterColumns.map((columns) => {
       return {
@@ -420,7 +448,7 @@ const customResourcesColumnConfig = ( additionalPrinterColumns: CustomResourcesP
     resource,
     version
   },
-  showNamespaceFilter: additionalPrinterColumns.filter(({name}) => name === 'Namespace').length > 0
+  showNamespaceFilter: additionalPrinterColumns.filter(({ name }) => name === 'Namespace').length > 0
 });
 
 export {
