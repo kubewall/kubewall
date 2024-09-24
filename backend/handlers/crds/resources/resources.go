@@ -3,6 +3,10 @@ package resources
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/event"
 	"github.com/kubewall/kubewall/backend/handlers/base"
@@ -13,9 +17,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"net/http"
-	"strings"
-	"time"
 )
 
 const (
@@ -134,21 +135,21 @@ func (h *UnstructuredHandler) Delete(c echo.Context) error {
 	for _, item := range *r {
 		var err error
 		gvr := schema.GroupVersionResource{
-			Group:    group,    // replace with your custom resource group
-			Version:  version,  // replace with your custom resource version
-			Resource: resource, // replace with the plural name of your custom resource
+			Group:    group,
+			Version:  version,
+			Resource: resource,
 		}
 
 		if item.Namespace == "" {
 			err = h.BaseHandler.Container.
 				DynamicClient(h.BaseHandler.QueryConfig, h.BaseHandler.QueryCluster).
 				Resource(gvr).
-				Namespace(item.Namespace).
 				Delete(c.Request().Context(), item.Name, metav1.DeleteOptions{})
 		} else {
 			err = h.BaseHandler.Container.
 				DynamicClient(h.BaseHandler.QueryConfig, h.BaseHandler.QueryCluster).
 				Resource(gvr).
+				Namespace(item.Namespace).
 				Delete(c.Request().Context(), item.Name, metav1.DeleteOptions{})
 		}
 
