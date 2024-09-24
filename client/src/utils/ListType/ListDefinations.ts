@@ -433,6 +433,7 @@ const stateSetsColumnConfig = (config: string, cluster: string) => ({
 // Custom Resources
 const customResourcesColumnConfig = (additionalPrinterColumns: CustomResourcesPrinterColumns[] = [], config: string, cluster: string, loading: boolean, group?: string, kind?: string, resource?: string, version?: string) => ({
   headersList: [
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
     ...additionalPrinterColumns.map((columns) => {
       return {
         title: columns.name,

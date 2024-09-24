@@ -14,10 +14,10 @@ type TableDeleteProps = {
   selectedRows: Row<any>[];
   toggleAllRowsSelected: (value: boolean) => void;
 }
-
+//resourcekind=customresources&resourcename=my-widget&cluster=orbstack&config=199f58c1-107c-44ee-a437-e75bcfecb94f&group=widgets.example.com&kind=Widget&resource=widgets&version=v1&namespace=default
 const TableDelete = ({ selectedRows, toggleAllRowsSelected }: TableDeleteProps) => {
   const { config, cluster } = kwList.useParams();
-  const { resourcekind='' } = kwList.useSearch();
+  const { resourcekind='',group='',kind='',resource='',version='' } = kwList.useSearch();
   const {
     loading,
     error,
@@ -71,14 +71,21 @@ const TableDelete = ({ selectedRows, toggleAllRowsSelected }: TableDeleteProps) 
   const deleteResource = () => {
     const data = selectedRows.map(({ original }) => {
       return {
-        'name': original.name,
-        'namespace': original.namespace
+        'name': original.name || original.metadata.name,
+        'namespace': original.namespace || original.metadata.namespace
       }
     });
+    let queryParamsObj: Record<string, string> = { config, cluster };
+    if(resourcekind === 'customresources'){
+      queryParamsObj['group'] = group;
+      queryParamsObj['kind'] = kind;
+      queryParamsObj['resource'] = resource;
+      queryParamsObj['version'] = version;
+    }
     dispatch(deleteResources({
       data,
       resourcekind,
-      queryParams: new URLSearchParams({ config, cluster }).toString()
+      queryParams: new URLSearchParams(queryParamsObj).toString()
     }))
   };
 
