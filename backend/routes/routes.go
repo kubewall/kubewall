@@ -65,6 +65,9 @@ func ConfigureRoutes(e *echo.Echo, appContainer container.Container) {
 		Root:       "static",
 		Filesystem: http.FS(embeddedFiles),
 	}))
+	e.GET("/healthz", func(c echo.Context) error {
+		return c.String(http.StatusOK, "OK")
+	})
 
 	e.POST("api/v1/app/apply", apply.NewApplyHandler(appContainer, apply.POSTApply))
 
@@ -102,9 +105,11 @@ func customResources(e *echo.Echo, appContainer container.Container) {
 	e.GET("api/v1/customresourcedefinitions/:name", crds.NewCRDHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/customresourcedefinitions/:name/yaml", crds.NewCRDHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/customresourcedefinitions/:name/events", crds.NewCRDHandler(appContainer, base.GetEvents))
-	e.GET("api/v1/customresourcedefinitions", crds.NewCRDHandler(appContainer, base.Delete))
+	e.DELETE("api/v1/customresourcedefinitions", crds.NewCRDHandler(appContainer, base.Delete))
 
 	e.GET("api/v1/customresources", resources.NewUnstructuredHandler(appContainer, base.GetList))
+	e.DELETE("api/v1/customresources", resources.NewUnstructuredHandler(appContainer, base.Delete))
+
 	// No namespace custom CRD's details and YAML
 	e.GET("api/v1/customresources/:name", resources.NewUnstructuredHandler(appContainer, resources.GetDetails))
 	e.GET("api/v1/customresources/:name/yaml", resources.NewUnstructuredHandler(appContainer, resources.GetYAML))

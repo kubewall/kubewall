@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"k8s.io/client-go/util/homedir"
 	"os"
 	"path/filepath"
 	"testing"
@@ -51,7 +52,7 @@ func TestAppConfigLoadAppConfig(t *testing.T) {
 
 		config := NewAppConfig("appTest", 10, 10)
 		config.LoadAppConfig()
-		assert.NotContains(t, config.KubeConfig, "incluster")
+		assert.NotContains(t, config.KubeConfig, InClusterKey)
 	})
 }
 
@@ -92,11 +93,11 @@ func TestAppConfigRemoveKubeConfig(t *testing.T) {
 			name: "happy path - kubeconfig file exists",
 			uuid: "test-config",
 			setup: func() {
-				os.MkdirAll(filepath.Join(homeDir(), appConfigDir, appKubeConfigDir), 0755)
-				os.WriteFile(filepath.Join(homeDir(), appConfigDir, appKubeConfigDir, "test-config"), []byte("test content"), 0644)
+				os.MkdirAll(filepath.Join(homedir.HomeDir(), appConfigDir, appKubeConfigDir), 0755)
+				os.WriteFile(filepath.Join(homedir.HomeDir(), appConfigDir, appKubeConfigDir, "test-config"), []byte("test content"), 0644)
 			},
 			cleanup: func() {
-				os.RemoveAll(filepath.Join(homeDir(), appConfigDir))
+				os.RemoveAll(filepath.Join(homedir.HomeDir(), appConfigDir))
 			},
 		},
 		{
@@ -139,7 +140,7 @@ func TestAppConfigSaveKubeConfig(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.setup()
-			defer os.RemoveAll(filepath.Join(homeDir(), appConfigDir))
+			defer os.RemoveAll(filepath.Join(homedir.HomeDir(), appConfigDir))
 
 			config := NewAppConfig("appTest", 10, 10)
 			config.SaveKubeConfig(tt.uuid)
@@ -175,7 +176,7 @@ func TestHomeDir(t *testing.T) {
 			os.Setenv("HOME", tt.envHome)
 			defer os.Unsetenv("HOME")
 
-			home := homeDir()
+			home := homedir.HomeDir()
 			assert.Equal(t, tt.expected, home)
 		})
 	}
