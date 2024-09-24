@@ -28,7 +28,7 @@ const TableDelete = ({ selectedRows, toggleAllRowsSelected }: TableDeleteProps) 
   useEffect(() => {
     if (message?.failures?.length === 0 && !error) {
       toast.success("Success", {
-        description: 'Resource marked for temination.',
+        description: 'Resource/s marked for temination.',
       });
       dispatch(resetDeleteResource());
       toggleAllRowsSelected(true);
