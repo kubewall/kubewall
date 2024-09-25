@@ -68,7 +68,7 @@ export function DataTable<TData, TValue>({
   const {
     searchString
   } = useAppSelector((state: RootState) => state.listTableFilter);
-  const [rowSelection, setRowSelection] = useState({})
+  const [rowSelection, setRowSelection] = useState({});
   const [globalFilter, setGlobalFilter] = useState(searchString);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -106,7 +106,7 @@ export function DataTable<TData, TValue>({
 
   useEffect(() => {
     setRowSelection({});
-  },[columns])
+  },[columns]);
   return (
     <>
       {
@@ -144,6 +144,7 @@ export function DataTable<TData, TValue>({
                 <TableRow
                   key={index}
                   id={getIdAndSetClass(row.original.hasUpdated, row.original.name)}
+                  data-state={row.getIsSelected() && 'selected'}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>

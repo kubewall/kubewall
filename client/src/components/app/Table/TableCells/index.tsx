@@ -45,7 +45,7 @@ const TableCells = <T extends ClusterDetails>({
           onClick: row.getToggleSelectedHandler(),
         }}
       />
-    </div>)
+    </div>);
   }
   if (value === undefined || value === 'undefined') {
     return <DefaultCell cellValue='' />;

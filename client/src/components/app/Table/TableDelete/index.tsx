@@ -11,10 +11,11 @@ import { toast } from "sonner";
 import { useEffect } from "react";
 
 type TableDeleteProps = {
+  // eslint-disable-next-line  @typescript-eslint/no-explicit-any
   selectedRows: Row<any>[];
   toggleAllRowsSelected: (value: boolean) => void;
 }
-//resourcekind=customresources&resourcename=my-widget&cluster=orbstack&config=199f58c1-107c-44ee-a437-e75bcfecb94f&group=widgets.example.com&kind=Widget&resource=widgets&version=v1&namespace=default
+
 const TableDelete = ({ selectedRows, toggleAllRowsSelected }: TableDeleteProps) => {
   const { config, cluster } = kwList.useParams();
   const { resourcekind='',group='',kind='',resource='',version='' } = kwList.useSearch();
@@ -73,9 +74,9 @@ const TableDelete = ({ selectedRows, toggleAllRowsSelected }: TableDeleteProps) 
       return {
         'name': original.name || original.metadata.name,
         'namespace': original.namespace || original.metadata.namespace
-      }
+      };
     });
-    let queryParamsObj: Record<string, string> = { config, cluster };
+    const queryParamsObj: Record<string, string> = { config, cluster };
     if(resourcekind === 'customresources'){
       queryParamsObj['group'] = group;
       queryParamsObj['kind'] = kind;
@@ -86,7 +87,7 @@ const TableDelete = ({ selectedRows, toggleAllRowsSelected }: TableDeleteProps) 
       data,
       resourcekind,
       queryParams: new URLSearchParams(queryParamsObj).toString()
-    }))
+    }));
   };
 
   return (
@@ -103,9 +104,9 @@ const TableDelete = ({ selectedRows, toggleAllRowsSelected }: TableDeleteProps) 
       }
       <span className='text-xs'>Delete</span>
     </Button>
-  )
+  );
 };
 
 export {
   TableDelete
-}
+};

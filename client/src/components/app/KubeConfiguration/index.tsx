@@ -2,12 +2,15 @@ import './index.css';
 
 import { Fragment, useEffect, useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { resetAllStates, useAppDispatch, useAppSelector } from '@/redux/hooks';
 
 import { AddConfig } from './AddConfiguration';
+import { Button } from '@/components/ui/button';
 import { Clusters } from '@/types';
 import { DeleteConfiguration } from './DeleteConfiguration';
 import { Input } from '@/components/ui/input';
+import { ReloadIcon } from '@radix-ui/react-icons';
 import { StatusCell } from '../Table/TableCells/statusCell';
 import { fetchClusters } from '@/data/KwClusters/ClustersSlice';
 import { getSystemTheme } from '@/utils';
@@ -85,12 +88,28 @@ export function KubeConfiguration() {
     <>
       <div className='h-screen px-[1%] py-[1%]'>
         <div className="flex flex-col space-y-8 md:flex p-2">
-          <div className="flex items-center justify-between space-y-2">
+          <div className="flex items-center justify-between">
             <div className="flex items-end">
               <img className="w-40" src={getSystemTheme() === 'light' ? kwLogoLight : kwLogoDark} alt="kubewall" />
               <span className="ml-2 text-xs">({clusters.version})</span>
             </div>
-            <AddConfig />
+            <div className="flex space-x-2">
+              <AddConfig />
+              <TooltipProvider>
+                <Tooltip delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={() => window.location.href = '/api/v1/app/config/reload'}
+                    >
+                      <ReloadIcon className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent className="mr-2.5">
+                    Refresh Clusters
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           </div>
           <Input
             placeholder="Filter configs..."

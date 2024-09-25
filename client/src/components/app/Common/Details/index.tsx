@@ -36,7 +36,7 @@ const KwDetails = () => {
   }
  
   const getListPageQueryparams = () => {
-    let qp : Record<string, string> = {
+    const qp : Record<string, string> = {
       resourcekind: resourcekind
     };
     if(resourceInitialData.label === 'Custom Resources') {
@@ -46,7 +46,7 @@ const KwDetails = () => {
       qp['version'] = version;
     }
     return new URLSearchParams(qp).toString();
-  }
+  };
  
   return (
     <>
