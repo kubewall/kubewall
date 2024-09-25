@@ -21,10 +21,10 @@ const defaultSkeletonRow = () => Array(30).fill({});
 const createEventStreamQueryObject = (config: string, cluster: string, namespace = '') => ({
   config,
   cluster,
-  ...(namespace ? {namespace} : {})
+  ...(namespace ? { namespace } : {})
 });
 
-const getEventStreamUrl = (stream='', queryParmObject: Record<string, string>, extraRoutes = '', extraQueryParams = '') => {
+const getEventStreamUrl = (stream = '', queryParmObject: Record<string, string>, extraRoutes = '', extraQueryParams = '') => {
   const queryParam = '?' + new URLSearchParams(queryParmObject).toString();
   return API_VERSION + '/' + stream + extraRoutes + queryParam + extraQueryParams;
 };
@@ -61,22 +61,22 @@ const getAnnotationCardDetails = (annotations: null | undefined | KeyValueNull) 
 
 const getLabelConditionCardDetails = (labels: null | undefined | KeyValueNull, conditions: undefined | null | KeyValueNull[]) => {
   const data = [];
-  if(labels) {
+  if (labels) {
     data.push({ fieldLabel: "Labels", defaultLabelCount: 10, data: labels });
   }
-  if(conditions) {
+  if (conditions) {
     data.push({ fieldLabel: "Conditions", defaultLabelCount: 10, data: getConditionsCardDetails(conditions) });
   }
-  if(data.length) {
+  if (data.length) {
     return data;
   }
   return null;
 };
 
-const getConditionsCardDetails = (conditions:undefined | null | KeyValueNull[]) => {
+const getConditionsCardDetails = (conditions: undefined | null | KeyValueNull[]) => {
   return conditions?.reduce(function (result, item) {
     if (result && item && item.type) {
-    const key = item.type;
+      const key = item.type;
       result[key] = item.status;
     }
     return result;
@@ -94,6 +94,14 @@ const getSystemTheme = () => {
   return 'light';
 };
 
+const checkIfNotIpAddress = (address: string) => {
+  const hostname = address.split(':')[0];
+  const ipv4Regex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+  const ipv6Regex = /^(?:[a-f0-9]{1,4}:){7}[a-f0-9]{1,4}$/i;
+
+  return !ipv4Regex.test(hostname) && !ipv6Regex.test(hostname);
+}
+
 
 
 export {
@@ -107,5 +115,6 @@ export {
   getAnnotationCardDetails,
   getConditionsCardDetails,
   getLabelConditionCardDetails,
-  getSystemTheme
+  getSystemTheme,
+  checkIfNotIpAddress
 };

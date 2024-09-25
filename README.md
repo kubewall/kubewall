@@ -24,8 +24,6 @@ A single binary to manage your multiple kubernetes clusters.
 
 > [!Important]
 > Please keep in mind that kubewall is still under active development.
-> 
-> When not used over HTTP/2, SSE suffers from a limitation to the maximum number of open connections, which can be especially painful when opening multiple tabs, as the limit is per browser and is set to a very low number (6). We suggest using HTTPS
 
 # :battery: Install
 
@@ -79,6 +77,18 @@ scoop install kubewall
 Manually
 Download the pre-compiled binaries from the [Release!](https://github.com/kubewall/kubewall/releases) page and copy them to the desired location or system path.
 
+> [!TIP] 
+> After installation, you can access **kubewall** at `http://localhost:7080`
+>
+>  If you're running it in a Kubernetes cluster or on an on-premises server, we recommend using **HTTPS**.
+>  When not used over HTTP/2 SSE suffers from a limitation to the maximum number of open connections. [Mozzila](https://developer.mozilla.org/en-US/docs/Web/API/EventSource)⤴
+>
+>  You can start **kubewall** with **HTTPS** using the following command:
+>
+> ```
+> $ kubewall --certFile=/path/to/cert.pem --keyFile=/path/to/key.pem
+> ```
+
 # :books: Guide
 
 ### Flags
@@ -111,10 +121,10 @@ Use "kubewall [command] --help" for more information about a command.
 
 ### Setting up HTTPS locally
 
-You can use your own certificates or create new local trusted certificates using [mkcert](https://github.com/FiloSottile/mkcert).
+You can use your own certificates or create new local trusted certificates using [mkcert](https://github.com/FiloSottile/mkcert)⤴.
 
 > [!Important]
-> You'll need to install [mkcert](https://github.com/FiloSottile/mkcert) separately.
+> You'll need to install [mkcert](https://github.com/FiloSottile/mkcert)⤴ separately.
 
 1. Install mkcert on your computer.
 2. Run the following command in your terminal or command prompt:
@@ -122,7 +132,7 @@ You can use your own certificates or create new local trusted certificates using
 `mkcert kubewall.test localhost 127.0.0.1 ::1`
 
 3. This command will generate two files: a certificate file and a key file (the key file will have `-key.pem` at the end of its name).
-4. To use these files with kubewall, use `--certFile=` and `--keyFile=` flags
+4. To use these files with **kubewall**, use `--certFile=` and `--keyFile=` flags.
 
 ```shell
 kubewall --certFile=kubewall.test+3.pem --keyFile=kubewall.test+3-key.pem
@@ -130,8 +140,9 @@ kubewall --certFile=kubewall.test+3.pem --keyFile=kubewall.test+3-key.pem
 
 **When using Docker**
 
-When using Docker, you can attach volumes and provide certificates by using specific flags.
-In the example below, we are attaching the current directory on your host to the `/.certs` directory inside the Docker container:
+When using Docker, you can attach volumes and provide certificates by using specific flags. 
+
+In the following example, we mount the current directory from your host to the `/.certs` directory inside the Docker container:
 
 ```shell
 docker run -p 7080:7080 \
@@ -144,7 +155,7 @@ docker run -p 7080:7080 \
 
 ### Custom Port
 
-Yon can run kubewall on any port you like. by using `-p` or `--port` flag
+You can run **kubewall** on any port you like. by using `-p` or `--port` flag
 
 ```shell
 kubewall -p 7080
