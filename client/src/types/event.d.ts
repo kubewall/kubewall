@@ -1,3 +1,5 @@
+import { ClusterDetails } from "./misc";
+
 type Event = {
   metadata: {
     name: strin,
@@ -26,7 +28,7 @@ type Event = {
   action: string,
   reportingComponent: string,
   reportingInstance: string
-}
+} & ClusterDetails;
 
 export {
   Event
