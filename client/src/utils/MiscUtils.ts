@@ -97,7 +97,7 @@ const getSystemTheme = () => {
 const checkIfNotIpAddress = (address: string) => {
   const hostname = address.split(':')[0];
   const ipv4Regex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-  const ipv6Regex = /([a-f0-9:]+:+)+[a-f0-9]+/i;
+  const ipv6Regex = /^(?:[a-f0-9]{1,4}:){7}[a-f0-9]{1,4}$/i;
 
   return !ipv4Regex.test(hostname) && !ipv6Regex.test(hostname);
 }
