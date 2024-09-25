@@ -49,7 +49,7 @@ func NewSatefulSetHandler(c echo.Context, container container.Container) *Statef
 
 	handler := &StatefulSetHandler{
 		BaseHandler: base.BaseHandler{
-			Kind:             "SatefulSet",
+			Kind:             "StatefulSet",
 			Container:        container,
 			Informer:         informer,
 			RestClient:       container.ClientSet(config, cluster).AppsV1().RESTClient(),
