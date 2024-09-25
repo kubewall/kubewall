@@ -60,6 +60,11 @@ func (c *AppConfig) LoadAppConfig() {
 	}
 }
 
+func (c *AppConfig) ReloadConfig() {
+	c.KubeConfig = make(map[string]*KubeConfigInfo)
+	c.LoadAppConfig()
+}
+
 func (c *AppConfig) buildKubeConfigs(dirPath string) {
 	for _, filePath := range readAllFilesInDir(dirPath) {
 		if clusters, err := LoadK8ConfigFromFile(filePath); err == nil {

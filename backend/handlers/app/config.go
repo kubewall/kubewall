@@ -25,6 +25,11 @@ func (h *AppConfigHandler) Get(c echo.Context) error {
 	return c.JSON(200, h.container.Config())
 }
 
+func (h *AppConfigHandler) Reload(c echo.Context) error {
+	h.container.Config().ReloadConfig()
+	return c.Redirect(http.StatusTemporaryRedirect, "/")
+}
+
 func (h *AppConfigHandler) Post(c echo.Context) error {
 	file := c.FormValue("file")
 

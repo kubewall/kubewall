@@ -66,6 +66,7 @@ func ConfigureRoutes(e *echo.Echo, appContainer container.Container) {
 		Filesystem: http.FS(embeddedFiles),
 	}))
 	e.GET("/healthz", func(c echo.Context) error {
+		appContainer.Config().ReloadConfig()
 		return c.String(http.StatusOK, "OK")
 	})
 
@@ -76,6 +77,7 @@ func ConfigureRoutes(e *echo.Echo, appContainer container.Container) {
 	e.POST("api/v1/app/config/kubeconfigs", appConfig.Post)
 	e.POST("api/v1/app/config/kubeconfigs-bearer", appConfig.PostBearer)
 	e.POST("api/v1/app/config/kubeconfigs-certificate", appConfig.PostCertificate)
+	e.GET("api/v1/app/config/reload", appConfig.Reload)
 
 	e.DELETE("api/v1/app/config/kubeconfigs/:uuid", appConfig.Delete)
 
