@@ -46,6 +46,9 @@ spec:
             - name: https
               containerPort: {{ .Values.service.port }}
               protocol: TCP
+          volumeMounts:
+            - name: kubewall-data
+              mountPath: {{ .Values.kubewallData.mountPath }}
           livenessProbe:
             httpGet:
               path: /
@@ -66,6 +69,9 @@ spec:
       - name: tls-certs
         secret:
           secretName: {{ include "helm-chart.kubewall-tls-secret-name" . }}
+      - name: kubewall-data
+        persistentVolumeClaim:
+          claimName: {{ .Values.pvc.name }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

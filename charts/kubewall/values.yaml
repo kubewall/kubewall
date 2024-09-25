@@ -17,7 +17,8 @@ serviceAccount:
   create: true
   annotations: {}
   name: ""
-
+kubewallData:
+  mountPath: "/root/.kubewall"
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
@@ -46,8 +47,15 @@ resources:
     cpu: 100m
     memory: 128Mi
 
+pvc:
+  name: kubewall-data
+  storage: 20Mi
+  accessModes: ReadWriteOnce
+  storageClass: ""
+
 nodeSelector: {}
 
 tolerations: []
 
 affinity: {}
+
