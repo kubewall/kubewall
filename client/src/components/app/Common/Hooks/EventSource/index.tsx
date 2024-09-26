@@ -5,7 +5,7 @@ import { useEffect } from "react";
 const useEventSource = ({url, sendMessage} : KwEventSource) => {
   let updatedUrl = '';
   if(window.location.protocol === 'http:') {
-    if (!isIP(window.location.host)) {
+    if (!isIP(window.location.host.split(':')[0])) {
       updatedUrl = `http://${new Date().getTime()}.${window.location.host}${url}`;
     } else {
       updatedUrl = `http://${window.location.host}${url}`;
