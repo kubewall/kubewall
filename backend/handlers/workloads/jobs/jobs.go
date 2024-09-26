@@ -31,6 +31,8 @@ func NewJobsRouteHandler(container container.Container, routeType base.RouteType
 			return handler.BaseHandler.GetEvents(c)
 		case base.GetYaml:
 			return handler.BaseHandler.GetYaml(c)
+		case base.Delete:
+			return handler.BaseHandler.Delete(c)
 		default:
 			return echo.NewHTTPError(http.StatusInternalServerError, "Unknown route type")
 		}
@@ -48,6 +50,7 @@ func NewJobsHandler(c echo.Context, container container.Container) *JobsHandler 
 		BaseHandler: base.BaseHandler{
 			Kind:             "Job",
 			Container:        container,
+			RestClient:       container.ClientSet(config, cluster).BatchV1().RESTClient(),
 			Informer:         informer,
 			QueryConfig:      config,
 			QueryCluster:     cluster,

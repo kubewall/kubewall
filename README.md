@@ -20,7 +20,7 @@ A single binary to manage your multiple kubernetes clusters.
 
 # :movie_camera: Intro
 
-![kubewall](/media/readme.png)
+![kubewall](/media/readme.jpg)
 
 > [!Important]
 > Please keep in mind that kubewall is still under active development.

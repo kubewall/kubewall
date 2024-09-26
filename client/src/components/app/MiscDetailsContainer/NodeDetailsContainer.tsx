@@ -38,13 +38,13 @@ const NodeDetailsContainer = memo(function () {
                       </CardHeader> */}
                         <CardContent className="boder p-0">
                           <div className="py-1.5 border-t border-b border-dashed flex flex-row">
-                            <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Bytes</div>
+                            <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Size</div>
                             <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                               <div className="break-all basis-[97%] ">
-                                {defaultOrValue(image?.sizeBytes)}
+                                {defaultOrValue((Number(image?.sizeBytes)/1048576).toFixed(2))} MB
                               </div>
                               <div className="basis-[3%] group/edit invisible group-hover/item:visible flex items-center">
-                                <CopyToClipboard val={defaultOrValue(image?.sizeBytes)} />
+                                <CopyToClipboard val={defaultOrValue((Number(image?.sizeBytes)/1048576).toFixed(2)) + ' MB'} />
                               </div>
                             </div>
                           </div>

@@ -47,6 +47,8 @@ func NewPodsRouteHandler(container container.Container, routeType base.RouteType
 			return handler.BaseHandler.GetEvents(c)
 		case base.GetYaml:
 			return handler.BaseHandler.GetYaml(c)
+		case base.Delete:
+			return handler.BaseHandler.Delete(c)
 		case base.GetLogsWS:
 			return handler.GetLogsWS(c)
 		default:
@@ -61,11 +63,13 @@ func NewPodsHandler(c echo.Context, container container.Container) *PodsHandler 
 
 	informer := container.SharedInformerFactory(config, cluster).Core().V1().Pods().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
+	clientSet := container.ClientSet(config, cluster)
 
 	handler := &PodsHandler{
 		BaseHandler: base.BaseHandler{
 			Kind:             "Pod",
 			Container:        container,
+			RestClient:       clientSet.CoreV1().RESTClient(),
 			Informer:         informer,
 			QueryConfig:      config,
 			QueryCluster:     cluster,
@@ -74,7 +78,7 @@ func NewPodsHandler(c echo.Context, container container.Container) *PodsHandler 
 			TransformFunc:    transformItems,
 		},
 		restConfig:        container.RestConfig(config, cluster),
-		clientSet:         container.ClientSet(config, cluster),
+		clientSet:         clientSet,
 		replicasetHandler: replicaset.NewReplicaSetHandler(c, container),
 	}
 
@@ -119,7 +123,7 @@ func GetPodsMetricsList(b *base.BaseHandler) *v1beta1.PodMetricsList {
 		PodMetricses("").
 		List(context.Background(), metav1.ListOptions{})
 	if err != nil {
-		log.Errorf("Error getting pod metrics: %v", err)
+		log.Info("failed to get pod metrics", "err", err)
 	}
 	return podMetrics
 }

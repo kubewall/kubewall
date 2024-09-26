@@ -31,6 +31,8 @@ func NewPersistentVolumeRouteHandler(container container.Container, routeType ba
 			return handler.BaseHandler.GetEvents(c)
 		case base.GetYaml:
 			return handler.BaseHandler.GetYaml(c)
+		case base.Delete:
+			return handler.BaseHandler.Delete(c)
 		default:
 			return echo.NewHTTPError(http.StatusInternalServerError, "Unknown route type")
 		}
@@ -49,6 +51,7 @@ func NewPersistentVolumeHandler(c echo.Context, container container.Container) *
 			Kind:             "PersistentVolume",
 			Container:        container,
 			Informer:         informer,
+			RestClient:       container.ClientSet(config, cluster).CoreV1().RESTClient(),
 			QueryConfig:      config,
 			QueryCluster:     cluster,
 			InformerCacheKey: fmt.Sprintf("%s-%s-persistentVolumeInformer", config, cluster),

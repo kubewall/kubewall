@@ -15,6 +15,7 @@ import customResourcesSlice from '@/data/CustomResources/CustomResourcesSlice';
 import daemonSetDetailsSlice from '@/data/Workloads/DaemonSets/DaemonSetDetailsSlice';
 import daemonSetsSlice from '@/data/Workloads/DaemonSets/DaemonSetsSlices';
 import deleteConfigSlice from '@/data/KwClusters/DeleteConfigSlice';
+import deleteResourcesSlice from '@/data/Misc/DeleteResourceSlice';
 import deploymentDetailsSlice from '@/data/Workloads/Deployments/DeploymentDetailsSlice';
 import deploymentPodDetailsSlice from '@/data/Workloads/Deployments/DeploymentPodsSlice';
 import deploymentSlice from '@/data/Workloads/Deployments/DeploymentsSlice';
@@ -141,7 +142,8 @@ const store = configureStore({
     deleteConfig: deleteConfigSlice,
     listTableFilter: listTableFilterSlice,
     nodes: nodeListSlice,
-    nodeDetails: nodeDetailsSlice
+    nodeDetails: nodeDetailsSlice,
+    deleteResources: deleteResourcesSlice
   },
 });
 

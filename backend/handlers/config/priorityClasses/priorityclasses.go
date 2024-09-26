@@ -20,28 +20,7 @@ type PriorityClassesHandler struct {
 
 func NewPriorityClassRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		config := c.QueryParam("config")
-		cluster := c.QueryParam("cluster")
-
-		informer := container.SharedInformerFactory(config, cluster).Scheduling().V1().PriorityClasses().Informer()
-		informer.SetTransform(helpers.StripUnusedFields)
-
-		handler := &PriorityClassesHandler{
-			BaseHandler: base.BaseHandler{
-				Kind:             "PriorityClass",
-				Container:        container,
-				Informer:         informer,
-				QueryConfig:      config,
-				QueryCluster:     cluster,
-				InformerCacheKey: fmt.Sprintf("%s-%s-priorityClassInformer", config, cluster),
-				Event:            event.NewEventCounter(time.Millisecond * 250),
-				TransformFunc:    transformItems,
-			},
-		}
-		cache := base.ResourceEventHandler[*v1.PriorityClass](&handler.BaseHandler)
-		handler.BaseHandler.StartInformer(c, cache)
-		go handler.BaseHandler.Event.Run()
-		handler.BaseHandler.WaitForSync(c)
+		handler := NewPriorityClassHandler(c, container)
 
 		switch routeType {
 		case base.GetList:
@@ -52,10 +31,40 @@ func NewPriorityClassRouteHandler(container container.Container, routeType base.
 			return handler.BaseHandler.GetEvents(c)
 		case base.GetYaml:
 			return handler.BaseHandler.GetYaml(c)
+		case base.Delete:
+			return handler.BaseHandler.Delete(c)
 		default:
 			return echo.NewHTTPError(http.StatusInternalServerError, "Unknown route type")
 		}
 	}
+}
+
+func NewPriorityClassHandler(c echo.Context, container container.Container) *PriorityClassesHandler {
+	config := c.QueryParam("config")
+	cluster := c.QueryParam("cluster")
+
+	informer := container.SharedInformerFactory(config, cluster).Scheduling().V1().PriorityClasses().Informer()
+	informer.SetTransform(helpers.StripUnusedFields)
+
+	handler := &PriorityClassesHandler{
+		BaseHandler: base.BaseHandler{
+			Kind:             "PriorityClass",
+			Container:        container,
+			Informer:         informer,
+			RestClient:       container.ClientSet(config, cluster).SchedulingV1().RESTClient(),
+			QueryConfig:      config,
+			QueryCluster:     cluster,
+			InformerCacheKey: fmt.Sprintf("%s-%s-priorityClassInformer", config, cluster),
+			Event:            event.NewEventCounter(time.Millisecond * 250),
+			TransformFunc:    transformItems,
+		},
+	}
+	cache := base.ResourceEventHandler[*v1.PriorityClass](&handler.BaseHandler)
+	handler.BaseHandler.StartInformer(c, cache)
+	go handler.BaseHandler.Event.Run()
+	handler.BaseHandler.WaitForSync(c)
+
+	return handler
 }
 
 func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {

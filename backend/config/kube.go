@@ -53,13 +53,13 @@ func LoadInClusterConfig() (KubeConfigInfo, error) {
 	if err != nil {
 		return KubeConfigInfo{}, err
 	}
-	kubeConfig.Name = "incluster"
+	kubeConfig.Name = InClusterKey
 	newConfig := KubeConfigInfo{
-		Name:         "incluster",
+		Name:         InClusterKey,
 		AbsolutePath: "",
 		FileExists:   true,
 		Clusters: map[string]*Cluster{
-			"incluster": kubeConfig,
+			InClusterKey: kubeConfig,
 		},
 	}
 	return newConfig, nil
@@ -68,7 +68,7 @@ func LoadInClusterConfig() (KubeConfigInfo, error) {
 func LoadK8ConfigFromFile(path string) (map[string]*Cluster, error) {
 	cmdConfig, err := clientcmd.LoadFromFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("error loading cmdConfig from file: %v", err)
+		return nil, fmt.Errorf("failed to load kubeconfig from file: %v", err)
 	}
 
 	// save from nil map
@@ -77,12 +77,14 @@ func LoadK8ConfigFromFile(path string) (map[string]*Cluster, error) {
 	for key, cluster := range cmdConfig.Contexts {
 		rc, err := restConfig(*cmdConfig, key)
 		if err != nil {
+			log.Warn("failed to load restConfig for cluster", "err", err)
 			// here we will ignore any invalid context and continue for next
 			continue
 		}
 
 		kubeConfig, err := loadClientConfig(rc)
 		if err != nil {
+			log.Warn("failed to load clientConfig for cluster", "err", err)
 			// here we will ignore any invalid context and continue for next
 			continue
 		}
@@ -113,8 +115,8 @@ func restConfig(config api.Config, key string) (*rest.Config, error) {
 
 	restConfig, err := cc.ClientConfig()
 	if err != nil {
-		log.Error("err", "err", err)
-		return nil, fmt.Errorf("error creating Kubernetes ClientConfig: %w", err)
+		log.Error("failed to Kubernetes ClientConfig", "err", err)
+		return nil, fmt.Errorf("failed to create kubernetes ClientConfig: %w", err)
 	}
 	restConfig.ContentType = runtime.ContentTypeProtobuf
 	restConfig.QPS = float32(K8SQPS)
@@ -131,31 +133,31 @@ func loadClientConfig(restConfig *rest.Config) (*Cluster, error) {
 	}
 	clientSet, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
-		return nil, fmt.Errorf("error creating Kubernetes clientset: %w", err)
+		return nil, fmt.Errorf("failed to create kubernetes clientset: %w", err)
 	}
 
 	sharedInformerFactory := informers.NewSharedInformerFactory(clientSet, 0)
 
 	clientset, err := apiextensionsclientset.NewForConfig(restConfig)
 	if err != nil {
-		return nil, fmt.Errorf("error creating Kubernetes clientset: %w", err)
+		return nil, fmt.Errorf("failed to create kubernetes apiextensionsClientset: %w", err)
 	}
 	externalInformer := apiextensionsinformers.NewSharedInformerFactory(clientset, 0)
 
 	dynamicClient, err := dynamic.NewForConfig(restConfig)
 	if err != nil {
-		return nil, fmt.Errorf("error creating Kubernetes dynamicClient: %w", err)
+		return nil, fmt.Errorf("failed to create kubernetes dynamicClient: %w", err)
 	}
-	dynamicinformer := dynamicinformer.NewDynamicSharedInformerFactory(dynamicClient, 0)
+	dynamicInformer := dynamicinformer.NewDynamicSharedInformerFactory(dynamicClient, 0)
 
 	discoveryClient, err := discovery.NewDiscoveryClientForConfig(restConfig)
 	if err != nil {
-		return nil, fmt.Errorf("error creating Kubernetes NewDiscoveryClientForConfig: %w", err)
+		return nil, fmt.Errorf("failed to create kubernetes DiscoveryClient: %w", err)
 	}
 
 	metricClient, err := metricsclient.NewForConfig(restConfig)
 	if err != nil {
-		return nil, fmt.Errorf("error creating Kubernetes NewDiscoveryClientForConfig: %w", err)
+		return nil, fmt.Errorf("failed to create kubernetes metricClientSet: %w", err)
 	}
 
 	return &Cluster{
@@ -165,7 +167,7 @@ func loadClientConfig(restConfig *rest.Config) (*Cluster, error) {
 		DiscoveryClient:          discoveryClient,
 		SharedInformerFactory:    sharedInformerFactory,
 		ExtensionInformerFactory: externalInformer,
-		DynamicInformerFactory:   dynamicinformer,
+		DynamicInformerFactory:   dynamicInformer,
 		MetricClient:             metricClient,
 	}, nil
 }

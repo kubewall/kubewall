@@ -31,6 +31,8 @@ func NewRunTimeClassRouteHandler(container container.Container, routeType base.R
 			return handler.BaseHandler.GetEvents(c)
 		case base.GetYaml:
 			return handler.BaseHandler.GetYaml(c)
+		case base.Delete:
+			return handler.BaseHandler.Delete(c)
 		default:
 			return echo.NewHTTPError(http.StatusInternalServerError, "Unknown route type")
 		}
@@ -49,6 +51,7 @@ func NewRunTimeClassHandler(c echo.Context, container container.Container) *RunT
 			Kind:             "RuntimeClass",
 			Container:        container,
 			Informer:         informer,
+			RestClient:       container.ClientSet(config, cluster).NodeV1().RESTClient(),
 			QueryConfig:      config,
 			QueryCluster:     cluster,
 			InformerCacheKey: fmt.Sprintf("%s-%s-runtimeClassInformer", config, cluster),

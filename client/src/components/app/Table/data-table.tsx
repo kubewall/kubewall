@@ -21,14 +21,15 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
+import { useEffect, useState } from "react";
 
 import { DataTableToolbar } from "@/components/app/Table/TableToolbar";
 import { RootState } from "@/redux/store";
+import { TableDelete } from './TableDelete';
 import {
   rankItem,
 } from '@tanstack/match-sorter-utils';
 import { useAppSelector } from "@/redux/hooks";
-import { useState } from "react";
 
 type DataTableProps<TData, TValue> = {
   columns: ColumnDef<TData, TValue>[];
@@ -53,6 +54,7 @@ const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
   return itemRank.passed;
 };
 
+
 export function DataTable<TData, TValue>({
   columns,
   data,
@@ -66,6 +68,7 @@ export function DataTable<TData, TValue>({
   const {
     searchString
   } = useAppSelector((state: RootState) => state.listTableFilter);
+  const [rowSelection, setRowSelection] = useState({});
   const [globalFilter, setGlobalFilter] = useState(searchString);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -74,7 +77,8 @@ export function DataTable<TData, TValue>({
     state: {
       globalFilter,
       columnFilters,
-      columnVisibility
+      columnVisibility,
+      rowSelection
     },
     columns,
     enableRowSelection: true,
@@ -82,6 +86,7 @@ export function DataTable<TData, TValue>({
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
     onGlobalFilterChange: setGlobalFilter,
+    onRowSelectionChange:setRowSelection,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -99,20 +104,28 @@ export function DataTable<TData, TValue>({
     return id;
   };
 
+  useEffect(() => {
+    setRowSelection({});
+  },[columns]);
   return (
     <>
       {
         showToolbar
-        && <DataTableToolbar loading={loading} table={table} globalFilter={globalFilter} setGlobalFilter={setGlobalFilter} showNamespaceFilter={showNamespaceFilter} />
+        && <DataTableToolbar loading={loading} table={table} globalFilter={globalFilter} setGlobalFilter={setGlobalFilter} showNamespaceFilter={showNamespaceFilter}/>
       }
       <div className={`border border-x-0 overflow-auto ${tableWidthCss} `}>
+        {
+          Object.keys(rowSelection).length > 0 &&
+          <TableDelete selectedRows={table.getSelectedRowModel().rows} toggleAllRowsSelected={table.resetRowSelection}/>
+        }
+
         <Table>
           <TableHeader className="bg-muted/50">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
+                {headerGroup.headers.map((header, index) => {
                   return (
-                    <TableHead key={header.id} colSpan={header.colSpan}>
+                    <TableHead key={header.id} colSpan={header.colSpan} className={index === 0 ? 'w-px' : ''}>
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -131,6 +144,7 @@ export function DataTable<TData, TValue>({
                 <TableRow
                   key={index}
                   id={getIdAndSetClass(row.original.hasUpdated, row.original.name)}
+                  data-state={row.getIsSelected() && 'selected'}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
@@ -143,7 +157,7 @@ export function DataTable<TData, TValue>({
                 </TableRow>
               ))
             ) : (
-              <TableRow className={isEventTable ? 'empty-table-events' :'empty-table'}>
+              <TableRow className={isEventTable ? 'empty-table-events' : 'empty-table'}>
                 <TableCell
                   colSpan={columns.length}
                   className="text-center"

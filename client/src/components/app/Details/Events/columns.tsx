@@ -38,7 +38,7 @@ export function eventsColumns({ count, clusterName, configName, loading, instanc
   return GenerateColumns<Event, HeaderList>({
     count,
     clusterName,
-    configName,
+    configName, 
     instanceType,
     loading,
     headersList,

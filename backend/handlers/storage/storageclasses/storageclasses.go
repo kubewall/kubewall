@@ -31,6 +31,8 @@ func NewStorageClassRouteHandler(container container.Container, routeType base.R
 			return handler.BaseHandler.GetEvents(c)
 		case base.GetYaml:
 			return handler.BaseHandler.GetYaml(c)
+		case base.Delete:
+			return handler.BaseHandler.Delete(c)
 		default:
 			return echo.NewHTTPError(http.StatusInternalServerError, "Unknown route type")
 		}
@@ -49,6 +51,7 @@ func NewStorageClassesHandler(c echo.Context, container container.Container) *St
 			Kind:             "StorageClass",
 			Container:        container,
 			Informer:         informer,
+			RestClient:       container.ClientSet(config, cluster).StorageV1().RESTClient(),
 			QueryConfig:      config,
 			QueryCluster:     cluster,
 			InformerCacheKey: fmt.Sprintf("%s-%s-storageClassInformer", config, cluster),

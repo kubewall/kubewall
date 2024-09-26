@@ -24,7 +24,7 @@ const podsSlice = createSlice({
         return {
           ...pod,
           ...(pod.memory ? {memory: `${pod.memory} MiB`}: {})
-        }
+        };
       });
       state.loading = false;
     }

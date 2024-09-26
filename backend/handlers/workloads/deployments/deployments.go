@@ -34,6 +34,8 @@ func NewDeploymentRouteHandler(container container.Container, routeType base.Rou
 			return handler.BaseHandler.GetEvents(c)
 		case base.GetYaml:
 			return handler.BaseHandler.GetYaml(c)
+		case base.Delete:
+			return handler.BaseHandler.Delete(c)
 		case GetPods:
 			return handler.GetPods(c)
 		default:
@@ -54,6 +56,7 @@ func NewDeploymentsHandler(c echo.Context, container container.Container) *Deplo
 			Kind:             "Deployment",
 			Container:        container,
 			Informer:         informer,
+			RestClient:       container.ClientSet(config, cluster).AppsV1().RESTClient(),
 			QueryConfig:      config,
 			QueryCluster:     cluster,
 			InformerCacheKey: fmt.Sprintf("%s-%s-deploymentInformer", config, cluster),

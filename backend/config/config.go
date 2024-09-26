@@ -15,6 +15,7 @@ const (
 	defaultKubeConfigDir = ".kube"
 	appConfigDir         = ".kubewall"
 	appKubeConfigDir     = "kubeconfigs"
+	InClusterKey         = "incluster"
 )
 
 type Env struct {
@@ -55,8 +56,13 @@ func (c *AppConfig) LoadAppConfig() {
 
 	i, err := LoadInClusterConfig()
 	if err == nil {
-		c.KubeConfig["incluster"] = &i
+		c.KubeConfig[InClusterKey] = &i
 	}
+}
+
+func (c *AppConfig) ReloadConfig() {
+	c.KubeConfig = make(map[string]*KubeConfigInfo)
+	c.LoadAppConfig()
 }
 
 func (c *AppConfig) buildKubeConfigs(dirPath string) {
