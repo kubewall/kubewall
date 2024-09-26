@@ -1,5 +1,7 @@
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { deleteResources, resetDeleteResource } from "@/data/Misc/DeleteResourceSlice";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Loader } from "../../Loader";
@@ -8,7 +10,6 @@ import { Row } from "@tanstack/react-table";
 import { Trash2Icon } from "lucide-react";
 import { kwList } from "@/routes";
 import { toast } from "sonner";
-import { useEffect } from "react";
 
 type TableDeleteProps = {
   // eslint-disable-next-line  @typescript-eslint/no-explicit-any
@@ -18,12 +19,13 @@ type TableDeleteProps = {
 
 const TableDelete = ({ selectedRows, toggleAllRowsSelected }: TableDeleteProps) => {
   const { config, cluster } = kwList.useParams();
-  const { resourcekind='',group='',kind='',resource='',version='' } = kwList.useSearch();
+  const { resourcekind = '', group = '', kind = '', resource = '', version = '' } = kwList.useSearch();
   const {
     loading,
     error,
     message
   } = useAppSelector((state: RootState) => state.deleteResources);
+  const [modalOpen, setModalOpen] = useState(false);
   const dispatch = useAppDispatch();
 
   useEffect(() => {
@@ -77,7 +79,7 @@ const TableDelete = ({ selectedRows, toggleAllRowsSelected }: TableDeleteProps) 
       };
     });
     const queryParamsObj: Record<string, string> = { config, cluster };
-    if(resourcekind === 'customresources'){
+    if (resourcekind === 'customresources') {
       queryParamsObj['group'] = group;
       queryParamsObj['kind'] = kind;
       queryParamsObj['resource'] = resource;
@@ -91,19 +93,44 @@ const TableDelete = ({ selectedRows, toggleAllRowsSelected }: TableDeleteProps) 
   };
 
   return (
-    <Button
-      variant="destructive"
-      size="icon"
-      className='absolute bottom-12 right-0 mt-1 mr-10 rounded z-10 border w-20'
-      onClick={() => deleteResource()}
+    <Dialog open={modalOpen} onOpenChange={(open: boolean) => setModalOpen(open)}>
+      <DialogTrigger asChild>
+        <Button
+          variant="destructive"
+          size="icon"
+          className='absolute bottom-12 right-0 mt-1 mr-10 rounded z-10 border w-20'
+          onClick={() => setModalOpen(true)}
 
-    > {
-        loading ?
-          <Loader className='w-5 h-5 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600' /> :
-          <Trash2Icon className="h-4 w-4 mr-1" />
-      }
-      <span className='text-xs'>Delete</span>
-    </Button>
+        > {
+            loading ?
+              <Loader className='w-5 h-5 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600' /> :
+              <Trash2Icon className="h-4 w-4 mr-1" />
+          }
+          <span className='text-xs'>Delete</span>
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Delete Resource</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to delete {selectedRows.length > 1 ? `${selectedRows.length} resources` : '1 resource'} ?
+          </DialogDescription>
+        </DialogHeader>
+
+        <DialogFooter className="sm:justify-center">
+          <Button
+            className="w-2/4"
+            type="submit"
+            onClick={() => setModalOpen(false)}
+          >No</Button>
+          <Button
+            onClick={() => deleteResource()}
+            className="w-2/4"
+            type="submit"
+          >Yes</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 
