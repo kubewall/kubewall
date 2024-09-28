@@ -19,7 +19,7 @@ image:
   # Pull policy for the image ("Always", "IfNotPresent", "Never")
   pullPolicy: IfNotPresent
   # Image tag to be used (can be set to a specific version or "latest")
-  tag: latest
+  tag: ""
 
 # Service account settings
 serviceAccount:
