@@ -99,6 +99,9 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Install cosign
+        uses: sigstore/cosign-installer@4959ce089c160fddf62f7b42464195ba1a56d382 # v3.6.0
+
       - id: get_version
         uses: battila7/get-version-action@v2
 
@@ -109,8 +112,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Helm Package
-        run: helm package charts/kubewall --version ${{ steps.get_version.outputs.version-without-v }} --app-version ${{ steps.get_version.outputs.version-without-v }}
+      - name: Publish Helm chart to GHCR
+        id: helm
+        run: |
+          helm package charts/kubewall --version ${{ steps.get_version.outputs.version-without-v }} --app-version ${{ steps.get_version.outputs.version-without-v }}
+          helm push kubewall-${{ steps.get_version.outputs.version-without-v }}.tgz oci://ghcr.io/kubewall/charts 2> .digest
+          DIGEST=$(cat .digest | awk -F "[, ]+" '/Digest/{print $NF}')
+          echo "DIGEST=${DIGEST}" >> $GITHUB_OUTPUT
 
-      - name: Push Helm Chart
-        run: helm push kubewall-${{ steps.get_version.outputs.version-without-v }}.tgz oci://ghcr.io/kubewall/charts
+      - name: Sign the Helm chart with Cosign
+        run: |
+          cosign sign --yes ghcr.io/kubewall/charts/kubewall@${{ steps.helm.outputs.DIGEST }}
