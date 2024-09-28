@@ -1,6 +1,8 @@
 apiVersion: v2
 name: kubewall
-description: A Helm chart for kubewall application
+description: A single binary kubernetes dashboard to manage your multiple clusters.
+home: https://github.com/kubewall/kubewall.git
+icon: "https://raw.githubusercontent.com/kubewall/kubewall/7d87fe6c59bd3478cb65fa0d3247b5d01294d9ad/media/kubewall-logo-dark.svg"
 keywords:
   - kubewall
   - management
@@ -8,7 +10,14 @@ keywords:
   - kubernetes-dashboard
   - kubernetes-ui
 type: application
-version: v0.0.0
+maintainers:
+  - name: "Abhimanyu Sharma"
+    email: "abhimanyusharma003@gmail.com"
+    url: "https://github.com/abhimanyu003"
+  - name: "Kshitij Mehta"
+    email: "Kshittijmehta@gmail.com"
+    url: "https://github.com/abhimanyu003"
+version: 0.0.0
 sources:
   - https://github.com/kubewall/kubewall.git
-appVersion: "v0.0.0"
+appVersion: 0.0.0

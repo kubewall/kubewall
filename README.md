@@ -35,6 +35,14 @@ docker run -p 7080:7080 -v kubewall:/.kubewall ghcr.io/kubewall/kubewall:latest
 
 > To access local kind cluster you can use "--network host" docker flag.
 
+### Helm
+
+```bash
+helm install kubewall oci://ghcr.io/kubewall/charts/kubewall -n kubewall-system --create-namespace
+```
+
+> With helm kubewall runs on port `8443` with self-signed certificates. [see charts](https://github.com/kubewall/kubewall/tree/main/charts/kubewall)
+
 #### Homebrew
 
 ```shell
