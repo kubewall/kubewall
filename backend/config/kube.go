@@ -122,9 +122,17 @@ func restConfig(config api.Config, key string) (*rest.Config, error) {
 	restConfig.QPS = float32(K8SQPS)
 	restConfig.Burst = K8SBURST
 	if restConfig.BearerToken != "" {
-		restConfig.Insecure = true
+		if isTLSClientConfigEmpty(restConfig) {
+			restConfig.Insecure = true
+		}
 	}
 	return restConfig, nil
+}
+
+func isTLSClientConfigEmpty(restConfig *rest.Config) bool {
+	tlsConfig := restConfig.TLSClientConfig
+	return tlsConfig.CertFile == "" && tlsConfig.KeyFile == "" && tlsConfig.CAFile == "" &&
+		tlsConfig.CertData == nil && tlsConfig.KeyData == nil && tlsConfig.CAData == nil
 }
 
 func loadClientConfig(restConfig *rest.Config) (*Cluster, error) {

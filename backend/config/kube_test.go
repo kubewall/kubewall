@@ -172,3 +172,109 @@ func TestCluster_MarkAsConnected(t *testing.T) {
 		})
 	}
 }
+
+func Test_isTLSClientConfigEmpty(t *testing.T) {
+	type args struct {
+		restConfig *rest.Config
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "should return false on non empty rest config",
+			args: args{
+				restConfig: &rest.Config{
+					TLSClientConfig: rest.TLSClientConfig{},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "should return false on non empty rest config",
+			args: args{
+				restConfig: &rest.Config{
+					TLSClientConfig: rest.TLSClientConfig{
+						CertFile: "CertFile",
+						KeyFile:  "KeyFile",
+						CAFile:   "CAFile",
+						CertData: nil,
+						KeyData:  nil,
+						CAData:   nil,
+					},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "should return false on non empty rest config",
+			args: args{
+				restConfig: &rest.Config{
+					TLSClientConfig: rest.TLSClientConfig{
+						CertFile: "CertFile",
+						KeyFile:  "",
+						CAFile:   "",
+						CertData: nil,
+						KeyData:  nil,
+						CAData:   nil,
+					},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "should return false on non empty rest config",
+			args: args{
+				restConfig: &rest.Config{
+					TLSClientConfig: rest.TLSClientConfig{
+						CertFile: "",
+						KeyFile:  "",
+						CAFile:   "",
+						CertData: []byte("something"),
+						KeyData:  nil,
+						CAData:   nil,
+					},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "should return false on non empty rest config",
+			args: args{
+				restConfig: &rest.Config{
+					TLSClientConfig: rest.TLSClientConfig{
+						CertFile: "",
+						KeyFile:  "",
+						CAFile:   "",
+						CertData: nil,
+						KeyData:  []byte("something"),
+						CAData:   nil,
+					},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "should return false on non empty rest config",
+			args: args{
+				restConfig: &rest.Config{
+					TLSClientConfig: rest.TLSClientConfig{
+						CertFile: "",
+						KeyFile:  "",
+						CAFile:   "",
+						CertData: nil,
+						KeyData:  nil,
+						CAData:   []byte("something"),
+					},
+				},
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, isTLSClientConfigEmpty(tt.args.restConfig), "isTLSClientConfigEmpty(%v)", tt.args.restConfig)
+		})
+	}
+}
