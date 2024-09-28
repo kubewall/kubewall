@@ -27,7 +27,7 @@ spec:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
         - name: {{ .Chart.Name }}
-          command: [ "kubewall" ]
+          command: [ "kubewall", "--no-open-browser" ]
           args:
            - --certFile=/etc/ssl/certs/tls.crt
            - --keyFile=/etc/ssl/certs/tls.key
@@ -46,17 +46,14 @@ spec:
             - name: https
               containerPort: {{ .Values.service.port }}
               protocol: TCP
-          volumeMounts:
-            - name: kubewall-data
-              mountPath: {{ .Values.kubewallData.mountPath }}
           livenessProbe:
             httpGet:
-              path: /
+              path: /healthz
               port: https
               scheme: HTTPS
           readinessProbe:
             httpGet:
-              path: /
+              path: /healthz
               port: https
               scheme: HTTPS
           resources:
@@ -65,6 +62,8 @@ spec:
           - name: tls-certs
             mountPath: "/etc/ssl/certs"
             readOnly: true
+          - name: kubewall-data
+            mountPath: {{ .Values.kubewallData.mountPath }}
       volumes:
       - name: tls-certs
         secret:

@@ -1,40 +1,70 @@
-# Kubewall Helm Chart
+# kubewall helm chart
 
-## Install Chart
+Kubewall allows you to manage Kubernetes clusters. This Helm chart simplifies the installation and configuration of Kubewall.
 
-```console
-# Helm install with kubewall-system
-$ helm install -n kubewall-system kubewall oci://ghcr.io/kubewall/kubewall --version v0.0.4 --create-namespace
+## Installation
 
+To install the kubewall chart using Helm, run the following command:
 
-# By default it runs kubewall on https 8443 with self signed certs
-# If you want to use your own certificates
-
-# Create a secret having your certificate and key
-$ kubectl create namespace kubewall-system
-$ kubectl -n kubewall-system create secret tls kubewall-tls-secret --cert=tls.crt --key=tls.key
-
-$ helm install -n kubewall-system kubewall oci://ghcr.io/kubewall/kubewall --version v0.0.4 --create-namespace --set tls.secretName=kubewall-tls-secret
-
-
-# By default it creates a service account in the specified release namespace with admin rbac binding
-# If you want kubewall to use your own service account serviceAccount.create=false serviceAccount.name=<yourServiceAccountInReleaseNamespace>
-
-
-$ helm install -n kubewall-system kubewall oci://ghcr.io/kubewall/kubewall --version v0.0.4 --create-namespace --set serviceAccount.create=false --set serviceAccount.name=<yourserviceAccountName>
-
+```bash
+helm install kubewall oci://ghcr.io/kubewall/charts/kubewall -n kubewall-system --create-namespace
 ```
 
-## Upgrade Chart
+### Notes:
 
-```console
-$ helm upgrade -n kubewall-system kubeall oci://ghcr.io/kubewall/kubewall --version v0.0.4
+- **Default Setup**: By default, Kubewall runs on port `8443` with self-signed certificates.
+- **Namespace**: A new namespace `kubewall-system` will be created automatically if it doesn't exist.
+
+### Using Custom TLS Certificates
+
+To use your own TLS certificates instead of the default self-signed ones:
+
+1. **Create a Kubernetes Secret**: Store your TLS certificate and key in a secret.
+
+   ```bash
+   kubectl create namespace kubewall-system
+   kubectl -n kubewall-system create secret tls kubewall-tls-secret --cert=tls.crt --key=tls.key
+   ```
+
+2. **Install Kubewall with your certificates**:
+
+   ```bash
+   helm install kubewall oci://ghcr.io/kubewall/kubewall \
+     -n kubewall-system --version v0.0.4 --create-namespace \
+     --set tls.secretName=kubewall-tls-secret
+   ```
+
+### Using a Custom Service Account
+
+By default, the chart creates a service account with `admin` RBAC permissions in the release namespace. If you'd like Kubewall to use an existing service account, you can disable the creation of a new one.
+
+1. **Install Kubewall with an existing service account**:
+
+   ```bash
+   helm install kubewall oci://ghcr.io/kubewall/kubewall \
+     -n kubewall-system --version v0.0.4 --create-namespace \
+     --set serviceAccount.create=false \
+     --set serviceAccount.name=<yourServiceAccountName>
+   ```
+
+## Upgrading the Chart
+
+To upgrade to a newer version of the chart, run the following command:
+
+```bash
+helm upgrade kubewall oci://ghcr.io/kubewall/kubewall \
+  -n kubewall-system --version v0.0.4
 ```
 
+## Configuration Parameters
 
-## Parameters
+The following are some key configuration parameters you can customize when installing the chart:
 
-| Parameter                                                  | Description                                                                                                                                                                                                                                                                                    | Default                                                                                                                                                               |
-|:-----------------------------------------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| tls.secretName                       | kubernetes secret name present in kubewall-system namespace containing your certs | ""  
-| service.port                       | https port number to listen | 8443  |
+| Parameter               | Description                                                                                       | Default  |
+|-------------------------|---------------------------------------------------------------------------------------------------|----------|
+| `tls.secretName`         | Kubernetes secret name containing your TLS certificate and key. Must be in the `kubewall-system` namespace. | `""`     |
+| `service.port`           | The HTTPS port number Kubewall listens on.                                                        | `8443`   |
+| `serviceAccount.create`  | Set to `false` if you want to use an existing service account.                                     | `true`   |
+| `serviceAccount.name`    | Name of the service account to use (if `serviceAccount.create=false`).                            | `""`     |
+
+For a complete list of configurable parameters, refer to the values file or documentation.
