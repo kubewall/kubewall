@@ -1,0 +1,10 @@
+apiVersion: v2
+name: kubewall
+description: A Helm chart for kubewall application
+keywords:
+  - kubewall
+type: application
+version: v0.0.4
+sources:
+  - https://github.com/kubewall/kubewall.git
+appVersion: "v0.0.4"
