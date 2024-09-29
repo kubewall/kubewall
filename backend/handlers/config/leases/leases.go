@@ -5,10 +5,8 @@ import (
 	"fmt"
 	v1 "k8s.io/api/coordination/v1"
 	"net/http"
-	"time"
 
 	"github.com/kubewall/kubewall/backend/container"
-	"github.com/kubewall/kubewall/backend/event"
 	"github.com/kubewall/kubewall/backend/handlers/base"
 	"github.com/kubewall/kubewall/backend/handlers/helpers"
 	"github.com/labstack/echo/v4"
@@ -55,13 +53,11 @@ func NewLeasesHandler(c echo.Context, container container.Container) *LeasesHand
 			QueryConfig:      config,
 			QueryCluster:     cluster,
 			InformerCacheKey: fmt.Sprintf("%s-%s-leaseInformer", config, cluster),
-			Event:            event.NewEventCounter(time.Millisecond * 250),
 			TransformFunc:    transformItems,
 		},
 	}
 	cache := base.ResourceEventHandler[*v1.Lease](&handler.BaseHandler)
 	handler.BaseHandler.StartInformer(c, cache)
-	go handler.BaseHandler.Event.Run()
 	handler.BaseHandler.WaitForSync(c)
 	return handler
 }

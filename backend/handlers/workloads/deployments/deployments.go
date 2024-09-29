@@ -3,16 +3,13 @@ package deployments
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/kubewall/kubewall/backend/event"
+	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/base"
 	"github.com/kubewall/kubewall/backend/handlers/helpers"
 	"github.com/kubewall/kubewall/backend/handlers/workloads/pods"
+	"github.com/labstack/echo/v4"
 	v1 "k8s.io/api/apps/v1"
 	"net/http"
-	"time"
-
-	"github.com/kubewall/kubewall/backend/container"
-	"github.com/labstack/echo/v4"
 )
 
 const GetPods = 12
@@ -60,14 +57,12 @@ func NewDeploymentsHandler(c echo.Context, container container.Container) *Deplo
 			QueryConfig:      config,
 			QueryCluster:     cluster,
 			InformerCacheKey: fmt.Sprintf("%s-%s-deploymentInformer", config, cluster),
-			Event:            event.NewEventCounter(time.Millisecond * 250),
 			TransformFunc:    transformItems,
 		},
 	}
 
 	cache := base.ResourceEventHandler[*v1.Deployment](&handler.BaseHandler)
 	handler.BaseHandler.StartInformer(c, cache)
-	go handler.BaseHandler.Event.Run()
 	handler.BaseHandler.WaitForSync(c)
 
 	return handler

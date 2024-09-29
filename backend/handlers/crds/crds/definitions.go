@@ -4,13 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/kubewall/kubewall/backend/container"
-	"github.com/kubewall/kubewall/backend/event"
 	"github.com/kubewall/kubewall/backend/handlers/base"
 	"github.com/kubewall/kubewall/backend/handlers/helpers"
 	"github.com/labstack/echo/v4"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"net/http"
-	"time"
 )
 
 type CRDHandler struct {
@@ -33,14 +31,13 @@ func NewCRDHandler(container container.Container, routeType base.RouteType) echo
 				QueryConfig:      config,
 				QueryCluster:     cluster,
 				InformerCacheKey: fmt.Sprintf("%s-%s-customResourceDefinitionInformer", config, cluster),
-				Event:            event.NewEventCounter(time.Millisecond * 250),
 				TransformFunc:    transformItems,
 			},
 		}
 
 		cache := base.ResourceEventHandler[*apiextensionsv1.CustomResourceDefinition](&handler.BaseHandler)
 		handler.BaseHandler.StartExtensionInformer(c, cache)
-		go handler.BaseHandler.Event.Run()
+
 		handler.BaseHandler.WaitForSync(c)
 
 		switch routeType {

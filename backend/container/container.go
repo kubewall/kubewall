@@ -1,6 +1,7 @@
 package container
 
 import (
+	"github.com/kubewall/kubewall/backend/event"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/dynamicinformer"
@@ -37,6 +38,7 @@ type Container interface {
 	Cache() otter.Cache[string, any]
 	SSE() *sse.Server
 	SocketUpgrader() *websocket.Upgrader
+	EventProcessor() *event.EventProcessor
 }
 
 // container struct is for sharing data which such as database setting, the setting of application and logger in overall this application.
@@ -47,6 +49,7 @@ type container struct {
 	configLock     sync.Mutex
 	cache          otter.Cache[string, any]
 	sseServer      *sse.Server
+	eventProcessor *event.EventProcessor
 	socketUpgrader *websocket.Upgrader
 }
 
@@ -66,11 +69,14 @@ func NewContainer(env *config.Env, cfg *config.AppConfig) Container {
 		"X-Accel-Buffering": "no",
 	}
 
+	e := event.NewEventCounter(time.Millisecond * 250)
+	go e.Run()
 	return &container{
-		env:       env,
-		config:    cfg,
-		cache:     cache,
-		sseServer: s,
+		env:            env,
+		config:         cfg,
+		cache:          cache,
+		sseServer:      s,
+		eventProcessor: e,
 		socketUpgrader: &websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool {
 				return true
@@ -93,6 +99,10 @@ func (c *container) Cache() otter.Cache[string, any] {
 
 func (c *container) SSE() *sse.Server {
 	return c.sseServer
+}
+
+func (c *container) EventProcessor() *event.EventProcessor {
+	return c.eventProcessor
 }
 
 func (c *container) RestConfig(config, cluster string) *rest.Config {

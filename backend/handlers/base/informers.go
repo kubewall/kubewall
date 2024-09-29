@@ -20,18 +20,18 @@ func ResourceEventHandler[T Resource](handler *BaseHandler, additionalEvents ...
 	handleEvent := func(obj any) {
 		resource := obj.(T)
 		// GetList
-		go handler.Event.AddEvent(handler.Kind, handler.processListEvents(resource.GetName()))
+		go handler.Container.EventProcessor().AddEvent(handler.Kind, handler.processListEvents(resource.GetName()))
 
 		streamName := fmt.Sprintf("%s-%s", resource.GetNamespace(), resource.GetName())
 		// GetDetails
-		go handler.Event.AddEvent(streamName, handler.processDetailsEvents(resource.GetNamespace(), resource.GetName()))
+		go handler.Container.EventProcessor().AddEvent(streamName, handler.processDetailsEvents(resource.GetNamespace(), resource.GetName()))
 
 		// GetYAML
-		go handler.Event.AddEvent(streamName+"-yaml", handler.processYAMLEvents(resource.GetNamespace(), resource.GetName()))
+		go handler.Container.EventProcessor().AddEvent(streamName+"-yaml", handler.processYAMLEvents(resource.GetNamespace(), resource.GetName()))
 
 		for _, event := range additionalEvents {
 			for key, e := range event {
-				go handler.Event.AddEvent(key, e)
+				go handler.Container.EventProcessor().AddEvent(key, e)
 			}
 		}
 	}
@@ -71,7 +71,7 @@ func (h *BaseHandler) WaitForSync(c echo.Context) {
 	err := wait.PollUntilContextCancel(c.Request().Context(), 100*time.Millisecond, true, func(context.Context) (done bool, err error) {
 		hasSynced := h.Informer.HasSynced()
 		if hasSynced {
-			h.Event.AddEvent(h.Kind, h.processListEvents(""))
+			h.Container.EventProcessor().AddEvent(h.Kind, h.processListEvents(""))
 		}
 		return hasSynced, nil
 	})

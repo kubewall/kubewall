@@ -74,7 +74,6 @@ func NewPodsHandler(c echo.Context, container container.Container) *PodsHandler 
 			QueryConfig:      config,
 			QueryCluster:     cluster,
 			InformerCacheKey: fmt.Sprintf("%s-%s-podInformer", config, cluster),
-			Event:            event.NewEventCounter(time.Millisecond * 250),
 			TransformFunc:    transformItems,
 		},
 		restConfig:        container.RestConfig(config, cluster),
@@ -92,7 +91,6 @@ func NewPodsHandler(c echo.Context, container container.Container) *PodsHandler 
 
 	cache := base.ResourceEventHandler[*v1.Pod](&handler.BaseHandler, additionalEvents...)
 	handler.BaseHandler.StartInformer(c, cache)
-	go handler.BaseHandler.Event.Run()
 	handler.BaseHandler.WaitForSync(c)
 
 	return handler

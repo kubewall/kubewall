@@ -4,13 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/kubewall/kubewall/backend/container"
-	"github.com/kubewall/kubewall/backend/event"
 	"github.com/kubewall/kubewall/backend/handlers/base"
 	"github.com/kubewall/kubewall/backend/handlers/helpers"
 	"github.com/labstack/echo/v4"
 	batchV1 "k8s.io/api/batch/v1"
 	"net/http"
-	"time"
 )
 
 type CronJobsHandler struct {
@@ -54,13 +52,11 @@ func NewCronJobsHandler(c echo.Context, container container.Container) *CronJobs
 			QueryConfig:      config,
 			QueryCluster:     cluster,
 			InformerCacheKey: fmt.Sprintf("%s-%s-cronJobInformer", config, cluster),
-			Event:            event.NewEventCounter(time.Millisecond * 250),
 			TransformFunc:    transformItems,
 		},
 	}
 	cache := base.ResourceEventHandler[*batchV1.CronJob](&handler.BaseHandler)
 	handler.BaseHandler.StartInformer(c, cache)
-	go handler.BaseHandler.Event.Run()
 	handler.BaseHandler.WaitForSync(c)
 	return handler
 }
