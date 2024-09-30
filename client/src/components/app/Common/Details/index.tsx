@@ -1,4 +1,3 @@
-import { BadgeDetails, DetailsCards } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDetailsWrapper, useFetchDataForDetails } from "../Hooks/Details";
 

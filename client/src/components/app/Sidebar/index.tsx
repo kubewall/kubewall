@@ -69,7 +69,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
     routerForce.invalidate();
   };
 
-  const onCustomResourcesNavClick = (key: string, route: string, name: string) => {
+  const onCustomResourcesNavClick = ( route: string, name: string) => {
     dispatch(resetListTableFilter());
     const routeKeys = new URLSearchParams(route);
     setActiveTab((routeKeys.get('kind') || '').toLowerCase());
@@ -190,7 +190,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                                 customResourcesNavigation[customResourceGroup].resources.map((customResource) => {
                                   return (
                                     <Button
-                                      onClick={() => onCustomResourcesNavClick(customResourceGroup, customResource.route, customResource.name)}
+                                      onClick={() => onCustomResourcesNavClick(customResource.route, customResource.name)}
                                       variant={setButtonClass(customResource.name)}
                                       size="sm"
                                       className="w-full justify-start"
