@@ -11,6 +11,7 @@ import { Row } from '@tanstack/react-table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusCell } from './statusCell';
 import { TimeCell } from './timeCell';
+import { toQueryParams } from '@/utils';
 
 type TableCellType<T> = {
   type: string;
@@ -65,10 +66,16 @@ const TableCells = <T extends ClusterDetails>({
   }
   if (type === 'Name') {
     let link = '';
+    const defaultQueryParams: Record<string,string> = {
+      resourcekind: instanceType.toLowerCase(),
+      resourcename: value,
+      ...(namespace ? {namespace:namespace} :  {})
+    };
     if (instanceType !== CUSTOM_RESOURCES_LIST_ENDPOINT) {
-      link = `${configName}/details?cluster=${clusterName}&resourcekind=${instanceType.toLowerCase()}&resourcename=${value}${namespace ? `&namespace=${namespace}` : ''}`;
+      defaultQueryParams.cluster = clusterName;
+      link = `${configName}/details?${toQueryParams(defaultQueryParams)}`;
     } else {
-      link = `${configName}/details?cluster=${clusterName}&resourcekind=${instanceType.toLowerCase()}&resourcename=${value}&${queryParams}${namespace ? `&namespace=${namespace}` : ''}`;
+      link = `${configName}/details?${toQueryParams(defaultQueryParams)}&${queryParams}`;
     }
     return <NameCell
       cellValue={value}

@@ -58,14 +58,13 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
           setActiveTab(currentRoute.toLowerCase());
         }
       }
-      setActiveCustomResourcesAccordian([]);
     }
   }, [location.href]);
 
   const onNavClick = (routeValue: string) => {
     dispatch(resetListTableFilter());
     setActiveTab(routeValue);
-    navigate({ to: `/${configName}/list?cluster=${clusterName}&resourcekind=${routeValue}` });
+    navigate({ to: `/${configName}/list?cluster=${encodeURIComponent(clusterName)}&resourcekind=${routeValue}` });
     routerForce.invalidate();
   };
 
@@ -77,7 +76,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
       dispatch(resetCustomResourcesList());
     }
 
-    navigate({ to: `/${configName}/list?cluster=${clusterName}&resourcekind=customresources&${route}` });
+    navigate({ to: `/${configName}/list?cluster=${encodeURIComponent(clusterName)}&resourcekind=customresources&${route}` });
   };
 
   useEffect(() => {
@@ -130,12 +129,12 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
   return (
     <div className={cn("col-span-1", className)}>
       <div className="h-screen flex space-y-4 py-1">
-        <div className="px-2 py-2 basis-[100%]">
+        <div className="px-2 py-2">
           <div className="flex items-center justify-between">
             <img className="w-28" src={getSystemTheme() === 'light' ? kwLogoLight : kwLogoDark} alt="kubewall" />
           </div>
           <SidebarNavigator />
-          <div className="list-table-max-height overflow-auto">
+          <div className="sidebar-max-height overflow-auto">
             <Accordion type="multiple" value={activeAccordion}>
               {
                 Object.keys(NAVIGATION_ROUTE).map((route) => {

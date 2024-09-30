@@ -28,7 +28,7 @@ export function KubeWall() {
   }, [clusters, dispatch]);
 
   const isSelected = (config: string, cluster: string) => {
-   return config === configName && cluster === clusterName
+   return config === configName && cluster === clusterName;
   };
   return (
     <>

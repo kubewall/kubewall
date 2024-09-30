@@ -81,7 +81,7 @@ export function KubeConfiguration() {
   }, [deleteConfigResponse, error, dispatch]);
 
   const navigateTo = (config: string, name: string) => {
-    navigate({ to: `/${config}/list?cluster=${name}&resourcekind=pods` });
+    navigate({ to: `/${config}/list?cluster=${encodeURIComponent(name)}&resourcekind=pods` });
   };
 
   return (

@@ -36,13 +36,13 @@ const SidebarNavigator = memo(function () {
 
   const onSelectResources = (route: string) => {
     dispatch(resetListTableFilter());
-    navigate({ to: `/${configName}/list?cluster=${clusterName}&resourcekind=${route}` });
+    navigate({ to: `/${configName}/list?cluster=${encodeURIComponent(clusterName)}&resourcekind=${route}` });
     setOpen((open) => !open);
   };
 
   const onSelectCustomResources = (route: string) => {
     dispatch(resetListTableFilter());
-    navigate({ to: `/${configName}/list?cluster=${clusterName}&resourcekind=customresources&${route}` });
+    navigate({ to: `/${configName}/list?cluster=${encodeURIComponent(clusterName)}&resourcekind=customresources&${route}` });
     setOpen((open) => !open);
   };
 

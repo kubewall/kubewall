@@ -16,16 +16,16 @@ const SecretDetailsContainer = memo(function () {
 
   const getDecodeOrDefault = (secret: string) => {
     return secretsDetails.type === 'helm.sh/release.v1' ? secret : atob(secret);
-  }
+  };
 
   return (
     <div className={`mt-4`}>
       <Card className="shadow-none rounded-lg">
         <CardHeader className="p-4 ">
-          <CardTitle className="text-sm font-medium flex items-center">
+          <CardTitle className="text-sm font-medium flex items-center shadow-none">
             Data
             <Button
-              className="ml-1 h-3.5 w-3.5"
+              className="ml-1 h-3.5 w-3.5 shadow-none border-none"
               variant="outline"
               size="icon"
               onClick={() => setToggleSecretDecode(!toggleSecretDecode)}
@@ -60,7 +60,7 @@ const SecretDetailsContainer = memo(function () {
                           </div>
                         </div>
                       </div>
-                    )
+                    );
                   })
                 }
               </CardContent>

@@ -124,7 +124,11 @@ const toggleValueInCollection = (collection: string[], currentValue: string) => 
   } else {
     return [...collection, currentValue];
   }
-}
+};
+
+const toQueryParams = (collection: Record<string, string>) => {
+  return new URLSearchParams(collection).toString();
+};
 
 export {
   createEventStreamQueryObject,
@@ -139,5 +143,6 @@ export {
   getLabelConditionCardDetails,
   getSystemTheme,
   isIP,
-  toggleValueInCollection
+  toggleValueInCollection,
+  toQueryParams
 };

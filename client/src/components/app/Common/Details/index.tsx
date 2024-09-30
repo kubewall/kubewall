@@ -33,7 +33,7 @@ const KwDetails = () => {
   const resourceData = useDetailsWrapper({ loading: !!resourceInitialData?.loading, resourcekind });
   if (!resourceInitialData) {
     return <FourOFourError />;
-  };
+  }
 
   document.title = `kubewall - ${resourceInitialData.label.toLowerCase()} - ${resourceData?.subHeading}`;
 
