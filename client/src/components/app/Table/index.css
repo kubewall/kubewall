@@ -2,6 +2,10 @@
   max-height: calc(100vh - 48px);
 }
 
+.sidebar-max-height {
+  max-height: calc(100vh - 90px);
+}
+
 .event-table-max-height {
   max-height: calc(100vh - 115px);
   border-left-width: 1px;

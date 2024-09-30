@@ -14,6 +14,7 @@ type ResourceDetailsSearch = {
 };
 
 type kwListSearch = {
+  cluster: string;
   resourcekind: string;
   group?: string;
   kind?: string;
@@ -22,6 +23,7 @@ type kwListSearch = {
 };
 
 type kwDetailsSearch = {
+  cluster: string;
   resourcename: string;
   resourcekind: string;
   group?: string;
@@ -104,6 +106,19 @@ type KeyValueNull = ({
   [key: string]:  string | number | null
 }| null);
 
+type DetailsCards = {
+  label: string;
+  value: string | number | true;
+}[];
+
+type BadgeDetails = {
+  fieldLabel: string;
+  data: {
+    [k: string]: string | number | null;
+  } | null | undefined;
+  defaultLabelCount: number;
+}[];
+
 export {
   ClusterDetails,
   CustomResources,
@@ -117,5 +132,7 @@ export {
   kwListSearch,
   kwDetailsSearch,
   KeyValue,
-  KeyValueNull
+  KeyValueNull,
+  DetailsCards,
+  BadgeDetails
 };

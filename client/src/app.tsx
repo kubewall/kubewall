@@ -14,7 +14,8 @@ export function App() {
   const router = useRouterState();
   const pathname = router.location.pathname;
   const configName = pathname.split('/')[1];
-  const clusterName = pathname.split('/')[2];
+  const queryParams = new URLSearchParams(router.location.search);
+  const clusterName = queryParams.get('cluster') || '';
 
 
   const sendMessage = (message: NamespacesResponse[]) => {

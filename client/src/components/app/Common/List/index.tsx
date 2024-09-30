@@ -169,8 +169,8 @@ export function KwList() {
   const { customResourcesNavigation } = useAppSelector((state: RootState) => state.customResources);
   const { customResourcesList, loading: customResourcesListLoading } = useAppSelector((state: RootState) => state.customResourcesList);
 
-  const { config, cluster } = kwList.useParams();
-  const { resourcekind, group, kind, resource, version } = kwList.useSearch();
+  const { config } = kwList.useParams();
+  const { cluster, resourcekind, group, kind, resource, version } = kwList.useSearch();
 
   const getTableData = (resourcekind: string) => {
     if (resourcekind === LEASES_ENDPOINT) {
@@ -244,6 +244,7 @@ export function KwList() {
     return <FourOFourError />;
   }
 
+  document.title = `kubewall - ${tableData.instaceType}`;
   return (
     <CreateTable
       clusterName={cluster}

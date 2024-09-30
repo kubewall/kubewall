@@ -14,8 +14,8 @@ import { useEventSource } from "@/components/app/Common/Hooks/EventSource";
 import useGenerateColumns from "@/components/app/Common/Hooks/TableColumns";
 
 const DeploymentDetailsContainer = memo(function () {
-  const { config, cluster } = kwDetails.useParams();
-  const { resourcename, namespace } = kwDetails.useSearch();
+  const { config } = kwDetails.useParams();
+  const { cluster, resourcename, namespace } = kwDetails.useSearch();
   const {
     loading,
     deploymentPodDetails

@@ -10,7 +10,7 @@ type NameCellProps = {
 const NameCell = memo(function ({ cellValue, link}: NameCellProps) {
 
   return (
-    <div className="flex">
+    <div className="flex py-0.5">
       <Link
         to={`/${link}`}
       >

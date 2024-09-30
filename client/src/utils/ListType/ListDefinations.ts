@@ -437,7 +437,8 @@ const customResourcesColumnConfig = (additionalPrinterColumns: CustomResourcesPr
     ...additionalPrinterColumns.map((columns) => {
       return {
         title: columns.name,
-        accessorKey: loading ? '' : columns.jsonPath.slice(1)
+        accessorKey: loading ? '' : columns.jsonPath.slice(1),
+        ...(columns.name === 'Name' || columns.name === 'Namespace' ? {enableGlobalFilter: true}: {})
       };
     })
   ],

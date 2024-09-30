@@ -110,7 +110,7 @@ const IPv6Reg = new RegExp('^(?:' +
   `(?:${v6Seg}:){2}(?:(?::${v6Seg}){0,3}:${v4Str}|(?::${v6Seg}){1,5}|:)|` +
   `(?:${v6Seg}:){1}(?:(?::${v6Seg}){0,4}:${v4Str}|(?::${v6Seg}){1,6}|:)|` +
   `(?::(?:(?::${v6Seg}){0,5}:${v4Str}|(?::${v6Seg}){1,7}|:))` +
-')(?:%[0-9a-zA-Z-.:]{1,})?$');
+  ')(?:%[0-9a-zA-Z-.:]{1,})?$');
 
 const isIPv4 = (s: string) => IPv4Reg.test(s);
 
@@ -118,7 +118,17 @@ const isIPv6 = (s: string) => IPv6Reg.test(s);
 
 const isIP = (s: string) => isIPv4(s) || isIPv6(s);
 
+const toggleValueInCollection = (collection: string[], currentValue: string) => {
+  if (collection.includes(currentValue)) {
+    return collection.filter((item) => item !== currentValue);
+  } else {
+    return [...collection, currentValue];
+  }
+};
 
+const toQueryParams = (collection: Record<string, string>) => {
+  return new URLSearchParams(collection).toString();
+};
 
 export {
   createEventStreamQueryObject,
@@ -132,5 +142,7 @@ export {
   getConditionsCardDetails,
   getLabelConditionCardDetails,
   getSystemTheme,
-  isIP
+  isIP,
+  toggleValueInCollection,
+  toQueryParams
 };

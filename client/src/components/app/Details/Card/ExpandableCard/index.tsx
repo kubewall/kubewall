@@ -10,7 +10,7 @@ import { useState } from "react";
 type CardItems = {
   fieldLabel: string;
   data: {
-      [k: string]: string | number | null;
+    [k: string]: string | number | null;
   } | null | undefined;
   defaultLabelCount: number;
 };
@@ -22,49 +22,61 @@ type ExpandableCardProps = {
 
 function CardContentDetails({ fieldLabel, data, defaultLabelCount }: CardItems) {
   const [showCompleteLabel, setShowCompleteLabel] = useState(false);
-  return (
-    
-      data ? 
 
-    <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all group/item">
-      <div className="space-y-1">
-        <div className="py-1 flex items-center">
-          <span className="text-sm font-medium">
-          {fieldLabel}
-        </span>
-        {
-          Object.keys(data).length > defaultLabelCount &&
-          <span
-            className="text-xs pl-1 text-blue-600 dark:text-blue-500 cursor-pointer hover:underline"
-            onClick={() => setShowCompleteLabel(!showCompleteLabel)}
-          >
+  const checkForTagLength = () => {
+    if (Object.keys(data || {}).length > defaultLabelCount) {
+      return true;
+    }
+
+    let isTagLong = false;
+    for (const [, value] of Object.entries(data || {})) {
+      if (value && value.toString().length > 100) {
+        isTagLong = true;
+        break;
+      }
+    }
+    return isTagLong;
+  };
+
+  return (
+    data ?
+      <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all group/item">
+        <div className="space-y-1">
+          <div className="py-1 flex items-center">
+            <span className="text-sm font-medium">
+              {fieldLabel}
+            </span>
             {
-              showCompleteLabel ? 'view less [-]' : 'view more [+]'
+              checkForTagLength() &&
+              <span
+                className="text-xs pl-1 text-blue-600 dark:text-blue-500 cursor-pointer hover:underline"
+                onClick={() => setShowCompleteLabel(!showCompleteLabel)}
+              >
+                {
+                  showCompleteLabel ? 'view less [-]' : 'view more [+]'
+                }
+              </span>
             }
-          </span>
-        }
-        
-        <div className="group/edit invisible group-hover/item:visible ml-2"><CopyToClipboard val={defaultOrValue(JSON.stringify(data))}/></div>
-        
+            <div className="group/edit invisible group-hover/item:visible ml-2"><CopyToClipboard val={defaultOrValue(JSON.stringify(data))} /></div>
+          </div>
+          <div>
+            {
+              Object.keys(data).map((key, index) => {
+                return (
+                  (index < defaultLabelCount || showCompleteLabel) && <span key={index}>
+                    <Badge className="m-1" variant="secondary">
+                      <p className={checkForTagLength() && !showCompleteLabel ? "line-clamp-1 break-all" : "break-all"}>
+                        <span className="text-sm font-medium text-muted-foreground">{key}: </span>
+                        <span className="text-sm font-normal ">{data[key]}</span>
+                      </p>
+                    </Badge>
+                  </span>
+                );
+              })
+            }
+          </div>
         </div>
-        <div>
-          {
-            Object.keys(data).map((key, index) => {
-              return (
-                (index < defaultLabelCount || showCompleteLabel) && <span key={index}>
-                  <Badge className="m-1" variant="secondary">
-                    <p className={Object.keys(data).length > defaultLabelCount && !showCompleteLabel ? "line-clamp-1 break-all" : "break-all"}>
-                      <span className="text-sm font-medium text-muted-foreground">{key}: </span>
-                      <span className="text-sm font-normal ">{data[key]}</span>
-                    </p>
-                  </Badge>
-                </span>
-              );
-            })
-          }
-        </div>
-      </div>
-    </div> : <></>
+      </div> : <></>
   );
 }
 
@@ -79,7 +91,7 @@ export function ExpandableCard({ cards, title }: ExpandableCardProps) {
           <div className={`grid grid-cols-1 md:grid-cols-${cards.length} gap-2`}>
             {
               cards.map(({ fieldLabel, data, defaultLabelCount }) => {
-                return <CardContentDetails key={fieldLabel} fieldLabel={fieldLabel} data={data} defaultLabelCount={defaultLabelCount}/>;
+                return <CardContentDetails key={fieldLabel} fieldLabel={fieldLabel} data={data} defaultLabelCount={defaultLabelCount} />;
               })
             }
           </div>

@@ -12,13 +12,14 @@ import { FilePlusIcon } from "@radix-ui/react-icons";
 import { Loader } from '../../Loader';
 import { SaveIcon } from "lucide-react";
 import { getSystemTheme } from "@/utils";
+import { kwList } from '@/routes';
 import { toast } from 'sonner';
 
 const AddResource = () => {
   const dispatch = useAppDispatch();
   const [value, setValue] = useState('');
-  const match = window.location.pathname.match(/\/([^/]+)\/([^/]+)/);
-  const [, config = '', cluster = ''] = match || [];
+  const { config } = kwList.useParams();
+  const { cluster } = kwList.useSearch();
 
   const queryParams = new URLSearchParams({
     config,
@@ -103,8 +104,8 @@ const AddResource = () => {
                     rotate-0
                     scale-100
                     transition-all
-                    dark:-rotate-${getSystemTheme() === 'light' ? '90': '0'}
-                    dark:scale-${getSystemTheme() === 'light' ? '0': '100'}`
+                    dark:-rotate-${getSystemTheme() === 'light' ? '90' : '0'}
+                    dark:scale-${getSystemTheme() === 'light' ? '0' : '100'}`
                   }
                 />
               </Button>
