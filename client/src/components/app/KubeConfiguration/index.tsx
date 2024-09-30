@@ -81,7 +81,7 @@ export function KubeConfiguration() {
   }, [deleteConfigResponse, error, dispatch]);
 
   const navigateTo = (config: string, name: string) => {
-    navigate({ to: `/${config}/${name}/list?resourcekind=pods` });
+    navigate({ to: `/${config}/list?cluster=${name}&resourcekind=pods` });
   };
 
   return (
@@ -122,23 +122,14 @@ export function KubeConfiguration() {
           />
           <div className="overflow-auto config-list mt-2">
             <Table className="border overflow-auto">
-              {/* <table className="min-w-full border-collapse rounded-lg shadow-md border text-sm"> */}
               <TableHeader className="bg-muted/80">
-                {/* <thead> */}
                 <TableRow>
-                  {/* <tr className="border-b"> */}
                   <TableHead>Name</TableHead>
                   <TableHead>Namespace</TableHead>
                   <TableHead>Status</TableHead>
-                  {/* <th className="px-4 py-2 text-left text-gray-600 font-normal">Name</th>
-                  <th className="px-4 py-2 text-left text-gray-600 font-normal">Namespace</th>
-                  <th className="px-4 py-2 text-left text-gray-600 font-normal">Status</th> */}
-                  {/* </tr> */}
                 </TableRow>
-                {/* </thead> */}
               </TableHeader>
               <TableBody>
-                {/* <tbody> */}
                 {
                   filteredClusters?.kubeConfigs && Object.keys(filteredClusters.kubeConfigs).length ?
                     Object.keys(filteredClusters.kubeConfigs).map((config, index) => {
@@ -148,24 +139,6 @@ export function KubeConfiguration() {
                             <TableCell colSpan={3} className="bg-muted/50">
                               <div className="flex items-center justify-between">
                                 <span> {config} </span>
-                                {/* <svg xmlns="http://www.w3.org/2000/svg"
-                                  onClick={() => confirm('pakka')}
-                                  cursor='pointer'
-                                  width="30"
-                                  height="30"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="hsl(var(--destructive))"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  className="lucide lucide-trash-2 p-2 group/edit invisible group-hover/item:visible">
-                                  <path d="M3 6h18" />
-                                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                                  <line x1="10" x2="10" y1="11" y2="17" />
-                                  <line x1="14" x2="14" y1="11" y2="17" />
-                                </svg> */}
                                 <DeleteConfiguration configId={config} />
                               </div>
                             </TableCell>
@@ -185,9 +158,7 @@ export function KubeConfiguration() {
                                   key={name}
                                 >
                                   <TableCell className="flex items-center space-x-3">
-                                    {/* <input type="checkbox" className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" /> */}
                                     <div className="flex w-12 flex-shrink-0 items-center justify-center bg-primary rounded-md text-sm font-medium text-secondary">{name.substring(0, 2).toUpperCase()}</div>
-                                    {/* <img src="https://via.placeholder.com/32" alt="Avatar" className="w-8 h-8 rounded-full" /> */}
                                     <span className="font-normal">{name}</span>
                                   </TableCell>
                                   <TableCell className="">

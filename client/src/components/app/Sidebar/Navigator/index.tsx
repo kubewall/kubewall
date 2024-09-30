@@ -19,7 +19,8 @@ const SidebarNavigator = memo(function () {
   const navigate = useNavigate();
   const router = useRouterState();
   const configName = router.location.pathname.split('/')[1];
-  const clusterName = router.location.pathname.split('/')[2];
+  const queryParams = new URLSearchParams(router.location.search);
+  const clusterName = queryParams.get('cluster') || '';
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -35,13 +36,13 @@ const SidebarNavigator = memo(function () {
 
   const onSelectResources = (route: string) => {
     dispatch(resetListTableFilter());
-    navigate({ to: `/${configName}/${clusterName}/list?resourcekind=${route}` });
+    navigate({ to: `/${configName}/list?cluster=${clusterName}&resourcekind=${route}` });
     setOpen((open) => !open);
   };
 
   const onSelectCustomResources = (route: string) => {
     dispatch(resetListTableFilter());
-    navigate({ to: `/${configName}/${clusterName}/list?resourcekind=customresources&${route}` });
+    navigate({ to: `/${configName}/list?cluster=${clusterName}&resourcekind=customresources&${route}` });
     setOpen((open) => !open);
   };
 

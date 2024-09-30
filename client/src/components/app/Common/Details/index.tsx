@@ -1,3 +1,4 @@
+import { BadgeDetails, DetailsCards } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDetailsWrapper, useFetchDataForDetails } from "../Hooks/Details";
 
@@ -20,26 +21,29 @@ import { useEffect } from "react";
 
 const KwDetails = () => {
   const dispatch = useDispatch();
-  const { config, cluster } = kwDetails.useParams();
-  const { resourcekind, resourcename, group='', kind='', resource='', version='', namespace } = kwDetails.useSearch();
+  const { config } = kwDetails.useParams();
+  const { cluster, resourcekind, resourcename, group = '', kind = '', resource = '', version = '', namespace } = kwDetails.useSearch();
   const { podDetails } = useAppSelector((state: RootState) => state.podDetails);
 
   useEffect(() => {
     dispatch(resetYamlDetails());
     dispatch(clearLogs());
-  },[]);
+  }, []);
 
-  const resourceInitialData = useFetchDataForDetails({cluster, config, group, kind, namespace, resource, resourcekind, resourcename, version});
-  const resourceData = useDetailsWrapper({loading:!!resourceInitialData?.loading, resourcekind});
+  const resourceInitialData = useFetchDataForDetails({ cluster, config, group, kind, namespace, resource, resourcekind, resourcename, version });
+  const resourceData = useDetailsWrapper({ loading: !!resourceInitialData?.loading, resourcekind });
   if (!resourceInitialData) {
     return <FourOFourError />;
-  }
- 
+  };
+
+  document.title = `kubewall - ${resourceInitialData.label.toLowerCase()} - ${resourceData?.subHeading}`;
+
   const getListPageQueryparams = () => {
-    const qp : Record<string, string> = {
+    const qp: Record<string, string> = {
+      cluster: cluster,
       resourcekind: resourcekind
     };
-    if(resourceInitialData.label === 'Custom Resources') {
+    if (resourceInitialData.label === 'Custom Resources') {
       qp['group'] = group;
       qp['kind'] = kind;
       qp['resource'] = resource;
@@ -47,11 +51,11 @@ const KwDetails = () => {
     }
     return new URLSearchParams(qp).toString();
   };
- 
+
   return (
     <>
       <span className="text-xs text-blue-600 dark:text-blue-500 hover:underline">
-        <Link to={`/${config}/${cluster}/list?${getListPageQueryparams()}`} className="flex items-center pl-3 pt-4">
+        <Link to={`/${config}/list?${getListPageQueryparams()}`} className="flex items-center pl-3 pt-4">
           <CaretLeftIcon className="h-3.5 w-3.5" />
           {resourceInitialData.label}
         </Link>
@@ -90,9 +94,9 @@ const KwDetails = () => {
                       name={resourcename}
                       configName={config}
                       clusterName={cluster}
-                      instanceType={`${resourcekind}${resourceInitialData.label === 'Custom Resources' && namespace ?  '/' + namespace : ''}`}
+                      instanceType={`${resourcekind}${resourceInitialData.label === 'Custom Resources' && namespace ? '/' + namespace : ''}`}
                       namespace={namespace || ''}
-                      extraQuery={resourceInitialData.label === 'Custom Resources' ? '&' + new URLSearchParams({group,kind,resource,version}).toString() : ''}
+                      extraQuery={resourceInitialData.label === 'Custom Resources' ? '&' + new URLSearchParams({ group, kind, resource, version }).toString() : ''}
                     />
                   </TabsContent>
                   <TabsContent value='events'>

@@ -66,9 +66,9 @@ const TableCells = <T extends ClusterDetails>({
   if (type === 'Name') {
     let link = '';
     if (instanceType !== CUSTOM_RESOURCES_LIST_ENDPOINT) {
-      link = `${configName}/${clusterName}/details?resourcekind=${instanceType.toLowerCase()}&resourcename=${value}${namespace ? `&namespace=${namespace}` : ''}`;
+      link = `${configName}/details?cluster=${clusterName}&resourcekind=${instanceType.toLowerCase()}&resourcename=${value}${namespace ? `&namespace=${namespace}` : ''}`;
     } else {
-      link = `${configName}/${clusterName}/details?resourcekind=${instanceType.toLowerCase()}&resourcename=${value}&${queryParams}${namespace ? `&namespace=${namespace}` : ''}`;
+      link = `${configName}/details?cluster=${clusterName}&resourcekind=${instanceType.toLowerCase()}&resourcename=${value}&${queryParams}${namespace ? `&namespace=${namespace}` : ''}`;
     }
     return <NameCell
       cellValue={value}

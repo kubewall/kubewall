@@ -26,10 +26,11 @@ const indexRoute = createRoute({
 
 const kwList = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/$config/$cluster/list',
+  path: '/$config/list',
   component: () => <AppWrapper component={<KwList />} />,
   validateSearch: (search: Record<string, unknown>): kwListSearch => {
     return {
+      cluster: String(search.cluster) || '',
       resourcekind: String(search.resourcekind) || '',
       ...(search.group ? {group: String(search.group)}: {}),
       ...(search.kind ? {kind: String(search.kind)}: {}),
@@ -41,9 +42,10 @@ const kwList = createRoute({
 
 const kwDetails = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/$config/$cluster/details',
+  path: '/$config/details',
   component: () => <AppWrapper component={<KwDetails />} />,
   validateSearch: (search: Record<string, unknown>): kwDetailsSearch => ({
+    cluster: String(search.cluster) || '',
     resourcekind: String(search.resourcekind) || '',
     resourcename: String(search.resourcename) || '',
     group: search.group ? String(search.group) : '',

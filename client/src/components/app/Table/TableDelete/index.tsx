@@ -18,8 +18,8 @@ type TableDeleteProps = {
 }
 
 const TableDelete = ({ selectedRows, toggleAllRowsSelected }: TableDeleteProps) => {
-  const { config, cluster } = kwList.useParams();
-  const { resourcekind = '', group = '', kind = '', resource = '', version = '' } = kwList.useSearch();
+  const { config } = kwList.useParams();
+  const { cluster = '', resourcekind = '', group = '', kind = '', resource = '', version = '' } = kwList.useSearch();
   const {
     loading,
     error,
@@ -75,7 +75,7 @@ const TableDelete = ({ selectedRows, toggleAllRowsSelected }: TableDeleteProps) 
     const data = selectedRows.map(({ original }) => {
       return {
         'name': original.name || original.metadata.name,
-        'namespace': original.namespace || original.metadata.namespace
+        'namespace': original.namespace || original.metadata?.namespace
       };
     });
     const queryParamsObj: Record<string, string> = { config, cluster };

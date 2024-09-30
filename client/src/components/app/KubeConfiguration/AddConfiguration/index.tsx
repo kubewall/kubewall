@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PlusCircledIcon } from "@radix-ui/react-icons";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import { fetchClusters } from "@/data/KwClusters/ClustersSlice";
 import { toast } from "sonner";
 
@@ -94,12 +95,17 @@ const AddConfig = () => {
 
   const isDisabled = () => {
     if (activeTab === "bearerToken") {
-      return !bearerTokenConfig.apiServer || !bearerTokenConfig.name || !bearerTokenConfig.token;
+      return !bearerTokenConfig.apiServer || !bearerTokenConfig.name || checkForValidConfigName(bearerTokenConfig.name) || !bearerTokenConfig.token;
     }
     if (activeTab === "certificate") {
-      return !certificateConfig.apiServer || !certificateConfig.certificate || !certificateConfig.certificateKey || !certificateConfig.name;
+      return !certificateConfig.apiServer || !certificateConfig.certificate || !certificateConfig.certificateKey || !certificateConfig.name || checkForValidConfigName(certificateConfig.name);
     }
     return !kubeconfigFileConfig.config;
+  };
+
+  const checkForValidConfigName = (name: string) => {
+    const regex = /^[a-zA-Z0-9-]+$/;
+    return (!regex.test(name));
   };
 
   return (
@@ -131,11 +137,15 @@ const AddConfig = () => {
                       <Label htmlFor="bearerTokenName">Name</Label>
                       <Input
                         id="bearerTokenName"
-                        className="shadow-none"
                         placeholder="Config name"
                         value={bearerTokenConfig.name}
+                        className={cn('shadow-none', bearerTokenConfig.name && checkForValidConfigName(bearerTokenConfig.name) && 'border-red-500 focus-visible:ring-red-500')}
                         onChange={(e) => setBearerTokenConfig({ ...bearerTokenConfig, name: e.target.value || '' })}
                       />
+                      {
+                        bearerTokenConfig.name && checkForValidConfigName(bearerTokenConfig.name) &&
+                        <p className="text-red-500 text-sm">Name must be alphanumeric and can include hyphens (-).</p>
+                      }
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor="bearerTokenApiServer">API Server</Label>
@@ -164,11 +174,15 @@ const AddConfig = () => {
                       <Label htmlFor="certificateName">Name</Label>
                       <Input
                         id="certificateName"
-                        className="shadow-none"
                         placeholder="Config name"
                         value={certificateConfig.name}
+                        className={cn('shadow-none', bearerTokenConfig.name && checkForValidConfigName(certificateConfig.name) && 'border-red-500 focus-visible:ring-red-500')}
                         onChange={(e) => setCertificateConfig({ ...certificateConfig, name: e.target.value || '' })}
                       />
+                      {
+                        bearerTokenConfig.name && checkForValidConfigName(certificateConfig.name) &&
+                        <p className="text-red-500 text-sm">Name must be alphanumeric and can include hyphens (-).</p>
+                      }
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor="certificateApiServer">API Server</Label>

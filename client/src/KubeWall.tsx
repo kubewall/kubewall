@@ -15,7 +15,7 @@ export function KubeWall() {
   const pathname = router.location.pathname;
 
   const configName = router.location.pathname.split('/')[1];
-  const clusterName = router.location.pathname.split('/')[2];
+  const clusterName = new URL(location.href).searchParams.get('cluster') || '';
   const selectedResource = new URL(location.href).searchParams.get('resourcekind') || '';
   const {
     clusters
@@ -27,7 +27,9 @@ export function KubeWall() {
     }
   }, [clusters, dispatch]);
 
-  const isSelected = (config: string, cluster: string) => config === configName && cluster === clusterName;
+  const isSelected = (config: string, cluster: string) => {
+   return config === configName && cluster === clusterName
+  };
   return (
     <>
       {
@@ -48,7 +50,7 @@ export function KubeWall() {
                           <Tooltip key={name} delayDuration={0}>
                             <TooltipTrigger asChild>
                               <Link
-                                to={`/${config}/${name}/list?resourcekind=${selectedResource}`}
+                                to={`/${config}/list?cluster=${name}&resourcekind=${selectedResource}`}
                                 onClick={() => dispatch(resetAllStates())}
                                 href="#"
                                 className={cn(

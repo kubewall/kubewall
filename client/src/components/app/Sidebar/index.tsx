@@ -1,7 +1,7 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { CUSTOM_RESOURCES_ENDPOINT, NAVIGATION_ROUTE } from "@/constants";
 import { DatabaseIcon, LayersIcon, LayoutGridIcon, NetworkIcon, ShieldHalf, SlidersHorizontalIcon, UngroupIcon } from "lucide-react";
-import { createEventStreamQueryObject, getEventStreamUrl, getSystemTheme } from "@/utils";
+import { createEventStreamQueryObject, getEventStreamUrl, getSystemTheme, toggleValueInCollection } from "@/utils";
 import { memo, useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
@@ -24,8 +24,8 @@ interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const Sidebar = memo(function ({ className }: SidebarProps) {
   const [activeTab, setActiveTab] = useState('');
-  const [activeAccordion, setActiveAccordion] = useState('');
-  const [activeCustomResourcesAccordian, setActiveCustomResourcesAccordian] = useState('');
+  const [activeAccordion, setActiveAccordion] = useState<string[]>([]);
+  const [activeCustomResourcesAccordian, setActiveCustomResourcesAccordian] = useState<string[]>([]);
   const setButtonClass = (currentTab: string) => {
     return currentTab.toLowerCase() === activeTab.toLowerCase() ? 'default' : 'ghost';
   };
@@ -34,8 +34,8 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
   const routerForce = useRouter();
   const dispatch = useAppDispatch();
   const configName = router.location.pathname.split('/')[1];
-  const clusterName = router.location.pathname.split('/')[2];
   const queryParams = new URLSearchParams(router.location.search);
+  const clusterName = queryParams.get('cluster') || '';
   const {
     clusters
   } = useAppSelector((state) => state.clusters);
@@ -46,40 +46,38 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
   useEffect(() => {
     const currentRoute = new URL(location.href).searchParams.get('resourcekind') || '';
     if (currentRoute.toLowerCase() === 'customresources') {
-      setActiveAccordion('customResources');
-      setActiveCustomResourcesAccordian(queryParams.get('group') || '');
+      setActiveAccordion([...activeAccordion, 'customResources']);
+      setActiveCustomResourcesAccordian([...activeCustomResourcesAccordian, queryParams.get('group') || '']);
       setActiveTab((queryParams.get('kind') || '').toLowerCase());
     }
     else {
       for (const category in NAVIGATION_ROUTE) {
         const isCurrentRoutePresent = NAVIGATION_ROUTE[category].some(({ route }) => route === currentRoute.toLowerCase());
         if (isCurrentRoutePresent) {
-          setActiveAccordion(category);
+          setActiveAccordion([...activeAccordion, category]);
           setActiveTab(currentRoute.toLowerCase());
         }
       }
-      setActiveCustomResourcesAccordian('');
+      setActiveCustomResourcesAccordian([]);
     }
   }, [location.href]);
 
-  const onNavClick = (routeValue: string, route: string) => {
+  const onNavClick = (routeValue: string) => {
     dispatch(resetListTableFilter());
     setActiveTab(routeValue);
-    navigate({ to: `/${configName}/${clusterName}/list?resourcekind=${routeValue}` });
-    setActiveAccordion(route);
+    navigate({ to: `/${configName}/list?cluster=${clusterName}&resourcekind=${routeValue}` });
     routerForce.invalidate();
   };
 
   const onCustomResourcesNavClick = (key: string, route: string, name: string) => {
     dispatch(resetListTableFilter());
-    setActiveCustomResourcesAccordian(key);
     const routeKeys = new URLSearchParams(route);
     setActiveTab((routeKeys.get('kind') || '').toLowerCase());
     if (activeTab.toLowerCase() !== name.toLowerCase()) {
       dispatch(resetCustomResourcesList());
     }
 
-    navigate({ to: `/${configName}/${clusterName}/list?resourcekind=customresources&${route}` });
+    navigate({ to: `/${configName}/list?cluster=${clusterName}&resourcekind=customresources&${route}` });
   };
 
   useEffect(() => {
@@ -102,6 +100,14 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
       )),
     sendMessage
   });
+
+  const updateOpenAccordian = (selectedAccordian: string) => {
+    setActiveAccordion((prevItems) => toggleValueInCollection(prevItems, selectedAccordian));
+  };
+
+  const updateOpenCustomResourceAccordian = (selectedAccordian: string) => {
+    setActiveCustomResourcesAccordian((prevItems) => toggleValueInCollection(prevItems, selectedAccordian));
+  };
 
   const getResourceIcon = (resourceType: string) => {
     switch (resourceType) {
@@ -130,12 +136,12 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
           </div>
           <SidebarNavigator />
           <div className="list-table-max-height overflow-auto">
-            <Accordion type="single" value={activeAccordion}>
+            <Accordion type="multiple" value={activeAccordion}>
               {
                 Object.keys(NAVIGATION_ROUTE).map((route) => {
                   return (
                     <AccordionItem value={route} key={route}>
-                      <AccordionTrigger onClick={() => { setActiveAccordion(route); }}>
+                      <AccordionTrigger onClick={() => { updateOpenAccordian(route); }}>
                         <div className="flex items-center space-x-1">
                           {getResourceIcon(route.toLowerCase().split(' ').join(''))}
                           <span>{route}</span>
@@ -149,7 +155,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                           NAVIGATION_ROUTE[route].map(({ name, route: routeValue }) => {
                             return (
                               <Button
-                                onClick={() => onNavClick(routeValue, route)}
+                                onClick={() => onNavClick(routeValue)}
                                 variant={setButtonClass(routeValue)}
                                 size="sm"
                                 className="w-full justify-start"
@@ -166,19 +172,19 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                 })
               }
               <AccordionItem value='customResources' key='customResources'>
-                <AccordionTrigger onClick={() => { setActiveAccordion('customResources'); }}>
+                <AccordionTrigger onClick={() => { updateOpenAccordian('customResources'); }}>
                   <div className="flex items-center space-x-1">
                     {getResourceIcon('customesources')}
                     <span>Custom Resources</span>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <Accordion type="single" value={activeCustomResourcesAccordian}>
+                  <Accordion type="multiple" value={activeCustomResourcesAccordian}>
                     {
                       Object.keys(customResourcesNavigation).map((customResourceGroup) => {
                         return (
                           <AccordionItem value={customResourceGroup} key={customResourceGroup}>
-                            <AccordionTrigger onClick={() => { setActiveCustomResourcesAccordian(customResourceGroup); }}>{customResourceGroup}</AccordionTrigger>
+                            <AccordionTrigger onClick={() => { updateOpenCustomResourceAccordian(customResourceGroup); }}>{customResourceGroup}</AccordionTrigger>
                             <AccordionContent>
                               {
                                 customResourcesNavigation[customResourceGroup].resources.map((customResource) => {

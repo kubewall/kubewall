@@ -1,17 +1,5 @@
+import { BadgeDetails, DetailsCards } from "@/types";
 import { ExpandableCard, FixedCard } from "../Card";
-
-type DetailsCards = {
-  label: string;
-  value: string | number | true;
-}[];
-
-type BadgeDetails = {
-  fieldLabel: string;
-  data: {
-    [k: string]: string | number | null;
-  } | null | undefined;
-  defaultLabelCount: number;
-}[];
 
 type OverviewProps = {
   details: DetailsCards[];
