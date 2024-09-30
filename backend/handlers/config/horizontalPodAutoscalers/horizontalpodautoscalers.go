@@ -5,10 +5,8 @@ import (
 	"fmt"
 	autoScalingV2 "k8s.io/api/autoscaling/v2"
 	"net/http"
-	"time"
 
 	"github.com/kubewall/kubewall/backend/container"
-	"github.com/kubewall/kubewall/backend/event"
 	"github.com/kubewall/kubewall/backend/handlers/base"
 	"github.com/kubewall/kubewall/backend/handlers/helpers"
 	"github.com/labstack/echo/v4"
@@ -55,13 +53,11 @@ func NewHorizontalPodAutoScalerHandler(c echo.Context, container container.Conta
 			QueryConfig:      config,
 			QueryCluster:     cluster,
 			InformerCacheKey: fmt.Sprintf("%s-%s-horizontalPodAutoscalerInformer", config, cluster),
-			Event:            event.NewEventCounter(time.Millisecond * 250),
 			TransformFunc:    transformItems,
 		},
 	}
 	cache := base.ResourceEventHandler[*autoScalingV2.HorizontalPodAutoscaler](&handler.BaseHandler)
 	handler.BaseHandler.StartInformer(c, cache)
-	go handler.BaseHandler.Event.Run()
 	handler.BaseHandler.WaitForSync(c)
 	return handler
 }

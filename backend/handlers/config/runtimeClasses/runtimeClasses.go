@@ -5,10 +5,8 @@ import (
 	"fmt"
 	v1 "k8s.io/api/node/v1"
 	"net/http"
-	"time"
 
 	"github.com/kubewall/kubewall/backend/container"
-	"github.com/kubewall/kubewall/backend/event"
 	"github.com/kubewall/kubewall/backend/handlers/base"
 	"github.com/kubewall/kubewall/backend/handlers/helpers"
 	"github.com/labstack/echo/v4"
@@ -55,13 +53,11 @@ func NewRunTimeClassHandler(c echo.Context, container container.Container) *RunT
 			QueryConfig:      config,
 			QueryCluster:     cluster,
 			InformerCacheKey: fmt.Sprintf("%s-%s-runtimeClassInformer", config, cluster),
-			Event:            event.NewEventCounter(time.Millisecond * 250),
 			TransformFunc:    transformItems,
 		},
 	}
 	cache := base.ResourceEventHandler[*v1.RuntimeClass](&handler.BaseHandler)
 	handler.BaseHandler.StartInformer(c, cache)
-	go handler.BaseHandler.Event.Run()
 	handler.BaseHandler.WaitForSync(c)
 	return handler
 }

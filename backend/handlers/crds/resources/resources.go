@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/kubewall/kubewall/backend/container"
-	"github.com/kubewall/kubewall/backend/event"
 	"github.com/kubewall/kubewall/backend/handlers/base"
 	"github.com/kubewall/kubewall/backend/handlers/helpers"
 	"github.com/labstack/echo/v4"
@@ -54,14 +52,12 @@ func NewUnstructuredHandler(container container.Container, routeType base.RouteT
 				QueryConfig:      config,
 				QueryCluster:     cluster,
 				InformerCacheKey: fmt.Sprintf("%s-%s-%s-%s-%s-%s", config, cluster, group, version, resource, kind),
-				Event:            event.NewEventCounter(time.Millisecond * 250),
 				TransformFunc:    transformItems,
 			},
 		}
 
 		cache := base.ResourceEventHandler[*unstructured.Unstructured](&handler.BaseHandler)
 		handler.BaseHandler.StartDynamicInformer(c, cache)
-		go handler.BaseHandler.Event.Run()
 		handler.BaseHandler.WaitForSync(c)
 
 		switch routeType {
@@ -89,7 +85,7 @@ func (h *UnstructuredHandler) Get(c echo.Context) error {
 
 	streamKey := fmt.Sprintf("%s-%s-%s", h.BaseHandler.QueryConfig, h.BaseHandler.QueryCluster, itemKey)
 	streamKey = strings.ReplaceAll(streamKey, "/", "-")
-	go h.BaseHandler.Event.AddEvent(streamKey, h.ProcessDetails(itemKey, streamKey))
+	go h.BaseHandler.Container.EventProcessor().AddEvent(streamKey, h.ProcessDetails(itemKey, streamKey))
 	h.BaseHandler.Container.SSE().ServeHTTP(streamKey, c.Response(), c.Request())
 
 	return nil

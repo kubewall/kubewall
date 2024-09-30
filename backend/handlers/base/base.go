@@ -3,7 +3,6 @@ package base
 import (
 	"fmt"
 	"github.com/kubewall/kubewall/backend/container"
-	"github.com/kubewall/kubewall/backend/event"
 	"github.com/labstack/echo/v4"
 	"github.com/r3labs/sse/v2"
 	"k8s.io/client-go/rest"
@@ -33,7 +32,6 @@ type BaseHandler struct {
 	QueryCluster     string
 	InformerCacheKey string
 
-	Event         *event.EventProcessor
 	TransformFunc func([]any, *BaseHandler) ([]byte, error)
 }
 

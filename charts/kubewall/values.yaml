@@ -64,10 +64,10 @@ service:
 resources:
   limits:
     cpu: 100m  # Maximum CPU limit (100 milli-CPU)
-    memory: 128Mi  # Maximum memory limit (128 MiB)
+    memory: 256Mi  # Maximum memory limit (128 MiB)
   requests:
     cpu: 100m  # Minimum CPU request (100 milli-CPU)
-    memory: 128Mi  # Minimum memory request (128 MiB)
+    memory: 256Mi  # Minimum memory request (128 MiB)
 
 # Persistent volume claim (PVC) for Kubewall data storage
 pvc:

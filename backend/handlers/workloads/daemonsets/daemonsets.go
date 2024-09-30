@@ -4,9 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 
-	"github.com/kubewall/kubewall/backend/event"
 	"github.com/kubewall/kubewall/backend/handlers/base"
 	"github.com/kubewall/kubewall/backend/handlers/helpers"
 
@@ -56,14 +54,12 @@ func NewDaemonSetsHandler(c echo.Context, container container.Container) *Daemon
 			QueryConfig:      config,
 			QueryCluster:     cluster,
 			InformerCacheKey: fmt.Sprintf("%s-%s-daemonsetInformer", config, cluster),
-			Event:            event.NewEventCounter(time.Millisecond * 250),
 			TransformFunc:    transformItems,
 		},
 	}
 
 	cache := base.ResourceEventHandler[*appV1.DaemonSet](&handler.BaseHandler)
 	handler.BaseHandler.StartInformer(c, cache)
-	go handler.BaseHandler.Event.Run()
 	handler.BaseHandler.WaitForSync(c)
 	return handler
 }
