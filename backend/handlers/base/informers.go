@@ -64,10 +64,18 @@ func (h *BaseHandler) baseInformer(_ echo.Context, cache cache.ResourceEventHand
 		return
 	}
 	h.Container.Cache().Set(cacheKey, "started")
-	h.Informer.AddEventHandler(cache)
+	_, err := h.Informer.AddEventHandler(cache)
+	if err != nil {
+		log.Warn("failed to load baseInformer", "error", err, "kind", h.Kind)
+		return
+	}
 }
 
 func (h *BaseHandler) WaitForSync(c echo.Context) {
+	h.Informer.SetWatchErrorHandler(func(r *cache.Reflector, err error) {
+		log.Warn("failed to watch, will backoff and retry", "error", err, "kind", h.Kind)
+	})
+
 	err := wait.PollUntilContextCancel(c.Request().Context(), 100*time.Millisecond, true, func(context.Context) (done bool, err error) {
 		hasSynced := h.Informer.HasSynced()
 		if hasSynced {
@@ -76,7 +84,7 @@ func (h *BaseHandler) WaitForSync(c echo.Context) {
 		return hasSynced, nil
 	})
 	if err != nil {
-		log.Error("failed to load informer for sync")
+		log.Warn("failed to load informer for sync", "error", err, "kind", h.Kind)
 		return
 	}
 }
