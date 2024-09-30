@@ -26,9 +26,6 @@ import { useEffect, useState } from "react";
 import { DataTableToolbar } from "@/components/app/Table/TableToolbar";
 import { RootState } from "@/redux/store";
 import { TableDelete } from './TableDelete';
-import {
-  rankItem,
-} from '@tanstack/match-sorter-utils';
 import { useAppSelector } from "@/redux/hooks";
 
 type DataTableProps<TData, TValue> = {
@@ -40,20 +37,19 @@ type DataTableProps<TData, TValue> = {
   loading?: boolean;
   isEventTable?: boolean;
 }
+
 // eslint-disable-next-line  @typescript-eslint/no-explicit-any
 const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
-  // Rank the item
-  const itemRank = rankItem(row.getValue(columnId), value);
+  const rowValue = row.getValue(columnId) as string;
 
-  // Store the itemRank info
+  const isMatch = rowValue.toLowerCase().includes(value.toLowerCase());
+
   addMeta({
-    itemRank,
+    isMatch,
   });
 
-  // Return if the item should be filtered in/out
-  return itemRank.passed;
+  return isMatch;
 };
-
 
 export function DataTable<TData, TValue>({
   columns,
@@ -106,18 +102,18 @@ export function DataTable<TData, TValue>({
 
   useEffect(() => {
     setRowSelection({});
-  },[columns]);
+  }, [columns]);
 
   return (
     <>
       {
         showToolbar
-        && <DataTableToolbar loading={loading} table={table} globalFilter={globalFilter} setGlobalFilter={setGlobalFilter} showNamespaceFilter={showNamespaceFilter}/>
+        && <DataTableToolbar loading={loading} table={table} globalFilter={globalFilter} setGlobalFilter={setGlobalFilter} showNamespaceFilter={showNamespaceFilter} />
       }
       <div className={`border border-x-0 overflow-auto ${tableWidthCss} `}>
         {
           Object.keys(rowSelection).length > 0 &&
-          <TableDelete selectedRows={table.getSelectedRowModel().rows} toggleAllRowsSelected={table.resetRowSelection}/>
+          <TableDelete selectedRows={table.getSelectedRowModel().rows} toggleAllRowsSelected={table.resetRowSelection} />
         }
 
         <Table>
