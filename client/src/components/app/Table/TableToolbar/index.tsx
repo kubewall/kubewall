@@ -56,7 +56,7 @@ export function DataTableToolbar<TData>({
         {isFiltered && showNamespaceFilter && !loading && namespaces && namespaces.length > 0 && (
           <Button
             variant="ghost"
-            onClick={() => {table.resetColumnFilters(); dispatch(resetFilterNamespace())}}
+            onClick={() => {table.resetColumnFilters(); dispatch(resetFilterNamespace());}}
             className="h-8 px-2 lg:px-3 shadow-none"
           >
             Reset

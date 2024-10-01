@@ -73,10 +73,10 @@ export function DataTable<TData, TValue>({
      return [{
       id: 'Namespace',
       value: Array.from(selectedNamespace)
-    }]
+    }];
   }
-  return []
-}
+  return [];
+};
   const [rowSelection, setRowSelection] = useState({});
   const [globalFilter, setGlobalFilter] = useState(searchString);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(getDefaultValue());

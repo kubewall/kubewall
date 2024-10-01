@@ -40,7 +40,7 @@ export function DataTableFacetedFilter<TData, TValue>({
   } = useAppSelector((state: RootState) => state.listTableNamesapce);
   const dispatch = useAppDispatch();
   const facets = column?.getFacetedUniqueValues();
-  const selectedValues = new Set(selectedNamespace)
+  const selectedValues = new Set(selectedNamespace);
 
   return (
     <Popover>
@@ -135,7 +135,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                 <CommandSeparator />
                 <CommandGroup>
                   <CommandItem
-                    onSelect={() => {column?.setFilterValue(undefined);  dispatch(resetFilterNamespace())}}
+                    onSelect={() => {column?.setFilterValue(undefined);  dispatch(resetFilterNamespace());}}
                     className="justify-center text-center"
                   >
                     Clear filters
