@@ -338,7 +338,7 @@ const podsColumnConfig = (config: string, cluster: string) => ({
     { title: 'Last Restart', accessorKey: 'lastRestartAt', },
     { title: 'IP', accessorKey: 'podIP', enableGlobalFilter: true},
     { title: 'QOS', accessorKey: 'qos', },
-    { title: 'Age', accessorKey: 'age', enableSorting: false, }
+    { title: 'Age', accessorKey: 'age'}
   ],
   queryParams: { config, cluster },
   showNamespaceFilter: true
