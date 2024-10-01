@@ -33,6 +33,7 @@ import leasesListSlice from '@/data/Clusters/Leases/LeasesListSlice';
 import limitRangeDetailsSlice from '@/data/Configurations/LimitRange/LimitRangeDetailsSlice';
 import limitRangeListSlice from '@/data/Configurations/LimitRange/LimitRangeListSlice';
 import listTableFilterSlice from '@/data/Misc/ListTableFilterSlice';
+import listTableNamesapceSlice from '@/data/Misc/ListTableNamesapceSlice';
 import namespaceDetailsSlice from '@/data/Clusters/Namespaces/NamespaceDetailsSlice';
 import namespacesSlice from '@/data/Clusters/Namespaces/NamespacesSlice';
 import nodeDetailsSlice from '@/data/Clusters/Nodes/NodeDetailsSlice';
@@ -143,7 +144,8 @@ const store = configureStore({
     listTableFilter: listTableFilterSlice,
     nodes: nodeListSlice,
     nodeDetails: nodeDetailsSlice,
-    deleteResources: deleteResourcesSlice
+    deleteResources: deleteResourcesSlice,
+    listTableNamesapce: listTableNamesapceSlice
   },
 });
 

@@ -10,7 +10,7 @@ const initialState: InitialState = {
 };
 
 const listTableFilterSlice = createSlice({
-  name: 'customResources',
+  name: 'listTableFilter',
   initialState,
   reducers: {
     updateListTableFilter: (state, action) => {

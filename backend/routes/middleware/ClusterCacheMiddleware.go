@@ -5,13 +5,12 @@ import (
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/helpers"
 	"github.com/labstack/echo/v4"
-	"strings"
 )
 
-func CacheMiddleware(container container.Container) echo.MiddlewareFunc {
+func ClusterCacheMiddleware(container container.Container) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			if strings.Contains(c.Path(), "api/v1/app") || c.Path() == "" || c.Path() == "/" || c.Path() == "/healthz" {
+			if shouldSkip(c) {
 				return next(c)
 			}
 
