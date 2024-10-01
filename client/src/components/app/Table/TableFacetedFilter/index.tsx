@@ -8,12 +8,15 @@ import {
   CommandSeparator
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { resetFilterNamespace, updateFilterNamespace } from "@/data/Misc/ListTableNamesapceSlice";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckIcon } from "@radix-ui/react-icons";
 import { Column } from "@tanstack/react-table";
 import { ListFilterIcon } from "lucide-react";
+import { RootState } from "@/redux/store";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
@@ -32,9 +35,12 @@ export function DataTableFacetedFilter<TData, TValue>({
   title,
   options,
 }: DataTableFacetedFilterProps<TData, TValue>) {
-
+  const {
+    selectedNamespace
+  } = useAppSelector((state: RootState) => state.listTableNamesapce);
+  const dispatch = useAppDispatch();
   const facets = column?.getFacetedUniqueValues();
-  const selectedValues = new Set(column?.getFilterValue() as string[]);
+  const selectedValues = new Set(selectedNamespace)
 
   return (
     <Popover>
@@ -94,6 +100,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                       } else {
                         selectedValues.add(option.value);
                       }
+                      dispatch(updateFilterNamespace(Array.from(selectedValues)));
                       const filterValues = Array.from(selectedValues);
                       column?.setFilterValue(
                         filterValues.length ? filterValues : undefined
@@ -128,7 +135,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                 <CommandSeparator />
                 <CommandGroup>
                   <CommandItem
-                    onSelect={() => column?.setFilterValue(undefined)}
+                    onSelect={() => {column?.setFilterValue(undefined);  dispatch(resetFilterNamespace())}}
                     className="justify-center text-center"
                   >
                     Clear filters

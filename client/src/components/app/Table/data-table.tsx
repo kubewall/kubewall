@@ -64,9 +64,22 @@ export function DataTable<TData, TValue>({
   const {
     searchString
   } = useAppSelector((state: RootState) => state.listTableFilter);
+  const {
+    selectedNamespace
+  } = useAppSelector((state: RootState) => state.listTableNamesapce);
+
+  const getDefaultValue = () => {
+    if(selectedNamespace.length > 0) {
+     return [{
+      id: 'Namespace',
+      value: Array.from(selectedNamespace)
+    }]
+  }
+  return []
+}
   const [rowSelection, setRowSelection] = useState({});
   const [globalFilter, setGlobalFilter] = useState(searchString);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(getDefaultValue());
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const table = useReactTable({
     data,
