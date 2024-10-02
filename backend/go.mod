@@ -1,8 +1,6 @@
 module github.com/kubewall/kubewall/backend
 
-go 1.23.0
-
-toolchain go1.23.1
+go 1.23
 
 require (
 	github.com/charmbracelet/log v0.4.0
@@ -10,7 +8,7 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/maruel/natural v1.1.1
-	github.com/maypok86/otter v1.2.2
+	github.com/maypok86/otter v1.2.3
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/pkg/errors v0.9.1
 	github.com/pytimer/k8sutil v0.0.0-20221114090626-86d6279d8e52

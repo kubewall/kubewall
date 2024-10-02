@@ -52,11 +52,6 @@ func Serve(cmd *cobra.Command) error {
 	cfg := config.NewAppConfig(Version, k8sClientQPS, k9sClientBurst)
 	cfg.LoadAppConfig()
 
-	c := container.NewContainer(env, cfg)
-	e := echo.New()
-	startBanner()
-	routes.ConfigureRoutes(e, c)
-
 	port, err := cmd.Flags().GetString("port")
 	if err != nil {
 		return err
@@ -78,9 +73,16 @@ func Serve(cmd *cobra.Command) error {
 		return err
 	}
 
+	c := container.NewContainer(env, cfg)
+	e := echo.New()
+	startBanner()
+	routes.ConfigureRoutes(e, c)
+
 	isSecure := certFile != "" || keyFile != ""
 
-	openDefaultBrowser(noOpen, isSecure, port)
+	if !noOpen {
+		openDefaultBrowser(isSecure, port)
+	}
 
 	if isSecure {
 		e.Pre(middleware.HTTPSRedirect())
@@ -96,10 +98,7 @@ func Serve(cmd *cobra.Command) error {
 	return nil
 }
 
-func openDefaultBrowser(noOpen, isSecure bool, port string) {
-	if noOpen {
-		return
-	}
+func openDefaultBrowser(isSecure bool, port string) {
 	url := fmt.Sprintf("http://localhost%s", port)
 	if isSecure {
 		url = fmt.Sprintf("https://localhost%s", port)
