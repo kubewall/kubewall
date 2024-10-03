@@ -17,6 +17,7 @@ import (
 	"github.com/kubewall/kubewall/backend/handlers/config/secrets"
 	"github.com/kubewall/kubewall/backend/handlers/crds/crds"
 	"github.com/kubewall/kubewall/backend/handlers/crds/resources"
+	"github.com/kubewall/kubewall/backend/handlers/events"
 	"github.com/kubewall/kubewall/backend/handlers/network/endpoints"
 	"github.com/kubewall/kubewall/backend/handlers/network/ingresses"
 	"github.com/kubewall/kubewall/backend/handlers/network/services"
@@ -94,6 +95,8 @@ func ConfigureRoutes(e *echo.Echo, appContainer container.Container) {
 	e.GET("api/v1/nodes/:name", nodes.NewNodeRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/nodes/:name/yaml", nodes.NewNodeRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/nodes/:name/events", nodes.NewNodeRouteHandler(appContainer, base.GetEvents))
+
+	e.GET("api/v1/events", events.NewEventsRouteHandler(appContainer, base.GetList))
 
 	accessControlRoutes(e, appContainer)
 	workloadRoutes(e, appContainer)
