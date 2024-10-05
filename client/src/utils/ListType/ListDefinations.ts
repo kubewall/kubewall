@@ -431,6 +431,21 @@ const stateSetsColumnConfig = (config: string, cluster: string) => ({
 });
 
 // Custom Resources
+
+const customResourceDefinitionsColumnConfig = (config: string, cluster: string) => ({
+  headersList: [
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
+    { title: 'Resource', accessorKey: 'resource', enableGlobalFilter: true },
+    { title: 'Group', accessorKey: 'group', enableGlobalFilter: true },
+    { title: 'Version', accessorKey: 'version' },
+    { title: 'Scope', accessorKey: 'scope' },
+    { title: 'Age', accessorKey: 'age' }
+  ],
+  queryParams: { config, cluster },
+  showNamespaceFilter: false
+});
+
 const customResourcesColumnConfig = (additionalPrinterColumns: CustomResourcesPrinterColumns[] = [], config: string, cluster: string, loading: boolean, group?: string, kind?: string, resource?: string, version?: string) => ({
   headersList: [
     { title: 'Select', accessorKey: 'select', enableSorting: false, },
@@ -484,5 +499,6 @@ export {
   jobsColumnConfig,
   replicaSetsColumnConfig,
   stateSetsColumnConfig,
+  customResourceDefinitionsColumnConfig,
   customResourcesColumnConfig
 };

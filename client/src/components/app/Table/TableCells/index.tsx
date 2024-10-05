@@ -55,7 +55,7 @@ const TableCells = <T extends ClusterDetails>({
   if (type === 'Conditions') {
     return <ConditionCell cellValue={value} />;
   }
-  if (type === 'Age' || type === 'Duration' || ((type === 'eventTime' || type === 'firstTimestamp' || type === 'lastTimestamp') && value !== 'null')) {
+  if (type === 'Age' || type === 'Duration' || ((type === 'eventTime' || type === 'firstTimestamp' || type === 'lastTimestamp' || type === 'Last Restart' ) && value !== '' && value !== 'null')) {
     return <TimeCell cellValue={value} />;
   }
   if (type === 'Ready' || type === 'Current') {

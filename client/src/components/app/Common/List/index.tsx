@@ -3,6 +3,7 @@ import {
   CLUSTER_ROLE_BINDINGS_ENDPOINT,
   CONFIG_MAPS_ENDPOINT,
   CRON_JOBS_ENDPOINT,
+  CUSTOM_RESOURCES_ENDPOINT,
   CUSTOM_RESOURCES_LIST_ENDPOINT,
   DAEMON_SETS_ENDPOINT,
   DEPLOYMENT_ENDPOINT,
@@ -36,6 +37,7 @@ import {
   ConfigMapsHeader,
   CronJobsHeader,
   CustomResourceHeaders,
+  CustomResourcesDefinitionsHeader,
   DaemonSetsHeader,
   DeploymentsTableHeaders,
   EndpointsHeaders,
@@ -68,6 +70,7 @@ import {
   clusterRolesColumnConfig,
   configMapsColumnConfig,
   cronJobsColumnConfig,
+  customResourceDefinitionsColumnConfig,
   customResourcesColumnConfig,
   daemonSetsColumnConfig,
   deploymentsColumnConfig,
@@ -105,6 +108,7 @@ import { updateClusterRoleBindingList } from "@/data/AccessControls/ClusterRoleB
 import { updateClusterRolesList } from "@/data/AccessControls/ClusterRoles/ClusterRolesListSlice";
 import { updateConfigMapsList } from "@/data/Configurations/ConfigMaps/ConfigMapsSlice";
 import { updateCronJobs } from "@/data/Workloads/CronJobs/CronJobsSlice";
+import { updateCustomResources } from "@/data/CustomResources/CustomResourcesSlice";
 import { updateCustomResourcesList } from "@/data/CustomResources/CustomResourcesListSlice";
 import { updateDaemonSets } from "@/data/Workloads/DaemonSets/DaemonSetsSlices";
 import { updateDeployments } from "@/data/Workloads/Deployments/DeploymentsSlice";
@@ -166,7 +170,7 @@ export function KwList() {
   const { jobs, loading: jobsLoading } = useAppSelector((state: RootState) => state.jobs);
   const { replicaSets, loading: replicaSetsLoading } = useAppSelector((state: RootState) => state.replicaSets);
   const { statefulSets, loading: statefulSetsLoading } = useAppSelector((state: RootState) => state.statefulSets);
-  const { customResourcesNavigation } = useAppSelector((state: RootState) => state.customResources);
+  const { customResourcesDefinitions ,customResourcesNavigation, loading: customResourcesNavigationLoading  } = useAppSelector((state: RootState) => state.customResources);
   const { customResourcesList, loading: customResourcesListLoading } = useAppSelector((state: RootState) => state.customResourcesList);
 
   const { config } = kwList.useParams();
@@ -234,6 +238,8 @@ export function KwList() {
     } if (resourcekind === CUSTOM_RESOURCES_LIST_ENDPOINT) {
       const additionalPrinterColumns = customResourcesNavigation[group||'']?.resources.filter(({name}) => name === kind) || [];
       return getTableConfig<CustomResourceHeaders>(customResourcesList.list, CUSTOM_RESOURCES_LIST_ENDPOINT, updateCustomResourcesList, customResourcesListLoading, customResourcesColumnConfig(additionalPrinterColumns[0]?.additionalPrinterColumns, config, cluster, customResourcesListLoading, group, kind, resource, version));
+    } if (resourcekind === CUSTOM_RESOURCES_ENDPOINT) {
+      return getTableConfig<CustomResourcesDefinitionsHeader>(customResourcesDefinitions, CUSTOM_RESOURCES_ENDPOINT, updateCustomResources, customResourcesNavigationLoading, customResourceDefinitionsColumnConfig(config, cluster));
     }
     return;
   };

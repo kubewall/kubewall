@@ -30,6 +30,7 @@ func NewCRDHandler(container container.Container, routeType base.RouteType) echo
 				Informer:         informer,
 				QueryConfig:      config,
 				QueryCluster:     cluster,
+				RestClient:       container.ClientSet(config, cluster).RESTClient(),
 				InformerCacheKey: fmt.Sprintf("%s-%s-customResourceDefinitionInformer", config, cluster),
 				TransformFunc:    transformItems,
 			},
@@ -49,6 +50,8 @@ func NewCRDHandler(container container.Container, routeType base.RouteType) echo
 			return handler.BaseHandler.GetEvents(c)
 		case base.GetYaml:
 			return handler.BaseHandler.GetYaml(c)
+		case base.Delete:
+			return handler.Delete(c)
 		default:
 			return echo.NewHTTPError(http.StatusInternalServerError, "Unknown route type")
 		}
@@ -67,4 +70,41 @@ func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
 	t := TransformCRD(list)
 
 	return json.Marshal(t)
+}
+
+func (h *CRDHandler) Delete(c echo.Context) error {
+	type InputData struct {
+		Name string `json:"name"`
+	}
+	type Failures struct {
+		Namespace string `json:"namespace"`
+		Name      string `json:"name"`
+		Message   string `json:"message"`
+	}
+
+	r := new([]InputData)
+	if err := c.Bind(r); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	failures := make([]Failures, 0)
+	for _, item := range *r {
+		var err error
+		crdURL := fmt.Sprintf("/apis/apiextensions.k8s.io/v1/customresourcedefinitions/%s", item.Name)
+		err = h.BaseHandler.RestClient.Delete().
+			AbsPath(crdURL).
+			Do(c.Request().Context()).
+			Error()
+
+		if err != nil {
+			failures = append(failures, Failures{
+				Name:    item.Name,
+				Message: err.Error(),
+			})
+		}
+	}
+
+	return c.JSON(http.StatusOK, map[string]any{
+		"failures": failures,
+	})
 }

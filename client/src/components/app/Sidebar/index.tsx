@@ -1,6 +1,6 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { CUSTOM_RESOURCES_ENDPOINT, NAVIGATION_ROUTE } from "@/constants";
-import { DatabaseIcon, LayersIcon, LayoutGridIcon, NetworkIcon, ShieldHalf, SlidersHorizontalIcon, UngroupIcon } from "lucide-react";
+import { ComponentIcon, DatabaseIcon, LayersIcon, LayoutGridIcon, NetworkIcon, ShieldHalf, SlidersHorizontalIcon, UngroupIcon } from "lucide-react";
 import { createEventStreamQueryObject, getEventStreamUrl, getSystemTheme, toggleValueInCollection } from "@/utils";
 import { memo, useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
@@ -49,6 +49,9 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
       setActiveAccordion([...activeAccordion, 'customResources']);
       setActiveCustomResourcesAccordian([...activeCustomResourcesAccordian, queryParams.get('group') || '']);
       setActiveTab((queryParams.get('kind') || '').toLowerCase());
+    } else if(currentRoute.toLowerCase() === 'customresourcedefinitions') {
+      setActiveAccordion([...activeAccordion, 'customResources']);
+      setActiveTab(currentRoute.toLowerCase());
     }
     else {
       for (const category in NAVIGATION_ROUTE) {
@@ -68,7 +71,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
     routerForce.invalidate();
   };
 
-  const onCustomResourcesNavClick = ( route: string, name: string) => {
+  const onCustomResourcesNavClick = (route: string, name: string) => {
     dispatch(resetListTableFilter());
     const routeKeys = new URLSearchParams(route);
     setActiveTab((routeKeys.get('kind') || '').toLowerCase());
@@ -178,12 +181,27 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
+                  <div className="border-b pb-2">
+                  <Button
+                    onClick={() => onNavClick('customresourcedefinitions')}
+                    variant={setButtonClass('customresourcedefinitions')}
+                    size="sm"
+                    className="text-sm w-full justify-start  shadow-none hover:rounded-md"
+                  >
+                    Definitions
+                  </Button>
+                  </div>
                   <Accordion type="multiple" value={activeCustomResourcesAccordian}>
                     {
                       Object.keys(customResourcesNavigation).map((customResourceGroup) => {
                         return (
                           <AccordionItem value={customResourceGroup} key={customResourceGroup}>
-                            <AccordionTrigger onClick={() => { updateOpenCustomResourceAccordian(customResourceGroup); }}>{customResourceGroup}</AccordionTrigger>
+                            <AccordionTrigger onClick={() => { updateOpenCustomResourceAccordian(customResourceGroup); }}>
+                              <div className="flex items-center space-x-1">
+                                <ComponentIcon width={12} />
+                                <span>{customResourceGroup}</span>
+                              </div>
+                            </AccordionTrigger>
                             <AccordionContent>
                               {
                                 customResourcesNavigation[customResourceGroup].resources.map((customResource) => {

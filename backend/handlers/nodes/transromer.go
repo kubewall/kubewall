@@ -6,7 +6,6 @@ import (
 	"time"
 )
 
-const NodeLabelRole = "kubernetes.io/role"
 const NodeLabelPrefix = "node-role.kubernetes.io/"
 
 type NodesList struct {

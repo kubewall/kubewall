@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 const DebouncedInput = ({
   value: initialValue,
   onChange,
-  debounce = 500,
+  debounce = 250,
   ...props
 }: {
   value: string | number

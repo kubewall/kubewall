@@ -5,3 +5,4 @@ export * from './Networks';
 export * from './Clusters';
 export * from './Workloads';
 export * from './AccessControls';
+export * from './CustomResources';
