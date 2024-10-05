@@ -9,6 +9,7 @@ import configMapsSlice from '@/data/Configurations/ConfigMaps/ConfigMapsSlice';
 import { configureStore } from '@reduxjs/toolkit';
 import cronJobDetailsSlice from '@/data/Workloads/CronJobs/CronJobDetailsSlice';
 import cronjobSlice from '@/data/Workloads/CronJobs/CronJobsSlice';
+import customResourcesDefinitionDetailsSlice from '@/data/CustomResources/CustomResourcesDefinitionDetailsSlice';
 import customResourcesDetailsSlice from '@/data/CustomResources/CustomResourcesDetailsSlice';
 import customResourcesListSlice from '@/data/CustomResources/CustomResourcesListSlice';
 import customResourcesSlice from '@/data/CustomResources/CustomResourcesSlice';
@@ -145,7 +146,8 @@ const store = configureStore({
     nodes: nodeListSlice,
     nodeDetails: nodeDetailsSlice,
     deleteResources: deleteResourcesSlice,
-    listTableNamesapce: listTableNamesapceSlice
+    listTableNamesapce: listTableNamesapceSlice,
+    customResourcesDefinitionDetails: customResourcesDefinitionDetailsSlice
   },
 });
 

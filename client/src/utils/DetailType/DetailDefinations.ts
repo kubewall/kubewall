@@ -1,4 +1,4 @@
-import { ClusterRoleBindingDetails, ClusterRoleDetails, ConfigMapDetails, CronJobDetails, CustomResourceDetails, DaemonSetDetails, DeploymentDetails, EndpointDetails, HPADetails, IngressDetails, JobDetails, KeyValueNull, LeaseDetails, LimitRangeDetails, NamespaceDetails, NodeDetails, PersistentVolumeClaimDetails, PersistentVolumeDetails, PodDetails, PodDisruptionBudgetDetails, PriorityClassDetails, ReplicaSetDetails, ResourceQuotaDetails, RoleBindingDetails, RoleDetails, RuntimeClassDetails, SecretDetails, ServiceAccountDetails, ServiceDetails, StatefulSetDetails, StorageClassDetails } from "@/types";
+import { ClusterRoleBindingDetails, ClusterRoleDetails, ConfigMapDetails, CronJobDetails, CustomResourceDetails, CustomResourcesDefinitionDetails, DaemonSetDetails, DeploymentDetails, EndpointDetails, HPADetails, IngressDetails, JobDetails, KeyValueNull, LeaseDetails, LimitRangeDetails, NamespaceDetails, NodeDetails, PersistentVolumeClaimDetails, PersistentVolumeDetails, PodDetails, PodDisruptionBudgetDetails, PriorityClassDetails, ReplicaSetDetails, ResourceQuotaDetails, RoleBindingDetails, RoleDetails, RuntimeClassDetails, SecretDetails, ServiceAccountDetails, ServiceDetails, StatefulSetDetails, StorageClassDetails } from "@/types";
 import { defaultOrValue, getAnnotationCardDetails, getLabelConditionCardDetails } from "../MiscUtils";
 
 // Cluster
@@ -560,6 +560,18 @@ const getStorageClassDetailsConfig = (details: StorageClassDetails, loading: boo
 });
 
 // Custom Resource
+const getCustomResourceDefinitionsDetailsConfig = (details: CustomResourcesDefinitionDetails, loading: boolean) => ({
+  subHeading: !details.metadata ? '' : `${details.metadata.name}`,
+  detailCard: [
+    {label: 'Name',value: defaultOrValue(details.metadata.name) },
+    {label: 'Resource Version',value: defaultOrValue(details.metadata.resourceVersion) },
+    {label: 'UID',value: defaultOrValue(details.metadata.uid) },
+    {label: 'Age',value: defaultOrValue(details.metadata.creationTimestamp) },
+    {label: 'Generation',value: defaultOrValue(details.metadata.generation) }
+  ],
+  loading,
+  ...getCommonCardConfig(details.metadata.annotations, details.metadata.labels)
+});
 
 const getCustomResourceDetailsConfig = (details: CustomResourceDetails, loading: boolean) => ({
   subHeading: !details.metadata ? '' : `${details.metadata.name}`,
@@ -614,5 +626,6 @@ export {
   getPersistentVolumeClaimDetailsConfig,
   getPersistentVolumeDetailsConfig,
   getStorageClassDetailsConfig,
-  getCustomResourceDetailsConfig
+  getCustomResourceDetailsConfig,
+  getCustomResourceDefinitionsDetailsConfig
 };
