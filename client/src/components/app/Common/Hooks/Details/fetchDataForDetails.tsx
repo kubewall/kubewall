@@ -1,4 +1,4 @@
-import { CLUSTER_ROLES_ENDPOINT, CLUSTER_ROLE_BINDINGS_ENDPOINT, CONFIG_MAPS_ENDPOINT, CRON_JOBS_ENDPOINT, CUSTOM_RESOURCES_LIST_ENDPOINT, DAEMON_SETS_ENDPOINT, DEPLOYMENT_ENDPOINT, ENDPOINTS_ENDPOINT, HPA_ENDPOINT, INGRESSES_ENDPOINT, JOBS_ENDPOINT, LEASES_ENDPOINT, LIMIT_RANGE_ENDPOINT, NAMESPACES_ENDPOINT, NODES_ENDPOINT, PERSISTENT_VOLUMES_ENDPOINT, PERSISTENT_VOLUME_CLAIMS_ENDPOINT, PODS_ENDPOINT, POD_DISRUPTION_BUDGETS_ENDPOINT, PRIORITY_CLASSES_ENDPOINT, REPLICA_SETS_ENDPOINT, RESOURCE_QUOTAS_ENDPOINT, ROLES_ENDPOINT, ROLE_BINDINGS_ENDPOINT, RUNTIME_CLASSES_ENDPOINT, SECRETS_ENDPOINT, SERVICES_ENDPOINT, SERVICE_ACCOUNTS_ENDPOINT, STATEFUL_SETS_ENDPOINT, STORAGE_CLASSES_ENDPOINT } from "@/constants";
+import { CLUSTER_ROLES_ENDPOINT, CLUSTER_ROLE_BINDINGS_ENDPOINT, CONFIG_MAPS_ENDPOINT, CRON_JOBS_ENDPOINT, CUSTOM_RESOURCES_ENDPOINT, CUSTOM_RESOURCES_LIST_ENDPOINT, DAEMON_SETS_ENDPOINT, DEPLOYMENT_ENDPOINT, ENDPOINTS_ENDPOINT, HPA_ENDPOINT, INGRESSES_ENDPOINT, JOBS_ENDPOINT, LEASES_ENDPOINT, LIMIT_RANGE_ENDPOINT, NAMESPACES_ENDPOINT, NODES_ENDPOINT, PERSISTENT_VOLUMES_ENDPOINT, PERSISTENT_VOLUME_CLAIMS_ENDPOINT, PODS_ENDPOINT, POD_DISRUPTION_BUDGETS_ENDPOINT, PRIORITY_CLASSES_ENDPOINT, REPLICA_SETS_ENDPOINT, RESOURCE_QUOTAS_ENDPOINT, ROLES_ENDPOINT, ROLE_BINDINGS_ENDPOINT, RUNTIME_CLASSES_ENDPOINT, SECRETS_ENDPOINT, SERVICES_ENDPOINT, SERVICE_ACCOUNTS_ENDPOINT, STATEFUL_SETS_ENDPOINT, STORAGE_CLASSES_ENDPOINT } from "@/constants";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
 import { ActionCreatorWithPayload } from "@reduxjs/toolkit";
@@ -9,6 +9,7 @@ import { updateClusterRoleDetails } from "@/data/AccessControls/ClusterRoles/Clu
 import { updateConfigMapDetails } from "@/data/Configurations/ConfigMaps/ConfigMapDetailsSlice";
 import { updateCronJobDetails } from "@/data/Workloads/CronJobs/CronJobDetailsSlice";
 import { updateCustomResourceDetails } from "@/data/CustomResources/CustomResourcesDetailsSlice";
+import { updateCustomResourcesDefinitionDetails } from "@/data/CustomResources/CustomResourcesDefinitionDetailsSlice";
 import { updateDaemonSetDetails } from "@/data/Workloads/DaemonSets/DaemonSetDetailsSlice";
 import { updateDeploymentsDetails } from "@/data/Workloads/Deployments/DeploymentDetailsSlice";
 import { updateEndpointDetails } from "@/data/Networks/Endpoint/EndpointDetailsSlice";
@@ -88,6 +89,7 @@ const useFetchDataForDetails = ({
   const { loading: persistentVolumeDetailsLoading } = useAppSelector((state: RootState) => state.persistentVolumeDetails);
   const { loading: storageClassDetailsLoading } = useAppSelector((state: RootState) => state.storageClassDetails);
   const { loading: customResourceDetailsLoading } = useAppSelector((state: RootState) => state.customResourceDetails);
+  const { loading: customResourcesDefintionsDetailsLoading } = useAppSelector((state: RootState) => state.customResourcesDefinitionDetails);
   const dispatch = useAppDispatch();
 
   type DataType = {
@@ -158,6 +160,8 @@ const useFetchDataForDetails = ({
     data = { label: 'Storage Classes', dispatchMethod: updateStorageClassDetails, loading: storageClassDetailsLoading, endpoint: STORAGE_CLASSES_ENDPOINT };
   } else if (resourcekind === CUSTOM_RESOURCES_LIST_ENDPOINT) {
     data = { label: 'Custom Resources', dispatchMethod: updateCustomResourceDetails, loading: customResourceDetailsLoading, endpoint: `${CUSTOM_RESOURCES_LIST_ENDPOINT}${namespace ? `/${namespace}`: ''}` };
+  } else if (resourcekind === CUSTOM_RESOURCES_ENDPOINT) {
+    data = { label: 'Custom Resources Definitions', dispatchMethod: updateCustomResourcesDefinitionDetails, loading: customResourcesDefintionsDetailsLoading, endpoint: `${CUSTOM_RESOURCES_ENDPOINT}${namespace ? `/${namespace}`: ''}` };
   }  else {
     data = null;
   }

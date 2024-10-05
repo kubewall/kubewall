@@ -116,8 +116,7 @@ func (h *AppConfigHandler) PostCertificate(c echo.Context) error {
 }
 
 func (h *AppConfigHandler) Delete(c echo.Context) error {
-	uuid := c.Param("uuid")
-	if err := h.container.Config().RemoveKubeConfig(uuid); err != nil {
+	if err := h.container.Config().RemoveKubeConfig(c.Param("uuid")); err != nil {
 		return echo.NewHTTPError(500, "Failed to remove kubeconfig").SetInternal(err)
 	}
 	return c.JSON(http.StatusOK, echo.Map{

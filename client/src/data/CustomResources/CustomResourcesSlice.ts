@@ -1,13 +1,14 @@
-import { CustomResources, CustomResourcesNavigation } from '../../types';
+import { CustomResources, CustomResourcesDefinitionsHeader, CustomResourcesNavigation } from '../../types';
+import { formatCustomResources, formatCustomResourcesDefinitionsResponse } from '@/utils';
 
 import { RawRequestError } from '../kwFetch';
 import { createSlice } from '@reduxjs/toolkit';
-import { formatCustomResources } from '@/utils';
 import { resetAllStates } from '@/redux/hooks';
 
 type InitialState = {
   loading: boolean;
   customResources: CustomResources[];
+  customResourcesDefinitions: CustomResourcesDefinitionsHeader[];
   customResourcesNavigation: CustomResourcesNavigation;
   error:  RawRequestError | null;
 };
@@ -15,6 +16,7 @@ type InitialState = {
 const initialState: InitialState = {
   loading: true,
   customResources: [] as CustomResources[],
+  customResourcesDefinitions: [] as CustomResourcesDefinitionsHeader[],
   customResourcesNavigation: {} as CustomResourcesNavigation,
   error: null,
 };
@@ -25,6 +27,7 @@ const customResourcesSlice = createSlice({
   reducers: {
     updateCustomResources: (state, action) => {
       state.customResources = action.payload;
+      state.customResourcesDefinitions = formatCustomResourcesDefinitionsResponse(action.payload);
       state.customResourcesNavigation = formatCustomResources(action.payload);
       state.loading = false;
     }

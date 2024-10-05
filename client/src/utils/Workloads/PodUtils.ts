@@ -13,7 +13,7 @@ const createContainerData = (podSpec: PodDetailsSpec, podStatus: PodDetailsStatu
       imagePullPolicy: imagePullPolicy,
       lastRestart: containerStatus?.lastState.terminated?.startedAt,
       ready: containerStatus?.ready,
-      restartReason: containerStatus?.state.terminated?.message,
+      restartReason: containerStatus?.lastState.terminated?.reason,
       restarts: containerStatus?.restartCount,
       started: containerStatus?.started,
       terminationMessagePolicy: terminationMessagePolicy
