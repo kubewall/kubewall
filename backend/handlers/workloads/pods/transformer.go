@@ -94,7 +94,7 @@ func lastRestartTime(pod coreV1.Pod) string {
 	for _, containerStatus := range pod.Status.ContainerStatuses {
 		if containerStatus.RestartCount > 0 {
 			if containerStatus.LastTerminationState.Terminated != nil {
-				return containerStatus.LastTerminationState.Terminated.StartedAt.Time.Format(time.RFC3339)
+				return containerStatus.LastTerminationState.Terminated.StartedAt.Time.Format("2006-01-02T15:04:05-07:00")
 			}
 		}
 	}
