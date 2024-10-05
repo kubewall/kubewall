@@ -1,7 +1,7 @@
 import { ClusterEventsResponse } from "@/types";
 
 const formatClusterEvents = (clusterEvents: ClusterEventsResponse[]) => {
-  return clusterEvents.map(({type, message, metadata, involvedObject, source, count, lastTimestamp}) => ({
+  return clusterEvents.map(({type, message, metadata, involvedObject, source, count}) => ({
     name: metadata.name,
     type: type,
     message: message,
@@ -10,7 +10,7 @@ const formatClusterEvents = (clusterEvents: ClusterEventsResponse[]) => {
     apiVersion: involvedObject.apiVersion,
     source: source.component,
     count: count,
-    age: lastTimestamp,
+    age: metadata.creationTimestamp,
   }));
 };
 

@@ -2,8 +2,10 @@ package events
 
 import (
 	"encoding/json"
+	"github.com/charmbracelet/log"
 	v1 "k8s.io/api/core/v1"
 	"sort"
+	"time"
 )
 
 type Event struct {
@@ -39,15 +41,24 @@ type Event struct {
 	Type string `json:"type"`
 }
 
-func TransformEvents(namespaces []v1.Event) []Event {
+func TransformEvents(events []v1.Event) []Event {
 	list := []Event{}
 
-	for _, p := range namespaces {
+	for _, p := range events {
 		list = append(list, TransformEvent(p))
 	}
 
 	sort.Slice(list, func(i, j int) bool {
-		return list[i].Metadata.Name < list[j].Metadata.Name
+		layout := "2006-01-02T15:04:05Z"
+		first, err := time.Parse(layout, list[i].Metadata.CreationTimestamp)
+		if err != nil {
+			log.Warn("failed to parse time", "err", err)
+		}
+		second, err := time.Parse(layout, list[j].Metadata.CreationTimestamp)
+		if err != nil {
+			log.Warn("failed to parse time", "err", err)
+		}
+		return first.After(second)
 	})
 
 	return list
