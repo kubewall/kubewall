@@ -97,6 +97,7 @@ func ConfigureRoutes(e *echo.Echo, appContainer container.Container) {
 	e.GET("api/v1/nodes/:name/events", nodes.NewNodeRouteHandler(appContainer, base.GetEvents))
 
 	e.GET("api/v1/events", events.NewEventsRouteHandler(appContainer, base.GetList))
+	e.DELETE("api/v1/events", events.NewEventsRouteHandler(appContainer, base.Delete))
 
 	accessControlRoutes(e, appContainer)
 	workloadRoutes(e, appContainer)

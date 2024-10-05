@@ -2,16 +2,14 @@ package events
 
 import (
 	"encoding/json"
-	"sort"
-	"time"
-
 	v1 "k8s.io/api/core/v1"
+	"sort"
 )
 
 type Event struct {
-	Count          int       `json:"count"`
-	FirstTimestamp time.Time `json:"firstTimestamp"`
-	HasUpdated     bool      `json:"hasUpdated"`
+	Count          int    `json:"count"`
+	FirstTimestamp string `json:"firstTimestamp"`
+	HasUpdated     bool   `json:"hasUpdated"`
 	InvolvedObject struct {
 		ApiVersion      string `json:"apiVersion"`
 		FieldPath       string `json:"fieldPath"`
@@ -21,15 +19,15 @@ type Event struct {
 		ResourceVersion string `json:"resourceVersion"`
 		Uid             string `json:"uid"`
 	} `json:"involvedObject"`
-	Kind          string    `json:"kind"`
-	LastTimestamp time.Time `json:"lastTimestamp"`
-	Message       string    `json:"message"`
+	Kind          string `json:"kind"`
+	LastTimestamp string `json:"lastTimestamp"`
+	Message       string `json:"message"`
 	Metadata      struct {
-		CreationTimestamp time.Time `json:"creationTimestamp"`
-		Name              string    `json:"name"`
-		Namespace         string    `json:"namespace"`
-		ResourceVersion   string    `json:"resourceVersion"`
-		Uid               string    `json:"uid"`
+		CreationTimestamp string `json:"creationTimestamp"`
+		Name              string `json:"name"`
+		Namespace         string `json:"namespace"`
+		ResourceVersion   string `json:"resourceVersion"`
+		Uid               string `json:"uid"`
 	} `json:"metadata"`
 	Reason             string `json:"reason"`
 	ReportingComponent string `json:"reportingComponent"`
@@ -62,6 +60,16 @@ func TransformEvent(item v1.Event) Event {
 		return Event{}
 	}
 	err = json.Unmarshal(b, &transformed)
+	if item.FirstTimestamp.IsZero() {
+		transformed.FirstTimestamp = ""
+	} else {
+		transformed.FirstTimestamp = item.FirstTimestamp.Format("2006-01-02T15:04:05-07:00")
+	}
+	if item.LastTimestamp.IsZero() {
+		transformed.LastTimestamp = ""
+	} else {
+		transformed.LastTimestamp = item.LastTimestamp.Format("2006-01-02T15:04:05-07:00")
+	}
 	if err != nil {
 		return Event{}
 	}
