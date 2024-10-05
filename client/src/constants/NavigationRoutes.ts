@@ -14,6 +14,10 @@ const NAVIGATION_ROUTE: NavigationRoutes = {
       name: 'Leases',
       route: 'leases'
     },
+    {
+      name: 'Events',
+      route: 'events'
+    },
   ],
   'Workloads': [
     {

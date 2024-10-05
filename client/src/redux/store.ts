@@ -1,4 +1,5 @@
 import addConfigSlice from '@/data/KwClusters/AddConfigSlice';
+import clusterEventsListSlice from '@/data/Clusters/Events/EventsListSlice';
 import clusterRoleBindingDetailsSlice from '@/data/AccessControls/ClusterRoleBindings/ClusterRoleBindingDetailsSlice';
 import clusterRoleBindingsListSlice from '@/data/AccessControls/ClusterRoleBindings/ClusterRoleBindingsListSlice';
 import clusterRoleDetailsSlice from '@/data/AccessControls/ClusterRoles/ClusterRoleDetailsSlice';
@@ -147,7 +148,8 @@ const store = configureStore({
     nodeDetails: nodeDetailsSlice,
     deleteResources: deleteResourcesSlice,
     listTableNamesapce: listTableNamesapceSlice,
-    customResourcesDefinitionDetails: customResourcesDefinitionDetailsSlice
+    customResourcesDefinitionDetails: customResourcesDefinitionDetailsSlice,
+    clusterEvents: clusterEventsListSlice
   },
 });
 
