@@ -32,25 +32,25 @@ import (
 	"k8s.io/klog/v2"
 )
 
-type applyOptions struct {
+type ApplyOptions struct {
 	dynamicClient   dynamic.Interface
 	discoveryClient discovery.DiscoveryInterface
 	serverSide      bool
 }
 
-func NewApplyOptions(dynamicClient dynamic.Interface, discoveryClient discovery.DiscoveryInterface) *applyOptions {
-	return &applyOptions{
+func NewApplyOptions(dynamicClient dynamic.Interface, discoveryClient discovery.DiscoveryInterface) *ApplyOptions {
+	return &ApplyOptions{
 		dynamicClient:   dynamicClient,
 		discoveryClient: discoveryClient,
 	}
 }
 
-func (o *applyOptions) WithServerSide(serverSide bool) *applyOptions {
+func (o *ApplyOptions) WithServerSide(serverSide bool) *ApplyOptions {
 	o.serverSide = serverSide
 	return o
 }
 
-func (o *applyOptions) ToRESTMapper() (meta.RESTMapper, error) {
+func (o *ApplyOptions) ToRESTMapper() (meta.RESTMapper, error) {
 	gr, err := restmapper.GetAPIGroupResources(o.discoveryClient)
 	if err != nil {
 		return nil, err
@@ -60,7 +60,7 @@ func (o *applyOptions) ToRESTMapper() (meta.RESTMapper, error) {
 	return mapper, nil
 }
 
-func (o *applyOptions) Apply(ctx context.Context, data []byte) error {
+func (o *ApplyOptions) Apply(ctx context.Context, data []byte) error {
 	restmapper, err := o.ToRESTMapper()
 	if err != nil {
 		return err
@@ -260,30 +260,6 @@ func Patch(currentUnstr *unstructured.Unstructured, modified []byte, name string
 	}
 
 	return patch, patchType, nil
-}
-
-func ObjectToUnstructured(obj runtime.Object) ([]unstructured.Unstructured, error) {
-	list := make([]unstructured.Unstructured, 0, 0)
-	if meta.IsListType(obj) {
-		if _, ok := obj.(*unstructured.UnstructuredList); !ok {
-			return nil, fmt.Errorf("unable to convert runtime object to list")
-		}
-
-		for _, u := range obj.(*unstructured.UnstructuredList).Items {
-			list = append(list, u)
-		}
-		return list, nil
-	}
-
-	unstructuredMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
-	if err != nil {
-		return nil, err
-	}
-
-	unstructuredObj := unstructured.Unstructured{Object: unstructuredMap}
-	list = append(list, unstructuredObj)
-
-	return list, nil
 }
 
 func isIncompatibleServerError(err error) bool {
