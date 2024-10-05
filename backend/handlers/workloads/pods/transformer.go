@@ -20,7 +20,7 @@ type PodList struct {
 	CPU           string    `json:"cpu"`
 	Memory        string    `json:"memory"`
 	Restarts      string    `json:"restarts"`
-	LastRestartAt string    `json:"lastRestartAt"`
+	LastRestartAt time.Time `json:"lastRestartAt"`
 	PodIP         string    `json:"podIP"`
 	Qos           string    `json:"qos"`
 	Age           time.Time `json:"age"`
@@ -90,15 +90,15 @@ func TransformPodListItem(pod coreV1.Pod) PodList {
 	}
 }
 
-func lastRestartTime(pod coreV1.Pod) string {
+func lastRestartTime(pod coreV1.Pod) time.Time {
 	for _, containerStatus := range pod.Status.ContainerStatuses {
 		if containerStatus.RestartCount > 0 {
 			if containerStatus.LastTerminationState.Terminated != nil {
-				return containerStatus.LastTerminationState.Terminated.StartedAt.String()
+				return containerStatus.LastTerminationState.Terminated.StartedAt.Time
 			}
 		}
 	}
-	return ""
+	return time.Time{}
 }
 
 func hasUpdated(pod coreV1.Pod) bool {
