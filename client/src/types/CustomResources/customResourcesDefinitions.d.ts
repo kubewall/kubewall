@@ -1,4 +1,4 @@
-import { CustomResourcesPrinterColumns } from "./customResourcesList"
+import { CustomResourcesPrinterColumns } from "./customResourcesList";
 
 type CustomResourcesDefinitionsResponse = {
   activeVersion: string;
@@ -34,4 +34,4 @@ type CustomResourcesDefinitionsHeader = {
 export {
   CustomResourcesDefinitionsHeader,
   CustomResourcesDefinitionsResponse
-}
+};

@@ -43,4 +43,4 @@ type CustomResourcesDefinitionDetails = {
 
 export {
   CustomResourcesDefinitionDetails
-}
+};
