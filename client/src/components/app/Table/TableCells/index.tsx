@@ -48,14 +48,14 @@ const TableCells = <T extends ClusterDetails>({
       />
     </div>);
   }
-  if (value === undefined || value === 'undefined') {
-    return <DefaultCell cellValue='' />;
+  if (value === undefined || value === 'undefined' || value === '') {
+    return <DefaultCell cellValue='—' />;
   }
 
   if (type === 'Conditions') {
     return <ConditionCell cellValue={value} />;
   }
-  if (type === 'Age' || type === 'Duration' || ((type === 'eventTime' || type === 'firstTimestamp' || type === 'lastTimestamp' || type === 'Last Restart' ) && value !== '' && value !== 'null')) {
+  if (type === 'Age' || type === 'Duration' || type === 'eventTime' || type === 'firstTimestamp' || type === 'lastTimestamp' || type === 'Last Restart' ) {
     return <TimeCell cellValue={value} />;
   }
   if (type === 'Ready' || type === 'Current') {
@@ -83,7 +83,7 @@ const TableCells = <T extends ClusterDetails>({
     />;
   }
   if (instanceType === 'events' || instanceType === HPA_ENDPOINT) {
-    const eventsValue = value === 'null' ? '—' : value;
+    const eventsValue = value ?? '—';
     return <DefaultCell cellValue={eventsValue} truncate={false} />;
   }
   if (

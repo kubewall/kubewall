@@ -38,6 +38,22 @@ const leasesColumnConfig = (config: string, cluster: string) => ({
   showNamespaceFilter: true
 });
 
+const clusterEventsColumnConfig = (config: string, cluster: string) => ({
+  headersList: [
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Type', accessorKey: 'type', enableGlobalFilter: true },
+    { title: 'Message', accessorKey: 'message', enableGlobalFilter: true},
+    { title: 'Namespace', accessorKey: 'namespace' },
+    { title: 'Kind', accessorKey: 'kind' },
+    { title: 'Api Version', accessorKey: 'apiVersion' },
+    { title: 'Source', accessorKey: 'source' },
+    { title: 'Count', accessorKey: 'count' },
+    { title: 'Age', accessorKey: 'age' },
+  ],
+  queryParams: { config, cluster },
+  showNamespaceFilter: true
+});
+
 const namespacesColumnConfig = (config: string, cluster: string) => ({
   headersList: [
     { title: 'Select', accessorKey: 'select', enableSorting: false, },
@@ -471,6 +487,7 @@ const customResourcesColumnConfig = (additionalPrinterColumns: CustomResourcesPr
 export {
   getTableConfig,
   leasesColumnConfig,
+  clusterEventsColumnConfig,
   namespacesColumnConfig,
   podsColumnConfig,
   nodesColumnConfig,

@@ -1,4 +1,5 @@
 import {
+  CLUSTER_EVENTS_ENDPOINT,
   CLUSTER_ROLES_ENDPOINT,
   CLUSTER_ROLE_BINDINGS_ENDPOINT,
   CONFIG_MAPS_ENDPOINT,
@@ -32,6 +33,7 @@ import {
   STORAGE_CLASSES_ENDPOINT
 } from "@/constants";
 import {
+  ClusterEventsHeaders,
   ClusterRoleBindingsListHeader,
   ClusterRolesListHeader,
   ConfigMapsHeader,
@@ -66,6 +68,7 @@ import {
   StorageClassesHeaders
 } from "@/types";
 import {
+  clusterEventsColumnConfig,
   clusterRoleBindingsColumnConfig,
   clusterRolesColumnConfig,
   configMapsColumnConfig,
@@ -104,6 +107,7 @@ import { CreateTable } from "@/components/app/Common/Hooks/Table";
 import FourOFourError from "@/components/app/Errors/404Error";
 import { RootState } from "@/redux/store";
 import { kwList } from "@/routes";
+import { updateClusterEventsList } from "@/data/Clusters/Events/EventsListSlice";
 import { updateClusterRoleBindingList } from "@/data/AccessControls/ClusterRoleBindings/ClusterRoleBindingsListSlice";
 import { updateClusterRolesList } from "@/data/AccessControls/ClusterRoles/ClusterRolesListSlice";
 import { updateConfigMapsList } from "@/data/Configurations/ConfigMaps/ConfigMapsSlice";
@@ -171,6 +175,7 @@ export function KwList() {
   const { replicaSets, loading: replicaSetsLoading } = useAppSelector((state: RootState) => state.replicaSets);
   const { statefulSets, loading: statefulSetsLoading } = useAppSelector((state: RootState) => state.statefulSets);
   const { customResourcesDefinitions ,customResourcesNavigation, loading: customResourcesNavigationLoading  } = useAppSelector((state: RootState) => state.customResources);
+  const { clusterEvents, loading: clusterEventsLoading } = useAppSelector((state: RootState) => state.clusterEvents);
   const { customResourcesList, loading: customResourcesListLoading } = useAppSelector((state: RootState) => state.customResourcesList);
 
   const { config } = kwList.useParams();
@@ -235,6 +240,8 @@ export function KwList() {
       return getTableConfig<ReplicaSetsHeader>(replicaSets, REPLICA_SETS_ENDPOINT, updateReplicaSets, replicaSetsLoading, replicaSetsColumnConfig(config, cluster));
     } if (resourcekind === STATEFUL_SETS_ENDPOINT) {
       return getTableConfig<StatefulSetsHeader>(statefulSets, STATEFUL_SETS_ENDPOINT, updateStatefulSets, statefulSetsLoading, stateSetsColumnConfig(config, cluster));
+    } if (resourcekind === CLUSTER_EVENTS_ENDPOINT) {
+      return getTableConfig<ClusterEventsHeaders>(clusterEvents, CLUSTER_EVENTS_ENDPOINT, updateClusterEventsList, clusterEventsLoading, clusterEventsColumnConfig(config, cluster));
     } if (resourcekind === CUSTOM_RESOURCES_LIST_ENDPOINT) {
       const additionalPrinterColumns = customResourcesNavigation[group||'']?.resources.filter(({name}) => name === kind) || [];
       return getTableConfig<CustomResourceHeaders>(customResourcesList.list, CUSTOM_RESOURCES_LIST_ENDPOINT, updateCustomResourcesList, customResourcesListLoading, customResourcesColumnConfig(additionalPrinterColumns[0]?.additionalPrinterColumns, config, cluster, customResourcesListLoading, group, kind, resource, version));
