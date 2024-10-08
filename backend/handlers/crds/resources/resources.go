@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/base"
 	"github.com/kubewall/kubewall/backend/handlers/helpers"
 	"github.com/labstack/echo/v4"
+	"github.com/maruel/natural"
 	"github.com/r3labs/sse/v2"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -211,6 +213,13 @@ func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
 	if len(output.AdditionalPrinterColumns) == 0 {
 		output.AdditionalPrinterColumns = []apiextensionsv1.CustomResourceColumnDefinition{}
 	}
+
+	sort.Slice(output.List, func(i, j int) bool {
+		return natural.Less(
+			fmt.Sprintf("%s-%s", output.List[i].GetName(), output.List[i].GetNamespace()),
+			fmt.Sprintf("%s-%s", output.List[j].GetName(), output.List[j].GetNamespace()),
+		)
+	})
 
 	return json.Marshal(output)
 }
