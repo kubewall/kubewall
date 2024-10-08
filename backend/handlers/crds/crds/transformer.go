@@ -2,11 +2,12 @@ package crds
 
 import (
 	"fmt"
+	"sort"
+	"time"
+
 	"github.com/kubewall/kubewall/backend/handlers/crds/resources"
 	"github.com/maruel/natural"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"sort"
-	"time"
 )
 
 type CustomResourceDefinition struct {
