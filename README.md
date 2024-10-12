@@ -61,6 +61,12 @@ sudo snap install kubewall
 yay -S kubewall-bin
 ```
 
+#### Winget 
+
+```shell
+winget install --id=kubewall.kubewall  -e
+```
+
 #### Scoop
 
 ```shell

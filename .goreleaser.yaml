@@ -195,6 +195,41 @@ docker_signs:
       - "${artifact}@${digest}"
       - --yes
 
+winget:
+  - name: kubewall
+    publisher: kubewall
+    publisher_url: https://github.com/kubewall/kubewall
+    short_description: A single binary kubernetes dashboard to manage your multiple clusters.
+    license: "Apache License 2.0"
+    commit_author:
+      name: Abhimanyu Sharma
+      email: abhimanyusharma003@gmail.com
+    homepage: https://github.com/kubewall/kubewall
+    license_url: https://github.com/kubewall/kubewall/blob/master/LICENSE
+    copyright: Copyright (c) 2024-{{ .Now.Format "2006" }} kubewall
+    release_notes: '{{ .Changelog }}'
+    release_notes_url: https://github.com/kubewall/kubewall/releases/tag/{{ .Tag }}
+    tags:
+      - kubernetes
+      - kubernetes-dashboard
+      - kubernetes-gui
+      - transform
+      - devutil
+      - productivity
+    author: Abhimanyu Sharma
+    publisher_support_url: https://github.com/kubewall/kubewall/issues
+    repository:
+      owner: kubewall
+      name: winget-pkgs
+      branch: kubewall-{{ .Version }}
+      token: '{{ .Env.GITHUB_TOKEN }}'
+      pull_request:
+        enabled: true
+        base:
+          owner: microsoft
+          name: winget-pkgs
+          branch: master
+
 release:
   footer: |
     ## Quick Download Links - {{ .Tag }}
