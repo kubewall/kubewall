@@ -2,6 +2,8 @@ package routes
 
 import (
 	"embed"
+	"net/http"
+
 	"github.com/kubewall/kubewall/backend/handlers/accesscontrol/clusterroles"
 	clusterrolebindings "github.com/kubewall/kubewall/backend/handlers/accesscontrol/clusterrolesbindings"
 	"github.com/kubewall/kubewall/backend/handlers/accesscontrol/roles"
@@ -27,7 +29,6 @@ import (
 	"github.com/kubewall/kubewall/backend/handlers/storage/storageclasses"
 	cronjobs "github.com/kubewall/kubewall/backend/handlers/workloads/cronJobs"
 	appmiddleware "github.com/kubewall/kubewall/backend/routes/middleware"
-	"net/http"
 
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/app"
@@ -68,7 +69,6 @@ func ConfigureRoutes(e *echo.Echo, appContainer container.Container) {
 		Filesystem: http.FS(embeddedFiles),
 	}))
 	e.GET("/healthz", func(c echo.Context) error {
-		appContainer.Config().ReloadConfig()
 		return c.String(http.StatusOK, "OK")
 	})
 

@@ -64,7 +64,7 @@ yay -S kubewall-bin
 #### Winget 
 
 ```shell
-winget install --id=kubewall.kubewall  -e
+winget install --id=kubewall.kubewall -e
 ```
 
 #### Scoop

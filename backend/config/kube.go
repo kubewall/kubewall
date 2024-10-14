@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/charmbracelet/log"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions"
@@ -37,9 +39,20 @@ type Cluster struct {
 	ExtensionInformerFactory apiextensionsinformers.SharedInformerFactory `json:"-"`
 	DynamicInformerFactory   dynamicinformer.DynamicSharedInformerFactory `json:"-"`
 	MetricClient             *metricsclient.Clientset                     `json:"-"`
+	mu                       sync.Mutex                                   `json:"-"`
+}
+
+func (c *Cluster) IsConnected() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.Connected
 }
 
 func (c *Cluster) MarkAsConnected() *Cluster {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	c.Connected = true
 	return c
 }

@@ -1,9 +1,11 @@
 package config
 
 import (
-	"k8s.io/client-go/util/homedir"
 	"os"
 	"path/filepath"
+	"sync"
+
+	"k8s.io/client-go/util/homedir"
 )
 
 var (
@@ -30,6 +32,7 @@ type KubeConfig struct {
 type AppConfig struct {
 	Version    string                     `json:"version"`
 	KubeConfig map[string]*KubeConfigInfo `json:"kubeConfigs"`
+	mu         sync.Mutex
 }
 
 func NewEnv() *Env {
@@ -51,6 +54,9 @@ func NewAppConfig(version string, k8sqps, k8sburst int) *AppConfig {
 }
 
 func (c *AppConfig) LoadAppConfig() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	c.buildKubeConfigs(filepath.Join(homedir.HomeDir(), defaultKubeConfigDir))
 	c.buildKubeConfigs(filepath.Join(homedir.HomeDir(), appConfigDir, appKubeConfigDir))
 

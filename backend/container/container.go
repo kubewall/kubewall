@@ -1,15 +1,16 @@
 package container
 
 import (
+	"net/http"
+	"sync"
+	"time"
+
 	"github.com/kubewall/kubewall/backend/event"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/dynamicinformer"
 	"k8s.io/client-go/rest"
 	metricsclient "k8s.io/metrics/pkg/client/clientset/versioned"
-	"net/http"
-	"sync"
-	"time"
 
 	"github.com/r3labs/sse/v2"
 
@@ -107,49 +108,41 @@ func (c *container) EventProcessor() *event.EventProcessor {
 
 func (c *container) RestConfig(config, cluster string) *rest.Config {
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
-	cfg.MarkAsConnected()
 	return cfg.RestConfig
 }
 
 func (c *container) ClientSet(config, cluster string) *kubernetes.Clientset {
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
-	cfg.MarkAsConnected()
 	return cfg.ClientSet
 }
 
 func (c *container) DynamicClient(config, cluster string) *dynamic.DynamicClient {
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
-	cfg.MarkAsConnected()
 	return cfg.DynamicClient
 }
 
 func (c *container) DiscoveryClient(config, cluster string) *discovery.DiscoveryClient {
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
-	cfg.MarkAsConnected()
 	return cfg.DiscoveryClient
 }
 
 func (c *container) MetricClient(config, cluster string) *metricsclient.Clientset {
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
-	cfg.MarkAsConnected()
 	return cfg.MetricClient
 }
 
 func (c *container) SharedInformerFactory(config, cluster string) informers.SharedInformerFactory {
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
-	cfg.MarkAsConnected()
 	return cfg.SharedInformerFactory
 }
 
 func (c *container) ExtensionSharedFactoryInformer(config, cluster string) apiextensionsinformers.SharedInformerFactory {
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
-	cfg.MarkAsConnected()
 	return cfg.ExtensionInformerFactory
 }
 
 func (c *container) DynamicSharedInformerFactory(config, cluster string) dynamicinformer.DynamicSharedInformerFactory {
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
-	cfg.MarkAsConnected()
 	return cfg.DynamicInformerFactory
 }
 
