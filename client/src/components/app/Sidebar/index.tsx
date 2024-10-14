@@ -49,7 +49,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
       setActiveAccordion([...activeAccordion, 'customResources']);
       setActiveCustomResourcesAccordian([...activeCustomResourcesAccordian, queryParams.get('group') || '']);
       setActiveTab((queryParams.get('kind') || '').toLowerCase());
-    } else if(currentRoute.toLowerCase() === 'customresourcedefinitions') {
+    } else if (currentRoute.toLowerCase() === 'customresourcedefinitions') {
       setActiveAccordion([...activeAccordion, 'customResources']);
       setActiveTab(currentRoute.toLowerCase());
     }
@@ -131,7 +131,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
   };
   return (
     <div className={cn("col-span-1", className)}>
-      <div className="h-screen flex space-y-4 py-1">
+      <div className="h-screen space-y-4 py-1">
         <div className="px-2 py-2">
           <div className="flex items-center justify-between">
             <img className="w-28" src={getSystemTheme() === 'light' ? kwLogoLight : kwLogoDark} alt="kubewall" />
@@ -143,7 +143,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                 Object.keys(NAVIGATION_ROUTE).map((route) => {
                   return (
                     <AccordionItem value={route} key={route}>
-                      <AccordionTrigger onClick={() => { updateOpenAccordian(route); }}>
+                      <AccordionTrigger className="py-3" onClick={() => { updateOpenAccordian(route); }}>
                         <div className="flex items-center space-x-1">
                           {getResourceIcon(route.toLowerCase().split(' ').join(''))}
                           <span>{route}</span>
@@ -174,7 +174,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                 })
               }
               <AccordionItem value='customResources' key='customResources'>
-                <AccordionTrigger onClick={() => { updateOpenAccordian('customResources'); }}>
+                <AccordionTrigger className="py-3" onClick={() => { updateOpenAccordian('customResources'); }}>
                   <div className="flex items-center space-x-1">
                     {getResourceIcon('customesources')}
                     <span>Custom Resources</span>
@@ -182,21 +182,21 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                 </AccordionTrigger>
                 <AccordionContent>
                   <div className="border-b pb-2">
-                  <Button
-                    onClick={() => onNavClick('customresourcedefinitions')}
-                    variant={setButtonClass('customresourcedefinitions')}
-                    size="sm"
-                    className="text-sm w-full justify-start  shadow-none hover:rounded-md"
-                  >
-                    Definitions
-                  </Button>
+                    <Button
+                      onClick={() => onNavClick('customresourcedefinitions')}
+                      variant={setButtonClass('customresourcedefinitions')}
+                      size="sm"
+                      className="text-sm w-full justify-start  shadow-none hover:rounded-md"
+                    >
+                      Definitions
+                    </Button>
                   </div>
                   <Accordion type="multiple" value={activeCustomResourcesAccordian}>
                     {
                       Object.keys(customResourcesNavigation).map((customResourceGroup) => {
                         return (
                           <AccordionItem value={customResourceGroup} key={customResourceGroup}>
-                            <AccordionTrigger onClick={() => { updateOpenCustomResourceAccordian(customResourceGroup); }}>
+                            <AccordionTrigger className="py-3" onClick={() => { updateOpenCustomResourceAccordian(customResourceGroup); }}>
                               <div className="flex items-center space-x-1">
                                 <ComponentIcon width={12} />
                                 <span>{customResourceGroup}</span>
