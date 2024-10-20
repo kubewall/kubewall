@@ -130,6 +130,8 @@ func GetPodsMetricsList(b *base.BaseHandler) *v1beta1.PodMetricsList {
 }
 
 func (h *PodsHandler) GetLogs(c echo.Context) error {
+	sse := h.BaseHandler.Container.SSE()
+	sse.EventTTL = 0
 	config := c.QueryParam("config")
 	cluster := c.QueryParam("cluster")
 	name := c.Param("name")
@@ -142,9 +144,10 @@ func (h *PodsHandler) GetLogs(c echo.Context) error {
 	} else {
 		key = fmt.Sprintf("%s-%s-%s-%s-logs", config, cluster, name, namespace)
 	}
-	go h.publishLogs(c, key)
+	go h.publishLogs(c, key, sse)
 
-	h.BaseHandler.Container.SSE().ServeHTTP(key, c.Response(), c.Request())
+	sse.ServeHTTP(key, c.Response(), c.Request())
+
 	return nil
 }
 

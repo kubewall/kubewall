@@ -59,7 +59,7 @@ func (h *PodsHandler) fetchLogs(ctx context.Context, namespace, podName, contain
 	}
 }
 
-func (h *PodsHandler) publishLogs(c echo.Context, streamKey string) (error, bool) {
+func (h *PodsHandler) publishLogs(c echo.Context, streamKey string, sseServer *sse.Server) (error, bool) {
 	name := c.Param("name")
 	namespace := c.QueryParam("namespace")
 	container := c.QueryParam("container")
@@ -96,7 +96,7 @@ func (h *PodsHandler) publishLogs(c echo.Context, streamKey string) (error, bool
 			return nil, true
 		}
 
-		h.BaseHandler.Container.SSE().Publish(streamKey, &sse.Event{
+		sseServer.Publish(streamKey, &sse.Event{
 			Data: j,
 		})
 		log.Unlock()
