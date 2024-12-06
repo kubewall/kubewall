@@ -18,7 +18,7 @@ const DebouncedInput = ({
     const down = (e: KeyboardEvent) => {
       if (e.key === "/" && (e.target as HTMLInputElement)?.id !== 'global-search') {
         e.preventDefault();
-        globalSearchRef.current!.focus();
+        globalSearchRef.current?.focus();
       }
     };
 
@@ -45,7 +45,7 @@ const DebouncedInput = ({
       ref={globalSearchRef}
       type="search"
       value={value}
-      onChange={e => setValue(e.target.value)}
+      onChange={e => setValue(e.target.value.trim())}
       id="global-search"
     />
   );

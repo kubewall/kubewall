@@ -1,3 +1,7 @@
 .logs {
   height: calc(100vh - 115px);
 }
+
+.xterm-screen {
+  height: calc(100vh - 165px) !important;
+}

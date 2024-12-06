@@ -340,7 +340,7 @@ const storageClassesColumnConfig = (config: string, cluster: string) => ({
 
 // Workloads
 
-const podsColumnConfig = (config: string, cluster: string) => ({
+const podsColumnConfig = (config: string, cluster: string, isSelectable=true) => ({
   headersList: [
     { title: 'Select', accessorKey: 'select', enableSorting: false, },
     { title: 'Namespace', accessorKey: 'namespace', enableGlobalFilter: true},
@@ -355,7 +355,7 @@ const podsColumnConfig = (config: string, cluster: string) => ({
     { title: 'IP', accessorKey: 'podIP', enableGlobalFilter: true},
     { title: 'QOS', accessorKey: 'qos', },
     { title: 'Age', accessorKey: 'age'}
-  ],
+  ].filter(({title}) => isSelectable || (!isSelectable && title.toLowerCase() !== 'select')),
   queryParams: { config, cluster },
   showNamespaceFilter: true
 });

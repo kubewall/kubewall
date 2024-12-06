@@ -1,5 +1,7 @@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { deleteResources, resetDeleteResource } from "@/data/Misc/DeleteResourceSlice";
+import { kwDetails, kwList } from "@/routes";
+import { kwDetailsSearch, kwListSearch } from "@/types";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { useEffect, useState } from "react";
 
@@ -8,18 +10,30 @@ import { Loader } from "../../Loader";
 import { RootState } from "@/redux/store";
 import { Row } from "@tanstack/react-table";
 import { Trash2Icon } from "lucide-react";
-import { kwList } from "@/routes";
 import { toast } from "sonner";
 
 type TableDeleteProps = {
   // eslint-disable-next-line  @typescript-eslint/no-explicit-any
   selectedRows: Row<any>[];
-  toggleAllRowsSelected: (value: boolean) => void;
+  toggleAllRowsSelected?: (value: boolean) => void;
+  postDeleteCallback?: () => void;
 }
 
-const TableDelete = ({ selectedRows, toggleAllRowsSelected }: TableDeleteProps) => {
-  const { config } = kwList.useParams();
-  const { cluster = '', resourcekind = '', group = '', kind = '', resource = '', version = '' } = kwList.useSearch();
+const TableDelete = ({ selectedRows, toggleAllRowsSelected, postDeleteCallback }: TableDeleteProps) => {
+    // const router = useRouterState();
+    let paramList = {} as kwListSearch & kwDetailsSearch;
+    let config = '';
+    let isListPage = true;
+    if (window.location.pathname.split('/')[2].toLowerCase() === 'list') {
+      config = kwList.useParams().config;
+      paramList = kwList.useSearch();
+    } else {
+      isListPage = false;
+      config = kwDetails.useParams().config;
+      paramList = kwDetails.useSearch();
+    }
+
+  const { cluster = '', resourcekind = '', group = '', kind = '', resource = '', version = '' } = paramList;
   const {
     loading,
     error,
@@ -34,7 +48,8 @@ const TableDelete = ({ selectedRows, toggleAllRowsSelected }: TableDeleteProps) 
         description: 'Resource/s marked for temination.',
       });
       dispatch(resetDeleteResource());
-      toggleAllRowsSelected(true);
+      toggleAllRowsSelected && toggleAllRowsSelected(true);
+      postDeleteCallback && postDeleteCallback();
     } else if (message?.failures?.length > 0) {
       toast.error(
         <>
@@ -98,7 +113,7 @@ const TableDelete = ({ selectedRows, toggleAllRowsSelected }: TableDeleteProps) 
         <Button
           variant="destructive"
           size="icon"
-          className='absolute bottom-12 right-0 mt-1 mr-10 rounded z-10 border w-20'
+          className={`right-0 mt-1 rounded z-10 border w-20 ${isListPage && 'absolute mr-10 bottom-12'}`}
           onClick={() => setModalOpen(true)}
 
         > {

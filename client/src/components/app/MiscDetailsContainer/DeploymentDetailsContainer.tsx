@@ -56,7 +56,7 @@ const DeploymentDetailsContainer = memo(function () {
                     clusterName: cluster,
                     configName: config,
                     loading,
-                    headersList: podsColumnConfig(config, cluster).headersList,
+                    headersList: podsColumnConfig(config, cluster, false).headersList,
                     instanceType: PODS_ENDPOINT,
                     count: deploymentPodDetails.length,
                   })

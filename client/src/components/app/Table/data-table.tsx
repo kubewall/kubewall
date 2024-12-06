@@ -69,14 +69,14 @@ export function DataTable<TData, TValue>({
   } = useAppSelector((state: RootState) => state.listTableNamesapce);
 
   const getDefaultValue = () => {
-    if(selectedNamespace.length > 0) {
-     return [{
-      id: 'Namespace',
-      value: Array.from(selectedNamespace)
-    }];
-  }
-  return [];
-};
+    if (selectedNamespace.length > 0) {
+      return [{
+        id: 'Namespace',
+        value: Array.from(selectedNamespace)
+      }];
+    }
+    return [];
+  };
   const [rowSelection, setRowSelection] = useState({});
   const [globalFilter, setGlobalFilter] = useState(searchString);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(getDefaultValue());
@@ -123,10 +123,17 @@ export function DataTable<TData, TValue>({
         showToolbar
         && <DataTableToolbar loading={loading} table={table} globalFilter={globalFilter} setGlobalFilter={setGlobalFilter} showNamespaceFilter={showNamespaceFilter} />
       }
+      {
+        window?.safari !== undefined && 
+        <div className='flex bg-red-100 items-center justify-between text-xs font-light px-2 py-1'>
+        <span>We detected you are on Safari browser and using http. For seemless expereince switch over to chrome/firefox since </span>
+      </div>
+      }
+      
       <div className={`border border-x-0 overflow-auto ${tableWidthCss} `}>
         {
           Object.keys(rowSelection).length > 0 &&
-          <TableDelete selectedRows={table.getSelectedRowModel().rows} toggleAllRowsSelected={table.resetRowSelection} />
+          <TableDelete selectedRows={table.getSelectedRowModel().rows} toggleAllRowsSelected={table.resetRowSelection}/>
         }
 
         <Table>

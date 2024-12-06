@@ -21,7 +21,7 @@ function GenerateColumns<T extends ClusterDetails, C extends HeaderList>({
           header: ({ column }) => <DefaultHeader column={column} title={headerList.title === 'Select' ? '' : headerList.title} />,
           accessorKey: headerList.accessorKey,
           id: headerList.title,
-          cell: ({ row, getValue }) => (
+          cell: ({ row, getValue, table }) => (
             <TableCells
               clusterName={clusterName}
               configName={configName}
@@ -33,6 +33,7 @@ function GenerateColumns<T extends ClusterDetails, C extends HeaderList>({
               value={String(getValue())}
               queryParams={queryParams}
               row={row}
+              table={table}
             />
           ),
           filterFn: (row, id, value) => {

@@ -18,7 +18,7 @@ const podLogsSlice = createSlice({
   initialState,
   reducers: {
     addLog: (state, action) => {
-      state.logs.push(...action.payload);
+      state.logs.push(action.payload);
     },
     clearLogs: () => {
       return initialState;
