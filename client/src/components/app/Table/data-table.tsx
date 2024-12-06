@@ -38,6 +38,14 @@ type DataTableProps<TData, TValue> = {
   isEventTable?: boolean;
 }
 
+declare global {
+  interface Window {
+    safari:any;
+    lastSelectedRow: any;
+  }
+}
+
+
 // eslint-disable-next-line  @typescript-eslint/no-explicit-any
 const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
   const rowValue = row.getValue(columnId) as string;
@@ -124,7 +132,8 @@ export function DataTable<TData, TValue>({
         && <DataTableToolbar loading={loading} table={table} globalFilter={globalFilter} setGlobalFilter={setGlobalFilter} showNamespaceFilter={showNamespaceFilter} />
       }
       {
-        window?.safari !== undefined && 
+        // eslint-disable-next-line 
+        window.safari !== undefined && 
         <div className='flex bg-red-100 items-center justify-between text-xs font-light px-2 py-1'>
         <span>We detected you are on Safari browser and using http. For seemless expereince switch over to chrome/firefox since </span>
       </div>
