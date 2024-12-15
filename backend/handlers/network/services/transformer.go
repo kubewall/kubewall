@@ -24,6 +24,7 @@ type Services struct {
 type Spec struct {
 	Ports                 string                           `json:"ports"`
 	ClusterIP             string                           `json:"clusterIP"`
+	ExternalIPs           []string                         `json:"externalIPs"`
 	Type                  v1.ServiceType                   `json:"type"`
 	SessionAffinity       v1.ServiceAffinity               `json:"sessionAffinity"`
 	IpFamilyPolicy        *v1.IPFamilyPolicy               `json:"ipFamilyPolicy"`
@@ -57,6 +58,7 @@ func TransformServiceItem(item v1.Service) Services {
 		Spec: Spec{
 			Ports:                 strings.Join(ports, ","),
 			ClusterIP:             item.Spec.ClusterIP,
+			ExternalIPs:           item.Spec.ExternalIPs,
 			Type:                  item.Spec.Type,
 			SessionAffinity:       item.Spec.SessionAffinity,
 			IpFamilyPolicy:        item.Spec.IPFamilyPolicy,
