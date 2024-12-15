@@ -47,10 +47,19 @@ func TransformServices(pvs []v1.Service) []Services {
 
 func TransformServiceItem(item v1.Service) Services {
 	ports := make([]string, 0)
+	var ips []string
 
 	for _, port := range item.Spec.Ports {
 		ports = append(ports, fmt.Sprintf("%d/%s", port.Port, port.Protocol))
 	}
+
+	if item.Spec.Type == v1.ServiceTypeLoadBalancer {
+		ingress := item.Status.LoadBalancer.Ingress
+		for _, ingress := range ingress {
+			ips = append(ips, ingress.IP)
+		}
+	}
+
 	return Services{
 		UID:       item.GetUID(),
 		Namespace: item.GetNamespace(),
@@ -58,7 +67,7 @@ func TransformServiceItem(item v1.Service) Services {
 		Spec: Spec{
 			Ports:                 strings.Join(ports, ","),
 			ClusterIP:             item.Spec.ClusterIP,
-			ExternalIPs:           item.Spec.ExternalIPs,
+			ExternalIPs:           ips,
 			Type:                  item.Spec.Type,
 			SessionAffinity:       item.Spec.SessionAffinity,
 			IpFamilyPolicy:        item.Spec.IPFamilyPolicy,
