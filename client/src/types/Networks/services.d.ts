@@ -9,7 +9,7 @@ type ServicesResponse = {
       ipFamilyPolicy: string;
       internalTrafficPolicy: string;
       type: string;
-      extenalIPs: string;
+      externalIPs: string;
   };
   age: string;
   hasUpdated: boolean;
