@@ -20,6 +20,7 @@ type DeploymentsResponse = {
   };
   age: string;
   hasUpdated: boolean;
+  uid: string;
 };
 
 type DeploymentsTableHeaders = {

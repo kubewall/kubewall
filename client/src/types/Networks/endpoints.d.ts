@@ -7,6 +7,7 @@ type EndpointsResponse = {
   };
   age: string;
   hasUpdated: boolean;
+  uid: string;
 };
 
 type EndpointsHeaders = {

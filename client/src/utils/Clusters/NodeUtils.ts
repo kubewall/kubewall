@@ -1,7 +1,7 @@
 import { NodeListResponse } from "@/types";
 
 const formatNodeList = (nodes: NodeListResponse[]) => {
-  return nodes.map(({age ,name, resourceVersion, roles, status: {nodeInfo, conditionStatus} }) => ({
+  return nodes.map(({age ,name, resourceVersion, roles, status: {nodeInfo, conditionStatus}, uid }) => ({
     age: age,
     resourceVersion: resourceVersion,
     name: name,
@@ -16,7 +16,8 @@ const formatNodeList = (nodes: NodeListResponse[]) => {
     machineID: nodeInfo.machineID,
     operatingSystem: nodeInfo.operatingSystem,
     osImage: nodeInfo.osImage,
-    systemUUID: nodeInfo.systemUUID
+    systemUUID: nodeInfo.systemUUID,
+    uid: uid
   }));
 };
 

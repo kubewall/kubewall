@@ -11,6 +11,7 @@ type ServicesResponse = {
   };
   age: string;
   hasUpdated: boolean;
+  uid: string;
 };
 
 type ServicesListHeaders = {

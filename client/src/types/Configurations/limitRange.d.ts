@@ -6,6 +6,7 @@ type LimitRangesResponse = {
   },
   age: string;
   hasUpdated: boolean;
+  uid: string;
 };
 
 type LimitRangesListHeader = {

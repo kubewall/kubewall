@@ -1,7 +1,7 @@
 import { DaemonSetsResponse } from "@/types";
 
 const formatDaemonSetsResponse = (daemonsets: DaemonSetsResponse[]) => {
-  return daemonsets.map(({namespace, name, status, age, hasUpdated}) => ({
+  return daemonsets.map(({namespace, name, status, age, hasUpdated, uid}) => ({
     namespace:namespace,
     name: name,
     current: `${status.currentNumberScheduled}/${status.desiredNumberScheduled}`,
@@ -10,6 +10,7 @@ const formatDaemonSetsResponse = (daemonsets: DaemonSetsResponse[]) => {
     available: status.numberAvailable,
     age: age,
     hasUpdated: hasUpdated,
+    uid: uid
   }));
 };
 

@@ -7,6 +7,7 @@ type RoleBindingsResponse = {
   },
   age: string;
   hasUpdated: boolean;
+  uid: string;
 };
 
 type RoleBindingsListHeader = {

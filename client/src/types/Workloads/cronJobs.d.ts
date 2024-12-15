@@ -15,6 +15,7 @@ type CronJobsResponse = {
     failedJobsHistoryLimit: number
   }
   hasUpdated: boolean;
+  uid: string;
 }
 
 type CronJobsHeader = {

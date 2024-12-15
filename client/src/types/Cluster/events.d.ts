@@ -28,7 +28,8 @@ type ClusterEventsResponse = {
       component: string;
       host: string
   };
-  type: string
+  type: string;
+  uid: string;
 }
 
 type ClusterEventsHeaders = {

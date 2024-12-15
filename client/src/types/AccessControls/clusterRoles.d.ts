@@ -7,7 +7,7 @@ type ClusterRolesResponse = {
   },
   age: string;
   hasUpdated: boolean;
-
+  uid: string;
 };
 
 type ClusterRolesListHeader = {

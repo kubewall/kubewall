@@ -7,6 +7,7 @@ type HPAsResponse = {
   },
   age: string
   hasUpdated: boolean;
+  uid: string;
 };
 
 type HPAsListHeader = {

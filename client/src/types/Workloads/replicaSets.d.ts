@@ -10,6 +10,7 @@ type ReplicaSetsResponse = {
   };
   age: string;
   hasUpdated: boolean;
+  uid: string;
 };
 
 type ReplicaSetsHeader = {

@@ -22,6 +22,7 @@ type JobsResponse = {
     startTime: string
   };
   hasUpdated: boolean;
+  uid: string;
 };
 
 type JobsHeader = {

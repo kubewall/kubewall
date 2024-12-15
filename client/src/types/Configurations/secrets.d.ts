@@ -6,6 +6,7 @@ type SecretsListResponse = {
   data: number,
   age: string
   hasUpdated: boolean;
+  uid: string;
 }
 
 type SecretsListHeader = {

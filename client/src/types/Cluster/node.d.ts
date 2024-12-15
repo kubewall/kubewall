@@ -27,6 +27,7 @@ type NodeListResponse = {
           systemUUID: string
       }
   }
+  uid: string;
 };
 
 type NodeList = {

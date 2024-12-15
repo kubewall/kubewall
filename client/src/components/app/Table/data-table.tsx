@@ -111,7 +111,7 @@ export function DataTable<TData, TValue>({
     getSortedRowModel: getSortedRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
-    getRowId: row => row.name + row.namespace,
+    getRowId: row => row.uid || row.metadata.uid,
   });
 
   const getIdAndSetClass = (shouldSetClass: boolean, id: string) => {
@@ -123,7 +123,6 @@ export function DataTable<TData, TValue>({
     }
     return id;
   };
-
   useEffect(() => {
     setRowSelection({});
   }, [instanceType]);
