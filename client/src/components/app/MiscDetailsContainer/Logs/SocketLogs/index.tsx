@@ -30,8 +30,9 @@ export function SocketLogs({ pod, containerName, namespace, configName, clusterN
       const resetCode = '\x1b[0m'; // Reset formatting
       const smallerText = '\x1b[2m'; // ANSI escape code for dim (which may simulate a smaller font)
       const resetSmallText = '\x1b[22m'; // Reset for dim text
+      const lineNumberColor = '\u001b[34m';
       // Print the message with the background color
-      xterm.current.writeln(`${lineCount.current}: ${smallerText}${message.timestamp}${resetSmallText} ${containerColor}${message.containerName}${resetCode} ${message.log}`);
+      xterm.current.writeln(`${lineNumberColor}${lineCount.current}:|${resetSmallText}${smallerText} ${message.timestamp}${resetSmallText} ${containerColor}${message.containerName}${resetCode} ${message.log}`);
       lineCount.current++;
     }
   };
