@@ -2,13 +2,16 @@ package runtimeclasses
 
 import (
 	"fmt"
-	"github.com/maruel/natural"
-	v1 "k8s.io/api/node/v1"
 	"sort"
 	"time"
+
+	"github.com/maruel/natural"
+	v1 "k8s.io/api/node/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type RunTimeClass struct {
+	UID       types.UID `json:"uid"`
 	Namespace string    `json:"namespace"`
 	Name      string    `json:"name"`
 	Handler   string    `json:"handler"`
@@ -31,6 +34,7 @@ func TransformRunTimeClassList(secrets []v1.RuntimeClass) []RunTimeClass {
 
 func TransformRunTimeClassItem(item v1.RuntimeClass) RunTimeClass {
 	return RunTimeClass{
+		UID:       item.GetUID(),
 		Namespace: item.GetNamespace(),
 		Name:      item.GetName(),
 		Handler:   item.Handler,

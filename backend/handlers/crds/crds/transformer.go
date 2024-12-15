@@ -8,9 +8,11 @@ import (
 	"github.com/kubewall/kubewall/backend/handlers/crds/resources"
 	"github.com/maruel/natural"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type CustomResourceDefinition struct {
+	UID                      types.UID                                        `json:"uid"`
 	Name                     string                                           `json:"name"`
 	Versions                 int                                              `json:"versions"`
 	ActiveVersion            string                                           `json:"activeVersion"`
@@ -52,7 +54,8 @@ func TransformCRD(definitions []apiextensionsv1.CustomResourceDefinition) []Cust
 func TransformCRDItem(item apiextensionsv1.CustomResourceDefinition) CustomResourceDefinition {
 	activeVersion := selectedVersion(item)
 	return CustomResourceDefinition{
-		Name:                     item.Name,
+		UID:                      item.GetUID(),
+		Name:                     item.GetName(),
 		Scope:                    item.Spec.Scope,
 		Versions:                 len(item.Spec.Versions),
 		ActiveVersion:            activeVersion,

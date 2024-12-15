@@ -2,7 +2,10 @@ package deployments
 
 import (
 	"fmt"
+
 	"github.com/maruel/natural"
+	"k8s.io/apimachinery/pkg/types"
+
 	"sort"
 	"time"
 
@@ -10,6 +13,7 @@ import (
 )
 
 type DeploymentList struct {
+	UID       types.UID `json:"uid"`
 	Namespace string    `json:"namespace"`
 	Name      string    `json:"name"`
 	Spec      Spec      `json:"spec"`
@@ -64,6 +68,7 @@ func TransformDeploymentItem(d appV1.Deployment) DeploymentList {
 		specReplicas = int(*d.Spec.Replicas)
 	}
 	return DeploymentList{
+		UID:       d.GetUID(),
 		Namespace: d.GetNamespace(),
 		Name:      d.GetName(),
 		Spec: Spec{

@@ -1,13 +1,16 @@
 package rolebindings
 
 import (
-	"github.com/maruel/natural"
-	rbacV1 "k8s.io/api/rbac/v1"
 	"sort"
 	"time"
+
+	"github.com/maruel/natural"
+	rbacV1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type RoleBinding struct {
+	UID       types.UID `json:"uid"`
 	Namespace string    `json:"namespace"`
 	Name      string    `json:"name"`
 	Age       time.Time `json:"age"`
@@ -39,6 +42,7 @@ func TransformRoleBindingItem(item rbacV1.RoleBinding) RoleBinding {
 		bindings = append(bindings, v.Name)
 	}
 	return RoleBinding{
+		UID:       item.GetUID(),
 		Namespace: item.GetNamespace(),
 		Name:      item.GetName(),
 		Age:       item.CreationTimestamp.Time,

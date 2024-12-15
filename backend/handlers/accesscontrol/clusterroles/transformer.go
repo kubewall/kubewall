@@ -1,13 +1,16 @@
 package clusterroles
 
 import (
-	"github.com/maruel/natural"
-	rbacV1 "k8s.io/api/rbac/v1"
 	"sort"
 	"time"
+
+	"github.com/maruel/natural"
+	rbacV1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type ClusterRole struct {
+	UID       types.UID `json:"uid"`
 	Namespace string    `json:"namespace"`
 	Name      string    `json:"name"`
 	Age       time.Time `json:"age"`
@@ -34,6 +37,7 @@ func TransformClusterRoleList(itemList []rbacV1.ClusterRole) []ClusterRole {
 
 func TransformClusterRoleListItem(item rbacV1.ClusterRole) ClusterRole {
 	return ClusterRole{
+		UID:       item.GetUID(),
 		Namespace: item.GetNamespace(),
 		Name:      item.GetName(),
 		Age:       item.CreationTimestamp.Time,

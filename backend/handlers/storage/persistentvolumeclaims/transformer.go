@@ -2,14 +2,17 @@ package persistentvolumeclaims
 
 import (
 	"fmt"
-	"github.com/maruel/natural"
 	"sort"
 	"time"
+
+	"github.com/maruel/natural"
+	"k8s.io/apimachinery/pkg/types"
 
 	coreV1 "k8s.io/api/core/v1"
 )
 
 type PVCList struct {
+	UID       types.UID `json:"uid"`
 	Namespace string    `json:"namespace"`
 	Name      string    `json:"name"`
 	Age       time.Time `json:"age"`
@@ -50,6 +53,7 @@ func TransformPersistentVolumeClaimItems(pvc coreV1.PersistentVolumeClaim) PVCLi
 	}
 
 	return PVCList{
+		UID:       pvc.GetUID(),
 		Namespace: pvc.GetNamespace(),
 		Name:      pvc.GetName(),
 		Age:       pvc.CreationTimestamp.Time,

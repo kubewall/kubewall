@@ -2,14 +2,17 @@ package configmaps
 
 import (
 	"fmt"
-	"github.com/maruel/natural"
 	"sort"
 	"time"
+
+	"github.com/maruel/natural"
+	"k8s.io/apimachinery/pkg/types"
 
 	v1 "k8s.io/api/core/v1"
 )
 
 type ConfigMapList struct {
+	UID       types.UID `json:"uid"`
 	Namespace string    `json:"namespace"`
 	Name      string    `json:"name"`
 	Keys      []string  `json:"keys"`
@@ -33,6 +36,7 @@ func TransformConfigMapList(configMaps []v1.ConfigMap) []ConfigMapList {
 
 func TransConfigMapsItem(configMap v1.ConfigMap) ConfigMapList {
 	return ConfigMapList{
+		UID:       configMap.GetUID(),
 		Namespace: configMap.GetNamespace(),
 		Name:      configMap.GetName(),
 		Keys:      getKeysNames(configMap.Data),

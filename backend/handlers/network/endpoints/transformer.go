@@ -2,7 +2,10 @@ package endpoints
 
 import (
 	"fmt"
+
 	"github.com/maruel/natural"
+	"k8s.io/apimachinery/pkg/types"
+
 	"sort"
 	"strconv"
 	"time"
@@ -11,6 +14,7 @@ import (
 )
 
 type Endpoint struct {
+	UID       types.UID `json:"uid"`
 	Namespace string    `json:"namespace"`
 	Name      string    `json:"name"`
 	Subsets   Subsets   `json:"subsets"`
@@ -53,6 +57,7 @@ func TransformEndpointItem(item v1.Endpoints) Endpoint {
 		}
 	}
 	return Endpoint{
+		UID:       item.GetUID(),
 		Namespace: item.GetNamespace(),
 		Name:      item.GetName(),
 		Subsets: Subsets{

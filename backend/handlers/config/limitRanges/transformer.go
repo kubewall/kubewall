@@ -2,14 +2,17 @@ package limitranges
 
 import (
 	"fmt"
-	"github.com/maruel/natural"
 	"sort"
 	"time"
+
+	"github.com/maruel/natural"
+	"k8s.io/apimachinery/pkg/types"
 
 	v1 "k8s.io/api/core/v1"
 )
 
 type LimitRange struct {
+	UID       types.UID `json:"uid"`
 	Namespace string    `json:"namespace"`
 	Name      string    `json:"name"`
 	Spec      Spec      `json:"spec"`
@@ -36,6 +39,7 @@ func TransformLimitRange(secrets []v1.LimitRange) []LimitRange {
 
 func TransformLimitRangeItem(item v1.LimitRange) LimitRange {
 	return LimitRange{
+		UID:       item.GetUID(),
 		Namespace: item.GetNamespace(),
 		Name:      item.GetName(),
 		Spec: Spec{

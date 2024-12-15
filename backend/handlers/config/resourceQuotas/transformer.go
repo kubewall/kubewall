@@ -2,14 +2,17 @@ package resourcequotas
 
 import (
 	"fmt"
-	"github.com/maruel/natural"
 	"sort"
 	"time"
+
+	"github.com/maruel/natural"
+	"k8s.io/apimachinery/pkg/types"
 
 	v1 "k8s.io/api/core/v1"
 )
 
 type ResourceQuota struct {
+	UID       types.UID `json:"uid"`
 	Namespace string    `json:"namespace"`
 	Name      string    `json:"name"`
 	Age       time.Time `json:"age"`
@@ -31,6 +34,7 @@ func TransformLimitRange(items []v1.ResourceQuota) []ResourceQuota {
 
 func TransformLimitRangeItem(item v1.ResourceQuota) ResourceQuota {
 	return ResourceQuota{
+		UID:       item.GetUID(),
 		Namespace: item.GetNamespace(),
 		Name:      item.GetName(),
 		Age:       item.CreationTimestamp.Time,

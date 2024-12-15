@@ -2,13 +2,16 @@ package poddisruptionbudgets
 
 import (
 	"fmt"
-	"github.com/maruel/natural"
-	policyV1 "k8s.io/api/policy/v1"
 	"sort"
 	"time"
+
+	"github.com/maruel/natural"
+	policyV1 "k8s.io/api/policy/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type PodDisruptionBudget struct {
+	UID       types.UID `json:"uid"`
 	Namespace string    `json:"namespace"`
 	Name      string    `json:"name"`
 	Spec      Spec      `json:"spec"`
@@ -50,6 +53,7 @@ func TransformPodDisruptionBudgetItem(item policyV1.PodDisruptionBudget) PodDisr
 	}
 
 	return PodDisruptionBudget{
+		UID:       item.GetUID(),
 		Namespace: item.GetNamespace(),
 		Name:      item.GetName(),
 		Spec: Spec{

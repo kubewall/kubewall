@@ -2,14 +2,17 @@ package jobs
 
 import (
 	"fmt"
+	"sort"
+	"time"
+
 	"github.com/maruel/natural"
 	batchV1 "k8s.io/api/batch/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sort"
-	"time"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type JobList struct {
+	UID       types.UID `json:"uid"`
 	Namespace string    `json:"namespace"`
 	Name      string    `json:"name"`
 	Age       time.Time `json:"age"`
@@ -65,6 +68,7 @@ func TransformJobsList(deployments []batchV1.Job) []JobList {
 
 func TransformJobItem(j batchV1.Job) JobList {
 	return JobList{
+		UID:       j.GetUID(),
 		Namespace: j.GetNamespace(),
 		Name:      j.GetName(),
 		Age:       j.CreationTimestamp.Time,

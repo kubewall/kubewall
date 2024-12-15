@@ -2,14 +2,17 @@ package secrets
 
 import (
 	"fmt"
-	"github.com/maruel/natural"
 	"sort"
 	"time"
+
+	"github.com/maruel/natural"
+	"k8s.io/apimachinery/pkg/types"
 
 	v1 "k8s.io/api/core/v1"
 )
 
 type SecretsList struct {
+	UID       types.UID `json:"uid"`
 	Namespace string    `json:"namespace"`
 	Name      string    `json:"name"`
 	Type      string    `json:"type"`
@@ -34,6 +37,7 @@ func TransformSecretsList(secrets []v1.Secret) []SecretsList {
 
 func TransConfigMapsItem(configMap v1.Secret) SecretsList {
 	return SecretsList{
+		UID:       configMap.GetUID(),
 		Namespace: configMap.GetNamespace(),
 		Name:      configMap.GetName(),
 		Keys:      getKeys(configMap.Data),
