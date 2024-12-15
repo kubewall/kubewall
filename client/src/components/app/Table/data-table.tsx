@@ -111,7 +111,7 @@ export function DataTable<TData, TValue>({
     getSortedRowModel: getSortedRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
-    getRowId: row => row.uid || row.metadata.uid,
+    getRowId: row => row?.uid || row?.metadata?.uid,
   });
 
   const getIdAndSetClass = (shouldSetClass: boolean, id: string) => {
