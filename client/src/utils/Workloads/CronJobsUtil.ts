@@ -1,7 +1,7 @@
 import { CronJobsResponse } from "@/types";
 
 const formatCronJobsResponse = (cronJobs: CronJobsResponse[]) => {
-  return cronJobs.map(({age, name, namespace, spec, status, hasUpdated}) => ({
+  return cronJobs.map(({age, name, namespace, spec, status, hasUpdated, uid}) => ({
     name: name,
     namespace: namespace,
     schedule: spec.schedule,
@@ -10,6 +10,7 @@ const formatCronJobsResponse = (cronJobs: CronJobsResponse[]) => {
     suspend: spec.suspend,
     age: age,
     hasUpdated: hasUpdated,
+    uid: uid
   }));
 };
 

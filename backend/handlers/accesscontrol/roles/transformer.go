@@ -2,13 +2,16 @@ package roles
 
 import (
 	"fmt"
-	"github.com/maruel/natural"
-	rbacV1 "k8s.io/api/rbac/v1"
 	"sort"
 	"time"
+
+	"github.com/maruel/natural"
+	rbacV1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type Role struct {
+	UID       types.UID `json:"uid"`
 	Namespace string    `json:"namespace"`
 	Name      string    `json:"name"`
 	Age       time.Time `json:"age"`
@@ -35,6 +38,7 @@ func TransformRoleList(itemList []rbacV1.Role) []Role {
 
 func TransformServiceAccountsItems(item rbacV1.Role) Role {
 	return Role{
+		UID:       item.GetUID(),
 		Namespace: item.GetNamespace(),
 		Name:      item.GetName(),
 		Age:       item.CreationTimestamp.Time,

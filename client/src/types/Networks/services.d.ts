@@ -8,9 +8,12 @@ type ServicesResponse = {
       sessionAffinity: string;
       ipFamilyPolicy: string;
       internalTrafficPolicy: string;
+      type: string;
+      externalIPs: string;
   };
   age: string;
   hasUpdated: boolean;
+  uid: string;
 };
 
 type ServicesListHeaders = {

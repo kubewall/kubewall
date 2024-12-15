@@ -20,6 +20,7 @@ type CustomResourcesDefinitionsResponse = {
       scope: string
   };
   versions: number;
+  uid: string;
 }
 
 type CustomResourcesDefinitionsHeader = {

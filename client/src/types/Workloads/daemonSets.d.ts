@@ -13,6 +13,7 @@ type DaemonSetsResponse = {
     numberAvailable: number
   };
   hasUpdated: boolean;
+  uid: string;
 };
 
 type DaemonSetsHeader = {

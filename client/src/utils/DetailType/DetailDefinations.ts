@@ -574,7 +574,7 @@ const getCustomResourceDefinitionsDetailsConfig = (details: CustomResourcesDefin
 });
 
 const getCustomResourceDetailsConfig = (details: CustomResourceDetails, loading: boolean) => ({
-  subHeading: !details.metadata ? '' : `${details.metadata.name}`,
+  subHeading: !details.metadata ? '' : `${details.metadata.namespace ? details.metadata.namespace+'/': ''}${details.metadata.name}`,
   detailCard: [
     {label: 'Name',value: defaultOrValue(details.metadata.name) },
     {label: 'Resource Version',value: defaultOrValue(details.metadata.resourceVersion) },

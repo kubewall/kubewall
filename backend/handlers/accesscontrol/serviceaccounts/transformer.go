@@ -1,14 +1,17 @@
 package serviceaccounts
 
 import (
-	"github.com/maruel/natural"
 	"sort"
 	"time"
+
+	"github.com/maruel/natural"
+	"k8s.io/apimachinery/pkg/types"
 
 	coreV1 "k8s.io/api/core/v1"
 )
 
 type ServiceAccount struct {
+	UID       types.UID `json:"uid"`
 	Namespace string    `json:"namespace"`
 	Name      string    `json:"name"`
 	Age       time.Time `json:"age"`
@@ -35,6 +38,7 @@ func TransformServiceAccountsList(itemList []coreV1.ServiceAccount) []ServiceAcc
 
 func TransformServiceAccountsItems(item coreV1.ServiceAccount) ServiceAccount {
 	return ServiceAccount{
+		UID:       item.GetUID(),
 		Namespace: item.GetNamespace(),
 		Name:      item.GetName(),
 		Age:       item.CreationTimestamp.Time,

@@ -12,6 +12,7 @@ type PersistentVolumeClaimsResponse = {
     phase: string;
   }
   hasUpdated: boolean;
+  uid: string;
 };
 
 type PersistentVolumeClaimsHeaders = {

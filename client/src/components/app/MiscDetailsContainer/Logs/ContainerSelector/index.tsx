@@ -1,26 +1,23 @@
 import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Dispatch, SetStateAction, useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 import { Button } from "@/components/ui/button";
 import { PodDetailsSpec } from "@/types";
 import { PopoverProps } from "@radix-ui/react-popover";
 import { cn } from "@/lib/utils";
-import { setSelectedContainer } from "@/data/Workloads/Pods/PodLogsSlice";
-import { useAppDispatch } from "@/redux/hooks";
-import { useState } from "react";
 
 type PresetSelectorProps = {
   podDetailsSpec: PodDetailsSpec;
   selectedContainer: string;
+  setSelectedContainer: Dispatch<SetStateAction<string>>;
 } & PopoverProps;
 
-export function CotainerSelector({podDetailsSpec,  selectedContainer, ...props }: PresetSelectorProps) {
+export function CotainerSelector({podDetailsSpec,  selectedContainer, setSelectedContainer, ...props }: PresetSelectorProps) {
   const [open, setOpen] = useState(false);
-  const dispatch = useAppDispatch();
-
   const updateSelectedContainer = (containerName: string) => {
-    dispatch(setSelectedContainer(containerName));
+    setSelectedContainer(containerName);
   };
 
   return (

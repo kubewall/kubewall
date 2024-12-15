@@ -2,13 +2,16 @@ package statefulset
 
 import (
 	"fmt"
-	"github.com/maruel/natural"
-	appsV1 "k8s.io/api/apps/v1"
 	"sort"
 	"time"
+
+	"github.com/maruel/natural"
+	appsV1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type StatefulSetList struct {
+	UID       types.UID `json:"uid"`
 	Namespace string    `json:"namespace"`
 	Name      string    `json:"name"`
 	Status    Status    `json:"status"`
@@ -38,6 +41,7 @@ func TransformStatefulSetList(deployments []appsV1.StatefulSet) []StatefulSetLis
 
 func TransformReplicaSetItem(d appsV1.StatefulSet) StatefulSetList {
 	return StatefulSetList{
+		UID:       d.GetUID(),
 		Namespace: d.GetNamespace(),
 		Name:      d.GetName(),
 		Status: Status{

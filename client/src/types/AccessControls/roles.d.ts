@@ -6,6 +6,7 @@ type RolesResponse = {
   },
   age: string;
   hasUpdated: boolean;
+  uid: string;
 };
 
 type RolesListHeader = {

@@ -2,14 +2,17 @@ package storageclasses
 
 import (
 	"fmt"
+	"sort"
+	"time"
+
 	"github.com/maruel/natural"
 	v1 "k8s.io/api/core/v1"
 	storageV1 "k8s.io/api/storage/v1"
-	"sort"
-	"time"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type StorageClass struct {
+	UID               types.UID                         `json:"uid"`
 	Namespace         string                            `json:"namespace"`
 	Name              string                            `json:"name"`
 	Age               time.Time                         `json:"age"`
@@ -34,6 +37,7 @@ func TransformStorageClass(items []storageV1.StorageClass) []StorageClass {
 
 func TransformStorageClassItem(item storageV1.StorageClass) StorageClass {
 	return StorageClass{
+		UID:               item.GetUID(),
 		Namespace:         item.GetNamespace(),
 		Name:              item.GetName(),
 		Provisioner:       item.Provisioner,

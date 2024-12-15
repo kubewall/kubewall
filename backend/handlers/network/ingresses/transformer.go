@@ -2,15 +2,18 @@ package ingresses
 
 import (
 	"fmt"
-	"github.com/maruel/natural"
 	"sort"
 	"strconv"
 	"time"
+
+	"github.com/maruel/natural"
+	"k8s.io/apimachinery/pkg/types"
 
 	networkingV1 "k8s.io/api/networking/v1"
 )
 
 type Endpoint struct {
+	UID       types.UID `json:"uid"`
 	Namespace string    `json:"namespace"`
 	Name      string    `json:"name"`
 	Spec      Spec      `json:"spec"`
@@ -49,6 +52,7 @@ func TransformIngressItem(item networkingV1.Ingress) Endpoint {
 		}
 	}
 	return Endpoint{
+		UID:       item.GetUID(),
 		Namespace: item.GetNamespace(),
 		Name:      item.GetName(),
 		Spec: Spec{

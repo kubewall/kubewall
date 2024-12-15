@@ -1,14 +1,17 @@
 package nodes
 
 import (
-	coreV1 "k8s.io/api/core/v1"
 	"strings"
 	"time"
+
+	coreV1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const NodeLabelPrefix = "node-role.kubernetes.io/"
 
 type NodesList struct {
+	UID             types.UID `json:"uid"`
 	Name            string    `json:"name"`
 	ResourceVersion string    `json:"resourceVersion"`
 	Roles           []string  `json:"roles"`
@@ -56,6 +59,7 @@ func TransformNodes(nodes []coreV1.Node) []NodesList {
 		}
 
 		nodesList = append(nodesList, NodesList{
+			UID:             v.GetUID(),
 			Name:            v.GetName(),
 			Age:             v.CreationTimestamp.Time,
 			ResourceVersion: v.ResourceVersion,

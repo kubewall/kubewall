@@ -2,13 +2,16 @@ package replicaset
 
 import (
 	"fmt"
-	"github.com/maruel/natural"
-	v1 "k8s.io/api/apps/v1"
 	"sort"
 	"time"
+
+	"github.com/maruel/natural"
+	v1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type ReplicaSetList struct {
+	UID       types.UID `json:"uid"`
 	Namespace string    `json:"namespace"`
 	Name      string    `json:"name"`
 	Spec      Spec      `json:"spec"`
@@ -49,6 +52,7 @@ func TransformReplicaSetItem(d v1.ReplicaSet) ReplicaSetList {
 	}
 
 	return ReplicaSetList{
+		UID:       d.GetUID(),
 		Namespace: d.GetNamespace(),
 		Name:      d.GetName(),
 		Spec: Spec{

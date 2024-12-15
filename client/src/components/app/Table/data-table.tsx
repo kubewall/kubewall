@@ -33,10 +33,19 @@ type DataTableProps<TData, TValue> = {
   data: TData[];
   tableWidthCss: string;
   showNamespaceFilter: boolean;
+  instanceType: string;
   showToolbar?: boolean;
   loading?: boolean;
   isEventTable?: boolean;
 }
+
+declare global {
+  interface Window {
+    safari:any;
+    lastSelectedRow: any;
+  }
+}
+
 
 // eslint-disable-next-line  @typescript-eslint/no-explicit-any
 const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
@@ -56,6 +65,7 @@ export function DataTable<TData, TValue>({
   data,
   tableWidthCss,
   showNamespaceFilter,
+  instanceType,
   showToolbar = true,
   loading = false,
   isEventTable = false,
@@ -69,14 +79,14 @@ export function DataTable<TData, TValue>({
   } = useAppSelector((state: RootState) => state.listTableNamesapce);
 
   const getDefaultValue = () => {
-    if(selectedNamespace.length > 0) {
-     return [{
-      id: 'Namespace',
-      value: Array.from(selectedNamespace)
-    }];
-  }
-  return [];
-};
+    if (selectedNamespace.length > 0) {
+      return [{
+        id: 'Namespace',
+        value: Array.from(selectedNamespace)
+      }];
+    }
+    return [];
+  };
   const [rowSelection, setRowSelection] = useState({});
   const [globalFilter, setGlobalFilter] = useState(searchString);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(getDefaultValue());
@@ -101,6 +111,7 @@ export function DataTable<TData, TValue>({
     getSortedRowModel: getSortedRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
+    getRowId: row => row?.uid || row?.metadata?.uid,
   });
 
   const getIdAndSetClass = (shouldSetClass: boolean, id: string) => {
@@ -112,10 +123,9 @@ export function DataTable<TData, TValue>({
     }
     return id;
   };
-
   useEffect(() => {
     setRowSelection({});
-  }, [columns]);
+  }, [instanceType]);
 
   return (
     <>
@@ -123,10 +133,18 @@ export function DataTable<TData, TValue>({
         showToolbar
         && <DataTableToolbar loading={loading} table={table} globalFilter={globalFilter} setGlobalFilter={setGlobalFilter} showNamespaceFilter={showNamespaceFilter} />
       }
+      {
+        // eslint-disable-next-line 
+        window.safari !== undefined && 
+        <div className='flex bg-red-500 dark:bg-red-900 items-center justify-between text-xs font-light px-2 py-1'>
+        <span className='text-xs text-white'>We detected you are on Safari browser and are using http. For seemless expereince switch over to chrome/firefox. More details <a className='underline' href='https://github.com/kubewall/kubewall/wiki/FAQ#https' target='blank'>here</a></span>
+      </div>
+      }
+      
       <div className={`border border-x-0 overflow-auto ${tableWidthCss} `}>
         {
           Object.keys(rowSelection).length > 0 &&
-          <TableDelete selectedRows={table.getSelectedRowModel().rows} toggleAllRowsSelected={table.resetRowSelection} />
+          <TableDelete selectedRows={table.getSelectedRowModel().rows} toggleAllRowsSelected={table.resetRowSelection}/>
         }
 
         <Table>

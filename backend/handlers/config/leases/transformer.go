@@ -2,13 +2,16 @@ package leases
 
 import (
 	"fmt"
-	"github.com/maruel/natural"
-	v1 "k8s.io/api/coordination/v1"
 	"sort"
 	"time"
+
+	"github.com/maruel/natural"
+	v1 "k8s.io/api/coordination/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type Lease struct {
+	UID                  types.UID `json:"uid"`
 	Namespace            string    `json:"namespace"`
 	Name                 string    `json:"name"`
 	HolderIdentity       *string   `json:"holderIdentity"`
@@ -32,6 +35,7 @@ func TransformLeaseList(secrets []v1.Lease) []Lease {
 
 func TransformRunTimeClassItem(item v1.Lease) Lease {
 	return Lease{
+		UID:                  item.GetUID(),
 		Namespace:            item.GetNamespace(),
 		Name:                 item.GetName(),
 		HolderIdentity:       item.Spec.HolderIdentity,

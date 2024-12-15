@@ -6,6 +6,7 @@ type ServiceAccountsResponse = {
   },
   age: string;
   hasUpdated: boolean;
+  uid: string;
 };
 
 type ServiceAccountsListHeader = {

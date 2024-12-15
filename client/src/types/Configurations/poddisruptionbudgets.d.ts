@@ -10,6 +10,7 @@ type PodDisruptionBudgetsResponse = {
   };
   age: string;
   hasUpdated: boolean;
+  uid: string;
 };
 
 type PodDisruptionBudgetsHeader = {

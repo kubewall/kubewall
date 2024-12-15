@@ -2,7 +2,10 @@ package daemonsets
 
 import (
 	"fmt"
+
 	"github.com/maruel/natural"
+	"k8s.io/apimachinery/pkg/types"
+
 	"sort"
 	"time"
 
@@ -10,6 +13,7 @@ import (
 )
 
 type DaemonSetList struct {
+	UID          types.UID         `json:"uid"`
 	Namespace    string            `json:"namespace"`
 	Name         string            `json:"name"`
 	Generation   int64             `json:"generation"`
@@ -47,6 +51,7 @@ func TransformDaemonSetItem(d appV1.DaemonSet) DaemonSetList {
 		nodeSelector = d.Spec.Template.Spec.NodeSelector
 	}
 	return DaemonSetList{
+		UID:          d.GetUID(),
 		Namespace:    d.GetNamespace(),
 		Name:         d.GetName(),
 		Generation:   d.Generation,

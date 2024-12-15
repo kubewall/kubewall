@@ -1,7 +1,7 @@
 import { PersistentVolumeClaimsResponse } from "@/types";
 
 const formatPersistentVolumeClaimsResponse = (persistentVolumeClaims: PersistentVolumeClaimsResponse[]) => {
-  return persistentVolumeClaims.map(({ namespace,age, name, spec, status, hasUpdated }) => ({
+  return persistentVolumeClaims.map(({ namespace,age, name, spec, status, hasUpdated, uid }) => ({
     namespace: namespace,
     name: name,
     volumeName: spec.volumeName,
@@ -11,6 +11,7 @@ const formatPersistentVolumeClaimsResponse = (persistentVolumeClaims: Persistent
     phase: status.phase,
     age: age,
     hasUpdated: hasUpdated,
+    uid: uid
   }));
 };
 

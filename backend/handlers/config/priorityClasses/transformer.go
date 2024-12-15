@@ -2,14 +2,17 @@ package priorityclasses
 
 import (
 	"fmt"
+	"sort"
+	"time"
+
 	"github.com/maruel/natural"
 	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/api/scheduling/v1"
-	"sort"
-	"time"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type PriorityClass struct {
+	UID              types.UID            `json:"uid"`
 	Namespace        string               `json:"namespace"`
 	Name             string               `json:"name"`
 	Value            int32                `json:"value"`
@@ -34,6 +37,7 @@ func TransformPriorityClassList(secrets []v12.PriorityClass) []PriorityClass {
 
 func TransformPriorityClassItem(item v12.PriorityClass) PriorityClass {
 	return PriorityClass{
+		UID:              item.GetUID(),
 		Namespace:        item.GetNamespace(),
 		Name:             item.GetName(),
 		Value:            item.Value,

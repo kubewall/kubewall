@@ -10,6 +10,7 @@ type PersistentVolumesResponse = {
     phase: string;
   }
   hasUpdated: boolean;
+  uid: string;
 };
 
 type PersistentVolumesHeaders = {

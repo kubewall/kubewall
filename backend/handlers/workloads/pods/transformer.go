@@ -2,16 +2,19 @@ package pods
 
 import (
 	"fmt"
-	"github.com/maruel/natural"
-	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/metrics/pkg/apis/metrics/v1beta1"
 	"sort"
 	"time"
+
+	"github.com/maruel/natural"
+	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/metrics/pkg/apis/metrics/v1beta1"
 
 	coreV1 "k8s.io/api/core/v1"
 )
 
 type PodList struct {
+	UID           types.UID `json:"uid"`
 	Namespace     string    `json:"namespace"`
 	Name          string    `json:"name"`
 	Node          string    `json:"node"`
@@ -76,6 +79,7 @@ func GetPodsMetrics(podMetrics *v1beta1.PodMetricsList) map[string]map[string]st
 func TransformPodListItem(pod coreV1.Pod) PodList {
 	status, _ := GetPodStatusReason(&pod)
 	return PodList{
+		UID:           pod.GetUID(),
 		Namespace:     pod.GetNamespace(),
 		Name:          pod.GetName(),
 		Node:          pod.Spec.NodeName,

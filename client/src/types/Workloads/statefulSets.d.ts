@@ -10,6 +10,7 @@ type StatefulSetsResponse = {
   };
   age: string;
   hasUpdated: boolean;
+  uid: string;
 };
 
 type StatefulSetsHeader = {

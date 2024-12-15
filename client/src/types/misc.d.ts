@@ -119,6 +119,10 @@ type BadgeDetails = {
   defaultLabelCount: number;
 }[];
 
+type CommonSearchParams = {
+  config: string;
+} & kwListSearch & kwDetailsSearch;
+
 export {
   ClusterDetails,
   CustomResources,
@@ -134,5 +138,6 @@ export {
   KeyValue,
   KeyValueNull,
   DetailsCards,
-  BadgeDetails
+  BadgeDetails,
+  CommonSearchParams
 };

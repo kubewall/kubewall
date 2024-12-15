@@ -2,14 +2,18 @@ package cronjobs
 
 import (
 	"fmt"
+
 	"github.com/maruel/natural"
 	appV1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+
 	"sort"
 	"time"
 )
 
 type CronJobsList struct {
+	UID       types.UID `json:"uid"`
 	Namespace string    `json:"namespace"`
 	Name      string    `json:"name"`
 	Age       time.Time `json:"age"`
@@ -47,6 +51,7 @@ func TransformCronJobsList(cronJobs []appV1.CronJob) []CronJobsList {
 
 func TransConfigMapsItem(configMap appV1.CronJob) CronJobsList {
 	return CronJobsList{
+		UID:       configMap.GetUID(),
 		Namespace: configMap.GetNamespace(),
 		Name:      configMap.GetName(),
 		Age:       configMap.CreationTimestamp.Time,

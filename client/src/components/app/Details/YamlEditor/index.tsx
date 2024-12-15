@@ -1,10 +1,10 @@
-import { createEventStreamQueryObject, getEventStreamUrl, getSystemTheme } from '@/utils';
+import { createEventStreamQueryObject, getEventStreamUrl } from '@/utils';
 import { memo, useCallback, useEffect, useState } from 'react';
 import { resetUpdateYaml, updateYaml } from '@/data/Yaml/YamlUpdateSlice';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 
 import { Button } from '@/components/ui/button';
-import Editor from '@monaco-editor/react';
+import Editor from './MonacoWrapper';
 import { Loader } from '../../Loader';
 import { SaveIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -38,7 +38,7 @@ const YamlEditor = memo(function ({ instanceType, name, namespace, clusterName, 
     config: configName,
     cluster: clusterName
   }).toString();
-  
+
   const [value, setValue] = useState('');
   const onChange = useCallback((val = '') => {
     setYamlUpdated(true);
@@ -119,18 +119,12 @@ const YamlEditor = memo(function ({ instanceType, name, namespace, clusterName, 
                 <span className='text-xs'>Save</span>
               </Button>
             }
-
             <Editor
-              className='border rounded-lg h-screen'
               value={value}
-              defaultLanguage='yaml'
+              language="yaml"
               onChange={onChange}
-              theme={getSystemTheme()}
-              options={{
-                minimap: {
-                  enabled: false,
-                },
-              }}
+              className='border rounded-lg h-screen'
+
             />
           </div>
 

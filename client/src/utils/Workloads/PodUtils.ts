@@ -23,33 +23,33 @@ const createContainerData = (podSpec: PodDetailsSpec, podStatus: PodDetailsStatu
   return containersData;
 };
 
-const colorList = [
-  'text-red-700',
-  'text-yellow-700',
-  'text-orange-700',
-  'text-rose-700',
-  'text-emerald-700',
-  'text-amber-700',
-  'text-sky-700',
-  'text-green-700',
-  'text-indigo-700',
-  'text-teal-700',
-  'text-cyan-700',
-  'text-purple-700',
-  'text-blue-700',
-  'text-pink-700',
-  'text-violet-700',
-  'text-fuchsia-700',
-  'text-lime-700',
-  'text-stone-700',
-  'text-neutral-700',
-  'text-zinc-700'
+const ansiColors = [
+  '\x1b[33m',        // Yellow (Bright and warm)
+  '\x1b[36m',        // Cyan (Cool and bright)
+  '\x1b[31m',        // Red (Warm and vibrant)
+  '\x1b[34m',        // Blue (Cool and contrasting
+  '\x1b[38;5;208m',  // Orange (Warm but softer than red)
+  '\x1b[38;5;118m',  // Lime (Bright and light green)
+  '\x1b[35m',        // Purple (Cool and distinct from green)
+  '\x1b[32m',        // Green (Cool and calming)
+  '\x1b[38;5;214m',  // Amber (Bright warm tone)
+  '\x1b[38;5;13m',   // Fuchsia (Vivid and distinct)
+  '\x1b[38;5;245m',  // Stone (Neutral gray, darker tone)
+  '\x1b[38;5;33m',   // Sky Blue (Cool and lighter blue)
+  '\x1b[38;5;200m',  // Pink (Bright and soft)
+  '\x1b[38;5;99m',   // Violet (Dark purple, cool tone)
+  '\x1b[38;5;34m',   // Emerald (Rich green, darker tone)
+  '\x1b[38;5;203m',  // Rose (Soft and warm)
+  '\x1b[38;5;242m',  // Zinc (Neutral gray, contrasting with vibrant tones)
+  '\x1b[38;5;245m',  // Stone (Reinforced neutral tone)
+  '\x1b[38;5;214m',  // Amber (Warm and distinct from neutrals)
+  '\x1b[37m',        // Neutral White (Bright and contrasting)
 ];
 
 const getColorForContainerName = (containerName: string, podSpec: PodDetailsSpec) => {
   const { containers } = podSpec;
   const index = containers.findIndex(({ name }) => name === containerName);
-  return colorList[index];
+  return ansiColors[index];
 };
 
 

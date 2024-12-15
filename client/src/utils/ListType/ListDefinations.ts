@@ -282,8 +282,10 @@ const servicesColumnConfig = (config: string, cluster: string) => ({
     { title: 'Select', accessorKey: 'select', enableSorting: false, },
     { title: 'Namespace', accessorKey: 'namespace', enableGlobalFilter: true},
     { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
-    { title: 'Ports', accessorKey: 'ports', enableGlobalFilter: true },
+    { title: 'Type', accessorKey: 'type', enableGlobalFilter: true },
     { title: 'Cluster IP', accessorKey: 'clusterIP', enableGlobalFilter: true },
+    { title: 'External IP', accessorKey: 'externalIP', enableGlobalFilter: true },
+    { title: 'Ports', accessorKey: 'ports', enableGlobalFilter: true },
     { title: 'Session Affinity', accessorKey: 'sessionAffinity' },
     { title: 'IP Family Policy', accessorKey: 'ipFamilyPolicy' },
     { title: 'Internal Traffic Policy', accessorKey: 'internalTrafficPolicy' },
@@ -340,7 +342,7 @@ const storageClassesColumnConfig = (config: string, cluster: string) => ({
 
 // Workloads
 
-const podsColumnConfig = (config: string, cluster: string) => ({
+const podsColumnConfig = (config: string, cluster: string, isSelectable=true) => ({
   headersList: [
     { title: 'Select', accessorKey: 'select', enableSorting: false, },
     { title: 'Namespace', accessorKey: 'namespace', enableGlobalFilter: true},
@@ -355,7 +357,7 @@ const podsColumnConfig = (config: string, cluster: string) => ({
     { title: 'IP', accessorKey: 'podIP', enableGlobalFilter: true},
     { title: 'QOS', accessorKey: 'qos', },
     { title: 'Age', accessorKey: 'age'}
-  ],
+  ].filter(({title}) => isSelectable || (!isSelectable && title.toLowerCase() !== 'select')),
   queryParams: { config, cluster },
   showNamespaceFilter: true
 });

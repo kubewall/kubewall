@@ -6,6 +6,7 @@ type IngressesResponse = {
   };
   age: string;
   hasUpdated: boolean;
+  uid: string;
 };
 
 type IngressesHeaders = {

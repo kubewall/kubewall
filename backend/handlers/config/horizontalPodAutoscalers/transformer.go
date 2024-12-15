@@ -2,14 +2,17 @@ package horizontalpodautoscalers
 
 import (
 	"fmt"
-	"github.com/maruel/natural"
 	"sort"
 	"time"
+
+	"github.com/maruel/natural"
+	"k8s.io/apimachinery/pkg/types"
 
 	autoScalingV2 "k8s.io/api/autoscaling/v2"
 )
 
 type ResourceQuota struct {
+	UID       types.UID `json:"uid"`
 	Namespace string    `json:"namespace"`
 	Name      string    `json:"name"`
 	Spec      Spec      `json:"spec"`
@@ -37,6 +40,7 @@ func TransformHorizontalPodAutoscaler(items []autoScalingV2.HorizontalPodAutosca
 
 func TransformLimitRangeItem(item autoScalingV2.HorizontalPodAutoscaler) ResourceQuota {
 	return ResourceQuota{
+		UID:       item.GetUID(),
 		Namespace: item.GetNamespace(),
 		Name:      item.GetName(),
 		Spec: Spec{

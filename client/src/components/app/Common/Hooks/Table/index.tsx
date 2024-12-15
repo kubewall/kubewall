@@ -61,6 +61,7 @@ const CreateTable = <T extends ClusterDetails, C extends HeaderList>({
           data={loading ? defaultSkeletonRow() : data}
           showNamespaceFilter={showNamespaceFilter}
           tableWidthCss="list-table-max-height h-screen"
+          instanceType={instanceType}
           loading={loading}
         />
       </div>

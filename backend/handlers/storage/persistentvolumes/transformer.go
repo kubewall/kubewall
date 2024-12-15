@@ -2,13 +2,16 @@ package persistentvolumes
 
 import (
 	"fmt"
-	"github.com/maruel/natural"
-	v1 "k8s.io/api/core/v1"
 	"sort"
 	"time"
+
+	"github.com/maruel/natural"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type PVList struct {
+	UID       types.UID `json:"uid"`
 	Namespace string    `json:"namespace"`
 	Name      string    `json:"name"`
 	Age       time.Time `json:"age"`
@@ -47,6 +50,7 @@ func TransformPersistentVolumeItem(pv v1.PersistentVolume) PVList {
 	}
 
 	return PVList{
+		UID:       pv.GetUID(),
 		Namespace: pv.GetNamespace(),
 		Name:      pv.GetName(),
 		Age:       pv.CreationTimestamp.Time,

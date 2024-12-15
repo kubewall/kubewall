@@ -2,7 +2,10 @@ package services
 
 import (
 	"fmt"
+
 	"github.com/maruel/natural"
+	"k8s.io/apimachinery/pkg/types"
+
 	"sort"
 	"strings"
 	"time"
@@ -11,6 +14,7 @@ import (
 )
 
 type Services struct {
+	UID       types.UID `json:"uid"`
 	Namespace string    `json:"namespace"`
 	Name      string    `json:"name"`
 	Spec      Spec      `json:"spec"`
@@ -20,6 +24,7 @@ type Services struct {
 type Spec struct {
 	Ports                 string                           `json:"ports"`
 	ClusterIP             string                           `json:"clusterIP"`
+	ExternalIPs           []string                         `json:"externalIPs"`
 	Type                  v1.ServiceType                   `json:"type"`
 	SessionAffinity       v1.ServiceAffinity               `json:"sessionAffinity"`
 	IpFamilyPolicy        *v1.IPFamilyPolicy               `json:"ipFamilyPolicy"`
@@ -42,16 +47,27 @@ func TransformServices(pvs []v1.Service) []Services {
 
 func TransformServiceItem(item v1.Service) Services {
 	ports := make([]string, 0)
+	ips := make([]string, 0)
 
 	for _, port := range item.Spec.Ports {
 		ports = append(ports, fmt.Sprintf("%d/%s", port.Port, port.Protocol))
 	}
+
+	if item.Spec.Type == v1.ServiceTypeLoadBalancer {
+		ingress := item.Status.LoadBalancer.Ingress
+		for _, ingress := range ingress {
+			ips = append(ips, ingress.IP)
+		}
+	}
+
 	return Services{
+		UID:       item.GetUID(),
 		Namespace: item.GetNamespace(),
 		Name:      item.GetName(),
 		Spec: Spec{
 			Ports:                 strings.Join(ports, ","),
 			ClusterIP:             item.Spec.ClusterIP,
+			ExternalIPs:           ips,
 			Type:                  item.Spec.Type,
 			SessionAffinity:       item.Spec.SessionAffinity,
 			IpFamilyPolicy:        item.Spec.IPFamilyPolicy,

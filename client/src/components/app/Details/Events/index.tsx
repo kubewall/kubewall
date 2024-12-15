@@ -57,6 +57,7 @@ export function Events({ instanceType, name, namespace, configName, clusterName,
       data={events}
       showToolbar={false}
       tableWidthCss="event-table-max-height rounded-lg"
+      instanceType='events'
       showNamespaceFilter={false}
       isEventTable={true}
     />

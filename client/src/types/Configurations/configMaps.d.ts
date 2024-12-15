@@ -5,6 +5,7 @@ type ConfigMapsResponse = {
   count: number,
   age: string,
   hasUpdated: boolean;
+  uid: string;
 };
 
 type ConfigMapsHeader = {

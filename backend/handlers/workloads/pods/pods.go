@@ -3,11 +3,13 @@ package pods
 import (
 	"context"
 	"fmt"
+	"sync"
+
 	"github.com/charmbracelet/log"
 	"github.com/kubewall/kubewall/backend/handlers/workloads/replicaset"
+	"github.com/r3labs/sse/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/metrics/pkg/apis/metrics/v1beta1"
-	"sync"
 
 	"github.com/kubewall/kubewall/backend/handlers/base"
 	"k8s.io/client-go/kubernetes"
@@ -51,6 +53,8 @@ func NewPodsRouteHandler(container container.Container, routeType base.RouteType
 			return handler.BaseHandler.Delete(c)
 		case base.GetLogsWS:
 			return handler.GetLogsWS(c)
+		case base.GetLogs:
+			return handler.GetLogs(c)
 		default:
 			return echo.NewHTTPError(http.StatusInternalServerError, "Unknown route type")
 		}
@@ -124,6 +128,29 @@ func GetPodsMetricsList(b *base.BaseHandler) *v1beta1.PodMetricsList {
 		log.Info("failed to get pod metrics", "err", err)
 	}
 	return podMetrics
+}
+
+func (h *PodsHandler) GetLogs(c echo.Context) error {
+	sseServer := sse.New()
+	sseServer.AutoStream = true
+	sseServer.EventTTL = 0
+	config := c.QueryParam("config")
+	cluster := c.QueryParam("cluster")
+	name := c.Param("name")
+	namespace := c.Param("namespace")
+	container := c.QueryParam("container")
+
+	var key string
+	if container != "" {
+		key = fmt.Sprintf("%s-%s-%s-%s-%s-logs", config, cluster, name, namespace, container)
+	} else {
+		key = fmt.Sprintf("%s-%s-%s-%s-logs", config, cluster, name, namespace)
+	}
+	go h.publishLogs(c, key, sseServer)
+
+	sseServer.ServeHTTP(key, c.Response(), c.Request())
+
+	return nil
 }
 
 func (h *PodsHandler) GetLogsWS(c echo.Context) error {

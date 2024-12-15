@@ -56,13 +56,14 @@ const DeploymentDetailsContainer = memo(function () {
                     clusterName: cluster,
                     configName: config,
                     loading,
-                    headersList: podsColumnConfig(config, cluster).headersList,
+                    headersList: podsColumnConfig(config, cluster, false).headersList,
                     instanceType: PODS_ENDPOINT,
                     count: deploymentPodDetails.length,
                   })
                 }
                 data={loading ? defaultSkeletonRow() : deploymentPodDetails}
                 tableWidthCss="border-r border-l"
+                instanceType={PODS_ENDPOINT}
                 showToolbar={false}
                 showNamespaceFilter={false}
               />

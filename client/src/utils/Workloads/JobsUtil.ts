@@ -1,7 +1,7 @@
 import { JobsResponse } from "@/types";
 
 const formatJobsResponse = (jobs: JobsResponse[]) => {
-  return jobs.map(({age, name, namespace, status, spec, hasUpdated}) => ({
+  return jobs.map(({age, name, namespace, status, spec, hasUpdated, uid}) => ({
     name: name,
     namespace: namespace,
     completions: `${status.succeeded}/${spec.completions}`,
@@ -9,6 +9,7 @@ const formatJobsResponse = (jobs: JobsResponse[]) => {
     age: age,
     duration: status.startTime,
     hasUpdated: hasUpdated,
+    uid: uid
   }));
 };
 

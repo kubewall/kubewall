@@ -1,4 +1,5 @@
 import { CONFIG_MAPS_ENDPOINT, CUSTOM_RESOURCES_LIST_ENDPOINT, ENDPOINTS_ENDPOINT, HPA_ENDPOINT, INGRESSES_ENDPOINT, NODES_ENDPOINT, ROLE_BINDINGS_ENDPOINT, SECRETS_ENDPOINT, SERVICES_ENDPOINT } from '@/constants';
+import { Row, Table } from '@tanstack/react-table';
 
 import { ClusterDetails } from '@/types';
 import { ConditionCell } from './conditionCell';
@@ -7,7 +8,6 @@ import { DefaultCell } from './defaultCell';
 import { IndeterminateCheckbox } from './selectCell';
 import { MultiValueCell } from './multiValueCell';
 import { NameCell } from './nameCell';
-import { Row } from '@tanstack/react-table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusCell } from './statusCell';
 import { TimeCell } from './timeCell';
@@ -20,6 +20,7 @@ type TableCellType<T> = {
   instanceType: string;
   loading: boolean;
   row: Row<T>;
+  table: Table<T>;
   queryParams?: string;
 } & ClusterDetails;
 
@@ -32,8 +33,42 @@ const TableCells = <T extends ClusterDetails>({
   type,
   value,
   queryParams,
-  row
+  row,
+  table,
 }: TableCellType<T>) => {
+
+  // TODO: remove usage of window
+  const lastSelectedRow = window.lastSelectedRow;
+  const handleRowClick = (row: Row<T>, event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+    const { id } = row;
+    const isShiftKey = event.shiftKey;
+
+    // If Shift key is pressed, select a range of rows
+    if (isShiftKey && lastSelectedRow) {
+      const lastSelectedIndex = table.getRowModel().rows.findIndex((r) => r.id === lastSelectedRow);
+      const currentIndex = table.getRowModel().rows.findIndex((r) => r.id === id);
+
+      // Ensure selection is in the correct order (min, max)
+      const rangeStart = Math.min(lastSelectedIndex, currentIndex);
+      const rangeEnd = Math.max(lastSelectedIndex, currentIndex);
+      if(rangeStart === rangeEnd) {
+        row.getToggleSelectedHandler()(event);
+      }
+      // Select all rows in the range while preserving the first selected row
+      for (let i = rangeStart; i <= rangeEnd; i++) {
+        if (table.getRowModel().rows[i].id !== lastSelectedRow) {
+          table.getRowModel().rows[i].getToggleSelectedHandler()(event); // Call the toggleSelectedHandler for each row in the range
+        }
+      }
+    } else {
+      // Regular row click (no Shift key), toggle the selected state of the clicked row
+      row.getToggleSelectedHandler()(event);
+    }
+
+    // Update the last selected row to the current row
+    window.lastSelectedRow = id;
+  };
+
   if (loading) {
     return <Skeleton className="h-4" />;
   }
@@ -43,8 +78,8 @@ const TableCells = <T extends ClusterDetails>({
         {...{
           checked: row.getIsSelected(),
           disabled: !row.getCanSelect(),
-          onClick: row.getToggleSelectedHandler(),
         }}
+        onClick={(event) => handleRowClick(row, event)}
       />
     </div>);
   }
@@ -88,7 +123,7 @@ const TableCells = <T extends ClusterDetails>({
   }
   if (
     value !== '' &&
-    (type === 'Rules' || type === 'Ports' || type === 'Bindings' || type === 'Roles' || type === 'Keys') &&
+    (type === 'Rules' || type === 'Ports' || type === 'Bindings' || type === 'Roles' || type === 'Keys' || type === 'External IP') &&
     (
       instanceType === INGRESSES_ENDPOINT ||
       instanceType === ENDPOINTS_ENDPOINT ||

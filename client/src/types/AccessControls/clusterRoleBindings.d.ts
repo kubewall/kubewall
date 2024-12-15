@@ -7,6 +7,7 @@ type ClusterRoleBindingsResponse = {
   },
   age: string
   hasUpdated: boolean;
+  uid: string;
 };
 
 type ClusterRoleBindingsListHeader = {

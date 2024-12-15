@@ -3,9 +3,15 @@ package pods
 import (
 	"bufio"
 	"context"
-	v1 "k8s.io/api/core/v1"
+	"encoding/json"
+	"fmt"
 	"strings"
+	"sync"
 	"time"
+
+	"github.com/labstack/echo/v4"
+	"github.com/r3labs/sse/v2"
+	v1 "k8s.io/api/core/v1"
 )
 
 type LogMessage struct {
@@ -51,4 +57,50 @@ func (h *PodsHandler) fetchLogs(ctx context.Context, namespace, podName, contain
 	if err := scanner.Err(); err != nil {
 		return
 	}
+}
+
+func (h *PodsHandler) publishLogs(c echo.Context, streamKey string, sseServer *sse.Server) (error, bool) {
+	name := c.Param("name")
+	namespace := c.QueryParam("namespace")
+	container := c.QueryParam("container")
+	isAllContainers := strings.EqualFold(c.QueryParam("all-containers"), "true")
+
+	var containerNames []string
+
+	if isAllContainers {
+		podObj, _, err := h.BaseHandler.Informer.GetStore().GetByKey(fmt.Sprintf("%s/%s", c.QueryParam("namespace"), c.Param("name")))
+		if err != nil {
+			return err, true
+		}
+		pod := podObj.(*v1.Pod)
+		for _, logContainer := range pod.Spec.Containers {
+			containerNames = append(containerNames, logContainer.Name)
+		}
+	} else {
+		containerNames = []string{container}
+	}
+
+	logsChannel := make(chan LogMessage)
+	defer close(logsChannel)
+
+	for _, containerName := range containerNames {
+		go h.fetchLogs(c.Request().Context(), namespace, name, containerName, logsChannel)
+	}
+
+	var log sync.Mutex
+	for logMsg := range logsChannel {
+		log.Lock()
+		j, err := json.Marshal(logMsg)
+		if err != nil {
+			c.Logger().Errorf("failed to marshal log message: %v", err)
+			return nil, true
+		}
+
+		sseServer.Publish(streamKey, &sse.Event{
+			Data: j,
+		})
+		log.Unlock()
+	}
+
+	return nil, false
 }

@@ -36,6 +36,7 @@ import {
   ClusterEventsHeaders,
   ClusterRoleBindingsListHeader,
   ClusterRolesListHeader,
+  CommonSearchParams,
   ConfigMapsHeader,
   CronJobsHeader,
   CustomResourceHeaders,
@@ -180,6 +181,8 @@ export function KwList() {
 
   const { config } = kwList.useParams();
   const { cluster, resourcekind, group, kind, resource, version } = kwList.useSearch();
+  const commonSearchParams: CommonSearchParams = kwList.useSearch();
+  commonSearchParams.config = config;
 
   const getTableData = (resourcekind: string) => {
     if (resourcekind === LEASES_ENDPOINT) {
