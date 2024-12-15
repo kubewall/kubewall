@@ -6,6 +6,7 @@ const formatServicesResponse = (podDisruptionBudgets: ServicesResponse[]) => {
     namespace: namespace,
     ports: spec.ports,
     clusterIP: spec.clusterIP,
+    externalIP: spec.extenalIPs,
     type: spec.type,
     sessionAffinity: spec.sessionAffinity,
     ipFamilyPolicy: spec.ipFamilyPolicy,

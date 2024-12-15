@@ -8,6 +8,8 @@ type ServicesResponse = {
       sessionAffinity: string;
       ipFamilyPolicy: string;
       internalTrafficPolicy: string;
+      type: string;
+      extenalIPs: string;
   };
   age: string;
   hasUpdated: boolean;

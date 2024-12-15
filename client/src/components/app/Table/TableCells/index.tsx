@@ -123,7 +123,7 @@ const TableCells = <T extends ClusterDetails>({
   }
   if (
     value !== '' &&
-    (type === 'Rules' || type === 'Ports' || type === 'Bindings' || type === 'Roles' || type === 'Keys') &&
+    (type === 'Rules' || type === 'Ports' || type === 'Bindings' || type === 'Roles' || type === 'Keys' || type === 'External IP') &&
     (
       instanceType === INGRESSES_ENDPOINT ||
       instanceType === ENDPOINTS_ENDPOINT ||
