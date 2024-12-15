@@ -7,7 +7,7 @@ import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Editor } from "@monaco-editor/react";
+import Editor from '../../Details/YamlEditor/MonacoWrapper';
 import { FilePlusIcon } from "@radix-ui/react-icons";
 import { Loader } from '../../Loader';
 import { SaveIcon } from "lucide-react";
@@ -144,7 +144,7 @@ const AddResource = () => {
                 </Button>
               }
               <Editor
-                className='border rounded-lg'
+                className='border rounded-lg h-screen'
                 value={value}
                 defaultLanguage='yaml'
                 onChange={onChange}

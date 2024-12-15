@@ -111,17 +111,17 @@ const TableDelete = ({ selectedRows, toggleAllRowsSelected, postDeleteCallback }
     <Dialog open={modalOpen} onOpenChange={(open: boolean) => setModalOpen(open)}>
       <DialogTrigger asChild>
         <Button
-          variant="destructive"
+          variant={isListPage ? 'destructive': 'ghost'}
           size="icon"
-          className={`right-0 mt-1 rounded z-10 border w-20 ${isListPage && 'absolute mr-10 bottom-12'}`}
+          className={`right-0 mt-1 rounded z-10 border w-9 ${isListPage && 'absolute mr-10 bottom-12 w-20'}`}
           onClick={() => setModalOpen(true)}
 
         > {
             loading ?
               <Loader className='w-5 h-5 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600' /> :
-              <Trash2Icon className="h-4 w-4 mr-1" />
+              <Trash2Icon className={`h-4 w-4 ${isListPage && `mr-1`}`} />
           }
-          <span className='text-xs'>Delete</span>
+          {isListPage && <span className='text-xs'>Delete</span> }
         </Button>
       </DialogTrigger>
       <DialogContent>

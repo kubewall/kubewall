@@ -38,7 +38,7 @@ const YamlEditor = memo(function ({ instanceType, name, namespace, clusterName, 
     config: configName,
     cluster: clusterName
   }).toString();
-  
+
   const [value, setValue] = useState('');
   const onChange = useCallback((val = '') => {
     setYamlUpdated(true);
@@ -119,25 +119,13 @@ const YamlEditor = memo(function ({ instanceType, name, namespace, clusterName, 
                 <span className='text-xs'>Save</span>
               </Button>
             }
-           <Editor
-        value={value}
-        language="yaml"
-        onChange={onChange}
-        className='border rounded-lg h-screen'
-        
-      />
-            {/* <Editor
-              className='border rounded-lg h-screen'
+            <Editor
               value={value}
-              defaultLanguage='yaml'
+              language="yaml"
               onChange={onChange}
-              theme={getSystemTheme()}
-              options={{
-                minimap: {
-                  enabled: false,
-                },
-              }}
-            /> */}
+              className='border rounded-lg h-screen'
+
+            />
           </div>
 
       }

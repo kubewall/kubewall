@@ -1,4 +1,4 @@
-import { MutableRefObject, useRef } from "react";
+import { MutableRefObject, useRef, useState } from "react";
 import { PodDetailsSpec, PodSocketResponse } from "@/types";
 import { getColorForContainerName, getEventStreamUrl } from "@/utils";
 
@@ -20,7 +20,7 @@ type SocketLogsProps = {
 
 export function SocketLogs({ pod, containerName, namespace, configName, clusterName, podDetailsSpec, searchAddonRef,updateLogs }: SocketLogsProps) {
   const logContainerRef = useRef<HTMLDivElement>(null);
-  
+  const lineCount = useRef<number>(1);
   const xterm = useRef<Terminal | null>(null);
   
   const printLogLine = (message: PodSocketResponse) => {
@@ -31,7 +31,8 @@ export function SocketLogs({ pod, containerName, namespace, configName, clusterN
       const smallerText = '\x1b[2m'; // ANSI escape code for dim (which may simulate a smaller font)
       const resetSmallText = '\x1b[22m'; // Reset for dim text
       // Print the message with the background color
-      xterm.current.writeln(`${smallerText}${message.timestamp}${resetSmallText} ${containerColor}${message.containerName}${resetCode} ${message.log}`);
+      xterm.current.writeln(`${lineCount.current}: ${smallerText}${message.timestamp}${resetSmallText} ${containerColor}${message.containerName}${resetCode} ${message.log}`);
+      lineCount.current++;
     }
   };
   const sendMessage = (lastMessage: PodSocketResponse) => {
@@ -56,15 +57,7 @@ export function SocketLogs({ pod, containerName, namespace, configName, clusterN
 
   return (
     <div ref={logContainerRef} className="m-2">
-      {/* {
-        logs.length == 0 &&
-        <div className="empty-table flex items-center justify-center text-sm">
-          No Logs.
-        </div>
-      } */}
       <XtermTerminal
-        log={[]}
-        podDetailsSpec={podDetailsSpec}
         containerNameProp={containerName}
         xterm={xterm}
         searchAddonRef={searchAddonRef}

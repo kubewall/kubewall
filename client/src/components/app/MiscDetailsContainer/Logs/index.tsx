@@ -36,11 +36,11 @@ const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => 
   const downloadLogs = () => {
     const a = document.createElement('a');
     let logString = '';
-    logs.forEach((log) => {
+    logs.forEach((log, index) => {
       if (log.containerChange) {
         logString += `-------------------${log.containerName || 'All Containers'}-------------------\n`;
       } else {
-        logString += `[${log.containerName}]: ${log.log}\n`;
+        logString += `${index}: ${log.containerName ? `[${log.containerName}]`: '' }: ${log.log.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '')}\n`;
       }
     });
     a.href = `data:text/plain,${logString}`;

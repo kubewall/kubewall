@@ -33,6 +33,7 @@ type DataTableProps<TData, TValue> = {
   data: TData[];
   tableWidthCss: string;
   showNamespaceFilter: boolean;
+  instanceType: string;
   showToolbar?: boolean;
   loading?: boolean;
   isEventTable?: boolean;
@@ -64,6 +65,7 @@ export function DataTable<TData, TValue>({
   data,
   tableWidthCss,
   showNamespaceFilter,
+  instanceType,
   showToolbar = true,
   loading = false,
   isEventTable = false,
@@ -109,6 +111,7 @@ export function DataTable<TData, TValue>({
     getSortedRowModel: getSortedRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
+    getRowId: row => row.name + row.namespace,
   });
 
   const getIdAndSetClass = (shouldSetClass: boolean, id: string) => {
@@ -123,7 +126,7 @@ export function DataTable<TData, TValue>({
 
   useEffect(() => {
     setRowSelection({});
-  }, [columns]);
+  }, [instanceType]);
 
   return (
     <>

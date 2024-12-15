@@ -63,6 +63,7 @@ const DeploymentDetailsContainer = memo(function () {
                 }
                 data={loading ? defaultSkeletonRow() : deploymentPodDetails}
                 tableWidthCss="border-r border-l"
+                instanceType={PODS_ENDPOINT}
                 showToolbar={false}
                 showNamespaceFilter={false}
               />
