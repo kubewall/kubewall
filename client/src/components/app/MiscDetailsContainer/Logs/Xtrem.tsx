@@ -1,15 +1,15 @@
 import '@xterm/xterm/css/xterm.css';
 
 import { MutableRefObject, useEffect, useRef, useState } from 'react';
-import { PodDetailsSpec, PodSocketResponse } from '@/types';
-import { getColorForContainerName, getSystemTheme } from '@/utils';
 
 import { Button } from '@/components/ui/button';
 import { ChevronsDown } from 'lucide-react';
 import { FitAddon } from '@xterm/addon-fit';
+import { PodSocketResponse } from '@/types';
 import { SearchAddon } from '@xterm/addon-search';
 import { Terminal } from '@xterm/xterm';
 import { clearLogs } from '@/data/Workloads/Pods/PodLogsSlice';
+import { getSystemTheme } from '@/utils';
 import { useAppDispatch } from '@/redux/hooks';
 
 type XtermProp = {

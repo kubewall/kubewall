@@ -1,4 +1,4 @@
-import { MutableRefObject, useRef, useState } from "react";
+import { MutableRefObject, useRef } from "react";
 import { PodDetailsSpec, PodSocketResponse } from "@/types";
 import { getColorForContainerName, getEventStreamUrl } from "@/utils";
 
