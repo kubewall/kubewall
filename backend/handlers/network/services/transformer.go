@@ -47,7 +47,7 @@ func TransformServices(pvs []v1.Service) []Services {
 
 func TransformServiceItem(item v1.Service) Services {
 	ports := make([]string, 0)
-	var ips []string
+	ips := make([]string, 0)
 
 	for _, port := range item.Spec.Ports {
 		ports = append(ports, fmt.Sprintf("%d/%s", port.Port, port.Protocol))
