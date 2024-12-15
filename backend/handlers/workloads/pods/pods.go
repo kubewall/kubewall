@@ -7,6 +7,7 @@ import (
 
 	"github.com/charmbracelet/log"
 	"github.com/kubewall/kubewall/backend/handlers/workloads/replicaset"
+	"github.com/r3labs/sse/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/metrics/pkg/apis/metrics/v1beta1"
 
@@ -130,8 +131,9 @@ func GetPodsMetricsList(b *base.BaseHandler) *v1beta1.PodMetricsList {
 }
 
 func (h *PodsHandler) GetLogs(c echo.Context) error {
-	sse := h.BaseHandler.Container.SSE()
-	sse.EventTTL = 0
+	sseServer := sse.New()
+	sseServer.AutoStream = true
+	sseServer.EventTTL = 0
 	config := c.QueryParam("config")
 	cluster := c.QueryParam("cluster")
 	name := c.Param("name")
@@ -144,9 +146,9 @@ func (h *PodsHandler) GetLogs(c echo.Context) error {
 	} else {
 		key = fmt.Sprintf("%s-%s-%s-%s-logs", config, cluster, name, namespace)
 	}
-	go h.publishLogs(c, key, sse)
+	go h.publishLogs(c, key, sseServer)
 
-	sse.ServeHTTP(key, c.Response(), c.Request())
+	sseServer.ServeHTTP(key, c.Response(), c.Request())
 
 	return nil
 }
