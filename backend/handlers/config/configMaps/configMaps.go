@@ -62,7 +62,7 @@ func NewConfigMapsHandler(c echo.Context, container container.Container) *Config
 	return handler
 }
 
-func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
+func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 	var configMapList []coreV1.ConfigMap
 
 	for _, obj := range items {

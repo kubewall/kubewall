@@ -3,8 +3,9 @@ package clusterrolebindings
 import (
 	"encoding/json"
 	"fmt"
-	rbacV1 "k8s.io/api/rbac/v1"
 	"net/http"
+
+	rbacV1 "k8s.io/api/rbac/v1"
 
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/base"
@@ -62,7 +63,7 @@ func NewClusterRoleBindingHandler(c echo.Context, container container.Container)
 	return handler
 }
 
-func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
+func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 	var list []rbacV1.ClusterRoleBinding
 
 	for _, obj := range items {

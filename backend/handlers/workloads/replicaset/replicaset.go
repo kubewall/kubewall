@@ -64,7 +64,7 @@ func NewReplicaSetHandler(c echo.Context, container container.Container) *Replic
 	return handler
 }
 
-func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
+func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 	var replicasSets []appV1.ReplicaSet
 
 	for _, obj := range items {

@@ -3,8 +3,9 @@ package runtimeclasses
 import (
 	"encoding/json"
 	"fmt"
-	v1 "k8s.io/api/node/v1"
 	"net/http"
+
+	v1 "k8s.io/api/node/v1"
 
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/base"
@@ -62,7 +63,7 @@ func NewRunTimeClassHandler(c echo.Context, container container.Container) *RunT
 	return handler
 }
 
-func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
+func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 	var list []v1.RuntimeClass
 
 	for _, obj := range items {

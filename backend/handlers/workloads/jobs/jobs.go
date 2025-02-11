@@ -63,7 +63,7 @@ func NewJobsHandler(c echo.Context, container container.Container) *JobsHandler 
 	return handler
 }
 
-func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
+func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 	var jobList []batchV1.Job
 
 	for _, obj := range items {

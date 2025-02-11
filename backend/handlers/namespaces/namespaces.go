@@ -62,7 +62,7 @@ func NewNamespacesHandler(c echo.Context, container container.Container) *Namesp
 	return handler
 }
 
-func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
+func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 	var namespacesList []v1.Namespace
 
 	for _, obj := range items {

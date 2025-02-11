@@ -3,8 +3,9 @@ package ingresses
 import (
 	"encoding/json"
 	"fmt"
-	networkingV1 "k8s.io/api/networking/v1"
 	"net/http"
+
+	networkingV1 "k8s.io/api/networking/v1"
 
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/base"
@@ -62,7 +63,7 @@ func NewIngressHandler(c echo.Context, container container.Container) *IngressHa
 	return handler
 }
 
-func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
+func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 	var list []networkingV1.Ingress
 
 	for _, obj := range items {

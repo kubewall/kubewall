@@ -3,8 +3,9 @@ package priorityclasses
 import (
 	"encoding/json"
 	"fmt"
-	v1 "k8s.io/api/scheduling/v1"
 	"net/http"
+
+	v1 "k8s.io/api/scheduling/v1"
 
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/base"
@@ -63,7 +64,7 @@ func NewPriorityClassHandler(c echo.Context, container container.Container) *Pri
 	return handler
 }
 
-func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
+func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 	var list []v1.PriorityClass
 
 	for _, obj := range items {

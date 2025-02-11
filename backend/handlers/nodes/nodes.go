@@ -59,7 +59,7 @@ func NewNodeHandler(c echo.Context, container container.Container) *NodeHandler 
 	return handler
 }
 
-func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
+func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 	var list []coreV1.Node
 
 	for _, obj := range items {

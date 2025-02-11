@@ -3,8 +3,9 @@ package endpoints
 import (
 	"encoding/json"
 	"fmt"
-	v1 "k8s.io/api/core/v1"
 	"net/http"
+
+	v1 "k8s.io/api/core/v1"
 
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/base"
@@ -63,7 +64,7 @@ func NewEndpointsHandler(c echo.Context, container container.Container) *Endpoin
 	return handler
 }
 
-func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
+func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 	var list []v1.Endpoints
 
 	for _, obj := range items {

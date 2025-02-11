@@ -3,8 +3,9 @@ package leases
 import (
 	"encoding/json"
 	"fmt"
-	v1 "k8s.io/api/coordination/v1"
 	"net/http"
+
+	v1 "k8s.io/api/coordination/v1"
 
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/base"
@@ -62,7 +63,7 @@ func NewLeasesHandler(c echo.Context, container container.Container) *LeasesHand
 	return handler
 }
 
-func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
+func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 	var list []v1.Lease
 
 	for _, obj := range items {

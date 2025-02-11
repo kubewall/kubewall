@@ -63,7 +63,7 @@ func NewSatefulSetHandler(c echo.Context, container container.Container) *Statef
 	return handler
 }
 
-func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
+func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 	var satefulsets []appV1.StatefulSet
 
 	for _, obj := range items {

@@ -100,7 +100,7 @@ func NewPodsHandler(c echo.Context, container container.Container) *PodsHandler 
 	return handler
 }
 
-func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
+func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 	var list []v1.Pod
 	for _, obj := range items {
 		if item, ok := obj.(*v1.Pod); ok {

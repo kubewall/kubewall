@@ -3,12 +3,13 @@ package cronjobs
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/base"
 	"github.com/kubewall/kubewall/backend/handlers/helpers"
 	"github.com/labstack/echo/v4"
 	batchV1 "k8s.io/api/batch/v1"
-	"net/http"
 )
 
 type CronJobsHandler struct {
@@ -61,7 +62,7 @@ func NewCronJobsHandler(c echo.Context, container container.Container) *CronJobs
 	return handler
 }
 
-func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
+func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 	var cronJobList []batchV1.CronJob
 
 	for _, obj := range items {

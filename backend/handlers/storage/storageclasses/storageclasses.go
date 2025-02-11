@@ -3,8 +3,9 @@ package storageclasses
 import (
 	"encoding/json"
 	"fmt"
-	storageV1 "k8s.io/api/storage/v1"
 	"net/http"
+
+	storageV1 "k8s.io/api/storage/v1"
 
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/base"
@@ -62,7 +63,7 @@ func NewStorageClassesHandler(c echo.Context, container container.Container) *St
 	return handler
 }
 
-func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
+func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 	var list []storageV1.StorageClass
 
 	for _, obj := range items {

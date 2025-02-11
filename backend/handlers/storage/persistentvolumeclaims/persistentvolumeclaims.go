@@ -63,7 +63,7 @@ func NewPersistentVolumeClaimsHandler(c echo.Context, container container.Contai
 	return handler
 }
 
-func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
+func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 	var cronJobList []coreV1.PersistentVolumeClaim
 
 	for _, obj := range items {

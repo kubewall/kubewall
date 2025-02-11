@@ -62,7 +62,7 @@ func NewPersistentVolumeHandler(c echo.Context, container container.Container) *
 	return handler
 }
 
-func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
+func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 	var list []coreV1.PersistentVolume
 
 	for _, obj := range items {

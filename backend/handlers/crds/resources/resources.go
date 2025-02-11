@@ -165,7 +165,7 @@ func (h *UnstructuredHandler) Delete(c echo.Context) error {
 	})
 }
 
-func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
+func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 	output := Output{}
 	list := make([]unstructured.Unstructured, 0)
 	customResourceDefinitions := make([]apiextensionsv1.CustomResourceDefinition, 0)

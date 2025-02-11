@@ -3,8 +3,9 @@ package rolebindings
 import (
 	"encoding/json"
 	"fmt"
-	rbacV1 "k8s.io/api/rbac/v1"
 	"net/http"
+
+	rbacV1 "k8s.io/api/rbac/v1"
 
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/base"
@@ -62,7 +63,7 @@ func NewRoleBindingHandler(c echo.Context, container container.Container) *RoleB
 	return handler
 }
 
-func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
+func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 	var list []rbacV1.RoleBinding
 
 	for _, obj := range items {

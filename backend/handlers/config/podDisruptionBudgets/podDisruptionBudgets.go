@@ -3,8 +3,9 @@ package poddisruptionbudgets
 import (
 	"encoding/json"
 	"fmt"
-	policyV1 "k8s.io/api/policy/v1"
 	"net/http"
+
+	policyV1 "k8s.io/api/policy/v1"
 
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/base"
@@ -62,7 +63,7 @@ func NewPodDisruptionBudgetHandler(c echo.Context, container container.Container
 	return handler
 }
 
-func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
+func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 	var list []policyV1.PodDisruptionBudget
 
 	for _, obj := range items {

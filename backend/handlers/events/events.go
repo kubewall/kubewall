@@ -56,7 +56,7 @@ func NewEventsHandler(c echo.Context, container container.Container) *EventsHand
 	return handler
 }
 
-func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
+func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 	var eventList []v1.Event
 
 	for _, obj := range items {

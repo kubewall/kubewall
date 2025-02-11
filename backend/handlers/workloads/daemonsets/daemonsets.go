@@ -64,7 +64,7 @@ func NewDaemonSetsHandler(c echo.Context, container container.Container) *Daemon
 	return handler
 }
 
-func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
+func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 	var daemonSets []appV1.DaemonSet
 
 	for _, obj := range items {

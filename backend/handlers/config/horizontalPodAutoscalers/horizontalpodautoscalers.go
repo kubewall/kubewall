@@ -3,8 +3,9 @@ package horizontalpodautoscalers
 import (
 	"encoding/json"
 	"fmt"
-	autoScalingV2 "k8s.io/api/autoscaling/v2"
 	"net/http"
+
+	autoScalingV2 "k8s.io/api/autoscaling/v2"
 
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/base"
@@ -62,7 +63,7 @@ func NewHorizontalPodAutoScalerHandler(c echo.Context, container container.Conta
 	return handler
 }
 
-func transformItems(items []interface{}, _ *base.BaseHandler) ([]byte, error) {
+func transformItems(items []any, _ *base.BaseHandler) ([]byte, error) {
 	var list []autoScalingV2.HorizontalPodAutoscaler
 
 	for _, obj := range items {

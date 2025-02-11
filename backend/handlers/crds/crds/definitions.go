@@ -3,12 +3,13 @@ package crds
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/base"
 	"github.com/kubewall/kubewall/backend/handlers/helpers"
 	"github.com/labstack/echo/v4"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"net/http"
 )
 
 type CRDHandler struct {
@@ -58,7 +59,7 @@ func NewCRDHandler(container container.Container, routeType base.RouteType) echo
 	}
 }
 
-func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
+func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 	var list []apiextensionsv1.CustomResourceDefinition
 
 	for _, obj := range items {

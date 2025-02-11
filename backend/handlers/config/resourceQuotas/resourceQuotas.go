@@ -62,7 +62,7 @@ func NewResourceQuotaHandler(c echo.Context, container container.Container) *Res
 	return handler
 }
 
-func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
+func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 	var list []coreV1.ResourceQuota
 
 	for _, obj := range items {

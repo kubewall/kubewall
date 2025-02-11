@@ -63,7 +63,7 @@ func NewSecretsHandler(c echo.Context, container container.Container) *SecretsHa
 	return handler
 }
 
-func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
+func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 	var secrets []coreV1.Secret
 
 	for _, obj := range items {

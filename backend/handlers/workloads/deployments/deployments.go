@@ -3,13 +3,14 @@ package deployments
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/base"
 	"github.com/kubewall/kubewall/backend/handlers/helpers"
 	"github.com/kubewall/kubewall/backend/handlers/workloads/pods"
 	"github.com/labstack/echo/v4"
 	v1 "k8s.io/api/apps/v1"
-	"net/http"
 )
 
 const GetPods = 12
@@ -68,7 +69,7 @@ func NewDeploymentsHandler(c echo.Context, container container.Container) *Deplo
 	return handler
 }
 
-func transformItems(items []interface{}, b *base.BaseHandler) ([]byte, error) {
+func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 	var deploymentList []v1.Deployment
 
 	for _, obj := range items {
