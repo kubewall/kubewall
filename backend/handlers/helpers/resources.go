@@ -31,6 +31,11 @@ func CacheAllResources(container container.Container, config, cluster string) er
 				Kind:       resource.Kind,
 			})
 		}
+		// Check if metric serer is available and mark it as true.
+		// It's fine to cache this value multiple times, without checking if it's cache is already dirty.
+		if strings.Contains(group.GroupVersion, "metrics.k8s.io") {
+			container.Cache().Set(fmt.Sprintf(IsMetricServerAvailableCacheKeyFormat, config, cluster), true)
+		}
 	}
 	container.Cache().Set(fmt.Sprintf(AllResourcesCacheKeyFormat, config, cluster), allResource)
 	return nil
@@ -58,23 +63,4 @@ func FindResourceByKind(container container.Container, config, cluster, kind str
 		}
 	}
 	return Resources{}, false
-}
-
-func CacheIfIsMetricsAPIAvailable(container container.Container, config string, cluster string) bool {
-	var available bool
-
-	apiGroupList, err := container.ClientSet(config, cluster).Discovery().ServerGroups()
-	if err != nil {
-		return false
-	}
-
-	// Loop through the API groups to check for metrics.k8s.io
-	for _, group := range apiGroupList.Groups {
-		if group.Name == "metrics.k8s.io" {
-			available = true
-		}
-	}
-
-	container.Cache().Set(fmt.Sprintf(IsMetricServerAvailableCacheKeyFormat, config, cluster), available)
-	return false
 }
