@@ -19,15 +19,10 @@ func ClusterCacheMiddleware(container container.Container) echo.MiddlewareFunc {
 			cluster := c.QueryParam("cluster")
 
 			allResourcesKey := fmt.Sprintf(helpers.AllResourcesCacheKeyFormat, config, cluster)
-			metricAPIAvailableKey := fmt.Sprintf(helpers.IsMetricServerAvailableCacheKeyFormat, config, cluster)
 
 			conn := container.Config().KubeConfig[config].Clusters[cluster]
 			if !conn.IsConnected() {
 				conn.MarkAsConnected()
-			}
-
-			if !container.Cache().Has(metricAPIAvailableKey) {
-				helpers.CacheIfIsMetricsAPIAvailable(container, config, cluster)
 			}
 
 			if !container.Cache().Has(allResourcesKey) {
