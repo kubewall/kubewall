@@ -122,9 +122,9 @@ func LoadK8ConfigFromFile(path string) (map[string]*Cluster, error) {
 	return clusters, nil
 }
 
-func restConfig(config api.Config, key string) (*rest.Config, error) {
-	config.CurrentContext = key
-	cc := clientcmd.NewDefaultClientConfig(config, &clientcmd.ConfigOverrides{CurrentContext: key})
+func restConfig(config api.Config, contextName string) (*rest.Config, error) {
+	config.CurrentContext = contextName
+	cc := clientcmd.NewDefaultClientConfig(config, &clientcmd.ConfigOverrides{CurrentContext: contextName})
 
 	restConfig, err := cc.ClientConfig()
 	if err != nil {
@@ -134,11 +134,10 @@ func restConfig(config api.Config, key string) (*rest.Config, error) {
 	restConfig.ContentType = runtime.ContentTypeProtobuf
 	restConfig.QPS = float32(K8SQPS)
 	restConfig.Burst = K8SBURST
-	if restConfig.BearerToken != "" {
-		if isTLSClientConfigEmpty(restConfig) {
-			restConfig.Insecure = true
-		}
+	if restConfig.BearerToken != "" && isTLSClientConfigEmpty(restConfig) {
+		restConfig.Insecure = true
 	}
+
 	return restConfig, nil
 }
 

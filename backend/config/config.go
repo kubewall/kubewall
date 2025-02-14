@@ -10,7 +10,7 @@ import (
 
 var (
 	K8SQPS   = 50
-	K8SBURST = 50
+	K8SBURST = 100
 )
 
 const (
