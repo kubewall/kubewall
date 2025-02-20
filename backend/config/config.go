@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	K8SQPS   = 50
-	K8SBURST = 100
+	K8SQPS   = 100
+	K8SBURST = 200
 )
 
 const (
@@ -88,12 +88,15 @@ func (c *AppConfig) buildKubeConfigs(dirPath string) {
 
 func readAllFilesInDir(dirPath string) []string {
 	var files []string
-	dirFiles, _ := os.ReadDir(dirPath)
+	dirFiles, err := os.ReadDir(dirPath)
+	if err != nil {
+		return files
+	}
 	for _, file := range dirFiles {
-		files = append(files, filepath.Join(dirPath, file.Name()))
 		if file.IsDir() {
 			continue
 		}
+		files = append(files, filepath.Join(dirPath, file.Name()))
 	}
 	return files
 }
