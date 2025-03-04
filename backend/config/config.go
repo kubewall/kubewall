@@ -8,10 +8,8 @@ import (
 	"k8s.io/client-go/util/homedir"
 )
 
-var (
-	K8SQPS   = 100
-	K8SBURST = 200
-)
+var K8SQPS int
+var K8SBURST int
 
 const (
 	defaultKubeConfigDir = ".kube"
@@ -44,9 +42,9 @@ func NewEnv() *Env {
 	return &env
 }
 
-func NewAppConfig(version string, k8sqps, k8sburst int) *AppConfig {
-	K8SQPS = k8sqps
-	K8SBURST = k8sburst
+func NewAppConfig(version string, k8sClientQPS, k8sClientBurst int) *AppConfig {
+	K8SQPS = k8sClientQPS
+	K8SBURST = k8sClientBurst
 	return &AppConfig{
 		Version:    version,
 		KubeConfig: make(map[string]*KubeConfigInfo),
