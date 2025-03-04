@@ -2,10 +2,11 @@ package config
 
 import (
 	"fmt"
-	"k8s.io/client-go/util/homedir"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"k8s.io/client-go/util/homedir"
 
 	"github.com/stretchr/testify/assert"
 )

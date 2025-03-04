@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/kubewall/kubewall/backend/config"
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/routes"
@@ -9,15 +11,14 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
-	"os"
 )
 
 func init() {
 	rootCmd.PersistentFlags().String("certFile", "", "absolute path to certificate file")
 	rootCmd.PersistentFlags().String("keyFile", "", "absolute path to key file")
 	rootCmd.PersistentFlags().StringP("port", "p", ":7080", "port to listen on")
-	rootCmd.PersistentFlags().Int("k8s-client-qps", 50, "maximum QPS to the master from client")
-	rootCmd.PersistentFlags().Int("k8s-client-burst", 50, "Maximum burst for throttle")
+	rootCmd.PersistentFlags().Int("k8s-client-qps", 100, "maximum QPS to the master from client")
+	rootCmd.PersistentFlags().Int("k8s-client-burst", 200, "Maximum burst for throttle")
 	rootCmd.PersistentFlags().Bool("no-open-browser", false, "Do not open the default browser")
 }
 
