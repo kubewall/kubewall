@@ -41,7 +41,9 @@ type DataTableProps<TData, TValue> = {
 
 declare global {
   interface Window {
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
     safari:any;
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
     lastSelectedRow: any;
   }
 }
@@ -134,7 +136,7 @@ export function DataTable<TData, TValue>({
         && <DataTableToolbar loading={loading} table={table} globalFilter={globalFilter} setGlobalFilter={setGlobalFilter} showNamespaceFilter={showNamespaceFilter} />
       }
       {
-        // eslint-disable-next-line 
+         
         window.safari !== undefined && 
         <div className='flex bg-red-500 dark:bg-red-900 items-center justify-between text-xs font-light px-2 py-1'>
         <span className='text-xs text-white'>We detected you are on Safari browser and are using http. For seemless expereince switch over to chrome/firefox. More details <a className='underline' href='https://github.com/kubewall/kubewall/wiki/FAQ#https' target='blank'>here</a></span>

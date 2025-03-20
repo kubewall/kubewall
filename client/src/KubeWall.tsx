@@ -28,77 +28,75 @@ export function KubeWall() {
   }, [clusters, dispatch]);
 
   const isSelected = (config: string, cluster: string) => {
-   return config === configName && cluster === clusterName;
+    return config === configName && cluster === clusterName;
   };
   return (
     <>
       {
         pathname !== '/kwconfig' && pathname !== "/" ?
-        <div className="col-span-1 flex flex-col">
-        <div className="h-screen flex">
-          <div className="border-r basis-12 bg-muted/50 flex flex-col items-center overflow-hidden relative">
-            <div className="flex-1 overflow-auto w-full">
-              <TooltipProvider>
-                {clusters.kubeConfigs &&
-                  Object.keys(clusters.kubeConfigs).map((config) => {
-                    return (
-                      clusters.kubeConfigs[config].fileExists &&
-                      Object.keys(clusters.kubeConfigs[config].clusters).map((cluster) => {
-                        const { name } = clusters.kubeConfigs[config].clusters[cluster];
-      
+            <div className="h-screen flex">
+              <div className="flex-shrink-0 border-r basis-12 bg-muted/50 flex flex-col items-center overflow-hidden relative">
+                <div className="flex-1 overflow-auto w-full pl-[2px]">
+                  <TooltipProvider>
+                    {clusters.kubeConfigs &&
+                      Object.keys(clusters.kubeConfigs).map((config) => {
                         return (
-                          <Tooltip key={name} delayDuration={0}>
-                            <TooltipTrigger asChild>
-                              <Link
-                                to={`/${config}/list?cluster=${name}&resourcekind=${selectedResource}`}
-                                onClick={() => dispatch(resetAllStates())}
-                                href="#"
-                                className={cn(
-                                  buttonVariants({ variant: isSelected(config, name) ? 'default' : 'ghost', size: 'icon' }),
-                                  'h-10 w-10',
-                                  'border',
-                                  'shadow-none',
-                                  'm-0.5',
-                                  isSelected(config, clusterName) ? '' : 'dark:border',
-                                )}
-                              >
-                                <span className="text-[16px] font-normal">{name.substring(0, 2).toUpperCase()}</span>
-                                <span className="sr-only">{name}</span>
-                              </Link>
-                            </TooltipTrigger>
-                            <TooltipContent side="right" className="flex items-center gap-4">
-                              {name}
-                            </TooltipContent>
-                          </Tooltip>
+                          clusters.kubeConfigs[config].fileExists &&
+                          Object.keys(clusters.kubeConfigs[config].clusters).map((cluster) => {
+                            const { name } = clusters.kubeConfigs[config].clusters[cluster];
+
+                            return (
+                              <Tooltip key={name} delayDuration={0}>
+                                <TooltipTrigger asChild>
+                                  <Link
+                                    to={`/${config}/list?cluster=${name}&resourcekind=${selectedResource}`}
+                                    onClick={() => dispatch(resetAllStates())}
+                                    href="#"
+                                    className={cn(
+                                      buttonVariants({ variant: isSelected(config, name) ? 'default' : 'ghost', size: 'icon' }),
+                                      'h-10 w-10',
+                                      'border',
+                                      'shadow-none',
+                                      'm-0.5',
+                                      isSelected(config, clusterName) ? '' : 'dark:border',
+                                    )}
+                                  >
+                                    <span className="text-[16px] font-normal">{name.substring(0, 2).toUpperCase()}</span>
+                                    <span className="sr-only">{name}</span>
+                                  </Link>
+                                </TooltipTrigger>
+                                <TooltipContent side="right" className="flex items-center gap-4">
+                                  {name}
+                                </TooltipContent>
+                              </Tooltip>
+                            );
+                          })
                         );
-                      })
-                    );
-                  })}
-                <Tooltip delayDuration={0}>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="/kwconfig"
-                      href="#"
-                      className={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'h-10 w-10', 'border', 'shadow-none', 'mt-1', 'ml-0.5')}
-                    >
-                      <PlusCircledIcon className="w-5 h-5" />
-                      <span className="sr-only">Add Cluster</span>
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="flex items-center gap-4">
-                    Add Cluster
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+                      })}
+                    <Tooltip delayDuration={0}>
+                      <TooltipTrigger asChild>
+                        <Link
+                          to="/kwconfig"
+                          href="#"
+                          className={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'h-10 w-10', 'border', 'shadow-none', 'mt-1', 'ml-0.5')}
+                        >
+                          <PlusCircledIcon className="w-5 h-5" />
+                          <span className="sr-only">Add Cluster</span>
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="flex items-center gap-4">
+                        Add Cluster
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <div className="sticky bottom-0 w-full flex justify-center p-2 bg-muted/50">
+                  <GitHubLogoIcon className="w-6 h-6 cursor-pointer" onClick={() => window.open('https://github.com/kubewall/kubewall')} />
+                </div>
+              </div>
+              <div className="flex-1 flex overflow-hidden"><App /></div>
             </div>
-            <div className="sticky bottom-0 w-full flex justify-center p-2 bg-muted/50">
-              <GitHubLogoIcon className="w-6 h-6 cursor-pointer" onClick={()=> window.open('https://github.com/kubewall/kubewall')}/>
-            </div>
-          </div>
-          <App />
-        </div>
-      </div>
-       :
+          :
           <Outlet />
       }
     </>

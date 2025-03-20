@@ -109,7 +109,7 @@ const YamlEditor = memo(function ({ instanceType, name, namespace, clusterName, 
               <Button
                 variant="default"
                 size="icon"
-                className='absolute bottom-32 right-0 mt-1 mr-5 rounded z-10 border w-16'
+                className='gap-0 absolute bottom-32 right-0 mt-1 mr-5 rounded z-10 border w-16'
                 onClick={yamlUpdate}
               > {
                   yamlUpdateLoading ?

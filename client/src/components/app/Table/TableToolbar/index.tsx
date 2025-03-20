@@ -7,6 +7,8 @@ import { DataTableFacetedFilter } from "@/components/app/Table/TableFacetedFilte
 import { DataTableViewOptions } from "@/components/app/Table/TableViewOptions";
 import { DebouncedInput } from "@/components/app/Common/DeboucedInput";
 import { RootState } from "@/redux/store";
+import { Separator } from "@/components/ui/separator";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Table } from "@tanstack/react-table";
 import { ThemeModeSelector } from "@/components/app/Common/ThemeModeSelector";
 import { namespacesFilter } from "@/utils";
@@ -37,6 +39,8 @@ export function DataTableToolbar<TData>({
   return (
     <div className="flex items-center justify-between px-2 py-2">
       <div className="flex flex-1 items-center space-x-2">
+        <SidebarTrigger />
+        <Separator orientation="vertical" className="mr-2 h-4 ml-1" />
         <DebouncedInput
           placeholder="Search... (/)"
           value={globalFilter ?? ''}
@@ -56,7 +60,7 @@ export function DataTableToolbar<TData>({
         {isFiltered && showNamespaceFilter && !loading && namespaces && namespaces.length > 0 && (
           <Button
             variant="ghost"
-            onClick={() => {table.resetColumnFilters(); dispatch(resetFilterNamespace());}}
+            onClick={() => { table.resetColumnFilters(); dispatch(resetFilterNamespace()); }}
             className="h-8 px-2 lg:px-3 shadow-none"
           >
             Reset
@@ -71,7 +75,7 @@ export function DataTableToolbar<TData>({
         }
       </div>
       <DataTableViewOptions table={table} />
-      <AddResource/>
+      <AddResource />
       <ThemeModeSelector />
     </div>
   );

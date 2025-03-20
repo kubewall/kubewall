@@ -11,6 +11,8 @@ import { PODS_ENDPOINT } from "@/constants";
 import { PodLogs } from "../../MiscDetailsContainer";
 import { RootState } from "@/redux/store";
 import { Row } from "@tanstack/react-table";
+import { Separator } from "@/components/ui/separator";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { TableDelete } from "../../Table/TableDelete";
 import { YamlEditor } from "../../Details/YamlEditor";
 import { clearLogs } from "@/data/Workloads/Pods/PodLogsSlice";
@@ -53,7 +55,7 @@ const KwDetails = () => {
     }
     return new URLSearchParams(qp).toString();
   };
-/* eslint-disable  @typescript-eslint/no-explicit-any */
+  /* eslint-disable  @typescript-eslint/no-explicit-any */
   const selectedRows = [
     {
       original: {
@@ -62,35 +64,43 @@ const KwDetails = () => {
       }
     }
   ] as Row<any>[];
-/* eslint-enable  @typescript-eslint/no-explicit-any */
+  /* eslint-enable  @typescript-eslint/no-explicit-any */
 
   const redirectToListPage = () => {
     navigate({ to: `/${config}/list?${getListPageQueryparams()}` });
   };
 
   return (
-    <>
-      <span className="text-xs text-blue-600 dark:text-blue-500 hover:underline">
-        <Link to={`/${config}/list?${getListPageQueryparams()}`} className="flex items-center pl-3 pt-4">
-          <CaretLeftIcon className="h-3.5 w-3.5" />
-          {resourceInitialData.label}
-        </Link>
-      </span>
-      <div className="h-screen flex-1 flex-col space-y-2 pt-0 p-4 md:flex">
+    <div className="py-2">
+      <div className="flex items-center gap-2 pl-2">
+        <span className="text-xs text-blue-600 dark:text-blue-500 hover:underline flex items-center">
+          <Link to={`/${config}/list?${getListPageQueryparams()}`} className="flex items-center">
+            <CaretLeftIcon className="h-3.5 w-3.5 mr-1" />
+            {resourceInitialData.label}
+          </Link>
+        </span>
+      </div>
+
+      <div className="h-screen flex-1 flex-col space-y-2 pt-0 p-2 md:flex">
         {
           resourceInitialData?.loading ? <Loader /> :
             <>
               <div className="flex items-center justify-between">
-                <div>
+                <SidebarTrigger />
+                <Separator orientation="vertical" className="mr-2 h-4 ml-1" />
+                <div className="ml-1">
                   <h2 className="text-lg font-bold tracking-tight">
                     {resourceData?.subHeading}
                   </h2>
                 </div>
-                <TableDelete selectedRows={selectedRows} postDeleteCallback={redirectToListPage} />
+                <div className="ml-auto">
+                  <TableDelete selectedRows={selectedRows} postDeleteCallback={redirectToListPage} />
+                </div>
+
               </div>
               {resourceData &&
                 <Tabs defaultValue='overview'>
-                  <TabsList className="grid w-full grid-cols-6 md:grid-cols-10 sm:grid-cols-4">
+                  <TabsList className="grid w-full grid-cols-6 md:grid-cols-6 sm:grid-cols-4">
                     <TabsTrigger value='overview' autoFocus={true}>Overview</TabsTrigger>
                     <TabsTrigger value='yaml'>YAML</TabsTrigger>
                     <TabsTrigger value='events'>Events</TabsTrigger>
@@ -141,7 +151,7 @@ const KwDetails = () => {
             </>
         }
       </div>
-    </>
+    </div>
   );
 };
 

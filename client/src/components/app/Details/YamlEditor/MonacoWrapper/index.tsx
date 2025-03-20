@@ -8,6 +8,7 @@ import { Monaco } from '@monaco-editor/react';
 import MonacoContainer from '../MonacoContainer';
 import yamlWorker from './yaml.worker.js?worker';
 import * as monaco from 'monaco-editor';
+import { useSidebar } from '@/components/ui/sidebar';
 
 function useMount(effect: EffectCallback) {
   useEffect(effect, []);
@@ -100,7 +101,8 @@ function Editor({
   const previousPath = usePrevious(path);
   const preventCreation = useRef(false);
   const preventTriggerChangeEvent = useRef<boolean>(false);
-
+  const [localWidth, setLocalWidth] = useState(width);
+  const { open } = useSidebar();
 
   window.MonacoEnvironment = {
     getWorker() {
@@ -311,9 +313,13 @@ function Editor({
     editorRef.current!.dispose();
   }
 
+  useEffect(() => {
+    setLocalWidth(open ? '99.9%' : '100%');
+  },[open]);
+
   return (
     <MonacoContainer
-      width={width}
+      width={localWidth}
       height={height}
       isEditorReady={isEditorReady}
       loading={loading}

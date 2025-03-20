@@ -3,9 +3,11 @@ import { defaultSkeletonRow, getEventStreamUrl } from "@/utils";
 
 import { ActionCreatorWithPayload } from "@reduxjs/toolkit";
 import { DataTable } from "@/components/app/Table";
+import { cn } from "@/lib/utils";
 import { useAppDispatch } from "@/redux/hooks";
 import { useEventSource } from "../EventSource";
 import useGenerateColumns from "../TableColumns";
+import { useSidebar } from "@/components/ui/sidebar";
 
 type CreateTableProps<T, C extends HeaderList> = {
   clusterName: string;
@@ -45,6 +47,9 @@ const CreateTable = <T extends ClusterDetails, C extends HeaderList>({
     url: getEventStreamUrl(endpoint, queryParmObject),
     sendMessage,
   });
+
+  const { open } = useSidebar();
+
   return (
     <div className="col-span-7">
       <div className="h-full">
@@ -60,7 +65,7 @@ const CreateTable = <T extends ClusterDetails, C extends HeaderList>({
           })}
           data={loading ? defaultSkeletonRow() : data}
           showNamespaceFilter={showNamespaceFilter}
-          tableWidthCss="list-table-max-height h-screen"
+          tableWidthCss={cn('list-table-max-height', 'h-screen', open ? 'list-table-max-width-expanded' : 'list-table-max-width-collapsed')}
           instanceType={instanceType}
           loading={loading}
         />
