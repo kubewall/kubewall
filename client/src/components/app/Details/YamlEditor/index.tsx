@@ -1,4 +1,4 @@
-import { createEventStreamQueryObject, getEventStreamUrl } from '@/utils';
+import { createEventStreamQueryObject, getEventStreamUrl, getSystemTheme } from '@/utils';
 import { memo, useCallback, useEffect, useState } from 'react';
 import { resetUpdateYaml, updateYaml } from '@/data/Yaml/YamlUpdateSlice';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
@@ -124,7 +124,7 @@ const YamlEditor = memo(function ({ instanceType, name, namespace, clusterName, 
               language="yaml"
               onChange={onChange}
               className='border rounded-lg h-screen'
-
+              theme={getSystemTheme()}
             />
           </div>
 

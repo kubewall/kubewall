@@ -48,7 +48,7 @@ export function DataTableToolbar<TData>({
             setGlobalFilter(String(value));
             dispatch(updateListTableFilter(String(value)));
           }}
-          className="h-8 basis-7/12 shadow-none"
+          className="h-8 basis-7/12 shadow-none px-2"
         />
         {showNamespaceFilter && !loading && namespaces && namespaces.length > 0 && (
           <DataTableFacetedFilter

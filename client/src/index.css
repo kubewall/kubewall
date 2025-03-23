@@ -136,6 +136,92 @@
   }
 }
 
+
+/* Custom scrollbars for all elements except Radix ScrollArea */
+:not(.os-scrollbar)::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+:not(.os-scrollbar)::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 9999px;
+  transition: background-color 0.3s ease;
+}
+
+.dark :not(.os-scrollbar)::-webkit-scrollbar-thumb {
+  background-color: transparent;
+}
+
+:not(.os-scrollbar).scrollbar-active::-webkit-scrollbar-thumb {
+  background-color: hsl(240 5% 64.9%);
+}
+
+.dark :not(.os-scrollbar).scrollbar-active::-webkit-scrollbar-thumb {
+  background-color: hsl(240 5% 34.9%);
+}
+
+/* Special handling for Radix ScrollArea */
+[data-radix-scroll-area-viewport] {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+[data-radix-scroll-area-viewport]::-webkit-scrollbar {
+  display: none;
+}
+
+/* Firefox support */
+:root {
+  scrollbar-color: hsl(240 5% 64.9%) transparent;
+  scrollbar-width: thin;
+}
+
+.dark {
+  scrollbar-color: hsl(240 5% 34.9%) transparent;
+}
+/* Firefox support */
+html {
+  /* scrollbar-color: transparent transparent; */
+  scrollbar-width: thin;
+}
+
+.scrollbar-active {
+  scrollbar-color: rgba(113, 113, 122, 0.4);
+}
+
+@media (prefers-color-scheme: dark) {
+  .scrollbar-active {
+    scrollbar-color: rgba(82, 82, 91, 0.6) transparent;
+  }
+}
+
+/* Custom scrollbar for Radix ScrollArea in sidebar */
+[data-radix-scroll-area-viewport] {
+  scrollbar-width: thin !important;
+  -ms-overflow-style: auto !important;
+}
+
+[data-radix-scroll-area-viewport]::-webkit-scrollbar {
+  display: block !important;
+  width: 4px;
+  height: 4px;
+}
+
+[data-radix-scroll-area-viewport]::-webkit-scrollbar-thumb {
+  background-color: hsl(215.4 16.3% 46.9%);
+  border-radius: 9999px;
+}
+
+[data-radix-scroll-area-viewport]::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Dark mode */
+.dark [data-radix-scroll-area-viewport]::-webkit-scrollbar-thumb {
+  background-color: hsl(215.4 16.3% 56.9%);
+}
+
 .bg-success {
   background-color: hsl(var(--success));
 }

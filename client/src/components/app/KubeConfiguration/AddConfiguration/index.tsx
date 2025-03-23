@@ -113,7 +113,7 @@ const AddConfig = () => {
       <div className="ml-auto">
         <Dialog open={modalOpen} onOpenChange={setStatesToDefault}>
           <DialogTrigger asChild>
-            <Button>
+            <Button className="gap-0">
               <PlusCircledIcon className="mr-2 h-4 w-4" />
               Add Config
             </Button>

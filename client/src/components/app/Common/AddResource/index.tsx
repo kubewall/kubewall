@@ -133,7 +133,7 @@ const AddResource = () => {
                 <Button
                   variant="default"
                   size="icon"
-                  className='absolute bottom-12 right-12 rounded z-10 border w-16'
+                  className='absolute bottom-12 right-12 rounded z-10 border w-16 gap-0'
                   onClick={yamlUpdate}
                 > {
                     yamlUpdateLoading ?

@@ -12,7 +12,11 @@ import { SearchIcon } from "lucide-react";
 import { resetListTableFilter } from "@/data/Misc/ListTableFilterSlice";
 import { useSidebar } from "@/components/ui/sidebar";
 
-const SidebarNavigator = memo(function () {
+type SidebarNavigator = {
+  setOpenMenus: (value: React.SetStateAction<Record<string, boolean>>) => void
+}
+
+const SidebarNavigator = memo(function ({ setOpenMenus }: SidebarNavigator) {
   const dispatch = useAppDispatch();
   const {
     customResourcesNavigation
@@ -38,16 +42,24 @@ const SidebarNavigator = memo(function () {
     return () => document.removeEventListener("keydown", down);
   }, []);
 
-  const onSelectResources = (route: string) => {
+  const onSelectResources = (routeValue: string, route: string) => {
     dispatch(resetListTableFilter());
-    navigate({ to: `/${configName}/list?cluster=${encodeURIComponent(clusterName)}&resourcekind=${route}` });
+    navigate({ to: `/${configName}/list?cluster=${encodeURIComponent(clusterName)}&resourcekind=${routeValue}` });
     setOpen((open) => !open);
+    setOpenMenus((prev) => ({
+      ...prev,
+      [route]: true,
+    }));
   };
 
-  const onSelectCustomResources = (route: string) => {
+  const onSelectCustomResources = (routeValue: string, route: string) => {
     dispatch(resetListTableFilter());
-    navigate({ to: `/${configName}/list?cluster=${encodeURIComponent(clusterName)}&resourcekind=customresources&${route}` });
+    navigate({ to: `/${configName}/list?cluster=${encodeURIComponent(clusterName)}&resourcekind=customresources&${routeValue}` });
     setOpen((open) => !open);
+    setOpenMenus((prev) => ({
+      ...prev,
+      [route]: true,
+    }));
   };
 
   return (
@@ -62,10 +74,10 @@ const SidebarNavigator = memo(function () {
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="!pl-[7px] !mt-1 ">
-              <SearchIcon width={16} onClick={() => setOpen((open) => !open)}/>
+                <SearchIcon width={16} onClick={() => setOpen((open) => !open)} />
 
               </div>
-              </TooltipTrigger>
+            </TooltipTrigger>
             <TooltipContent
               side="right"
               align="center"
@@ -84,7 +96,7 @@ const SidebarNavigator = memo(function () {
                   {
                     NAVIGATION_ROUTE[route].map(({ name, route: routeValue }) => {
                       return (
-                        <CommandItem key={routeValue} className="group cursor-pointer" onSelect={() => onSelectResources(routeValue)}>
+                        <CommandItem key={routeValue} className="group cursor-pointer" onSelect={() => onSelectResources(routeValue, route)}>
                           <CubeIcon className="mr-2 h-4 w-4" />
                           <span>
                             {name}
@@ -108,7 +120,7 @@ const SidebarNavigator = memo(function () {
                         <CommandItem
                           key={customResource.name}
                           className="group cursor-pointer"
-                          onSelect={() => onSelectCustomResources(customResource.route)}
+                          onSelect={() => onSelectCustomResources(customResource.route, customResourceGroup)}
                         >
                           <CubeIcon className="mr-2 h-4 w-4" />
                           <span>
