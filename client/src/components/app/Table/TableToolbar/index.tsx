@@ -53,7 +53,7 @@ export function DataTableToolbar<TData>({
         {showNamespaceFilter && !loading && namespaces && namespaces.length > 0 && (
           <DataTableFacetedFilter
             column={table.getColumn("Namespace")}
-            title="Namespace"
+            title="Namespaces"
             options={namespacesFilter(namespaces)}
           />
         )}
