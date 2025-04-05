@@ -45,7 +45,7 @@ func TransformCRD(definitions []apiextensionsv1.CustomResourceDefinition) []Cust
 	}
 
 	sort.Slice(list, func(i, j int) bool {
-		return natural.Less(list[i].Name, list[j].Name)
+		return natural.Less(list[i].Spec.Group, list[j].Spec.Group)
 	})
 
 	return list
