@@ -1,9 +1,9 @@
 import './index.css';
 
 import { CUSTOM_RESOURCES_ENDPOINT, NAVIGATION_ROUTE } from "@/constants";
-import { ChevronRight, ComponentIcon, DatabaseIcon, LayersIcon, LayoutGridIcon, NetworkIcon, ShieldHalf, SlidersHorizontalIcon, UngroupIcon } from "lucide-react";
+import { ChevronRight, DatabaseIcon, LayersIcon, LayoutGridIcon, NetworkIcon, ShieldHalf, SlidersHorizontalIcon, UngroupIcon } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { SidebarContent, SidebarGroup, SidebarGroupLabel, SidebarHeader, Sidebar as SidebarMainComponent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarRail, useSidebar } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { createEventStreamQueryObject, getEventStreamUrl, getSystemTheme } from "@/utils";
@@ -157,7 +157,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
 
                       </a>
                     </SidebarMenuButton>
-                    <SidebarNavigator setOpenMenus={setOpenMenus}/>
+                    <SidebarNavigator setOpenMenus={setOpenMenus} />
                   </SidebarMenuItem>
                 </SidebarMenu>
 
@@ -175,25 +175,16 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                           className="group/collapsible"
                         >
                           <SidebarMenuItem>
-                            <DropdownMenu>
-                              <TooltipProvider delayDuration={0}>
-                                <Tooltip >
-                                  <TooltipTrigger asChild>
-                                    <CollapsibleTrigger asChild onClick={(e) => { toggleMenu(route); e.stopPropagation(); }}>
-                                      <SidebarMenuButton tooltip={route}>
-                                        <DropdownMenuTrigger asChild>
-                                          {getResourceIcon(route.toLowerCase().split(' ').join(''))}
-                                        </DropdownMenuTrigger>
-                                        <span>{route}</span>
-                                        <ChevronRight size={16} className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                                      </SidebarMenuButton>
-                                    </CollapsibleTrigger>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="right">
-                                    <p>{route}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                            <DropdownMenu openOn='hover'>
+                              <CollapsibleTrigger asChild onClick={(e) => { toggleMenu(route); e.stopPropagation(); }}>
+                                <SidebarMenuButton>
+                                  <DropdownMenuTrigger asChild>
+                                    {getResourceIcon(route.toLowerCase().split(' ').join(''))}
+                                  </DropdownMenuTrigger>
+                                  <span>{route}</span>
+                                  <ChevronRight size={16} className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                                </SidebarMenuButton>
+                              </CollapsibleTrigger>
                               <CollapsibleContent>
                                 <SidebarMenuSub>
                                   {
@@ -222,28 +213,34 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                                 </SidebarMenuSub>
                               </CollapsibleContent>
 
-                              <DropdownMenuContent
-                                className=" min-w-56 rounded-lg"
-                                align="start"
-                                side={isMobile ? "bottom" : "right"}
-                                sideOffset={4}
+                              {
+                                !open && <DropdownMenuContent
+                                  className=" min-w-56 rounded-lg"
+                                  align="start"
+                                  side={isMobile ? "bottom" : "right"}
+                                  sideOffset={12}
 
-                              >
-                                {
-                                  NAVIGATION_ROUTE[route].map(({ name, route: routeValue }) => {
-                                    return (
-                                      <DropdownMenuItem
-                                        key={routeValue}
-                                        onClick={() => onNavClick(routeValue)}
-                                        className="gap-2 p-2 cursor-pointer"
-                                      >
-                                        {name}
-                                      </DropdownMenuItem>
-                                    );
-                                  })
-                                }
+                                >
+                                  <DropdownMenuLabel className="font-medium">{route}</DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuGroup className='overflow-auto max-h-64'>
+                                    {
+                                      NAVIGATION_ROUTE[route].map(({ name, route: routeValue }) => {
+                                        return (
+                                          <DropdownMenuItem
+                                            key={routeValue}
+                                            onClick={() => onNavClick(routeValue)}
+                                            className="gap-2 cursor-pointer"
+                                          >
+                                            {name}
+                                          </DropdownMenuItem>
+                                        );
+                                      })
+                                    }
+                                  </DropdownMenuGroup>
+                                </DropdownMenuContent>
+                              }
 
-                              </DropdownMenuContent>
                             </DropdownMenu>
 
                           </SidebarMenuItem>
@@ -283,28 +280,21 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                           className="group/collapsible"
                         >
                           <SidebarMenuItem >
-                            <DropdownMenu>
-                              <TooltipProvider delayDuration={0}>
-                                <Tooltip >
-                                  <TooltipTrigger asChild>
-                                    <CollapsibleTrigger asChild onClick={() => toggleMenu(customResourceGroup)}>
-                                      <SidebarMenuButton tooltip={customResourceGroup}>
+                            <DropdownMenu openOn='hover'>
+                              <CollapsibleTrigger asChild onClick={() => toggleMenu(customResourceGroup)}>
+                                <SidebarMenuButton>
+                                  <DropdownMenuTrigger asChild>
+                                    <img
+                                      src={customResourcesNavigation[customResourceGroup].resources[0].icon}
+                                      alt=""
+                                      className='w-4'
+                                    />
+                                  </DropdownMenuTrigger>
+                                  <span title={customResourceGroup} className='truncate'>{customResourceGroup}</span>
+                                  <ChevronRight size={16} className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                                </SidebarMenuButton>
+                              </CollapsibleTrigger>
 
-                                        <DropdownMenuTrigger asChild>
-                                          <ComponentIcon width={16} />
-                                        </DropdownMenuTrigger>
-                                        <span title={customResourceGroup} className='truncate'>{customResourceGroup}</span>
-
-                                        <ChevronRight size={16} className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-
-                                      </SidebarMenuButton>
-                                    </CollapsibleTrigger>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="right">
-                                    <p>{customResourceGroup}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
                               <CollapsibleContent>
                                 <SidebarMenuSub>
                                   {
@@ -332,26 +322,33 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
 
                                 </SidebarMenuSub>
                               </CollapsibleContent>
-                              <DropdownMenuContent
-                                className=" min-w-56 rounded-lg"
-                                align="start"
-                                side={isMobile ? "bottom" : "right"}
-                                sideOffset={4}
+                              {
+                                !open && <DropdownMenuContent
+                                  className=" min-w-56 rounded-lg"
+                                  align="start"
+                                  side={isMobile ? "bottom" : "right"}
+                                  sideOffset={12}
 
-                              >
-                                {
-                                  customResourcesNavigation[customResourceGroup].resources.map((customResource) => (
-                                    <DropdownMenuItem
-                                      key={customResource.name}
-                                      onClick={() => onCustomResourcesNavClick(customResource.route, customResource.name)}
-                                      className="gap-2 p-2 cursor-pointer"
-                                    >
-                                      {customResource.name}
-                                    </DropdownMenuItem>
-                                  )
-                                  )
-                                }
-                              </DropdownMenuContent>
+                                >
+                                  <DropdownMenuLabel className="font-medium">{customResourceGroup}</DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuGroup className='overflow-auto max-h-64'>
+                                    {
+                                      customResourcesNavigation[customResourceGroup].resources.map((customResource) => (
+                                        <DropdownMenuItem
+                                          key={customResource.name}
+                                          onClick={() => onCustomResourcesNavClick(customResource.route, customResource.name)}
+                                          className="gap-2 p-2 cursor-pointer"
+                                        >
+                                          {customResource.name}
+                                        </DropdownMenuItem>
+                                      )
+                                      )
+                                    }
+                                  </DropdownMenuGroup>
+                                </DropdownMenuContent>
+                              }
+
                             </DropdownMenu>
                           </SidebarMenuItem>
                         </Collapsible>
