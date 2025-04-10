@@ -30,7 +30,7 @@ const SecretDetailsContainer = memo(function () {
               size="icon"
               onClick={() => setToggleSecretDecode(!toggleSecretDecode)}
             >
-              {toggleSecretDecode ? <EyeIcon /> : <EyeOff />}
+              {toggleSecretDecode ? <EyeIcon className="h-4 w-4"/> : <EyeOff className="h-4 w-4"/>}
             </Button>
 
           </CardTitle>
@@ -42,7 +42,7 @@ const SecretDetailsContainer = memo(function () {
                 {
                   newData && Object.keys(newData).map((key: string) => {
                     return (
-                      <div className="py-1.5 border-t border-b border-dashed flex flex-row">
+                      <div className="py-1.5 border-b border-dashed flex flex-row">
                         <div className="pl-4 text-sm text-muted-foreground basis-1/4">{key}</div>
                         <div className="flex flex-row text-sm font-normal basis-3/4 group/item">
                           <div className="break-all basis-[97%] ">

@@ -73,6 +73,7 @@ type CustomResources = {
           strategy: string
       },
       group: string,
+      icon: string,
       names: {
           kind: string,
           listKind: string,
@@ -88,6 +89,7 @@ type CustomResources = {
 
 type CustomResourcesNavigationKeys = {
   resources: {
+    icon: string;
     name: string;
     route: string;
     additionalPrinterColumns: CustomResourcesPrinterColumns[];

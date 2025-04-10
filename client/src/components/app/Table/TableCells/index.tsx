@@ -130,8 +130,7 @@ const TableCells = <T extends ClusterDetails>({
       instanceType === SERVICES_ENDPOINT ||
       instanceType === ROLE_BINDINGS_ENDPOINT ||
       instanceType === NODES_ENDPOINT ||
-      instanceType === SECRETS_ENDPOINT ||
-      instanceType === CONFIG_MAPS_ENDPOINT
+      instanceType === SECRETS_ENDPOINT
     )
   ) {
     return <MultiValueCell cellValue={value} />;

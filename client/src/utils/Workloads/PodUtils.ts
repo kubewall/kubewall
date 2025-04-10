@@ -1,9 +1,9 @@
 import { ContainerCardProps, PodDetailsSpec, PodDetailsStatus } from "@/types";
 
-const createContainerData = (podSpec: PodDetailsSpec, podStatus: PodDetailsStatus) => {
+const createContainerData = (podSpec: PodDetailsSpec, podStatus: PodDetailsStatus, type: 'containers' | 'initContainers') => {
   const containersData: ContainerCardProps[] = [];
-  podSpec.containers.forEach(({ name: containerName, image, command, terminationMessagePolicy, imagePullPolicy }) => {
-    const containerStatus = podStatus.containerStatuses?.find(({ name }) => name === containerName);
+  podSpec[type]?.forEach(({ name: containerName, image, command, terminationMessagePolicy, imagePullPolicy }) => {
+    const containerStatus = podStatus[type === 'containers'? 'containerStatuses' : 'initContainerStatuses']?.find(({ name }) => name === containerName);
     const data: ContainerCardProps = {
       name: containerName,
       image: image,

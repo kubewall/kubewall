@@ -1,4 +1,5 @@
 import './index.css';
+import './components/app/Common/ScrollBar';
 
 import { Provider } from 'react-redux';
 import React from 'react';

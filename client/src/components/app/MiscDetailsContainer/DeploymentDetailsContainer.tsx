@@ -6,12 +6,14 @@ import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
 import { DataTable } from "@/components/app/Table";
 import { RootState } from "@/redux/store";
+import { cn } from "@/lib/utils";
 import { kwDetails } from "@/routes";
 import { memo } from "react";
 import { podsColumnConfig } from "@/utils/ListType/ListDefinations";
 import { updateDeploymentPods } from "@/data/Workloads/Deployments/DeploymentPodsSlice";
 import { useEventSource } from "@/components/app/Common/Hooks/EventSource";
 import useGenerateColumns from "@/components/app/Common/Hooks/TableColumns";
+import { useSidebar } from "@/components/ui/sidebar";
 
 const DeploymentDetailsContainer = memo(function () {
   const { config } = kwDetails.useParams();
@@ -20,7 +22,7 @@ const DeploymentDetailsContainer = memo(function () {
     loading,
     deploymentPodDetails
   } = useAppSelector((state: RootState) => state.deploymentPods);
-
+  const { open } = useSidebar();
   const dispatch = useAppDispatch();
 
   const sendMessage = (message: Pods[]) => {
@@ -62,7 +64,7 @@ const DeploymentDetailsContainer = memo(function () {
                   })
                 }
                 data={loading ? defaultSkeletonRow() : deploymentPodDetails}
-                tableWidthCss="border-r border-l"
+                tableWidthCss={cn("border-r border-l", open ? 'deployment-list-table-max-width-expanded' : 'deployment-list-table-max-width-collapsed')}
                 instanceType={PODS_ENDPOINT}
                 showToolbar={false}
                 showNamespaceFilter={false}
