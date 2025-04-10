@@ -11,7 +11,7 @@ const CurrentByDesiredCell = memo(function ({ cellValue }: CurrentByDesiredCellP
   return (
 
     <div className="">
-      <span className={`text-sm truncate text-gray-600 dark:text-gray-400 px-3 ${isReady ? 'text-emerald-400' :'text-red-400'}`}>
+      <span className={`text-sm truncate  px-3 ${isReady ? 'text-emerald-600 dark:text-emerald-400' :'text-red-600 dark:text-red-400'}`}>
         {cellValue}
       </span>
     </div>

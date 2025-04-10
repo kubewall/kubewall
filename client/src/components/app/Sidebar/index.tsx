@@ -181,7 +181,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                                   <DropdownMenuTrigger asChild>
                                     {getResourceIcon(route.toLowerCase().split(' ').join(''))}
                                   </DropdownMenuTrigger>
-                                  <span>{route}</span>
+                                  <span className='text-gray-800 dark:text-gray-200'>{route}</span>
                                   <ChevronRight size={16} className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                                 </SidebarMenuButton>
                               </CollapsibleTrigger>
@@ -196,7 +196,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                                               <TooltipTrigger asChild>
                                                 <SidebarMenuSubButton asChild isActive={getActiveNav(routeValue, true)}>
                                                   <a onClick={() => onNavClick(routeValue)}>
-                                                    <span>{name}</span>
+                                                    <span className="text-gray-600 dark:text-gray-400">{name}</span>
                                                   </a>
                                                 </SidebarMenuSubButton>
                                               </TooltipTrigger>
@@ -221,7 +221,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                                   sideOffset={12}
 
                                 >
-                                  <DropdownMenuLabel className="font-medium">{route}</DropdownMenuLabel>
+                                  <DropdownMenuLabel className="font-medium text-gray-800 dark:text-gray-200">{route}</DropdownMenuLabel>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuGroup className='overflow-auto max-h-64'>
                                     {
@@ -230,7 +230,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                                           <DropdownMenuItem
                                             key={routeValue}
                                             onClick={() => onNavClick(routeValue)}
-                                            className="gap-2 cursor-pointer"
+                                            className="gap-2 cursor-pointer text-gray-600 dark:text-gray-400"
                                           >
                                             {name}
                                           </DropdownMenuItem>
@@ -260,7 +260,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                             <SidebarMenuButton asChild tooltip='Definitions'>
                               <a onClick={() => onNavClick('customresourcedefinitions')}>
                                 {getResourceIcon('customesources')}
-                                <span>Definitions</span>
+                                <span className='text-gray-800 dark:text-gray-200'>Definitions</span>
                               </a>
                             </SidebarMenuButton>
                           </TooltipTrigger>
@@ -290,7 +290,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                                       className='w-4'
                                     />
                                   </DropdownMenuTrigger>
-                                  <span title={customResourceGroup} className='truncate'>{customResourceGroup}</span>
+                                  <span title={customResourceGroup} className='truncate text-gray-800 dark:text-gray-200'>{customResourceGroup}</span>
                                   <ChevronRight size={16} className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                                 </SidebarMenuButton>
                               </CollapsibleTrigger>
@@ -305,7 +305,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                                             <TooltipTrigger asChild>
                                               <SidebarMenuSubButton asChild isActive={getActiveNav(customResource.name)}>
                                                 <a onClick={() => onCustomResourcesNavClick(customResource.route, customResource.name)}>
-                                                  <span>{customResource.name}</span>
+                                                  <span className="text-gray-600 dark:text-gray-400">{customResource.name}</span>
                                                 </a>
                                               </SidebarMenuSubButton>
                                             </TooltipTrigger>
@@ -330,7 +330,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                                   sideOffset={12}
 
                                 >
-                                  <DropdownMenuLabel className="font-medium">{customResourceGroup}</DropdownMenuLabel>
+                                  <DropdownMenuLabel className="font-medium text-gray-800 dark:text-gray-200">{customResourceGroup}</DropdownMenuLabel>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuGroup className='overflow-auto max-h-64'>
                                     {
@@ -338,7 +338,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                                         <DropdownMenuItem
                                           key={customResource.name}
                                           onClick={() => onCustomResourcesNavClick(customResource.route, customResource.name)}
-                                          className="gap-2 p-2 cursor-pointer"
+                                          className="gap-2 p-2 cursor-pointer text-gray-600 dark:text-gray-400"
                                         >
                                           {customResource.name}
                                         </DropdownMenuItem>

@@ -48,7 +48,18 @@ const CreateTable = <T extends ClusterDetails, C extends HeaderList>({
     sendMessage,
   });
 
-  const { open } = useSidebar();
+  const { open, isMobile } = useSidebar();
+
+  const getTableClasses = () => {
+    if(isMobile) {
+        return 'list-table-max-width-collapsed-mobile';
+    } else {
+      if (open) {
+        return 'list-table-max-width-expanded';
+      }
+      return 'list-table-max-width-collapsed';
+    }
+  };
 
   return (
     <div className="col-span-7">
@@ -65,7 +76,7 @@ const CreateTable = <T extends ClusterDetails, C extends HeaderList>({
           })}
           data={loading ? defaultSkeletonRow() : data}
           showNamespaceFilter={showNamespaceFilter}
-          tableWidthCss={cn('list-table-max-height', 'h-screen', open ? 'list-table-max-width-expanded' : 'list-table-max-width-collapsed')}
+          tableWidthCss={cn('list-table-max-height', 'h-screen', getTableClasses())}
           instanceType={instanceType}
           loading={loading}
         />
