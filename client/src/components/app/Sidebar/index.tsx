@@ -175,7 +175,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                           className="group/collapsible"
                         >
                           <SidebarMenuItem>
-                            <DropdownMenu openOn='hover'>
+                            <DropdownMenu>
                               <CollapsibleTrigger asChild onClick={(e) => { toggleMenu(route); e.stopPropagation(); }}>
                                 <SidebarMenuButton>
                                   <DropdownMenuTrigger asChild>
@@ -251,7 +251,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                 </SidebarGroup>
 
                 <SidebarGroup>
-                  <SidebarGroupLabel>Custom Resources</SidebarGroupLabel>
+                  <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">Custom Resources</SidebarGroupLabel>
                   <SidebarMenu>
                     <SidebarMenuItem className="cursor-pointer">
                       <TooltipProvider delayDuration={0}>
@@ -279,14 +279,14 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                           // defaultOpen={openMenus[customResourceGroup]}
                           className="group/collapsible"
                         >
-                          <SidebarMenuItem >
-                            <DropdownMenu openOn='hover'>
+                          <SidebarMenuItem>
+                            <DropdownMenu>
                               <CollapsibleTrigger asChild onClick={() => toggleMenu(customResourceGroup)}>
                                 <SidebarMenuButton>
                                   <DropdownMenuTrigger asChild>
                                     <img
                                       src={customResourcesNavigation[customResourceGroup].resources[0].icon}
-                                      alt=""
+                                      alt="I"
                                       className='w-4'
                                     />
                                   </DropdownMenuTrigger>
