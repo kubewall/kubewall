@@ -25,6 +25,8 @@ type CustomResourceDefinition struct {
 
 type Spec struct {
 	Group string `json:"group"`
+	// custom kubewall specific, CRD's don't provide icons
+	Icon  string `json:"icon"`
 	Scope string `json:"scope"`
 	Names Names  `json:"names"`
 }
@@ -63,6 +65,7 @@ func TransformCRDItem(item apiextensionsv1.CustomResourceDefinition) CustomResou
 		AdditionalPrinterColumns: customResourceColumnDefinition(item, activeVersion),
 		Spec: Spec{
 			Group: item.Spec.Group,
+			Icon:  resolveIcons(item.Spec.Group),
 			Names: Names{
 				Kind:       item.Spec.Names.Kind,
 				ListKind:   item.Spec.Names.ListKind,
