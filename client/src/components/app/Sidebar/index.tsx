@@ -13,6 +13,7 @@ import { useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 
 import { CustomResources } from "@/types";
 import { SidebarNavigator } from "./Navigator";
+import { SvgRenderer } from '../Common/SvgRenderer';
 import { cn } from "@/lib/utils";
 import { fetchClusters } from "@/data/KwClusters/ClustersSlice";
 import kwLogoDark from '../../../assets/kw-dark-theme.svg';
@@ -284,10 +285,8 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                               <CollapsibleTrigger asChild onClick={() => toggleMenu(customResourceGroup)}>
                                 <SidebarMenuButton>
                                   <DropdownMenuTrigger asChild>
-                                    <img
-                                      src={customResourcesNavigation[customResourceGroup].resources[0].icon}
-                                      alt="I"
-                                      className='w-4'
+                                    <SvgRenderer
+                                      name={customResourcesNavigation[customResourceGroup].resources[0].icon}
                                     />
                                   </DropdownMenuTrigger>
                                   <span title={customResourceGroup} className='truncate text-gray-800 dark:text-gray-200'>{customResourceGroup}</span>
