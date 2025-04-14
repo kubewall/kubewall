@@ -73,7 +73,7 @@ const SidebarNavigator = memo(function ({ setOpenMenus }: SidebarNavigator) {
           /> :
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="!pl-[7px] !mt-1 ">
+              <div className="!mt-1 flex items-center justify-center">
                 <SearchIcon width={16} onClick={() => setOpen((open) => !open)} />
 
               </div>

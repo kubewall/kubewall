@@ -1,7 +1,7 @@
 import './index.css';
 
 import { CUSTOM_RESOURCES_ENDPOINT, NAVIGATION_ROUTE } from "@/constants";
-import { ChevronRight, DatabaseIcon, LayersIcon, LayoutGridIcon, NetworkIcon, ShieldHalf, SlidersHorizontalIcon, UngroupIcon } from "lucide-react";
+import { ChevronRight, ComponentIcon, DatabaseIcon, LayersIcon, LayoutGridIcon, NetworkIcon, ShieldHalf, SlidersHorizontalIcon, UngroupIcon } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { SidebarContent, SidebarGroup, SidebarGroupLabel, SidebarHeader, Sidebar as SidebarMainComponent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarRail, useSidebar } from "@/components/ui/sidebar";
@@ -19,7 +19,7 @@ import { fetchClusters } from "@/data/KwClusters/ClustersSlice";
 import kwLogoDark from '../../../assets/kw-dark-theme.svg';
 import kwLogoDarkIcon from '../../../assets/kw-dark-theme-icon.svg';
 import kwLogoLight from '../../../assets/kw-light-theme.svg';
-import kwLogoLightIcon from '../../../assets/kw-light-theme-icon.svg';
+import kwLogoLightIcon from '../../../assets/kubewall-logo-dark.svg';
 import { resetCustomResourcesList } from "@/data/CustomResources/CustomResourcesListSlice";
 import { resetListTableFilter } from "@/data/Misc/ListTableFilterSlice";
 import { updateCustomResources } from "@/data/CustomResources/CustomResourcesSlice";
@@ -145,13 +145,13 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
           <>
             <SidebarMainComponent collapsible="icon">
 
-              <SidebarHeader>
+              {/* <SidebarHeader>
                 <SidebarMenu>
                   <SidebarMenuItem className="cursor-pointer">
                     <SidebarMenuButton asChild>
                       <a onClick={() => onNavClick('pods')} id="kubewall-icon">
                         <img
-                          className={`transition-all duration-300 ease-in-out ${open ? "w-28" : "w-20 max-w-none"}`}
+                          className={`transition-all duration-300 ease-in-out ${open ? "w-28" : "w-4 max-w-none"}`}
                           src={getSystemTheme() === 'light' ? (open ? kwLogoLight : kwLogoLightIcon) : (open ? kwLogoDark : kwLogoDarkIcon)}
                           alt="kubewall"
                         />
@@ -162,10 +162,25 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                   </SidebarMenuItem>
                 </SidebarMenu>
 
-              </SidebarHeader>
+              </SidebarHeader> */}
               <SidebarContent>
                 <SidebarGroup>
                   <SidebarMenu>
+                  <SidebarMenuItem className="cursor-pointer">
+                    <SidebarMenuButton asChild>
+                      <div className='flex items-center justify-center'>
+                      <a onClick={() => onNavClick('pods')}>
+                        <img
+                          className={`transition-all duration-300 ease-in-out ${open ? "w-28" : "w-4 max-w-none"}`}
+                          src={getSystemTheme() === 'light' ? (open ? kwLogoLight : kwLogoLightIcon) : (open ? kwLogoDark : kwLogoDarkIcon)}
+                          alt="kubewall"
+                        />
+
+                      </a>
+                      </div>
+                    </SidebarMenuButton>
+                    <SidebarNavigator setOpenMenus={setOpenMenus} />
+                  </SidebarMenuItem>
                     {
                       Object.keys(NAVIGATION_ROUTE).map((route) => (
                         <Collapsible
@@ -178,12 +193,12 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                           <SidebarMenuItem>
                             <DropdownMenu>
                               <CollapsibleTrigger asChild onClick={(e) => { toggleMenu(route); e.stopPropagation(); }}>
-                                <SidebarMenuButton>
+                                <SidebarMenuButton className='group-data-[collapsible=icon]:justify-center'>
                                   <DropdownMenuTrigger asChild>
                                     {getResourceIcon(route.toLowerCase().split(' ').join(''))}
                                   </DropdownMenuTrigger>
-                                  <span className='text-gray-800 dark:text-gray-200'>{route}</span>
-                                  <ChevronRight size={16} className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                                  <span className='text-gray-800 dark:text-gray-200 group-data-[collapsible=icon]:hidden'>{route}</span>
+                                  <ChevronRight size={16} className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 group-data-[collapsible=icon]:hidden" />
                                 </SidebarMenuButton>
                               </CollapsibleTrigger>
                               <CollapsibleContent>
@@ -258,10 +273,10 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                       <TooltipProvider delayDuration={0}>
                         <Tooltip >
                           <TooltipTrigger asChild>
-                            <SidebarMenuButton asChild tooltip='Definitions'>
+                            <SidebarMenuButton className='group-data-[collapsible=icon]:justify-center' asChild tooltip='Definitions'>
                               <a onClick={() => onNavClick('customresourcedefinitions')}>
                                 {getResourceIcon('customesources')}
-                                <span className='text-gray-800 dark:text-gray-200'>Definitions</span>
+                                <span className='text-gray-800 dark:text-gray-200 group-data-[collapsible=icon]:hidden'>Definitions</span>
                               </a>
                             </SidebarMenuButton>
                           </TooltipTrigger>
@@ -283,14 +298,17 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                           <SidebarMenuItem>
                             <DropdownMenu>
                               <CollapsibleTrigger asChild onClick={() => toggleMenu(customResourceGroup)}>
-                                <SidebarMenuButton>
+                                <SidebarMenuButton className='group-data-[collapsible=icon]:justify-center'>
                                   <DropdownMenuTrigger asChild>
+                                    <div>
                                     <SvgRenderer
                                       name={customResourcesNavigation[customResourceGroup].resources[0].icon}
                                     />
+                                    </div>
+                                    {/* <ComponentIcon size={16} /> */}
                                   </DropdownMenuTrigger>
-                                  <span title={customResourceGroup} className='truncate text-gray-800 dark:text-gray-200'>{customResourceGroup}</span>
-                                  <ChevronRight size={16} className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                                  <span title={customResourceGroup} className='truncate text-gray-800 dark:text-gray-200 group-data-[collapsible=icon]:hidden'>{customResourceGroup}</span>
+                                  <ChevronRight size={16} className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 group-data-[collapsible=icon]:hidden" />
                                 </SidebarMenuButton>
                               </CollapsibleTrigger>
 
@@ -304,7 +322,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                                             <TooltipTrigger asChild>
                                               <SidebarMenuSubButton asChild isActive={getActiveNav(customResource.name)}>
                                                 <a onClick={() => onCustomResourcesNavClick(customResource.route, customResource.name)}>
-                                                  <span className="text-gray-600 dark:text-gray-400">{customResource.name}</span>
+                                                  <span className="text-gray-600 dark:text-gray-400 group-data-[collapsible=icon]:hidden">{customResource.name}</span>
                                                 </a>
                                               </SidebarMenuSubButton>
                                             </TooltipTrigger>
