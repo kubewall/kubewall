@@ -56,7 +56,8 @@ const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef,updateLogs }: 
       xterm.current = new Terminal({
         cursorBlink: false,
         theme: getSystemTheme() === 'light' ? lightTheme : darkTheme,
-        scrollback: 9999999
+        scrollback: 9999999,
+        fontSize: 13
       });
 
       fitAddon.current = new FitAddon();

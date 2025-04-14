@@ -40,6 +40,7 @@ const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => 
       if (log.containerChange) {
         logString += `-------------------${log.containerName || 'All Containers'}-------------------\n`;
       } else {
+        // eslint-disable-next-line no-control-regex
         logString += `${log.containerName ? `${log.containerName}:`: '' } ${log.log.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '')}\n`;
       }
     });

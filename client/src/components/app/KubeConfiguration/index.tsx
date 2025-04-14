@@ -120,8 +120,8 @@ export function KubeConfiguration() {
             type='search'
             className="h-8 shadow-none"
           />
-          <div className="overflow-auto config-list mt-2">
-            <Table className="border overflow-auto">
+          <div className="overflow-auto config-list mt-2 rounded-md border">
+            <Table className="overflow-auto">
               <TableHeader className="bg-muted/80">
                 <TableRow>
                   <TableHead>Name</TableHead>

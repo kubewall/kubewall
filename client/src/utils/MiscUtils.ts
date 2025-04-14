@@ -36,6 +36,7 @@ const formatCustomResources = (customResources: CustomResources[]) => {
     if (acc[item.spec.group]) {
       acc[item.spec.group].resources.push({
         name: item.spec.names.kind,
+        icon: item.spec.icon,
         route: item.queryParam,
         additionalPrinterColumns: item.additionalPrinterColumns,
       });
@@ -43,6 +44,7 @@ const formatCustomResources = (customResources: CustomResources[]) => {
       acc[item.spec.group] = {
         resources: [{
           name: item.spec.names.kind,
+          icon: item.spec.icon,
           route: item.queryParam,
           additionalPrinterColumns: item.additionalPrinterColumns,
         }]
