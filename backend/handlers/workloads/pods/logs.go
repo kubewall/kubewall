@@ -73,6 +73,11 @@ func (h *PodsHandler) publishLogs(c echo.Context, streamKey string, sseServer *s
 			return err, true
 		}
 		pod := podObj.(*v1.Pod)
+		// Include init containers
+		for _, initContainer := range pod.Spec.InitContainers {
+			containerNames = append(containerNames, initContainer.Name)
+		}
+		// Include regular containers
 		for _, logContainer := range pod.Spec.Containers {
 			containerNames = append(containerNames, logContainer.Name)
 		}
