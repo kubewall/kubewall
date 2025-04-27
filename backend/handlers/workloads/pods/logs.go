@@ -59,7 +59,7 @@ func (h *PodsHandler) fetchLogs(ctx context.Context, namespace, podName, contain
 	}
 }
 
-func (h *PodsHandler) publishLogs(c echo.Context, streamKey string, sseServer *sse.Server) (error, bool) {
+func (h *PodsHandler) publishLogsToSSE(c echo.Context, streamKey string, sseServer *sse.Server) (error, bool) {
 	name := c.Param("name")
 	namespace := c.QueryParam("namespace")
 	container := c.QueryParam("container")
