@@ -112,6 +112,9 @@ func (h *DeploymentsHandler) UpdateScale(c echo.Context) error {
 	if err := c.Bind(r); err != nil {
 		return err
 	}
+	if r.Replicas < 0 {
+		return fmt.Errorf("replicas, must be greater than or equal to 0")
+	}
 
 	scale := &autoscalingv1.Scale{
 		ObjectMeta: metav1.ObjectMeta{
