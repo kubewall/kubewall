@@ -10,13 +10,13 @@ A single binary to manage your multiple kubernetes clusters.
 **kubewall** provides a simple and rich real time interface to manage and investigate your clusters.
 
 
-**Key features of KubeWall include:**
+**Key features of kubewall include:**
 
-* **Single binary deployment:** KubeWall can be easily deployed as a single binary, eliminating the need for complex configurations.
-* **Browser-based access:** KubeWall can be accessed directly from your favorite web browser, providing a seamless user experience.
-* **Real-time cluster monitoring:** KubeWall offers a rich, real-time interface that displays the current state of your Kubernetes clusters, allowing you to quickly identify and address issues.
-* **Cluster management:** KubeWall enables you to manage multiple Kubernetes clusters from a single pane of glass, reducing the overhead of switching between different tools and interfaces.
-* **Detailed cluster insights:** KubeWall provides comprehensive insights into your Kubernetes clusters, manifest info of your pods, services, config and others.
+* **Single binary deployment:** kubewall can be easily deployed as a single binary, eliminating the need for complex configurations.
+* **Browser-based access:** kubewall can be accessed directly from your favorite web browser, providing a seamless user experience.
+* **Real-time cluster monitoring:** kubewall offers a rich, real-time interface that displays the current state of your Kubernetes clusters, allowing you to quickly identify and address issues.
+* **Cluster management:** kubewall enables you to manage multiple Kubernetes clusters from a single pane of glass, reducing the overhead of switching between different tools and interfaces.
+* **Detailed cluster insights:** kubewall provides comprehensive insights into your Kubernetes clusters, manifest info of your pods, services, config and others.
 
 # :movie_camera: Intro
 
