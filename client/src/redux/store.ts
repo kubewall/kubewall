@@ -1,3 +1,4 @@
+import DeploymentScaleSlice from '@/data/Workloads/Deployments/DeploymentScaleSlice';
 import addConfigSlice from '@/data/KwClusters/AddConfigSlice';
 import clusterEventsListSlice from '@/data/Clusters/Events/EventsListSlice';
 import clusterRoleBindingDetailsSlice from '@/data/AccessControls/ClusterRoleBindings/ClusterRoleBindingDetailsSlice';
@@ -149,7 +150,8 @@ const store = configureStore({
     deleteResources: deleteResourcesSlice,
     listTableNamesapce: listTableNamesapceSlice,
     customResourcesDefinitionDetails: customResourcesDefinitionDetailsSlice,
-    clusterEvents: clusterEventsListSlice
+    clusterEvents: clusterEventsListSlice,
+    deploymentScale: DeploymentScaleSlice
   },
 });
 

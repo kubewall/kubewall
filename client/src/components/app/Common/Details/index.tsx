@@ -11,6 +11,7 @@ import { PODS_ENDPOINT } from "@/constants";
 import { PodLogs } from "../../MiscDetailsContainer";
 import { RootState } from "@/redux/store";
 import { Row } from "@tanstack/react-table";
+import { ScaleDeployments } from "../../MiscDetailsContainer/Deployments/ScaleDeployments";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { TableDelete } from "../../Table/TableDelete";
@@ -28,7 +29,7 @@ const KwDetails = () => {
   const { config } = kwDetails.useParams();
   const { cluster, resourcekind, resourcename, group = '', kind = '', resource = '', version = '', namespace } = kwDetails.useSearch();
   const { podDetails } = useAppSelector((state: RootState) => state.podDetails);
-
+  const queryParamsObj: Record<string, string> = { config, cluster, namespace: namespace || '' };
   useEffect(() => {
     dispatch(resetYamlDetails());
     dispatch(clearLogs());
@@ -94,6 +95,11 @@ const KwDetails = () => {
                   </h2>
                 </div>
                 <div className="ml-auto">
+                  {
+                    resourcekind === 'deployments' && 
+                    <ScaleDeployments resourcename={resourcename} queryParams={new URLSearchParams(queryParamsObj).toString()}/>
+                  }
+                  
                   <TableDelete selectedRows={selectedRows} postDeleteCallback={redirectToListPage} />
                 </div>
 

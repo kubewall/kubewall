@@ -57,7 +57,7 @@ export function CotainerSelector({podDetailsSpec,  selectedContainer, setSelecte
                   )}
                 />
             </CommandItem>
-            {podDetailsSpec.containers.map(({name}) => (
+            {[...podDetailsSpec.containers, ...(podDetailsSpec?.initContainers || [])].map(({name}) => (
               <CommandItem
                 key={name}
                 onSelect={() => {

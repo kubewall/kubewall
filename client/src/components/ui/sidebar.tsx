@@ -18,11 +18,10 @@ import { cn, mergeButtonRefs } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PanelLeftIcon } from "lucide-react"
+import { PanelLeftIcon } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Slot } from "@radix-ui/react-slot";
-import { ViewVerticalIcon } from "@radix-ui/react-icons";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSidebarResize } from "@/hooks/use-sidebar-resize";
 
@@ -589,6 +588,7 @@ const SidebarMenuButton = React.forwardRef<
     asChild?: boolean
     isActive?: boolean
     tooltip?: string | React.ComponentProps<typeof TooltipContent>
+    showTooltipOnExpanded?: boolean
   } & VariantProps<typeof sidebarMenuButtonVariants>
 >(
   (
@@ -597,6 +597,7 @@ const SidebarMenuButton = React.forwardRef<
       isActive = false,
       variant = "default",
       size = "default",
+      showTooltipOnExpanded = false,
       tooltip,
       className,
       ...props
@@ -633,7 +634,7 @@ const SidebarMenuButton = React.forwardRef<
         <TooltipContent
           side="right"
           align="center"
-          hidden={state !== "collapsed" || isMobile}
+          hidden={!showTooltipOnExpanded && (state !== "collapsed" || isMobile)}
           {...tooltip}
         />
       </Tooltip>

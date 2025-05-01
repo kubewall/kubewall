@@ -136,14 +136,11 @@ export function useSidebarResize({
       }
     };
 
-    const handleMouseUp = (e: MouseEvent) => {
+    const handleMouseUp = () => {
       if (!isInteractingWithRail.current) return;
 
       if (!isDragging.current) {
-        // console.log("[Rail] Clicked, toggling sidebar");
         onToggle();
-      } else {
-        // console.log(`[Rail] Finished at ${currentWidth}`);
       }
 
       isDragging.current = false;

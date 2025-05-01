@@ -11,7 +11,7 @@ export * from './RuntimeClassDetailsContainer';
 export * from './SecretDetailsContainer';
 export * from './EndpointDetailsContainer';
 export * from './ServiceDetailsContainer';
-export * from './DeploymentDetailsContainer';
+export * from './Deployments/DeploymentDetailsContainer';
 export * from './PodDetailsContainer';
 export * from './ServiceAccountDetailsContainer';
 export * from './RoleDetailsContainer';

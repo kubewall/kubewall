@@ -5,6 +5,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoonIcon, SunIcon } from "@radix-ui/react-icons";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 import { Button } from "@/components/ui/button";
 import { useTheme } from "../../ThemeProvider";
@@ -14,21 +15,30 @@ export function ThemeModeSelector() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button className="ml-1 h-8 w-8" variant="outline" size="icon">
-          <SunIcon className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <MoonIcon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-          <span className="sr-only">Toggle theme</span>
-        </Button>
-      </DropdownMenuTrigger>
+      <TooltipProvider>
+        <Tooltip delayDuration={0}>
+          <TooltipTrigger asChild>
+            <DropdownMenuTrigger asChild>
+              <Button className="ml-1 h-8 w-8" variant="outline" size="icon">
+                <SunIcon className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                <MoonIcon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                <span className="sr-only">Toggle theme</span>
+              </Button>
+            </DropdownMenuTrigger>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            Toggle theme
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => {setTheme("light"); location.reload();}}>
+        <DropdownMenuItem onClick={() => { setTheme("light"); location.reload(); }}>
           Light
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => {setTheme("dark"); location.reload();}}>
+        <DropdownMenuItem onClick={() => { setTheme("dark"); location.reload(); }}>
           Dark
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => {setTheme("system"); location.reload();}}>
+        <DropdownMenuItem onClick={() => { setTheme("system"); location.reload(); }}>
           System
         </DropdownMenuItem>
       </DropdownMenuContent>

@@ -28,7 +28,7 @@ const SidebarNavigator = memo(function ({ setOpenMenus }: SidebarNavigator) {
   const configName = router.location.pathname.split('/')[1];
   const queryParams = new URLSearchParams(router.location.search);
   const clusterName = queryParams.get('cluster') || '';
-  const { open: isSidebarOpen } = useSidebar();
+  const { open: isSidebarOpen, openMobile } = useSidebar();
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -65,7 +65,7 @@ const SidebarNavigator = memo(function ({ setOpenMenus }: SidebarNavigator) {
   return (
     <>
       {
-        isSidebarOpen ?
+        isSidebarOpen || openMobile ?
           <Input
             className="h-8 mt-2 shadow-none"
             placeholder="Open... (⌘K)"

@@ -1,4 +1,5 @@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { deleteResources, resetDeleteResource } from "@/data/Misc/DeleteResourceSlice";
 import { kwDetails, kwList } from "@/routes";
 import { kwDetailsSearch, kwListSearch } from "@/types";
@@ -20,18 +21,18 @@ type TableDeleteProps = {
 }
 
 const TableDelete = ({ selectedRows, toggleAllRowsSelected, postDeleteCallback }: TableDeleteProps) => {
-    // const router = useRouterState();
-    let paramList = {} as kwListSearch & kwDetailsSearch;
-    let config = '';
-    let isListPage = true;
-    if (window.location.pathname.split('/')[2].toLowerCase() === 'list') {
-      config = kwList.useParams().config;
-      paramList = kwList.useSearch();
-    } else {
-      isListPage = false;
-      config = kwDetails.useParams().config;
-      paramList = kwDetails.useSearch();
-    }
+  // const router = useRouterState();
+  let paramList = {} as kwListSearch & kwDetailsSearch;
+  let config = '';
+  let isListPage = true;
+  if (window.location.pathname.split('/')[2].toLowerCase() === 'list') {
+    config = kwList.useParams().config;
+    paramList = kwList.useSearch();
+  } else {
+    isListPage = false;
+    config = kwDetails.useParams().config;
+    paramList = kwDetails.useSearch();
+  }
 
   const { cluster = '', resourcekind = '', group = '', kind = '', resource = '', version = '' } = paramList;
   const {
@@ -109,21 +110,30 @@ const TableDelete = ({ selectedRows, toggleAllRowsSelected, postDeleteCallback }
 
   return (
     <Dialog open={modalOpen} onOpenChange={(open: boolean) => setModalOpen(open)}>
-      <DialogTrigger asChild>
-        <Button
-          variant={isListPage ? 'destructive': 'ghost'}
-          size="icon"
-          className={`right-0 mt-1 rounded z-10 border w-9 ${isListPage && 'absolute mr-10 bottom-12 w-20'}`}
-          onClick={() => setModalOpen(true)}
+      <TooltipProvider>
+        <Tooltip delayDuration={0}>
+          <TooltipTrigger asChild>
+            <DialogTrigger asChild>
+              <Button
+                variant={isListPage ? 'destructive' : 'ghost'}
+                size="icon"
+                className={`right-0 mt-1 rounded z-10 border w-9 ${isListPage && 'absolute mr-10 bottom-12 w-20'}`}
+                onClick={() => setModalOpen(true)}
 
-        > {
-            loading ?
-              <Loader className='w-5 h-5 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600' /> :
-              <Trash2Icon className={`h-4 w-4 ${isListPage && `mr-1`}`} />
-          }
-          {isListPage && <span className='text-xs'>Delete</span> }
-        </Button>
-      </DialogTrigger>
+              > {
+                  loading ?
+                    <Loader className='w-5 h-5 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600' /> :
+                    <Trash2Icon className={`h-4 w-4 ${isListPage && `mr-1`}`} />
+                }
+                {isListPage && <span className='text-xs'>Delete</span>}
+              </Button>
+            </DialogTrigger>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            Delete Resource{selectedRows.length > 1 ? 's' : ''}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Delete Resource</DialogTitle>
@@ -134,13 +144,13 @@ const TableDelete = ({ selectedRows, toggleAllRowsSelected, postDeleteCallback }
 
         <DialogFooter className="sm:justify-center">
           <Button
-            className="w-2/4"
+            className="md:w-2/4 w-full"
             type="submit"
             onClick={() => setModalOpen(false)}
           >No</Button>
           <Button
             onClick={() => deleteResource()}
-            className="w-2/4"
+            className="md:w-2/4 w-full"
             type="submit"
           >Yes</Button>
         </DialogFooter>

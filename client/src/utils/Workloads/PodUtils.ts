@@ -47,8 +47,8 @@ const ansiColors = [
 ];
 
 const getColorForContainerName = (containerName: string, podSpec: PodDetailsSpec) => {
-  const { containers } = podSpec;
-  const index = containers.findIndex(({ name }) => name === containerName);
+  const { containers, initContainers } = podSpec;
+  const index = [...containers, ...(initContainers || [])].findIndex(({ name }) => name === containerName);
   return ansiColors[index];
 };
 

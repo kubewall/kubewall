@@ -19,52 +19,6 @@ const DropdownMenuSub = DropdownMenuPrimitive.Sub;
 
 const DropdownMenuRadioGroup = DropdownMenuPrimitive.RadioGroup;
 const DropdownMenu = DropdownMenuPrimitive.Root;
-// type DropdownMenuProps = React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Root> & {
-//   openOn?: "click" | "hover";
-// };
-
-// const DropdownMenu = ({
-//   openOn = "click",
-//   children,
-//   ...props
-// }: DropdownMenuProps) => {
-//   const [open, setOpen] = React.useState(false);
-//   const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
-
-//   const handleMouseEnter = () => {
-//     console.log('handleMouseEnter')
-//     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-//     setOpen(true);
-//   };
-
-//   const handleMouseLeave = () => {
-//     timeoutRef.current = setTimeout(() => setOpen(false), 200);
-//     setOpen(false)
-//   };
-
-//   const hoverProps =
-//     openOn === "hover"
-//       ? {
-//           open,
-//           onOpenChange: setOpen,
-//         }
-//       : {};
-
-//   const wrappedChildren =
-//     openOn === "hover" ? (
-//       <div onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
-//         {children}
-//       </div>
-//     ) : (
-//       children
-//     );
-
-//   return (
-//     <DropdownMenuPrimitive.Root {...props} {...hoverProps}>
-//       {wrappedChildren}
-//     </DropdownMenuPrimitive.Root>
-//   );
-// };
 
 const DropdownMenuSubTrigger = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.SubTrigger>,
