@@ -177,7 +177,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                                   <DropdownMenuTrigger asChild>
                                     {getResourceIcon(route.toLowerCase().split(' ').join(''))}
                                   </DropdownMenuTrigger>
-                                  <span className='text-gray-800 dark:text-gray-200 group-data-[collapsible=icon]:hidden'>{route}</span>
+                                  <span className='truncate text-gray-800 dark:text-gray-200 group-data-[collapsible=icon]:hidden'>{route}</span>
                                   <ChevronRight size={16} className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 group-data-[collapsible=icon]:hidden" />
                                 </SidebarMenuButton>
                               </CollapsibleTrigger>
@@ -217,7 +217,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                                   sideOffset={12}
 
                                 >
-                                  <DropdownMenuLabel className="font-medium text-gray-800 dark:text-gray-200">{route}</DropdownMenuLabel>
+                                  <DropdownMenuLabel className="truncate font-medium text-gray-800 dark:text-gray-200">{route}</DropdownMenuLabel>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuGroup className='overflow-auto max-h-64'>
                                     {
@@ -256,7 +256,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                             <SidebarMenuButton className='group-data-[collapsible=icon]:justify-center' asChild tooltip='Definitions'>
                               <a onClick={() => onNavClick('customresourcedefinitions')}>
                                 {getResourceIcon('customesources')}
-                                <span className='text-gray-800 dark:text-gray-200 group-data-[collapsible=icon]:hidden'>Definitions</span>
+                                <span className='truncate text-gray-800 dark:text-gray-200 group-data-[collapsible=icon]:hidden'>Definitions</span>
                               </a>
                             </SidebarMenuButton>
                           </TooltipTrigger>
@@ -327,7 +327,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                                   sideOffset={12}
 
                                 >
-                                  <DropdownMenuLabel className="font-medium text-gray-800 dark:text-gray-200">{customResourceGroup}</DropdownMenuLabel>
+                                  <DropdownMenuLabel className="truncate font-medium text-gray-800 dark:text-gray-200">{customResourceGroup}</DropdownMenuLabel>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuGroup className='overflow-auto max-h-64'>
                                     {
