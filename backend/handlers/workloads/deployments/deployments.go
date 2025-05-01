@@ -113,7 +113,7 @@ func (h *DeploymentsHandler) UpdateScale(c echo.Context) error {
 		return err
 	}
 	if r.Replicas < 0 {
-		return c.JSON(http.StatusBadRequest, map[string]string{"message": "replicas, must be greater than or equal to 0"})
+		return c.JSON(http.StatusBadRequest, echo.Map{"message": "replicas, must be greater than or equal to 0"})
 	}
 
 	scale := &autoscalingv1.Scale{
@@ -132,8 +132,8 @@ func (h *DeploymentsHandler) UpdateScale(c echo.Context) error {
 		UpdateScale(c.Request().Context(), c.Param("name"), scale, metav1.UpdateOptions{})
 
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"message": err.Error()})
+		return c.JSON(http.StatusBadRequest, echo.Map{"message": err.Error()})
 	}
 
-	return c.NoContent(http.StatusOK)
+	return c.JSON(http.StatusOK, echo.Map{"success": true})
 }
