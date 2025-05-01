@@ -42,10 +42,10 @@ type SidebarContext = {
   setOpenMobile: (open: boolean) => void
   isMobile: boolean
   toggleSidebar: () => void
-    width: string;
-    setWidth: (width: string) => void;
-    isDraggingRail: boolean;
-    setIsDraggingRail: (isDraggingRail: boolean) => void;
+  width: string;
+  setWidth: (width: string) => void;
+  isDraggingRail: boolean;
+  setIsDraggingRail: (isDraggingRail: boolean) => void;
 }
 
 const SidebarContext = React.createContext<SidebarContext | null>(null);
@@ -254,7 +254,7 @@ const Sidebar = React.forwardRef<
             variant === "floating" || variant === "inset"
               ? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4))]"
               : "group-data-[collapsible=icon]:w-[--sidebar-width-icon]",
-               "group-data-[dragging=true]:!duration-0 group-data-[dragging=true]_*:!duration-0"
+            "group-data-[dragging=true]:!duration-0 group-data-[dragging=true]_*:!duration-0"
           )}
         />
         <div
@@ -267,7 +267,7 @@ const Sidebar = React.forwardRef<
             variant === "floating" || variant === "inset"
               ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4)_+2px)]"
               : "group-data-[collapsible=icon]:w-[--sidebar-width-icon] group-data-[side=left]:border-r group-data-[side=right]:border-l",
-              "group-data-[dragging=true]:!duration-0 group-data-[dragging=true]_*:!duration-0",
+            "group-data-[dragging=true]:!duration-0 group-data-[dragging=true]_*:!duration-0",
             className
           )}
           {...props}
@@ -305,7 +305,7 @@ const SidebarTrigger = React.forwardRef<
       {...props}
     >
       {/* <ViewVerticalIcon /> */}
-      <PanelLeftIcon className="h-4 w-4" strokeWidth="1"/>
+      <PanelLeftIcon className="h-4 w-4" strokeWidth="1" />
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   );
@@ -318,10 +318,10 @@ const SidebarRail = React.forwardRef<
     //* new prop for enabling drag
     enableDrag?: boolean;
   }
->(({ className,enableDrag = true, ...props }, ref) => {
+>(({ className, enableDrag = true, ...props }, ref) => {
   // const { toggleSidebar } = useSidebar();
   const { toggleSidebar, setWidth, state, width, setIsDraggingRail } =
-  useSidebar();
+    useSidebar();
 
   const { dragRef, handleMouseDown } = useSidebarResize({
     enableDrag,
@@ -334,11 +334,11 @@ const SidebarRail = React.forwardRef<
     setIsDraggingRail,
   });
 
-    //* Merge external ref with our dragRef
-    const combinedRef = React.useMemo(
-      () => mergeButtonRefs([ref, dragRef]),
-      [ref, dragRef]
-    );
+  //* Merge external ref with our dragRef
+  const combinedRef = React.useMemo(
+    () => mergeButtonRefs([ref, dragRef]),
+    [ref, dragRef]
+  );
 
   return (
     <button
@@ -485,6 +485,7 @@ const SidebarGroupLabel = React.forwardRef<
 
   return (
     <Comp
+      //@ts-expect-error TODO: check for type error from shadcn
       ref={ref}
       data-sidebar="group-label"
       className={cn(
@@ -506,6 +507,7 @@ const SidebarGroupAction = React.forwardRef<
 
   return (
     <Comp
+      //@ts-expect-error TODO: check for type error from shadcn
       ref={ref}
       data-sidebar="group-action"
       className={cn(
@@ -609,6 +611,7 @@ const SidebarMenuButton = React.forwardRef<
 
     const button = (
       <Comp
+        //@ts-expect-error TODO: check for type error from shadcn
         ref={ref}
         data-sidebar="menu-button"
         data-size={size}
@@ -654,6 +657,7 @@ const SidebarMenuAction = React.forwardRef<
 
   return (
     <Comp
+      //@ts-expect-error TODO: check for type error from shadcn
       ref={ref}
       data-sidebar="menu-action"
       className={cn(
@@ -665,7 +669,7 @@ const SidebarMenuAction = React.forwardRef<
         "peer-data-[size=lg]/menu-button:top-2.5",
         "group-data-[collapsible=icon]:hidden",
         showOnHover &&
-          "group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 peer-data-[active=true]/menu-button:text-sidebar-accent-foreground md:opacity-0",
+        "group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 peer-data-[active=true]/menu-button:text-sidebar-accent-foreground md:opacity-0",
         className
       )}
       {...props}
@@ -768,6 +772,7 @@ const SidebarMenuSubButton = React.forwardRef<
 
   return (
     <Comp
+      //@ts-expect-error TODO: check for type error from shadcn
       ref={ref}
       data-sidebar="menu-sub-button"
       data-size={size}

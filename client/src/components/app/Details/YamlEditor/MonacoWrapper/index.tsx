@@ -1,5 +1,3 @@
-'use client';
-
 import { useState, useEffect, useRef, useCallback, EffectCallback, DependencyList } from 'react';
 import loader from '@monaco-editor/loader';
 import { type IDisposable, type editor } from 'monaco-editor';
