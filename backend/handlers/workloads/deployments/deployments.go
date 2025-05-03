@@ -110,7 +110,7 @@ func (h *DeploymentsHandler) DeploymentsPods(c echo.Context) {
 func (h *DeploymentsHandler) UpdateScale(c echo.Context) error {
 	r := new(DeploymentReplicas)
 	if err := c.Bind(r); err != nil {
-		return err
+		return c.JSON(http.StatusBadRequest, echo.Map{"message": err.Error()})
 	}
 	if r.Replicas < 0 {
 		return c.JSON(http.StatusBadRequest, echo.Map{"message": "replicas, must be greater than or equal to 0"})
