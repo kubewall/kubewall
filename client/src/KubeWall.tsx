@@ -50,7 +50,7 @@ export function KubeWall() {
                                 <TooltipTrigger asChild>
                                   <Link
                                     to={`/${config}/list?cluster=${name}&resourcekind=${selectedResource}`}
-                                    onClick={() => dispatch(resetAllStates())}
+                                    onClick={() => !isSelected(config, name) && dispatch(resetAllStates())}
                                     href="#"
                                     className={cn(
                                       buttonVariants({ variant: isSelected(config, name) ? 'default' : 'ghost', size: 'icon' }),
