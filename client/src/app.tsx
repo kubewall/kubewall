@@ -1,5 +1,5 @@
 import { Outlet, useRouterState } from "@tanstack/react-router";
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { SidebarInset, SidebarProvider } from "./components/ui/sidebar";
 import { createEventStreamQueryObject, getEventStreamUrl } from "./utils";
 
 import { NAMESPACES_ENDPOINT } from "./constants";
@@ -17,7 +17,6 @@ export function App() {
   const queryParams = new URLSearchParams(router.location.search);
   const clusterName = queryParams.get('cluster') || '';
 
-
   const sendMessage = (message: NamespacesResponse[]) => {
     dispatch(updateNamspaces(message));
   };
@@ -32,18 +31,15 @@ export function App() {
     sendMessage
   });
 
-return (
-  <ResizablePanelGroup
-    direction="horizontal"
-    className="h-screen items-stretch"
-  >
-    <ResizablePanel defaultSize={13}>
-      <Sidebar />
-    </ResizablePanel>
-    <ResizableHandle withHandle />
-    <ResizablePanel defaultSize={87}>
-      <Outlet />
-    </ResizablePanel>
-  </ResizablePanelGroup>
-);
+  return (
+    <>
+      <SidebarProvider >
+        <Sidebar />
+        <SidebarInset>
+          <Outlet />
+        </SidebarInset>
+
+      </SidebarProvider>
+    </>
+  );
 }

@@ -1,4 +1,4 @@
-import { CONFIG_MAPS_ENDPOINT, CUSTOM_RESOURCES_LIST_ENDPOINT, ENDPOINTS_ENDPOINT, HPA_ENDPOINT, INGRESSES_ENDPOINT, NODES_ENDPOINT, ROLE_BINDINGS_ENDPOINT, SECRETS_ENDPOINT, SERVICES_ENDPOINT } from '@/constants';
+import { CUSTOM_RESOURCES_LIST_ENDPOINT, ENDPOINTS_ENDPOINT, HPA_ENDPOINT, INGRESSES_ENDPOINT, NODES_ENDPOINT, ROLE_BINDINGS_ENDPOINT, SECRETS_ENDPOINT, SERVICES_ENDPOINT } from '@/constants';
 import { Row, Table } from '@tanstack/react-table';
 
 import { ClusterDetails } from '@/types';
@@ -130,8 +130,7 @@ const TableCells = <T extends ClusterDetails>({
       instanceType === SERVICES_ENDPOINT ||
       instanceType === ROLE_BINDINGS_ENDPOINT ||
       instanceType === NODES_ENDPOINT ||
-      instanceType === SECRETS_ENDPOINT ||
-      instanceType === CONFIG_MAPS_ENDPOINT
+      instanceType === SECRETS_ENDPOINT
     )
   ) {
     return <MultiValueCell cellValue={value} />;

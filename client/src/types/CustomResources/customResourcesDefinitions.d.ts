@@ -10,6 +10,7 @@ type CustomResourcesDefinitionsResponse = {
   scope: string;
   spec: {
       group: string;
+      icon: string;
       names: {
           kind: string;
           listKind: string;

@@ -1,3 +1,4 @@
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
 import { AddResource } from "@/components/app/Common/AddResource";
@@ -7,6 +8,8 @@ import { DataTableFacetedFilter } from "@/components/app/Table/TableFacetedFilte
 import { DataTableViewOptions } from "@/components/app/Table/TableViewOptions";
 import { DebouncedInput } from "@/components/app/Common/DeboucedInput";
 import { RootState } from "@/redux/store";
+import { Separator } from "@/components/ui/separator";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Table } from "@tanstack/react-table";
 import { ThemeModeSelector } from "@/components/app/Common/ThemeModeSelector";
 import { namespacesFilter } from "@/utils";
@@ -37,6 +40,8 @@ export function DataTableToolbar<TData>({
   return (
     <div className="flex items-center justify-between px-2 py-2">
       <div className="flex flex-1 items-center space-x-2">
+        <SidebarTrigger />
+        <Separator orientation="vertical" className="mr-2 h-4 ml-1" />
         <DebouncedInput
           placeholder="Search... (/)"
           value={globalFilter ?? ''}
@@ -44,19 +49,19 @@ export function DataTableToolbar<TData>({
             setGlobalFilter(String(value));
             dispatch(updateListTableFilter(String(value)));
           }}
-          className="h-8 basis-7/12 shadow-none"
+          className="h-8 basis-7/12 shadow-none px-2"
         />
         {showNamespaceFilter && !loading && namespaces && namespaces.length > 0 && (
           <DataTableFacetedFilter
             column={table.getColumn("Namespace")}
-            title="Namespace"
+            title="Namespaces"
             options={namespacesFilter(namespaces)}
           />
         )}
         {isFiltered && showNamespaceFilter && !loading && namespaces && namespaces.length > 0 && (
           <Button
             variant="ghost"
-            onClick={() => {table.resetColumnFilters(); dispatch(resetFilterNamespace());}}
+            onClick={() => { table.resetColumnFilters(); dispatch(resetFilterNamespace()); }}
             className="h-8 px-2 lg:px-3 shadow-none"
           >
             Reset
@@ -64,14 +69,23 @@ export function DataTableToolbar<TData>({
           </Button>
         )}
         {!loading &&
-          <div title="Total count" className="flex items-center mr-5 border px-3 text-xs font-medium rounded-md h-8">
-            <span className="h-2 w-2 rounded-full bg-gray-400" />
-            <span className="pl-2">{table.getFilteredRowModel().rows.length}</span>
-          </div>
+          <TooltipProvider>
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <div className="flex items-center mr-5 border px-3 text-xs font-medium rounded-md h-8 cursor-default">
+                  <span className="h-2 w-2 rounded-full bg-gray-400" />
+                  <span className="pl-2">{table.getFilteredRowModel().rows.length}</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                Total count
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         }
       </div>
       <DataTableViewOptions table={table} />
-      <AddResource/>
+      <AddResource />
       <ThemeModeSelector />
     </div>
   );

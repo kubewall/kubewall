@@ -59,6 +59,22 @@ type PodDetailsSpec = {
     terminationMessagePolicy: string,
     imagePullPolicy: string
   }[],
+  initContainers?: {
+    name: string,
+    image: string,
+    command: [],
+    resources: {
+      [key: string]: string,
+    },
+    volumeMounts:{
+        name: string,
+        readOnly: boolean,
+        mountPath: string
+      }[],
+    terminationMessagePath: string,
+    terminationMessagePolicy: string,
+    imagePullPolicy: string
+  }[],
   restartPolicy: string,
   terminationGracePeriodSeconds: number,
   dnsPolicy: string,
@@ -94,6 +110,25 @@ type PodDetailsStatus = {
   }[],
   startTime: string,
   containerStatuses: {
+    name: string,
+    state: {
+      terminated?: PodContainerStatusState,
+      running?: PodContainerStatusState,
+      waiting?: PodContainerStatusState
+    }
+    lastState: {
+      terminated?: PodContainerStatusState,
+      running?: PodContainerStatusState,
+      waiting?: PodContainerStatusState
+    },
+    ready: boolean,
+    restartCount: number,
+    image: string,
+    imageID: string,
+    containerID: string,
+    started: boolean
+  }[],
+  initContainerStatuses?: {
     name: string,
     state: {
       terminated?: PodContainerStatusState,

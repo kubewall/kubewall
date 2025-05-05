@@ -146,7 +146,7 @@ func (h *PodsHandler) GetLogs(c echo.Context) error {
 	} else {
 		key = fmt.Sprintf("%s-%s-%s-%s-logs", config, cluster, name, namespace)
 	}
-	go h.publishLogs(c, key, sseServer)
+	go h.publishLogsToSSE(c, key, sseServer)
 
 	sseServer.ServeHTTP(key, c.Response(), c.Request())
 

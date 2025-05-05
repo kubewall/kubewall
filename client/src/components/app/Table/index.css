@@ -2,6 +2,23 @@
   max-height: calc(100vh - 48px);
 }
 
+.list-table-max-width-expanded {
+    max-width: calc(100vw - 16rem);
+}
+.list-table-max-width-collapsed {
+  max-width: calc(100vw - 6rem);
+}
+.list-table-max-width-collapsed-mobile {
+  max-width: calc(100vw - 3rem);
+}
+
+.deployment-list-table-max-width-expanded {
+  max-width: calc(100vw - 19rem);
+}
+.deployment-list-table-max-width-collapsed {
+max-width: calc(100vw - 9rem);
+}
+
 .sidebar-max-height {
   max-height: calc(100vh - 90px);
 }

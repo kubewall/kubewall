@@ -21,12 +21,11 @@ builds:
     env:
       - CGO_ENABLED=0
 
-
 universal_binaries:
   - replace: true
 
 archives:
-  - format: tar.gz
+  - formats: ["tar.gz"]
     # this name template makes the OS and Arch compatible with the results of `uname`.
     name_template: >-
       {{ .ProjectName }}_
@@ -38,14 +37,13 @@ archives:
     # use zip for windows archives
     format_overrides:
       - goos: windows
-        format: zip
+        formats: ["zip"]
 
 sboms:
   - artifacts: archive
 
 nfpms:
-  - builds:
-      - kubewall
+  - id: kubewall
     vendor: kubewall
     homepage: "https://github.com/kubewall/kubewall"
     maintainer: "Abhimanyu Sharma <abhimanyusharma003@gmail.com>"
@@ -57,7 +55,7 @@ nfpms:
       - archlinux
     bindir: /usr/bin
     recommends:
-    - kubectl
+      - kubectl
 
 brews:
   - repository:
@@ -207,7 +205,7 @@ winget:
     homepage: https://github.com/kubewall/kubewall
     license_url: https://github.com/kubewall/kubewall/blob/master/LICENSE
     copyright: Copyright (c) 2024-{{ .Now.Format "2006" }} kubewall
-    release_notes: '{{ .Changelog }}'
+    release_notes: "{{ .Changelog }}"
     release_notes_url: https://github.com/kubewall/kubewall/releases/tag/{{ .Tag }}
     tags:
       - kubernetes
@@ -222,7 +220,7 @@ winget:
       owner: kubewall
       name: winget-pkgs
       branch: kubewall-{{ .Version }}
-      token: '{{ .Env.GITHUB_TOKEN }}'
+      token: "{{ .Env.GITHUB_TOKEN }}"
       pull_request:
         enabled: true
         base:

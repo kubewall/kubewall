@@ -59,7 +59,7 @@ func (h *PodsHandler) fetchLogs(ctx context.Context, namespace, podName, contain
 	}
 }
 
-func (h *PodsHandler) publishLogs(c echo.Context, streamKey string, sseServer *sse.Server) (error, bool) {
+func (h *PodsHandler) publishLogsToSSE(c echo.Context, streamKey string, sseServer *sse.Server) (error, bool) {
 	name := c.Param("name")
 	namespace := c.QueryParam("namespace")
 	container := c.QueryParam("container")
@@ -73,6 +73,11 @@ func (h *PodsHandler) publishLogs(c echo.Context, streamKey string, sseServer *s
 			return err, true
 		}
 		pod := podObj.(*v1.Pod)
+		// Include init containers
+		for _, initContainer := range pod.Spec.InitContainers {
+			containerNames = append(containerNames, initContainer.Name)
+		}
+		// Include regular containers
 		for _, logContainer := range pod.Spec.Containers {
 			containerNames = append(containerNames, logContainer.Name)
 		}

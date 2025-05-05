@@ -3,12 +3,13 @@ package base
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/charmbracelet/log"
 	"github.com/labstack/echo/v4"
 	"github.com/r3labs/sse/v2"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
-	"time"
 )
 
 type Resource interface {
@@ -59,11 +60,10 @@ func (h *BaseHandler) StartDynamicInformer(c echo.Context, cache cache.ResourceE
 }
 
 func (h *BaseHandler) baseInformer(_ echo.Context, cache cache.ResourceEventHandlerFuncs) {
-	cacheKey := fmt.Sprintf("%s-%s-%s", h.QueryConfig, h.QueryCluster, h.InformerCacheKey)
-	if h.Container.Cache().Has(cacheKey) {
+	if h.Container.Cache().Has(h.InformerCacheKey) {
 		return
 	}
-	h.Container.Cache().Set(cacheKey, "started")
+	h.Container.Cache().Set(h.InformerCacheKey, true)
 	_, err := h.Informer.AddEventHandler(cache)
 	if err != nil {
 		log.Warn("failed to load baseInformer", "error", err, "kind", h.Kind)

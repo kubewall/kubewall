@@ -11,12 +11,20 @@ import (
 	"github.com/kubewall/kubewall/backend/handlers/workloads/pods"
 	"github.com/labstack/echo/v4"
 	v1 "k8s.io/api/apps/v1"
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const GetPods = 12
+const (
+	GetPods     = 12
+	UpdateScale = 13
+)
 
 type DeploymentsHandler struct {
 	BaseHandler base.BaseHandler
+}
+type DeploymentReplicas struct {
+	Replicas int32 `json:"replicas"`
 }
 
 func NewDeploymentRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
@@ -36,6 +44,8 @@ func NewDeploymentRouteHandler(container container.Container, routeType base.Rou
 			return handler.BaseHandler.Delete(c)
 		case GetPods:
 			return handler.GetPods(c)
+		case UpdateScale:
+			return handler.UpdateScale(c)
 		default:
 			return echo.NewHTTPError(http.StatusInternalServerError, "Unknown route type")
 		}
@@ -94,4 +104,36 @@ func (h *DeploymentsHandler) GetPods(c echo.Context) error {
 func (h *DeploymentsHandler) DeploymentsPods(c echo.Context) {
 	podsHandler := pods.NewPodsHandler(c, h.BaseHandler.Container)
 	podsHandler.DeploymentsPods(c)
+}
+
+// UpdateScale updates the scale of a deployment
+func (h *DeploymentsHandler) UpdateScale(c echo.Context) error {
+	r := new(DeploymentReplicas)
+	if err := c.Bind(r); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"message": err.Error()})
+	}
+	if r.Replicas < 0 {
+		return c.JSON(http.StatusBadRequest, echo.Map{"message": "replicas, must be greater than or equal to 0"})
+	}
+
+	scale := &autoscalingv1.Scale{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      c.Param("name"),
+			Namespace: c.QueryParam("namespace"),
+		},
+		Spec: autoscalingv1.ScaleSpec{
+			Replicas: r.Replicas,
+		},
+	}
+
+	_, err := h.BaseHandler.Container.ClientSet(c.QueryParam("config"), c.QueryParam("cluster")).
+		AppsV1().
+		Deployments(c.QueryParam("namespace")).
+		UpdateScale(c.Request().Context(), c.Param("name"), scale, metav1.UpdateOptions{})
+
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"message": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, echo.Map{"success": true})
 }

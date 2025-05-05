@@ -1,4 +1,4 @@
-import { createEventStreamQueryObject, getEventStreamUrl } from '@/utils';
+import { createEventStreamQueryObject, getEventStreamUrl, getSystemTheme } from '@/utils';
 import { memo, useCallback, useEffect, useState } from 'react';
 import { resetUpdateYaml, updateYaml } from '@/data/Yaml/YamlUpdateSlice';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
@@ -109,7 +109,7 @@ const YamlEditor = memo(function ({ instanceType, name, namespace, clusterName, 
               <Button
                 variant="default"
                 size="icon"
-                className='absolute bottom-32 right-0 mt-1 mr-5 rounded z-10 border w-16'
+                className='gap-0 absolute bottom-32 right-0 mt-1 mr-5 rounded z-10 border w-16'
                 onClick={yamlUpdate}
               > {
                   yamlUpdateLoading ?
@@ -124,7 +124,7 @@ const YamlEditor = memo(function ({ instanceType, name, namespace, clusterName, 
               language="yaml"
               onChange={onChange}
               className='border rounded-lg h-screen'
-
+              theme={getSystemTheme()}
             />
           </div>
 

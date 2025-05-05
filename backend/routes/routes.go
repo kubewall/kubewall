@@ -254,6 +254,7 @@ func workloadRoutes(e *echo.Echo, appContainer container.Container) {
 	e.GET("api/v1/deployments/:name/events", deployments.NewDeploymentRouteHandler(appContainer, base.GetEvents))
 	e.GET("api/v1/deployments/:name/pods", deployments.NewDeploymentRouteHandler(appContainer, deployments.GetPods))
 	e.DELETE("api/v1/deployments", deployments.NewDeploymentRouteHandler(appContainer, base.Delete))
+	e.POST("api/v1/deployments/:name/scale", deployments.NewDeploymentRouteHandler(appContainer, deployments.UpdateScale))
 
 	// Daemonsets
 	e.GET("api/v1/daemonsets", daemonsets.NewDaemonSetsRouteHandler(appContainer, base.GetList))

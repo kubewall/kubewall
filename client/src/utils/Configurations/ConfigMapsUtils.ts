@@ -5,7 +5,7 @@ const formatConfigMapsResponse = (configMaps: ConfigMapsResponse[]) => {
     namespace:namespace,
     name: name,
     count: count,
-    keys: keys === null ? '—' :keys.toString(),
+    keys: keys === null ? '—' :keys.join(', '),
     age: age,
     hasUpdated: hasUpdated,
     uid: uid
