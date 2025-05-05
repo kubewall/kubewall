@@ -17,7 +17,7 @@ import { SvgRenderer } from '../Common/SvgRenderer';
 import { cn } from "@/lib/utils";
 import { fetchClusters } from "@/data/KwClusters/ClustersSlice";
 import kwLogoDark from '../../../assets/kw-dark-theme.svg';
-import kwLogoDarkIcon from '../../../assets/kw-dark-theme-icon.svg';
+import kwLogoDarkIcon from '../../../assets/kubewall-logo-light.svg';
 import kwLogoLight from '../../../assets/kw-light-theme.svg';
 import kwLogoLightIcon from '../../../assets/kubewall-logo-dark.svg';
 import { resetCustomResourcesList } from "@/data/CustomResources/CustomResourcesListSlice";
@@ -173,13 +173,13 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                           <SidebarMenuItem>
                             <DropdownMenu>
                               <CollapsibleTrigger asChild onClick={(e) => { toggleMenu(route); e.stopPropagation(); }}>
-                                <SidebarMenuButton className='group-data-[collapsible=icon]:justify-center' tooltip={route} showTooltipOnExpanded={true}>
-                                  <DropdownMenuTrigger asChild>
+                                <DropdownMenuTrigger asChild>
+                                  <SidebarMenuButton className='group-data-[collapsible=icon]:justify-center' tooltip={route} showTooltipOnExpanded={true}>
                                     {getResourceIcon(route.toLowerCase().split(' ').join(''))}
-                                  </DropdownMenuTrigger>
-                                  <span className='truncate text-gray-800 dark:text-gray-200 group-data-[collapsible=icon]:hidden'>{route}</span>
-                                  <ChevronRight size={16} className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 group-data-[collapsible=icon]:hidden" />
-                                </SidebarMenuButton>
+                                    <span className='truncate text-gray-800 dark:text-gray-200 group-data-[collapsible=icon]:hidden'>{route}</span>
+                                    <ChevronRight size={16} className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 group-data-[collapsible=icon]:hidden" />
+                                  </SidebarMenuButton>
+                                </DropdownMenuTrigger>
                               </CollapsibleTrigger>
                               <CollapsibleContent>
                                 <SidebarMenuSub>
@@ -214,8 +214,6 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                                   className=" min-w-56 rounded-lg"
                                   align="start"
                                   side={isMobile ? "bottom" : "right"}
-                                  sideOffset={12}
-
                                 >
                                   <DropdownMenuLabel className="truncate font-medium text-gray-800 dark:text-gray-200">{route}</DropdownMenuLabel>
                                   <DropdownMenuSeparator />
@@ -278,18 +276,18 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                           <SidebarMenuItem>
                             <DropdownMenu>
                               <CollapsibleTrigger asChild onClick={() => toggleMenu(customResourceGroup)}>
-                                <SidebarMenuButton className='group-data-[collapsible=icon]:justify-center' tooltip={customResourceGroup} showTooltipOnExpanded={true}>
-                                  <DropdownMenuTrigger asChild>
+                                <DropdownMenuTrigger asChild>
+                                  <SidebarMenuButton className='group-data-[collapsible=icon]:justify-center' tooltip={customResourceGroup} showTooltipOnExpanded={true}>
+
                                     <div>
                                       <SvgRenderer
                                         name={customResourcesNavigation[customResourceGroup].resources[0].icon}
                                       />
                                     </div>
-                                    {/* <ComponentIcon size={16} /> */}
-                                  </DropdownMenuTrigger>
-                                  <span className='truncate text-gray-800 dark:text-gray-200 group-data-[collapsible=icon]:hidden'>{customResourceGroup}</span>
-                                  <ChevronRight size={16} className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 group-data-[collapsible=icon]:hidden" />
-                                </SidebarMenuButton>
+                                    <span className='truncate text-gray-800 dark:text-gray-200 group-data-[collapsible=icon]:hidden'>{customResourceGroup}</span>
+                                    <ChevronRight size={16} className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 group-data-[collapsible=icon]:hidden" />
+                                  </SidebarMenuButton>
+                                </DropdownMenuTrigger>
                               </CollapsibleTrigger>
 
                               <CollapsibleContent>
@@ -324,8 +322,6 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                                   className=" min-w-56 rounded-lg"
                                   align="start"
                                   side={isMobile ? "bottom" : "right"}
-                                  sideOffset={12}
-
                                 >
                                   <DropdownMenuLabel className="truncate font-medium text-gray-800 dark:text-gray-200">{customResourceGroup}</DropdownMenuLabel>
                                   <DropdownMenuSeparator />
