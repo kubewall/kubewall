@@ -30,7 +30,7 @@ To use your own TLS certificates instead of the default self-signed ones:
 
    ```bash
    helm install kubewall oci://ghcr.io/kubewall/kubewall \
-     -n kubewall-system --version v0.0.4 --create-namespace \
+     -n kubewall-system --version v0.0.11 --create-namespace \
      --set tls.secretName=kubewall-tls-secret
    ```
 
@@ -42,7 +42,7 @@ By default, the chart creates a service account with `admin` RBAC permissions in
 
    ```bash
    helm install kubewall oci://ghcr.io/kubewall/kubewall \
-     -n kubewall-system --version v0.0.4 --create-namespace \
+     -n kubewall-system --version v0.0.11 --create-namespace \
      --set serviceAccount.create=false \
      --set serviceAccount.name=<yourServiceAccountName>
    ```
@@ -53,7 +53,7 @@ To upgrade to a newer version of the chart, run the following command:
 
 ```bash
 helm upgrade kubewall oci://ghcr.io/kubewall/kubewall \
-  -n kubewall-system --version v0.0.4
+  -n kubewall-system --version v0.0.11
 ```
 
 ## Configuration Parameters
