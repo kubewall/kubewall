@@ -32,7 +32,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Set up Snapcraft
         run: |
@@ -83,4 +83,10 @@ jobs:
           AUR_KEY: ${{ secrets.AUR_SSH_KEY }}
           GITHUB_TOKEN: ${{ secrets.GORELEASER_TOKEN }}
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_LOGIN }}
-          CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
+
+      - name: Publish Helm chart to ghrc
+        id: helm
+        run: |
+          helm package charts/kubewall --version ${{ steps.get_version.outputs.version-without-v }} --app-version ${{ steps.get_version.outputs.version-without-v }}
+          helm push kubewall-${{ steps.get_version.outputs.version-without-v }}.tgz oci://ghcr.io/kubewall/charts |& tee .digest
+          cosign sign --yes ghcr.io/kubewall/charts/kubewall@$(cat .digest | awk -F "[, ]+" '/Digest/{print $NF}')
