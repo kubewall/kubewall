@@ -124,8 +124,8 @@ Available Commands:
 Flags:
       --certFile string        absolute path to certificate file
   -h, --help                   help for kubewall
-      --k8s-client-burst int   Maximum burst for throttle (default 50)
-      --k8s-client-qps int     maximum QPS to the master from client (default 50)
+      --k8s-client-burst int   Maximum burst for throttle (default 200)
+      --k8s-client-qps int     maximum QPS to the master from client (default 100)
       --keyFile string         absolute path to key file
       --no-open-browser        Do not open the default browser
   -p, --port string            port to listen on (default ":7080")
