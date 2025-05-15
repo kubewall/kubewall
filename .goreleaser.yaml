@@ -73,7 +73,7 @@ brews:
     install: |-
       bin.install "kubewall"
     test: |
-      system "#{bin}/kubewall -v"
+      system "#{bin}/kubewall version"
 
 scoops:
   - repository:
