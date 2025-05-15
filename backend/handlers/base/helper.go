@@ -3,10 +3,11 @@ package base
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+
 	"github.com/kubewall/kubewall/backend/handlers/helpers"
 	"github.com/labstack/echo/v4"
 	"sigs.k8s.io/yaml"
-	"strings"
 )
 
 func (h *BaseHandler) getStreamIDAndItem(namespace, name string) (string, any, bool, error) {
@@ -93,7 +94,7 @@ func (h *BaseHandler) IsNamespacedResource(kind string) bool {
 	return resource.Namespaced
 }
 
-func (h *BaseHandler) GetResourceByKind(kind string) helpers.Resources {
+func (h *BaseHandler) GetResourceByKind(kind string) helpers.Resource {
 	resource, exists := helpers.FindResourceByKind(h.Container, h.QueryConfig, h.QueryCluster, kind)
 	if !exists || resource.Name == "" {
 		helpers.RefreshAllResourcesCache(h.Container, h.QueryConfig, h.QueryCluster)

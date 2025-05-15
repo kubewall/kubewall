@@ -116,7 +116,7 @@ func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 func GetPodsMetricsList(b *base.BaseHandler) *v1beta1.PodMetricsList {
 	cacheKey := fmt.Sprintf(helpers.IsMetricServerAvailableCacheKeyFormat, b.QueryConfig, b.QueryCluster)
 	value, exists := b.Container.Cache().Get(cacheKey)
-	if value == false || exists == false {
+	if value == nil || value == false || !exists {
 		return nil
 	}
 	podMetrics, err := b.Container.

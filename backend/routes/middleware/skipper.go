@@ -1,8 +1,9 @@
 package middleware
 
 import (
-	"github.com/labstack/echo/v4"
 	"strings"
+
+	"github.com/labstack/echo/v4"
 )
 
 func shouldSkip(c echo.Context) bool {
