@@ -72,7 +72,15 @@ func (h *PodsHandler) publishLogsToSSE(c echo.Context, streamKey string, sseServ
 		if err != nil {
 			return err, true
 		}
-		pod := podObj.(*v1.Pod)
+		if podObj == nil {
+			c.Logger().Error("failed to get obj publishLogsToSSE", "err", err)
+			return fmt.Errorf("failed to get obj publishLogsToSSE %s", err), true
+		}
+		pod, ok := podObj.(*v1.Pod)
+		if !ok {
+			c.Logger().Error("failed to type assertions pod", "err", err)
+			return fmt.Errorf("failed to type assertions pod %s", err), true
+		}
 		// Include init containers
 		for _, initContainer := range pod.Spec.InitContainers {
 			containerNames = append(containerNames, initContainer.Name)
@@ -92,9 +100,9 @@ func (h *PodsHandler) publishLogsToSSE(c echo.Context, streamKey string, sseServ
 		go h.fetchLogs(c.Request().Context(), namespace, name, containerName, logsChannel)
 	}
 
-	var log sync.Mutex
+	var logMutex sync.Mutex
 	for logMsg := range logsChannel {
-		log.Lock()
+		logMutex.Lock()
 		j, err := json.Marshal(logMsg)
 		if err != nil {
 			c.Logger().Errorf("failed to marshal log message: %v", err)
@@ -104,7 +112,7 @@ func (h *PodsHandler) publishLogsToSSE(c echo.Context, streamKey string, sseServ
 		sseServer.Publish(streamKey, &sse.Event{
 			Data: j,
 		})
-		log.Unlock()
+		logMutex.Unlock()
 	}
 
 	return nil, false

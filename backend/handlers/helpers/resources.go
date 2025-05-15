@@ -2,14 +2,16 @@ package helpers
 
 import (
 	"fmt"
-	"github.com/kubewall/kubewall/backend/container"
 	"strings"
+
+	"github.com/charmbracelet/log"
+	"github.com/kubewall/kubewall/backend/container"
 )
 
 const AllResourcesCacheKeyFormat = "%s-%s-allResourcesCache"
 const IsMetricServerAvailableCacheKeyFormat = "%s-%s-isMetricServerAvailableCache"
 
-type Resources struct {
+type Resource struct {
 	Namespaced bool   `json:"namespaced"`
 	Name       string `json:"name"`
 	Kind       string `json:"kind"`
@@ -21,11 +23,11 @@ func CacheAllResources(container container.Container, config, cluster string) er
 		return err
 	}
 
-	var allResource []Resources
+	var allResource []Resource
 
 	for _, group := range apiResources {
 		for _, resource := range group.APIResources {
-			allResource = append(allResource, Resources{
+			allResource = append(allResource, Resource{
 				Namespaced: resource.Namespaced,
 				Name:       resource.Name,
 				Kind:       resource.Kind,
@@ -41,13 +43,13 @@ func CacheAllResources(container container.Container, config, cluster string) er
 	return nil
 }
 
-func GetAllResourcesFromCache(container container.Container, config, cluster string) ([]Resources, error) {
+func GetAllResourcesFromCache(container container.Container, config, cluster string) ([]Resource, error) {
 	cacheKey := fmt.Sprintf(AllResourcesCacheKeyFormat, config, cluster)
 	c, exists := container.Cache().Get(cacheKey)
 	if !exists {
 		return nil, fmt.Errorf("%s not found in cache", cacheKey)
 	}
-	return c.([]Resources), nil
+	return c.([]Resource), nil
 }
 
 func RefreshAllResourcesCache(container container.Container, config, cluster string) error {
@@ -55,12 +57,16 @@ func RefreshAllResourcesCache(container container.Container, config, cluster str
 	return CacheAllResources(container, config, cluster)
 }
 
-func FindResourceByKind(container container.Container, config, cluster, kind string) (Resources, bool) {
-	resources, _ := GetAllResourcesFromCache(container, config, cluster)
+func FindResourceByKind(container container.Container, config, cluster, kind string) (Resource, bool) {
+	resources, err := GetAllResourcesFromCache(container, config, cluster)
+	if err != nil {
+		log.Error("failed to find resource FindResourceByKind", "err", err)
+		return Resource{}, false
+	}
 	for _, resource := range resources {
 		if strings.EqualFold(kind, resource.Kind) {
 			return resource, true
 		}
 	}
-	return Resources{}, false
+	return Resource{}, false
 }

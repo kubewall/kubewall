@@ -8,8 +8,8 @@ import (
 	"k8s.io/client-go/util/homedir"
 )
 
-var K8SQPS int
-var K8SBURST int
+var K8SQPS = 100
+var K8SBURST = 200
 
 const (
 	defaultKubeConfigDir = ".kube"
@@ -100,11 +100,15 @@ func readAllFilesInDir(dirPath string) []string {
 }
 
 func (c *AppConfig) RemoveKubeConfig(uuid string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	delete(c.KubeConfig, uuid)
 	return os.Remove(filepath.Join(homedir.HomeDir(), appConfigDir, appKubeConfigDir, uuid))
 }
 
 func (c *AppConfig) SaveKubeConfig(uuid string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	filePath := filepath.Join(homedir.HomeDir(), appConfigDir, appKubeConfigDir, uuid)
 	if clusters, err := LoadK8ConfigFromFile(filePath); err == nil {
 		if len(clusters) > 0 {

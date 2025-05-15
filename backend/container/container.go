@@ -52,6 +52,7 @@ type container struct {
 	sseServer      *sse.Server
 	eventProcessor *event.EventProcessor
 	socketUpgrader *websocket.Upgrader
+	mu             sync.Mutex
 }
 
 // NewContainer is constructor.
@@ -68,6 +69,7 @@ func NewContainer(env *config.Env, cfg *config.AppConfig) Container {
 	s.EventTTL = 2 * time.Second
 	s.Headers = map[string]string{
 		"X-Accel-Buffering": "no",
+		// "Cache-Control":"no-cache"
 	}
 
 	e := event.NewEventCounter(time.Millisecond * 250)
@@ -87,65 +89,107 @@ func NewContainer(env *config.Env, cfg *config.AppConfig) Container {
 }
 
 func (c *container) Env() *config.Env {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	return c.env
 }
 
 func (c *container) Config() *config.AppConfig {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	return c.config
 }
 
 func (c *container) Cache() otter.Cache[string, any] {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	return c.cache
 }
 
 func (c *container) SSE() *sse.Server {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	return c.sseServer
 }
 
 func (c *container) EventProcessor() *event.EventProcessor {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	return c.eventProcessor
 }
 
 func (c *container) RestConfig(config, cluster string) *rest.Config {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
 	return cfg.RestConfig
 }
 
 func (c *container) ClientSet(config, cluster string) *kubernetes.Clientset {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
-	return cfg.ClientSet
+	return cfg.GetClientSet()
 }
 
 func (c *container) DynamicClient(config, cluster string) *dynamic.DynamicClient {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
-	return cfg.DynamicClient
+	return cfg.GetDynamicClient()
 }
 
 func (c *container) DiscoveryClient(config, cluster string) *discovery.DiscoveryClient {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
-	return cfg.DiscoveryClient
+	return cfg.GetDiscoveryClient()
 }
 
 func (c *container) MetricClient(config, cluster string) *metricsclient.Clientset {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
-	return cfg.MetricClient
+	return cfg.GetMetricClient()
 }
 
 func (c *container) SharedInformerFactory(config, cluster string) informers.SharedInformerFactory {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
-	return cfg.SharedInformerFactory
+	return cfg.GetSharedInformerFactory()
 }
 
 func (c *container) ExtensionSharedFactoryInformer(config, cluster string) apiextensionsinformers.SharedInformerFactory {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
-	return cfg.ExtensionInformerFactory
+	return cfg.GetExtensionInformerFactory()
 }
 
 func (c *container) DynamicSharedInformerFactory(config, cluster string) dynamicinformer.DynamicSharedInformerFactory {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
-	return cfg.DynamicInformerFactory
+	return cfg.GetDynamicSharedInformerFactory()
 }
 
 func (c *container) SocketUpgrader() *websocket.Upgrader {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	return c.socketUpgrader
 }

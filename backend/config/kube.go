@@ -42,6 +42,55 @@ type Cluster struct {
 	mu                       sync.Mutex                                   `json:"-"`
 }
 
+func (c *Cluster) GetClientSet() *kubernetes.Clientset {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.ClientSet
+}
+
+func (c *Cluster) GetDynamicClient() *dynamic.DynamicClient {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.DynamicClient
+}
+
+func (c *Cluster) GetDiscoveryClient() *discovery.DiscoveryClient {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.DiscoveryClient
+}
+
+func (c *Cluster) GetSharedInformerFactory() informers.SharedInformerFactory {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.SharedInformerFactory
+}
+
+func (c *Cluster) GetDynamicSharedInformerFactory() dynamicinformer.DynamicSharedInformerFactory {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.DynamicInformerFactory
+}
+
+func (c *Cluster) GetExtensionInformerFactory() apiextensionsinformers.SharedInformerFactory {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.ExtensionInformerFactory
+}
+
+func (c *Cluster) GetMetricClient() *metricsclient.Clientset {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.MetricClient
+}
+
 func (c *Cluster) IsConnected() bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -132,6 +181,7 @@ func restConfig(config api.Config, contextName string) (*rest.Config, error) {
 		return nil, fmt.Errorf("failed to create kubernetes ClientConfig: %w", err)
 	}
 	restConfig.ContentType = runtime.ContentTypeProtobuf
+	restConfig.AcceptContentTypes = fmt.Sprintf("%s,%s", runtime.ContentTypeProtobuf, runtime.ContentTypeJSON)
 	restConfig.QPS = float32(K8SQPS)
 	restConfig.Burst = K8SBURST
 	if restConfig.BearerToken != "" && isTLSClientConfigEmpty(restConfig) {

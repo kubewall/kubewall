@@ -150,21 +150,21 @@ func servicesRoutes(e *echo.Echo, appContainer container.Container) {
 }
 
 func storageRoutes(e *echo.Echo, appContainer container.Container) {
-	// PV
+	// PersistentVolumes (PV)
 	e.GET("api/v1/persistentvolumes", persistentvolumes.NewPersistentVolumeRouteHandler(appContainer, base.GetList))
 	e.GET("api/v1/persistentvolumes/:name", persistentvolumes.NewPersistentVolumeRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/persistentvolumes/:name/yaml", persistentvolumes.NewPersistentVolumeRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/persistentvolumes/:name/events", persistentvolumes.NewPersistentVolumeRouteHandler(appContainer, base.GetEvents))
 	e.DELETE("api/v1/persistentvolumes", persistentvolumes.NewPersistentVolumeRouteHandler(appContainer, base.Delete))
 
-	// PVC
+	// PersistentVolumeClaims (PVC)
 	e.GET("api/v1/persistentvolumeclaims", persistentvolumeclaims.NewPersistentVolumeClaimsRouteHandler(appContainer, base.GetList))
 	e.GET("api/v1/persistentvolumeclaims/:name", persistentvolumeclaims.NewPersistentVolumeClaimsRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/persistentvolumeclaims/:name/yaml", persistentvolumeclaims.NewPersistentVolumeClaimsRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/persistentvolumeclaims/:name/events", persistentvolumeclaims.NewPersistentVolumeClaimsRouteHandler(appContainer, base.GetEvents))
 	e.DELETE("api/v1/persistentvolumeclaims", persistentvolumeclaims.NewPersistentVolumeClaimsRouteHandler(appContainer, base.Delete))
 
-	// Storage Class
+	// StorageClasses
 	e.GET("api/v1/storageclasses", storageclasses.NewStorageClassRouteHandler(appContainer, base.GetList))
 	e.GET("api/v1/storageclasses/:name", storageclasses.NewStorageClassRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/storageclasses/:name/yaml", storageclasses.NewStorageClassRouteHandler(appContainer, base.GetYaml))
@@ -201,35 +201,35 @@ func configRoutes(e *echo.Echo, appContainer container.Container) {
 	e.GET("api/v1/limitranges/:name/events", limitranges.NewLimitRangesRouteHandler(appContainer, base.GetEvents))
 	e.DELETE("api/v1/limitranges", limitranges.NewLimitRangesRouteHandler(appContainer, base.Delete))
 
-	// HAP
+	// HorizontalPodAutoscalers (HPA)
 	e.GET("api/v1/horizontalpodautoscalers", horizontalpodautoscalers.NewHorizontalPodAutoscalersRouteHandler(appContainer, base.GetList))
 	e.GET("api/v1/horizontalpodautoscalers/:name", horizontalpodautoscalers.NewHorizontalPodAutoscalersRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/horizontalpodautoscalers/:name/yaml", horizontalpodautoscalers.NewHorizontalPodAutoscalersRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/horizontalpodautoscalers/:name/events", horizontalpodautoscalers.NewHorizontalPodAutoscalersRouteHandler(appContainer, base.GetEvents))
 	e.DELETE("api/v1/horizontalpodautoscalers", horizontalpodautoscalers.NewHorizontalPodAutoscalersRouteHandler(appContainer, base.Delete))
 
-	// LimitRanges
+	// PodDisruptionBudgets (PDB)
 	e.GET("api/v1/poddisruptionbudgets", poddisruptionbudgets.NewPodDisruptionBudgetRouteHandler(appContainer, base.GetList))
 	e.GET("api/v1/poddisruptionbudgets/:name", poddisruptionbudgets.NewPodDisruptionBudgetRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/poddisruptionbudgets/:name/yaml", poddisruptionbudgets.NewPodDisruptionBudgetRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/poddisruptionbudgets/:name/events", poddisruptionbudgets.NewPodDisruptionBudgetRouteHandler(appContainer, base.GetEvents))
 	e.DELETE("api/v1/poddisruptionbudgets", poddisruptionbudgets.NewPodDisruptionBudgetRouteHandler(appContainer, base.Delete))
 
-	// priorityclasses
+	// PriorityClasses
 	e.GET("api/v1/priorityclasses", priorityclasses.NewPriorityClassRouteHandler(appContainer, base.GetList))
 	e.GET("api/v1/priorityclasses/:name", priorityclasses.NewPriorityClassRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/priorityclasses/:name/yaml", priorityclasses.NewPriorityClassRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/priorityclasses/:name/events", priorityclasses.NewPriorityClassRouteHandler(appContainer, base.GetEvents))
 	e.DELETE("api/v1/priorityclasses", priorityclasses.NewPriorityClassRouteHandler(appContainer, base.Delete))
 
-	// runtimeclasses
+	// RuntimeClasses
 	e.GET("api/v1/runtimeclasses", runtimeclasses.NewRunTimeClassRouteHandler(appContainer, base.GetList))
 	e.GET("api/v1/runtimeclasses/:name", runtimeclasses.NewRunTimeClassRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/runtimeclasses/:name/yaml", runtimeclasses.NewRunTimeClassRouteHandler(appContainer, base.GetYaml))
 	e.GET("api/v1/runtimeclasses/:name/events", runtimeclasses.NewRunTimeClassRouteHandler(appContainer, base.GetEvents))
 	e.DELETE("api/v1/runtimeclasses", runtimeclasses.NewRunTimeClassRouteHandler(appContainer, base.Delete))
 
-	// leases
+	// Leases
 	e.GET("api/v1/leases", leases.NewLeaseRouteHandler(appContainer, base.GetList))
 	e.GET("api/v1/leases/:name", leases.NewLeaseRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/leases/:name/yaml", leases.NewLeaseRouteHandler(appContainer, base.GetYaml))
@@ -256,7 +256,7 @@ func workloadRoutes(e *echo.Echo, appContainer container.Container) {
 	e.DELETE("api/v1/deployments", deployments.NewDeploymentRouteHandler(appContainer, base.Delete))
 	e.POST("api/v1/deployments/:name/scale", deployments.NewDeploymentRouteHandler(appContainer, deployments.UpdateScale))
 
-	// Daemonsets
+	// DaemonSets
 	e.GET("api/v1/daemonsets", daemonsets.NewDaemonSetsRouteHandler(appContainer, base.GetList))
 	e.GET("api/v1/daemonsets/:name", daemonsets.NewDaemonSetsRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/daemonsets/:name/yaml", daemonsets.NewDaemonSetsRouteHandler(appContainer, base.GetYaml))
@@ -293,6 +293,7 @@ func workloadRoutes(e *echo.Echo, appContainer container.Container) {
 }
 
 func accessControlRoutes(e *echo.Echo, appContainer container.Container) {
+	// ServiceAccounts
 	e.GET("api/v1/serviceaccounts", serviceaccounts.NewServiceAccountsRouteHandler(appContainer, base.GetList))
 	e.GET("api/v1/serviceaccounts/:name", serviceaccounts.NewServiceAccountsRouteHandler(appContainer, base.GetDetails))
 	e.GET("api/v1/serviceaccounts/:name/yaml", serviceaccounts.NewServiceAccountsRouteHandler(appContainer, base.GetYaml))
