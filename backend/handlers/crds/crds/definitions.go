@@ -16,31 +16,9 @@ type CRDHandler struct {
 	BaseHandler base.BaseHandler
 }
 
-func NewCRDHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
+func NewCRDRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		config := c.QueryParam("config")
-		cluster := c.QueryParam("cluster")
-
-		informer := container.ExtensionSharedFactoryInformer(config, cluster).Apiextensions().V1().CustomResourceDefinitions().Informer()
-		informer.SetTransform(helpers.StripUnusedFields)
-
-		handler := &CRDHandler{
-			BaseHandler: base.BaseHandler{
-				Kind:             "CustomResourceDefinition",
-				Container:        container,
-				Informer:         informer,
-				QueryConfig:      config,
-				QueryCluster:     cluster,
-				RestClient:       container.ClientSet(config, cluster).RESTClient(),
-				InformerCacheKey: fmt.Sprintf("%s-%s-customResourceDefinitionInformer", config, cluster),
-				TransformFunc:    transformItems,
-			},
-		}
-
-		cache := base.ResourceEventHandler[*apiextensionsv1.CustomResourceDefinition](&handler.BaseHandler)
-		handler.BaseHandler.StartExtensionInformer(c, cache)
-
-		handler.BaseHandler.WaitForSync(c)
+		handler := NewCRDHandler(c, container)
 
 		switch routeType {
 		case base.GetList:
@@ -57,6 +35,33 @@ func NewCRDHandler(container container.Container, routeType base.RouteType) echo
 			return echo.NewHTTPError(http.StatusInternalServerError, "Unknown route type")
 		}
 	}
+}
+
+func NewCRDHandler(c echo.Context, container container.Container) *CRDHandler {
+	config := c.QueryParam("config")
+	cluster := c.QueryParam("cluster")
+
+	informer := container.ExtensionSharedFactoryInformer(config, cluster).Apiextensions().V1().CustomResourceDefinitions().Informer()
+	informer.SetTransform(helpers.StripUnusedFields)
+
+	handler := &CRDHandler{
+		BaseHandler: base.BaseHandler{
+			Kind:             "CustomResourceDefinition",
+			Container:        container,
+			Informer:         informer,
+			QueryConfig:      config,
+			QueryCluster:     cluster,
+			RestClient:       container.ClientSet(config, cluster).RESTClient(),
+			InformerCacheKey: fmt.Sprintf("%s-%s-customResourceDefinitionInformer", config, cluster),
+			TransformFunc:    transformItems,
+		},
+	}
+
+	cache := base.ResourceEventHandler[*apiextensionsv1.CustomResourceDefinition](&handler.BaseHandler)
+	handler.BaseHandler.StartExtensionInformer(c, cache)
+	handler.BaseHandler.WaitForSync(c)
+
+	return handler
 }
 
 func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {

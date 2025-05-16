@@ -108,22 +108,22 @@ func ConfigureRoutes(e *echo.Echo, appContainer container.Container) {
 }
 
 func customResources(e *echo.Echo, appContainer container.Container) {
-	e.GET("api/v1/customresourcedefinitions", crds.NewCRDHandler(appContainer, base.GetList))
-	e.GET("api/v1/customresourcedefinitions/:name", crds.NewCRDHandler(appContainer, base.GetDetails))
-	e.GET("api/v1/customresourcedefinitions/:name/yaml", crds.NewCRDHandler(appContainer, base.GetYaml))
-	e.GET("api/v1/customresourcedefinitions/:name/events", crds.NewCRDHandler(appContainer, base.GetEvents))
-	e.DELETE("api/v1/customresourcedefinitions", crds.NewCRDHandler(appContainer, base.Delete))
+	e.GET("api/v1/customresourcedefinitions", crds.NewCRDRouteHandler(appContainer, base.GetList))
+	e.GET("api/v1/customresourcedefinitions/:name", crds.NewCRDRouteHandler(appContainer, base.GetDetails))
+	e.GET("api/v1/customresourcedefinitions/:name/yaml", crds.NewCRDRouteHandler(appContainer, base.GetYaml))
+	e.GET("api/v1/customresourcedefinitions/:name/events", crds.NewCRDRouteHandler(appContainer, base.GetEvents))
+	e.DELETE("api/v1/customresourcedefinitions", crds.NewCRDRouteHandler(appContainer, base.Delete))
 
-	e.GET("api/v1/customresources", resources.NewUnstructuredHandler(appContainer, base.GetList))
-	e.DELETE("api/v1/customresources", resources.NewUnstructuredHandler(appContainer, base.Delete))
+	e.GET("api/v1/customresources", resources.NewUnstructuredRouteHandler(appContainer, base.GetList))
+	e.DELETE("api/v1/customresources", resources.NewUnstructuredRouteHandler(appContainer, base.Delete))
 
 	// No namespace custom CRD's details and YAML
-	e.GET("api/v1/customresources/:name", resources.NewUnstructuredHandler(appContainer, resources.GetDetails))
-	e.GET("api/v1/customresources/:name/yaml", resources.NewUnstructuredHandler(appContainer, resources.GetYAML))
+	e.GET("api/v1/customresources/:name", resources.NewUnstructuredRouteHandler(appContainer, resources.GetDetails))
+	e.GET("api/v1/customresources/:name/yaml", resources.NewUnstructuredRouteHandler(appContainer, resources.GetYAML))
 
 	// Namespace CRDS details and yaml
-	e.GET("api/v1/customresources/:namespace/:name", resources.NewUnstructuredHandler(appContainer, resources.GetDetails))
-	e.GET("api/v1/customresources/:namespace/:name/yaml", resources.NewUnstructuredHandler(appContainer, resources.GetYAML))
+	e.GET("api/v1/customresources/:namespace/:name", resources.NewUnstructuredRouteHandler(appContainer, resources.GetDetails))
+	e.GET("api/v1/customresources/:namespace/:name/yaml", resources.NewUnstructuredRouteHandler(appContainer, resources.GetYAML))
 }
 
 func servicesRoutes(e *echo.Echo, appContainer container.Container) {

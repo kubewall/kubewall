@@ -33,34 +33,9 @@ type UnstructuredHandler struct {
 	BaseHandler base.BaseHandler
 }
 
-func NewUnstructuredHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
+func NewUnstructuredRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		config := c.QueryParam("config")
-		cluster := c.QueryParam("cluster")
-
-		kind := c.QueryParam("kind")
-		group := c.QueryParam("group")
-		version := c.QueryParam("version")
-		resource := c.QueryParam("resource")
-
-		informer := container.DynamicSharedInformerFactory(config, cluster).ForResource(schema.GroupVersionResource{Group: group, Version: version, Resource: resource}).Informer()
-		informer.SetTransform(helpers.StripUnusedFields)
-
-		handler := &UnstructuredHandler{
-			BaseHandler: base.BaseHandler{
-				Kind:             kind,
-				Container:        container,
-				Informer:         informer,
-				QueryConfig:      config,
-				QueryCluster:     cluster,
-				InformerCacheKey: fmt.Sprintf("%s-%s-%s-%s-%s-%s", config, cluster, group, version, resource, kind),
-				TransformFunc:    transformItems,
-			},
-		}
-
-		cache := base.ResourceEventHandler[*unstructured.Unstructured](&handler.BaseHandler)
-		handler.BaseHandler.StartDynamicInformer(c, cache)
-		handler.BaseHandler.WaitForSync(c)
+		handler := NewUnstructuredHandler(c, container)
 
 		switch routeType {
 		case base.GetList:
@@ -77,6 +52,37 @@ func NewUnstructuredHandler(container container.Container, routeType base.RouteT
 			return echo.NewHTTPError(http.StatusInternalServerError, "Unknown route type")
 		}
 	}
+}
+
+func NewUnstructuredHandler(c echo.Context, container container.Container) *UnstructuredHandler {
+	config := c.QueryParam("config")
+	cluster := c.QueryParam("cluster")
+
+	kind := c.QueryParam("kind")
+	group := c.QueryParam("group")
+	version := c.QueryParam("version")
+	resource := c.QueryParam("resource")
+
+	informer := container.DynamicSharedInformerFactory(config, cluster).ForResource(schema.GroupVersionResource{Group: group, Version: version, Resource: resource}).Informer()
+	informer.SetTransform(helpers.StripUnusedFields)
+
+	handler := &UnstructuredHandler{
+		BaseHandler: base.BaseHandler{
+			Kind:             kind,
+			Container:        container,
+			Informer:         informer,
+			QueryConfig:      config,
+			QueryCluster:     cluster,
+			InformerCacheKey: fmt.Sprintf("%s-%s-%s-%s-%s-%s", config, cluster, group, version, resource, kind),
+			TransformFunc:    transformItems,
+		},
+	}
+
+	cache := base.ResourceEventHandler[*unstructured.Unstructured](&handler.BaseHandler)
+	handler.BaseHandler.StartDynamicInformer(c, cache)
+	handler.BaseHandler.WaitForSync(c)
+
+	return handler
 }
 
 func (h *UnstructuredHandler) Get(c echo.Context) error {
