@@ -1,10 +1,11 @@
 package apply
 
 import (
+	"net/http"
+
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/base"
 	"github.com/labstack/echo/v4"
-	"net/http"
 )
 
 const POSTApply = 8
@@ -30,7 +31,7 @@ func NewApplyHandler(container container.Container, routeType base.RouteType) ec
 		case POSTApply:
 			return handler.PostApply(c)
 		default:
-			return echo.NewHTTPError(http.StatusInternalServerError, "Unknown route type")
+			return echo.NewHTTPError(http.StatusNotFound, "Unknown route type")
 		}
 	}
 }
@@ -47,7 +48,7 @@ func (h *ApplyHandler) PostApply(c echo.Context) error {
 		cluster := h.BaseHandler.Container.Config().KubeConfig[h.BaseHandler.QueryConfig]
 		output, err := applyYAML(cluster.AbsolutePath, h.BaseHandler.QueryCluster, string(inputYaml))
 		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 		return c.JSON(http.StatusOK, echo.Map{
 			"success": output,
@@ -57,7 +58,7 @@ func (h *ApplyHandler) PostApply(c echo.Context) error {
 	applyOptions := NewApplyOptions(dynamicClient, discoveryClient)
 	err := applyOptions.Apply(c.Request().Context(), inputYaml)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	return c.JSON(http.StatusOK, echo.Map{
 		"success": true,
