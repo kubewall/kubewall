@@ -104,10 +104,13 @@ func NewYamlDetailsTool(c echo.Context, routeName string) server.ServerTool {
 	)
 
 	handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name, okName := getStringArg(request.Params.Arguments, "name")
-		namespace, okNamespace := getStringArg(request.Params.Arguments, "namespace")
-		if !okName || !okNamespace {
-			err := fmt.Errorf("missing or invalid 'name' or 'namespace'")
+		name, err := request.RequireString("name")
+		if err != nil {
+			log.Error(err.Error())
+			return mcp.NewToolResultError(err.Error()), err
+		}
+		namespace, err := request.RequireString("namespace")
+		if err != nil {
 			log.Error(err.Error())
 			return mcp.NewToolResultError(err.Error()), err
 		}
