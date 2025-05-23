@@ -16,7 +16,7 @@ const ResourceQuotaDetailsContainer = memo(function () {
     }
   } = useAppSelector((state) => state.resourceQuotaDetails);
   return (
-    <div className="mt-4">
+    <div className="mt-2">
       <Card className="shadow-none rounded-lg">
         <CardHeader className="p-4 ">
           <CardTitle className="text-sm font-medium">Status</CardTitle>
@@ -29,14 +29,14 @@ const ResourceQuotaDetailsContainer = memo(function () {
                   item ?
                     <div key={index} className="grid items-start">
                       <Card className="shadow-none rounded-lg border-dashed">
-                      <CardHeader className="p-5">
-                        <CardTitle className="flex items-center justify-between">
-                          <div className="flex flex-1 items-center">
-                            <CubeIcon className="mr-2 h-3.5 w-3.5" />
-                            <div className="text-sm font-normal basis-2/3 break-all">{index === 0 ? 'Hard' : 'Used'}</div>
-                          </div>
-                        </CardTitle>
-                      </CardHeader>
+                        <CardHeader className="p-5">
+                          <CardTitle className="flex items-center justify-between">
+                            <div className="flex flex-1 items-center">
+                              <CubeIcon className="mr-2 h-3.5 w-3.5" />
+                              <div className="text-sm font-normal basis-2/3 break-all">{index === 0 ? 'Hard' : 'Used'}</div>
+                            </div>
+                          </CardTitle>
+                        </CardHeader>
                         <CardContent className="boder p-0">
                           {
                             Object.keys(item).map((key: string) => {

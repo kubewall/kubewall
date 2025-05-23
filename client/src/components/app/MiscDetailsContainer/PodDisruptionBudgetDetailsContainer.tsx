@@ -5,7 +5,7 @@ import { defaultOrValue } from "@/utils";
 import { memo } from "react";
 import { useAppSelector } from "@/redux/hooks";
 
-const PodDisruptionBudgetDetailsContainer = memo(function (){
+const PodDisruptionBudgetDetailsContainer = memo(function () {
   const {
     podDisruptionBudgetDetails: {
       status: {
@@ -15,7 +15,7 @@ const PodDisruptionBudgetDetailsContainer = memo(function (){
   } = useAppSelector((state) => state.podDisruptionBudgetDetails);
 
   return (
-    <div className="mt-4">
+    <div className="mt-2">
       <Card className="shadow-none rounded-lg">
         <CardHeader className="p-4 ">
           <CardTitle className="text-sm font-medium">Conditions <span className="text-xs">({conditions?.length})</span></CardTitle>
@@ -40,10 +40,10 @@ const PodDisruptionBudgetDetailsContainer = memo(function (){
                           <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Status</div>
                           <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                             <div className="break-all basis-[97%] ">
-                             {defaultOrValue(condition?.status)}
+                              {defaultOrValue(condition?.status)}
                             </div>
                             <div className="basis-[3%] group/edit invisible group-hover/item:visible flex items-center">
-                            <CopyToClipboard val={defaultOrValue(condition?.status)}/>
+                              <CopyToClipboard val={defaultOrValue(condition?.status)} />
                             </div>
                           </div>
                         </div>
@@ -51,12 +51,12 @@ const PodDisruptionBudgetDetailsContainer = memo(function (){
                           <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Observed Generation</div>
                           <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                             <div className="break-all basis-[97%] ">
-                            {
-                              defaultOrValue(condition?.observedGeneration)
-                             }
+                              {
+                                defaultOrValue(condition?.observedGeneration)
+                              }
                             </div>
                             <div className="basis-[3%] group/edit invisible group-hover/item:visible flex items-center">
-                            <CopyToClipboard val={defaultOrValue(condition?.observedGeneration)}/>
+                              <CopyToClipboard val={defaultOrValue(condition?.observedGeneration)} />
                             </div>
                           </div>
                         </div>
@@ -64,12 +64,12 @@ const PodDisruptionBudgetDetailsContainer = memo(function (){
                           <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Last Transition Time</div>
                           <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                             <div className="break-all basis-[97%] ">
-                            {
-                              defaultOrValue(condition?.lastTransitionTime)
-                             }
+                              {
+                                defaultOrValue(condition?.lastTransitionTime)
+                              }
                             </div>
                             <div className="basis-[3%] group/edit invisible group-hover/item:visible flex items-center">
-                            <CopyToClipboard val={defaultOrValue(condition?.lastTransitionTime)}/>
+                              <CopyToClipboard val={defaultOrValue(condition?.lastTransitionTime)} />
                             </div>
                           </div>
                         </div>
@@ -77,12 +77,12 @@ const PodDisruptionBudgetDetailsContainer = memo(function (){
                           <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Reason</div>
                           <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                             <div className="break-all basis-[97%] ">
-                            {
-                              defaultOrValue(condition?.reason)
-                             }
+                              {
+                                defaultOrValue(condition?.reason)
+                              }
                             </div>
                             <div className="basis-[3%] group/edit invisible group-hover/item:visible flex items-center">
-                            <CopyToClipboard val={ defaultOrValue(condition?.reason)}/>
+                              <CopyToClipboard val={defaultOrValue(condition?.reason)} />
                             </div>
                           </div>
                         </div>
@@ -90,12 +90,12 @@ const PodDisruptionBudgetDetailsContainer = memo(function (){
                           <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Message</div>
                           <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                             <div className="break-all basis-[97%] ">
-                            {
-                              defaultOrValue(condition?.message)
-                             }
+                              {
+                                defaultOrValue(condition?.message)
+                              }
                             </div>
                             <div className="basis-[3%] group/edit invisible group-hover/item:visible flex items-center">
-                            <CopyToClipboard val={defaultOrValue(condition?.message)}/>
+                              <CopyToClipboard val={defaultOrValue(condition?.message)} />
                             </div>
                           </div>
                         </div>

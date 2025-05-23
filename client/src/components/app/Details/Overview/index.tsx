@@ -26,7 +26,7 @@ export function Overview({ details, lableConditions, annotations, miscComponent 
       </div>
       {
         lableConditions &&
-        <div className="mt-4 items-start justify-center gap-6 rounded-lg">
+        <div className="mt-2 items-start justify-center gap-6 rounded-lg">
           <div className="grid items-start gap-6">
             <ExpandableCard
               cards={lableConditions}
@@ -35,8 +35,8 @@ export function Overview({ details, lableConditions, annotations, miscComponent 
         </div>
       }
       {
-        annotations && 
-        <div className="mt-4 items-start justify-center gap-6 rounded-lg">
+        annotations &&
+        <div className="mt-2 items-start justify-center gap-6 rounded-lg">
           <div className="grid items-start gap-6">
             <ExpandableCard
               cards={annotations}

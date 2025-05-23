@@ -5,10 +5,10 @@ import { CubeIcon } from "@radix-ui/react-icons";
 import { memo } from "react";
 import { useAppSelector } from "@/redux/hooks";
 
-const LimitRangeDetailsContainer = memo(function (){
+const LimitRangeDetailsContainer = memo(function () {
   const {
     limitRangeDetails: {
-      spec : {
+      spec: {
         limits
       }
     }
@@ -18,7 +18,7 @@ const LimitRangeDetailsContainer = memo(function (){
     return specLimits ? Object.entries(specLimits).map(([key, value]) => `${key}=${value}`).join(', ') : '—';
   };
   return (
-    <div className="mt-4">
+    <div className="mt-2">
       <Card className="shadow-none rounded-lg">
         <CardHeader className="p-4 ">
           <CardTitle className="text-sm font-medium">Limits <span className="text-xs">({limits.length})</span></CardTitle>
@@ -43,12 +43,12 @@ const LimitRangeDetailsContainer = memo(function (){
                           <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Max</div>
                           <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                             <div className="break-all basis-[97%] ">
-                             {
-                              convertObjectToString(limit?.max)
-                             }
+                              {
+                                convertObjectToString(limit?.max)
+                              }
                             </div>
                             <div className="basis-[3%] group/edit invisible group-hover/item:visible flex items-center">
-                            <CopyToClipboard val={convertObjectToString(limit?.max)}/>
+                              <CopyToClipboard val={convertObjectToString(limit?.max)} />
                             </div>
                           </div>
                         </div>
@@ -56,12 +56,12 @@ const LimitRangeDetailsContainer = memo(function (){
                           <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Min</div>
                           <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                             <div className="break-all basis-[97%] ">
-                            {
-                              convertObjectToString(limit?.min)
-                             }
+                              {
+                                convertObjectToString(limit?.min)
+                              }
                             </div>
                             <div className="basis-[3%] group/edit invisible group-hover/item:visible flex items-center">
-                            <CopyToClipboard val={convertObjectToString(limit?.min)}/>
+                              <CopyToClipboard val={convertObjectToString(limit?.min)} />
                             </div>
                           </div>
                         </div>
@@ -69,12 +69,12 @@ const LimitRangeDetailsContainer = memo(function (){
                           <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Default</div>
                           <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                             <div className="break-all basis-[97%] ">
-                            {
-                              convertObjectToString(limit?.default)
-                             }
+                              {
+                                convertObjectToString(limit?.default)
+                              }
                             </div>
                             <div className="basis-[3%] group/edit invisible group-hover/item:visible flex items-center">
-                            <CopyToClipboard val={convertObjectToString(limit?.default)}/>
+                              <CopyToClipboard val={convertObjectToString(limit?.default)} />
                             </div>
                           </div>
                         </div>
@@ -82,12 +82,12 @@ const LimitRangeDetailsContainer = memo(function (){
                           <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Default Request</div>
                           <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                             <div className="break-all basis-[97%] ">
-                            {
-                              convertObjectToString(limit?.defaultRequest)
-                             }
+                              {
+                                convertObjectToString(limit?.defaultRequest)
+                              }
                             </div>
                             <div className="basis-[3%] group/edit invisible group-hover/item:visible flex items-center">
-                            <CopyToClipboard val={convertObjectToString(limit?.defaultRequest)}/>
+                              <CopyToClipboard val={convertObjectToString(limit?.defaultRequest)} />
                             </div>
                           </div>
                         </div>
@@ -95,12 +95,12 @@ const LimitRangeDetailsContainer = memo(function (){
                           <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Max Limit Request Ratio</div>
                           <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                             <div className="break-all basis-[97%] ">
-                            {
-                              convertObjectToString(limit?.maxLimitRequestRatio)
-                             }
+                              {
+                                convertObjectToString(limit?.maxLimitRequestRatio)
+                              }
                             </div>
                             <div className="basis-[3%] group/edit invisible group-hover/item:visible flex items-center">
-                            <CopyToClipboard val={convertObjectToString(limit?.maxLimitRequestRatio)}/>
+                              <CopyToClipboard val={convertObjectToString(limit?.maxLimitRequestRatio)} />
                             </div>
                           </div>
                         </div>

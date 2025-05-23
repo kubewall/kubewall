@@ -13,7 +13,7 @@ const CustomResourceDetailsContainer = memo(function () {
   } = useAppSelector((state) => state.customResourceDetails);
   return (
     spec &&
-    <div className="mt-4">
+    <div className="mt-2">
       <Card className="shadow-none rounded-lg">
         <CardHeader className="p-4 ">
           <CardTitle className="text-sm font-medium">Subjects</CardTitle>

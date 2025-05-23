@@ -16,7 +16,7 @@ const NodeDetailsContainer = memo(function () {
   } = useAppSelector((state) => state.nodeDetails);
 
   return (
-    <div className="mt-4">
+    <div className="mt-2">
       {
         images && <Card className="shadow-none rounded-lg">
           <CardHeader className="p-4 ">
@@ -41,10 +41,10 @@ const NodeDetailsContainer = memo(function () {
                             <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Size</div>
                             <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                               <div className="break-all basis-[97%] ">
-                                {defaultOrValue((Number(image?.sizeBytes)/1048576).toFixed(2))} MB
+                                {defaultOrValue((Number(image?.sizeBytes) / 1048576).toFixed(2))} MB
                               </div>
                               <div className="basis-[3%] group/edit invisible group-hover/item:visible flex items-center">
-                                <CopyToClipboard val={defaultOrValue((Number(image?.sizeBytes)/1048576).toFixed(2)) + ' MB'} />
+                                <CopyToClipboard val={defaultOrValue((Number(image?.sizeBytes) / 1048576).toFixed(2)) + ' MB'} />
                               </div>
                             </div>
                           </div>
