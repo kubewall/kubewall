@@ -28,6 +28,7 @@ dist
 # IDE config directories.
 .idea/
 .vscode/
+.history
 backend/.idea/
 backend/.vscode/
 backend/.idea
