@@ -1,4 +1,14 @@
-# kubewall
+<div align="center">
+
+# Kubewall 
+
+<img src="./media/logo.png" style="width: 100px;">
+
+![GitHub issues](https://img.shields.io/github/issues/kubewall/kubewall?style=flat-square) &emsp;![GitHub stars](https://img.shields.io/github/stars/kubewall/kubewall?style=social)&emsp;![GitHub license](https://img.shields.io/github/license/kubewall/kubewall?style=flat-square)
+
+</div>
+
+---
 
 [Install](https://github.com/kubewall/kubewall?tab=readme-ov-file#battery-install)
 | [Guide](https://github.com/kubewall/kubewall?tab=readme-ov-file#books-guide)
@@ -9,14 +19,42 @@ A single binary to manage your multiple kubernetes clusters.
 
 **kubewall** provides a simple and rich real time interface to manage and investigate your clusters.
 
+# Table of Contents
+- [Kubewall](#kubewall)
+- [Table of Contents](#table-of-contents)
+- [:movie\_camera: Intro](#movie_camera-intro)
+  - [:battery: Install](#battery-install)
+    - [ Docker](#-docker)
+    - [ Helm](#-helm)
+    - [ Homebrew](#-homebrew)
+    - [ Snap](#-snap)
+      - [Arch Linux](#arch-linux)
+      - [Winget](#winget)
+      - [Scoop](#scoop)
+      - [Binaries](#binaries)
+- [:books: Guide](#books-guide)
+    - [Flags](#flags)
+    - [Setting up HTTPS locally](#setting-up-https-locally)
+    - [Custom Port](#custom-port)
+- [:man\_technologist: Developers](#man_technologist-developers)
+- [Contribution](#contribution)
+- [License](#license)
+
+---
+
 
 **Key features of kubewall include:**
 
-* **Single binary deployment:** kubewall can be easily deployed as a single binary, eliminating the need for complex configurations.
-* **Browser-based access:** kubewall can be accessed directly from your favorite web browser, providing a seamless user experience.
-* **Real-time cluster monitoring:** kubewall offers a rich, real-time interface that displays the current state of your Kubernetes clusters, allowing you to quickly identify and address issues.
-* **Cluster management:** kubewall enables you to manage multiple Kubernetes clusters from a single pane of glass, reducing the overhead of switching between different tools and interfaces.
-* **Detailed cluster insights:** kubewall provides comprehensive insights into your Kubernetes clusters, manifest info of your pods, services, config and others.
+* **Single binary deployment:** 
+  * `kubewall` can be easily deployed as a single binary, eliminating the need for complex configurations.
+* **Browser-based access:** 
+  * `kubewall` can be accessed directly from your favorite web browser, providing a seamless user experience.
+* **Real-time cluster monitoring:** 
+  * `kubewall` offers a rich, real-time interface that displays the current state of your Kubernetes clusters, allowing you to quickly identify and address issues.
+* **Cluster management:** 
+  * `kubewall` enables you to manage multiple Kubernetes clusters from a single pane of glass, reducing the overhead of switching between different tools and interfaces.
+* **Detailed cluster insights:** 
+  * `kubewall` provides comprehensive insights into your Kubernetes clusters, manifest info of your pods, services, config and others.
 
 # :movie_camera: Intro
 
@@ -25,31 +63,43 @@ A single binary to manage your multiple kubernetes clusters.
 > [!Important]
 > Please keep in mind that kubewall is still under active development.
 
-# :battery: Install
+## :battery: Install
 
-#### Docker
+### <img src="./media/logos/logos_docker.svg" style="width:20px; border-radius: 25%"> Docker
 
 ```shell
-docker run -p 7080:7080 -v kubewall:/.kubewall ghcr.io/kubewall/kubewall:latest
+
+# Run kubewall as docker container
+docker   run                              \
+         -p 7080:7080                     \
+         -v kubewall:/.kubewall           \
+         ghcr.io/kubewall/kubewall:latest
 ```
+   >[!Important]
+   > To access local kind cluster you can use `--network host` docker flag.
 
-> To access local kind cluster you can use "--network host" docker flag.
-
-#### Helm
+### <img src="./media/logos/logos_helm.svg" style="width:20px; border-radius: 25%"> Helm
 
 ```bash
-helm install kubewall oci://ghcr.io/kubewall/charts/kubewall -n kubewall-system --create-namespace
+helm install                     \
+            kubewall             \           
+            --create-namespace   \
+            -n kubewall-system   \
+            oci://ghcr.io/kubewall/charts/kubewall
 ```
+>[!NOTE]
+> With helm kubewall runs on port `8443` with self-signed certificates. 
+> [see charts](https://github.com/kubewall/kubewall/tree/main/charts/kubewall)
 
-> With helm kubewall runs on port `8443` with self-signed certificates. [see charts](https://github.com/kubewall/kubewall/tree/main/charts/kubewall)
+### <img src="./media/logos/logos_homebrew.svg" style="width:20px; border-radius: 25%"> Homebrew
 
-#### Homebrew
 
 ```shell
 brew install kubewall/tap/kubewall
 ```
 
-#### Snap
+### <img src="./media/logos/logos_snap.svg" style="width:20px; border-radius: 25%"> Snap
+
 
 ```shell
 sudo snap install kubewall
@@ -74,19 +124,20 @@ scoop bucket add kubewall https://github.com/kubewall/scoop-bucket.git
 scoop install kubewall
 ```
 
-#### Binary
+#### Binaries
 
-**MacOS**
-[Binary](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Darwin_all.tar.gz) ( Multi-Architecture )
-
-**Linux (Binaries)**
-[amd64](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Linux_x86_64.tar.gz) | [arm64](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Linux_arm64.tar.gz) | [i386](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Linux_i386.tar.gz)
-
-**Windows (Exe)**
-[amd64](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Windows_x86_64.zip) | [arm64](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Windows_arm64.zip) | [i386](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Windows_i386.zip)
-
-**FreeBSD (Binaries)**
-[amd64](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Freebsd_x86_64.tar.gz) | [arm64](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Freebsd_arm64.tar.gz) | [i386](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Freebsd_i386.tar.gz)
+| **Platform**       | **Architecture**     | **Download Link**                                                                                     |
+|---------------------|----------------------|-------------------------------------------------------------------------------------------------------|
+| **MacOS**          | Multi-Architecture  | [Binary](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Darwin_all.tar.gz)    |
+| **Linux (Binaries)** | amd64               | [amd64](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Linux_x86_64.tar.gz)   |
+|                     | arm64               | [arm64](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Linux_arm64.tar.gz)    |
+|                     | i386                | [i386](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Linux_i386.tar.gz)      |
+| **Windows (Exe)**   | amd64               | [amd64](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Windows_x86_64.zip)    |
+|                     | arm64               | [arm64](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Windows_arm64.zip)     |
+|                     | i386                | [i386](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Windows_i386.zip)       |
+| **FreeBSD (Binaries)** | amd64             | [amd64](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Freebsd_x86_64.tar.gz) |
+|                     | arm64               | [arm64](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Freebsd_arm64.tar.gz)  |
+|                     | i386                | [i386](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Freebsd_i386.tar.gz)    |
 
 Manually
 Download the pre-compiled binaries from the [Release!](https://github.com/kubewall/kubewall/releases) page and copy them to the desired location or system path.
@@ -100,7 +151,8 @@ Download the pre-compiled binaries from the [Release!](https://github.com/kubewa
 >  You can start **kubewall** with **HTTPS** using the following command:
 >
 > ```
-> $ kubewall --certFile=/path/to/cert.pem --keyFile=/path/to/key.pem
+> $ kubewall  --certFile=/path/to/cert.pem \
+>             --keyFile=/path/to/key.pem
 > ```
 
 # :books: Guide
@@ -235,13 +287,12 @@ kubewall -p 7080
 
 # Contribution
 
-This project welcomes your PR and issues. For example, refactoring, adding features, correcting English, etc.
-
-If you need any help, you can contact us from the above Developers sections.
-
-Thanks to all the people who already contributed and using the project.
-
+- This project welcomes your PR and issues. 
+- For example, refactoring, adding features, correcting English, etc.
+  
+- If you need any help, you can contact us from the above Developers sections.
+- Thanks to all the people who already contributed and using the project.
 
 # License
 
-kubewall is licensed under [Apache License, Version 2.0](./LICENSE)
+- kubewall is licensed under [Apache License, Version 2.0](./LICENSE)

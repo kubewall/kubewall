@@ -1,3 +1,6 @@
+# This workflow is triggered on push events to tags matching the pattern v[0-9]+.[0-9]+.[0-9]+
+# It handles the release process, including building, packaging, and publishing artifacts.
+
 name: Releases
 on:
   push:
@@ -5,48 +8,48 @@ on:
       - "v[0-9]+.[0-9]+.[0-9]+"
 
 permissions:
-  contents: write
-  packages: write
-  id-token: write
-  issues: write
+  contents: write  # Required for creating and updating release assets
+  packages: write  # Required for publishing packages
+  id-token: write  # Required for authentication with external services
+  issues: write    # Required for creating or updating issues during the release process
 
 jobs:
   goreleaser:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04  # Specifies the OS and version for the runner
     permissions:
-      contents: read
-      id-token: write
-      packages: write
+      contents: read  # Read access to repository contents
+      id-token: write  # Write access for authentication tokens
+      packages: write  # Write access for publishing packages
     steps:
       - name: Checkout
         uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4
         with:
-          fetch-depth: 1
+          fetch-depth: 1  # Fetch only the latest commit to reduce checkout time
 
       - name: Setup Go
         uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.1
         with:
-          go-version: stable
-          cache: true
+          go-version: stable  # Use the latest stable version of Go
+          cache: true  # Enable caching to speed up subsequent runs
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "20"  # Use Node.js version 20
 
       - name: Set up Snapcraft
         run: |
-          sudo snap install snapcraft --classic
-          mkdir -p $HOME/.cache/snapcraft/download
+          sudo snap install snapcraft --classic  # Install Snapcraft for building snaps
+          mkdir -p $HOME/.cache/snapcraft/download  # Create cache directories
           mkdir -p $HOME/.cache/snapcraft/stage-packages
 
       - name: Install Chocolatey
         run: |
-          mkdir -p /opt/chocolatey
-          wget -q -O - "https://github.com/chocolatey/choco/releases/download/1.3.0/chocolatey.v1.3.0.tar.gz " | tar -xz -C "/opt/chocolatey"
-          echo '#!/bin/bash' >> /usr/local/bin/choco
+          mkdir -p /opt/chocolatey  # Create directory for Chocolatey
+          wget -q -O - "https://github.com/chocolatey/choco/releases/download/1.3.0/chocolatey.v1.3.0.tar.gz " | tar -xz -C "/opt/chocolatey"  # Download and extract Chocolatey
+          echo '#!/bin/bash' >> /usr/local/bin/choco  # Create a wrapper script for choco
           echo 'mono /opt/chocolatey/choco.exe $@' >> /usr/local/bin/choco
-          chmod +x /usr/local/bin/choco
+          chmod +x /usr/local/bin/choco  # Make the script executable
 
       - name: Install syft
         uses: anchore/sbom-action/download-syft@61119d458adab75f756bc0b9e4bde25725f86a7a # v0.17.2
@@ -63,30 +66,30 @@ jobs:
       - name: Login to ghcr.io registry
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ghcr.io  # GitHub Container Registry
+          username: ${{ github.actor }}  # Use the GitHub actor for authentication
+          password: ${{ secrets.GITHUB_TOKEN }}  # Use the GitHub token for authentication
 
       - name: Login to docker.io registry
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3
         with:
-          username: kubewall
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          username: kubewall  # Docker Hub username
+          password: ${{ secrets.DOCKERHUB_TOKEN }}  # Docker Hub token for authentication
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
-          distribution: goreleaser
-          version: "~> v2"
-          args: release --clean
+          distribution: goreleaser  # Specify the GoReleaser distribution
+          version: "~> v2"  # Use GoReleaser version 2
+          args: release --clean  # Run the release command with the clean flag
         env:
-          AUR_KEY: ${{ secrets.AUR_SSH_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GORELEASER_TOKEN }}
-          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_LOGIN }}
+          AUR_KEY: ${{ secrets.AUR_SSH_KEY }}  # SSH key for AUR
+          GITHUB_TOKEN: ${{ secrets.GORELEASER_TOKEN }}  # Token for GoReleaser
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_LOGIN }}  # Credentials for Snapcraft
 
       - name: Publish Helm chart to ghrc
         id: helm
         run: |
-          helm package charts/kubewall --version ${{ steps.get_version.outputs.version-without-v }} --app-version ${{ steps.get_version.outputs.version-without-v }}
-          helm push kubewall-${{ steps.get_version.outputs.version-without-v }}.tgz oci://ghcr.io/kubewall/charts |& tee .digest
-          cosign sign --yes ghcr.io/kubewall/charts/kubewall@$(cat .digest | awk -F "[, ]+" '/Digest/{print $NF}')
+          helm package charts/kubewall --version ${{ steps.get_version.outputs.version-without-v }} --app-version ${{ steps.get_version.outputs.version-without-v }}  # Package the Helm chart
+          helm push kubewall-${{ steps.get_version.outputs.version-without-v }}.tgz oci://ghcr.io/kubewall/charts |& tee .digest  # Push the chart to the OCI registry
+          cosign sign --yes ghcr.io/kubewall/charts/kubewall@$(cat .digest | awk -F "[, ]+" '/Digest/{print $NF}')  # Sign the chart with cosign
