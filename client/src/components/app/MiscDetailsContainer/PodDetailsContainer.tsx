@@ -17,7 +17,7 @@ const PodDetailsContainer = memo(function () {
     <>
       {
         initContainerCards.length > 0 &&
-        <div className="mt-4">
+        <div className="mt-2">
           <Card className="shadow-none rounded-lg">
             <CardHeader className="p-4 ">
               <CardTitle className="text-sm font-medium">InitContainers <span className="text-xs">({initContainerCards.length})</span></CardTitle>
@@ -157,7 +157,7 @@ const PodDetailsContainer = memo(function () {
         </div>
       }
 
-      <div className="mt-4">
+      <div className="mt-2">
         <Card className="shadow-none rounded-lg">
           <CardHeader className="p-4 ">
             <CardTitle className="text-sm font-medium">Containers <span className="text-xs">({containerCards.length})</span></CardTitle>

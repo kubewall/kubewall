@@ -13,7 +13,7 @@ const RuntimeClassDetailsContainer = memo(function () {
   } = useAppSelector((state) => state.runtimeClassDetails);
 
   return (
-    <div className="mt-4">
+    <div className="mt-2">
       {
         scheduling?.tolerations && <Card className="mt-4 shadow-none rounded-lg">
           <CardHeader className="p-4 ">
