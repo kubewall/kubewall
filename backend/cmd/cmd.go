@@ -79,21 +79,22 @@ func Serve(cmd *cobra.Command) error {
 	startBanner()
 	routes.ConfigureRoutes(e, c)
 
-	isSecure := certFile != "" || keyFile != ""
+	c.Config().IsSecure = certFile != "" || keyFile != ""
+	c.Config().Port = port
 
 	if !noOpen {
-		openDefaultBrowser(isSecure, port)
+		openDefaultBrowser(c.Config().IsSecure, c.Config().Port)
 	}
 
-	if isSecure {
+	if c.Config().IsSecure {
 		e.Pre(middleware.HTTPSRedirect())
-		if err = e.StartTLS(port, certFile, keyFile); err != nil {
+		if err = e.StartTLS(c.Config().Port, certFile, keyFile); err != nil {
 			return err
 		}
 		return nil
 	}
 
-	if err = e.Start(port); err != nil {
+	if err = e.Start(c.Config().Port); err != nil {
 		return err
 	}
 	return nil

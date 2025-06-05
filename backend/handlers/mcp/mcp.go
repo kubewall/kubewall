@@ -33,11 +33,18 @@ func Server(e *echo.Echo, appContainer container.Container) {
 			return "/mcp"
 		}),
 		server.WithKeepAlive(true),
-		server.WithBaseURL(fmt.Sprintf("http://localhost%s", ":7080")),
+		server.WithBaseURL(baseUrl(appContainer)),
 		server.WithAppendQueryToMessageEndpoint(),
 		server.WithUseFullURLForMessageEndpoint(true),
 	)
 
 	e.GET("/mcp/sse", echo.WrapHandler(sseServer.SSEHandler()))
 	e.POST("/mcp/message", echo.WrapHandler(sseServer.MessageHandler()))
+}
+
+func baseUrl(appContainer container.Container) string {
+	if appContainer.Config().IsSecure {
+		return fmt.Sprintf("https://localhost:%s", appContainer.Config().Port)
+	}
+	return fmt.Sprintf("http://localhost:%s", appContainer.Config().Port)
 }

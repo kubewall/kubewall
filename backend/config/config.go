@@ -29,6 +29,8 @@ type KubeConfig struct {
 
 type AppConfig struct {
 	Version    string                     `json:"version"`
+	IsSecure   bool                       `json:"isSecure"`
+	Port       string                     `json:"port"`
 	KubeConfig map[string]*KubeConfigInfo `json:"kubeConfigs"`
 	mu         sync.Mutex
 }
