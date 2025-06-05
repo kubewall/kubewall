@@ -16,9 +16,9 @@ const ClusterRoleDetailsContainer = memo(function () {
 
   return (
     <>
-    {
+      {
         rules &&
-        <div className="mt-4">
+        <div className="mt-2">
           <Card className="shadow-none rounded-lg">
             <CardHeader className="p-4 ">
               <CardTitle className="text-sm font-medium"> Rules</CardTitle>
@@ -63,7 +63,7 @@ const ClusterRoleDetailsContainer = memo(function () {
       }
       {
         aggregationRule?.clusterRoleSelectors &&
-        <div className="mt-4">
+        <div className="mt-2">
           <Card className="shadow-none rounded-lg">
             <CardHeader className="p-4 ">
               <CardTitle className="text-sm font-medium">Aggregation Rules</CardTitle>
@@ -124,25 +124,25 @@ const ClusterRoleDetailsContainer = memo(function () {
                                 <CardContent className="boder p-0">
                                   {
                                     item.matchExpressions.map((expressionObject) => {
-                                      return (expressionObject ? 
-                                      Object.keys(expressionObject).map((key: string) => {
-                                        return (
-                                          <div className="py-1.5 border-t border-b border-dashed flex flex-row">
-                                            <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">{key}</div>
-                                            <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
-                                              <div className="break-all basis-[97%] ">
-                                                {defaultOrValueObject((expressionObject[key]) ?? '')}
-                                              </div>
-                                              <div className="basis-[3%] group/edit invisible group-hover/item:visible flex items-center">
-                                                <CopyToClipboard val={defaultOrValueObject((expressionObject[key]))} />
+                                      return (expressionObject ?
+                                        Object.keys(expressionObject).map((key: string) => {
+                                          return (
+                                            <div className="py-1.5 border-t border-b border-dashed flex flex-row">
+                                              <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">{key}</div>
+                                              <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
+                                                <div className="break-all basis-[97%] ">
+                                                  {defaultOrValueObject((expressionObject[key]) ?? '')}
+                                                </div>
+                                                <div className="basis-[3%] group/edit invisible group-hover/item:visible flex items-center">
+                                                  <CopyToClipboard val={defaultOrValueObject((expressionObject[key]))} />
+                                                </div>
                                               </div>
                                             </div>
-                                          </div>
-                                        );
-                                      }) : <></>
-                                    );
+                                          );
+                                        }) : <></>
+                                      );
                                     })
-                                    
+
                                   }
                                 </CardContent>
                               </Card>

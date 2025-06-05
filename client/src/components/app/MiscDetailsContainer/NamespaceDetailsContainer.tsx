@@ -7,7 +7,7 @@ import { useAppSelector } from "@/redux/hooks";
 
 const NamespaceDetailsContainer = memo(function () {
   const {
-    namespaceDetails:{
+    namespaceDetails: {
       status: {
         conditions
       }
@@ -15,7 +15,7 @@ const NamespaceDetailsContainer = memo(function () {
   } = useAppSelector((state) => state.namespaceDetails);
 
   return (
-    <div className="mt-4">
+    <div className="mt-2">
       {
         conditions && <Card className="mt-4 shadow-none rounded-lg">
           <CardHeader className="p-4 ">

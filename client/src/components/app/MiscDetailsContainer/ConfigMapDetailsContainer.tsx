@@ -13,7 +13,7 @@ const ConfigMapDetailsContainer = memo(function () {
   const { data } = configMapDetails;
 
   return (
-    <div className="mt-4">
+    <div className="mt-2">
       <Card className="shadow-none rounded-lg">
         <CardHeader className="p-4 ">
           <CardTitle className="text-sm font-medium flex items-center shadow-none">
@@ -34,7 +34,7 @@ const ConfigMapDetailsContainer = memo(function () {
                             <Badge variant="secondary" className="text-sm font-normal">
 
                               <span className="whitespace-pre-line">
-                               {data[key]}
+                                {data[key]}
                               </span>
                             </Badge>
                           </div>
