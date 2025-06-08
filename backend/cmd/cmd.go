@@ -50,9 +50,6 @@ func Serve(cmd *cobra.Command) error {
 		return err
 	}
 
-	cfg := config.NewAppConfig(Version, k8sClientQPS, k9sClientBurst)
-	cfg.LoadAppConfig()
-
 	port, err := cmd.Flags().GetString("port")
 	if err != nil {
 		return err
@@ -74,13 +71,15 @@ func Serve(cmd *cobra.Command) error {
 		return err
 	}
 
+	isSecure := certFile != "" || keyFile != ""
+
+	cfg := config.NewAppConfig(Version, port, k8sClientQPS, k9sClientBurst, isSecure)
+	cfg.LoadAppConfig()
+
 	c := container.NewContainer(env, cfg)
 	e := echo.New()
 	startBanner()
 	routes.ConfigureRoutes(e, c)
-
-	c.Config().IsSecure = certFile != "" || keyFile != ""
-	c.Config().Port = port
 
 	if !noOpen {
 		openDefaultBrowser(c.Config().IsSecure, c.Config().Port)

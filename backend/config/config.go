@@ -44,11 +44,13 @@ func NewEnv() *Env {
 	return &env
 }
 
-func NewAppConfig(version string, k8sClientQPS, k8sClientBurst int) *AppConfig {
+func NewAppConfig(version, port string, k8sClientQPS, k8sClientBurst int, isSecure bool) *AppConfig {
 	K8SQPS = k8sClientQPS
 	K8SBURST = k8sClientBurst
 	return &AppConfig{
 		Version:    version,
+		IsSecure:   isSecure,
+		Port:       port,
 		KubeConfig: make(map[string]*KubeConfigInfo),
 	}
 }

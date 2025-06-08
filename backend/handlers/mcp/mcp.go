@@ -44,7 +44,7 @@ func Server(e *echo.Echo, appContainer container.Container) {
 
 func baseUrl(appContainer container.Container) string {
 	if appContainer.Config().IsSecure {
-		return fmt.Sprintf("https://localhost:%s", appContainer.Config().Port)
+		return fmt.Sprintf("https://localhost%s", appContainer.Config().Port)
 	}
-	return fmt.Sprintf("http://localhost:%s", appContainer.Config().Port)
+	return fmt.Sprintf("http://localhost%s", appContainer.Config().Port)
 }
