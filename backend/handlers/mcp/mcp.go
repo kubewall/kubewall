@@ -34,7 +34,7 @@ func Server(e *echo.Echo, appContainer container.Container) {
 	sseServer := server.NewSSEServer(
 		mcpServer,
 		server.WithDynamicBasePath(func(r *http.Request, sessionID string) string {
-			return "/mcp"
+			return "api/v1/mcp"
 		}),
 		server.WithKeepAlive(true),
 		server.WithBaseURL(baseUrl(appContainer)),
@@ -42,11 +42,11 @@ func Server(e *echo.Echo, appContainer container.Container) {
 		server.WithUseFullURLForMessageEndpoint(true),
 	)
 
-	e.GET("/mcp/sse", echo.WrapHandler(sseServer.SSEHandler()))
-	e.POST("/mcp/message", echo.WrapHandler(sseServer.MessageHandler()))
+	e.GET("api/v1/mcp/sse", echo.WrapHandler(sseServer.SSEHandler()))
+	e.POST("/api/v1/mcp/message", echo.WrapHandler(sseServer.MessageHandler()))
 
 	// Proxy handler
-	e.Any("/mcp/proxy/*", ProxyHandler)
+	e.Any("api/v1/mcp/proxy/*", ProxyHandler)
 }
 
 func ProxyHandler(c echo.Context) error {
