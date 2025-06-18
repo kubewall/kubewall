@@ -95,7 +95,7 @@ Download the pre-compiled binaries from the [Release!](https://github.com/kubewa
 > After installation, you can access **kubewall** at `http://localhost:7080`
 >
 >  If you're running it in a Kubernetes cluster or on an on-premises server, we recommend using **HTTPS**.
->  When not used over HTTP/2 SSE suffers from a limitation to the maximum number of open connections. [Mozzila](https://developer.mozilla.org/en-US/docs/Web/API/EventSource)⤴
+>  When not used over HTTP/2 SSE suffers from a limitation to the maximum number of open connections. [Mozilla](https://developer.mozilla.org/en-US/docs/Web/API/EventSource)⤴
 >
 >  You can start **kubewall** with **HTTPS** using the following command:
 >
@@ -187,7 +187,7 @@ kubewall -p 7080
    <picture width="49%">
       <source media="(prefers-color-scheme: dark)" srcset="./media/Kshitij-Dark.png" width="49%">
       <source media="(prefers-color-scheme: light)" srcset="./media/Kshitij-Light.png" width="49%">
-      <img src="./media/Abhimanyu-Light.png" width="49%">
+      <img src="./media/Kshitij-Light.png" width="49%">
    </picture>
    <a target="_blank" href="https://github.com/abhimanyu003">
       <picture width="49%">
