@@ -23,12 +23,17 @@ func ResourceEventHandler[T Resource](handler *BaseHandler, additionalEvents ...
 		// GetList
 		go handler.Container.EventProcessor().AddEvent(handler.Kind, handler.processListEvents(resource.GetName()))
 
-		streamName := fmt.Sprintf("%s-%s", resource.GetNamespace(), resource.GetName())
+		var streamName string
+		if resource.GetNamespace() == "" {
+			streamName = fmt.Sprintf("%s-%s-%s-%s", handler.QueryConfig, handler.QueryCluster, handler.Kind, resource.GetName())
+		} else {
+			streamName = fmt.Sprintf("%s-%s-%s-%s-%s", handler.QueryConfig, handler.QueryCluster, handler.Kind, resource.GetNamespace(), resource.GetName())
+		}
 		// GetDetails
-		go handler.Container.EventProcessor().AddEvent(streamName, handler.processDetailsEvents(resource.GetNamespace(), resource.GetName()))
+		go handler.Container.EventProcessor().AddEvent(streamName, handler.processDetailsEvents(handler.Kind, resource.GetNamespace(), resource.GetName()))
 
 		// GetYAML
-		go handler.Container.EventProcessor().AddEvent(streamName+"-yaml", handler.processYAMLEvents(resource.GetNamespace(), resource.GetName()))
+		go handler.Container.EventProcessor().AddEvent(streamName+"-yaml", handler.processYAMLEvents(handler.Kind, resource.GetNamespace(), resource.GetName()))
 
 		for _, event := range additionalEvents {
 			for key, e := range event {
@@ -99,9 +104,9 @@ func (h *BaseHandler) processListEvents(resourceName string) func() {
 	}
 }
 
-func (h *BaseHandler) processDetailsEvents(namespace, name string) func() {
+func (h *BaseHandler) processDetailsEvents(kind, namespace, name string) func() {
 	return func() {
-		streamID, item, exists, _ := h.getStreamIDAndItem(namespace, name)
+		streamID, item, exists, _ := h.getStreamIDAndItem(kind, namespace, name)
 		data := h.marshalDetailData(item, exists)
 		h.Container.SSE().Publish(streamID, &sse.Event{
 			Data: data,
@@ -109,9 +114,9 @@ func (h *BaseHandler) processDetailsEvents(namespace, name string) func() {
 	}
 }
 
-func (h *BaseHandler) processYAMLEvents(namespace, name string) func() {
+func (h *BaseHandler) processYAMLEvents(kind, namespace, name string) func() {
 	return func() {
-		streamID, item, exists, _ := h.getStreamIDAndItem(namespace, name)
+		streamID, item, exists, _ := h.getStreamIDAndItem(kind, namespace, name)
 		data := h.marshalYAML(item, exists)
 		h.Container.SSE().Publish(fmt.Sprintf("%s-yaml", streamID), &sse.Event{
 			Data: data,
