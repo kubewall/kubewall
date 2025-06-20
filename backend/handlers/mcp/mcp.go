@@ -37,7 +37,7 @@ func Server(e *echo.Echo, appContainer container.Container) {
 			return "api/v1/mcp"
 		}),
 		server.WithKeepAlive(true),
-		server.WithBaseURL(baseUrl(appContainer)),
+		server.WithBaseURL(baseURL(appContainer)),
 		server.WithAppendQueryToMessageEndpoint(),
 		server.WithUseFullURLForMessageEndpoint(true),
 	)
@@ -141,7 +141,7 @@ func ProxyHandler(c echo.Context) error {
 	return nil
 }
 
-func baseUrl(appContainer container.Container) string {
+func baseURL(appContainer container.Container) string {
 	if appContainer.Config().IsSecure {
 		return fmt.Sprintf("https://localhost%s", appContainer.Config().Port)
 	}
