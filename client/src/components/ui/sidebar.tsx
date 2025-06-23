@@ -312,7 +312,7 @@ const SidebarTrigger = React.forwardRef<
           <span className="sr-only">Toggle Sidebar</span>
         </Button>
       </TooltipTrigger>
-      <TooltipContent side="right" align="center">
+      <TooltipContent side="bottom" align="center">
         Toggle Sidebar {isMac ? "⌘" : "Ctrl"} B
       </TooltipContent>
     </Tooltip>
