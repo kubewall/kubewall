@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-
 import { ComponentIcon } from 'lucide-react';
 import { loadSvgByName } from '@/utils';
 
@@ -8,10 +7,16 @@ type Props = {
   alt?: string
   className?: string
   fallback?: React.ReactNode
+  minWidth?: number | string
 }
 
-const SvgRenderer: React.FC<Props> = ({ name, alt = '', className, fallback = null }) => {
-
+const SvgRenderer: React.FC<Props> = ({
+  name,
+  alt = '',
+  className,
+  fallback = null,
+  minWidth,
+}) => {
   const [src, setSrc] = useState<string | null>(null);
 
   useEffect(() => {
@@ -27,9 +32,16 @@ const SvgRenderer: React.FC<Props> = ({ name, alt = '', className, fallback = nu
   if (!name) return <>{fallback ?? <ComponentIcon size={16} />}</>;
   if (!src) return <>{fallback ?? <ComponentIcon size={16} />}</>;
 
-  return <img src={src} alt={alt || name} width={16} height={16} className={className} />;
+  return (
+    <img
+      src={src}
+      alt={alt || name}
+      width={16}
+      height={16}
+      className={className}
+      style={{ minWidth, ...((className && {}) || {}) }}
+    />
+  );
 };
 
-export {
-  SvgRenderer
-};
+export { SvgRenderer };

@@ -282,6 +282,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                                     <div>
                                       <SvgRenderer
                                         name={customResourcesNavigation[customResourceGroup].resources[0].icon}
+                                        minWidth={16}
                                       />
                                     </div>
                                     <span className='truncate text-gray-800 dark:text-gray-200 group-data-[collapsible=icon]:hidden'>{customResourceGroup}</span>
