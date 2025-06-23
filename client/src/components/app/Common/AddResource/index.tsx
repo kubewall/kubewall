@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import Editor from '../../Details/YamlEditor/MonacoWrapper';
 import { FilePlusIcon } from "@radix-ui/react-icons";
 import { Loader } from '../../Loader';
-import { SaveIcon } from "lucide-react";
+import { Check } from "lucide-react";
 import { getSystemTheme } from "@/utils";
 import { kwList } from '@/routes';
 import { toast } from 'sonner';
@@ -132,15 +132,17 @@ const AddResource = () => {
                 yamlUpdated &&
                 <Button
                   variant="default"
-                  size="icon"
-                  className='absolute bottom-12 right-12 rounded z-10 border w-16 gap-0'
+                  size="sm"
+                  className="absolute bottom-10 right-12 z-10 px-4 py-2 flex items-center gap-1 rounded-md shadow-sm hover:shadow transition duration-200"
                   onClick={yamlUpdate}
-                > {
-                    yamlUpdateLoading ?
-                      <Loader className='w-5 h-5 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600' /> :
-                      <SaveIcon className="h-4 w-4 mr-1" />
-                  }
-                  <span className='text-xs'>Apply</span>
+                  disabled={yamlUpdateLoading}
+                >
+                  {yamlUpdateLoading ? (
+                    <Loader className="w-4 h-4 text-white animate-spin fill-white" />
+                  ) : (
+                    <Check className="w-[14px] h-[14px]" /> // ← slightly smaller icon
+                  )}
+                  <span className="text-xs font-medium mt-[1px]">Apply</span>
                 </Button>
               }
               <Editor
