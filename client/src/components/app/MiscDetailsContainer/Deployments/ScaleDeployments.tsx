@@ -118,37 +118,36 @@ const ScaleDeployments = ({ resourcename, queryParams }: ScaleDeploymentsProps) 
           <DialogDescription className="text-sm">
             Update the number of replicas for the deployment.
           </DialogDescription>
-          <DialogDescription>
-            <div className="mt-3 space-y-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-foreground">Current Replicas:</span>
-                <span className="px-2 py-1 rounded bg-muted text-black">
-                  {deploymentDetails.status.replicas}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <label htmlFor="desired-replicas" className="w-32 font-medium text-foreground">
-                  Desired Replicas:
-                </label>
-                <Input
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && value) {
-                      e.preventDefault();
-                      updateDeploymentScale();
-                    }
-                  }}
-                  id="desired-replicas"
-                  type="number"
-                  min="0"
-                  className="flex-1 rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
-                  placeholder="e.g. 5"
-                  onChange={handleChange}
-                  value={value}
-                />
-              </div>
-            </div>
-          </DialogDescription>
         </DialogHeader>
+        <div className="mt-3 space-y-4 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-foreground">Current Replicas:</span>
+            <span className="px-2 py-1 rounded bg-muted text-black">
+              {deploymentDetails.status.replicas}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <label htmlFor="desired-replicas" className="w-32 font-medium text-foreground">
+              Desired Replicas:
+            </label>
+            <Input
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && value) {
+                  e.preventDefault();
+                  updateDeploymentScale();
+                }
+              }}
+              id="desired-replicas"
+              type="number"
+              min="0"
+              className="flex-1 rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+              placeholder="e.g. 5"
+              onChange={handleChange}
+              value={value}
+            />
+          </div>
+        </div>
+
         <DialogFooter>
           <DialogClose asChild>
             <Button variant="outline"><XIcon className="h-4 w-4" />Cancel</Button>
