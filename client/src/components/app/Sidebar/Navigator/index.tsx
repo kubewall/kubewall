@@ -84,7 +84,7 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
           <span>Open...</span>
           <div className="absolute right-1.5 hidden gap-1 sm:flex">
             <Kbd>{isMac ? "⌘" : "Ctrl"}</Kbd>
-            <Kbd square>k</Kbd>
+            <Kbd square>K</Kbd>
           </div>
         </button >
       ) : (
@@ -95,9 +95,7 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
             </div>
           </TooltipTrigger>
           <TooltipContent side="right" align="center">
-            Open...
-            <Kbd>{isMac ? "⌘" : "Ctrl"}</Kbd>
-            <Kbd square>K</Kbd>
+            Open... {isMac ? "⌘" : "Ctrl"} K
           </TooltipContent>
         </Tooltip>
       )}
