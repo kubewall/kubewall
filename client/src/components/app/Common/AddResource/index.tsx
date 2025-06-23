@@ -132,17 +132,16 @@ const AddResource = () => {
                 yamlUpdated &&
                 <Button
                   variant="default"
-                  size="sm"
-                  className="absolute bottom-10 right-12 z-10 px-4 py-2 flex items-center gap-1 rounded-md shadow-sm hover:shadow transition duration-200"
+                  className="absolute bottom-10 right-12 z-10"
                   onClick={yamlUpdate}
                   disabled={yamlUpdateLoading}
                 >
                   {yamlUpdateLoading ? (
                     <Loader className="w-4 h-4 text-white animate-spin fill-white" />
                   ) : (
-                    <Check className="w-[14px] h-[14px]" /> // ← slightly smaller icon
+                    <Check className="w-[14px] h-[14px]" />
                   )}
-                  <span className="text-xs font-medium mt-[1px]">Apply</span>
+                  Apply
                 </Button>
               }
               <Editor
@@ -163,7 +162,7 @@ const AddResource = () => {
 
         </div>
       </DialogContent>
-    </Dialog>
+    </Dialog >
   );
 };
 

@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogClose, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { deploymentScale, resetDeploymentScale } from "@/data/Workloads/Deployments/DeploymentScaleSlice";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
@@ -127,7 +127,7 @@ const ScaleDeployments = ({ resourcename, queryParams }: ScaleDeploymentsProps) 
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <label htmlFor="desired-replicas" className="font-medium text-foreground">
+                <label htmlFor="desired-replicas" className="w-32 font-medium text-foreground">
                   Desired Replicas:
                 </label>
                 <Input
@@ -140,7 +140,7 @@ const ScaleDeployments = ({ resourcename, queryParams }: ScaleDeploymentsProps) 
                   id="desired-replicas"
                   type="number"
                   min="0"
-                  className="h-9 w-64 rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+                  className="flex-1 rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
                   placeholder="e.g. 5"
                   onChange={handleChange}
                   value={value}
@@ -149,22 +149,14 @@ const ScaleDeployments = ({ resourcename, queryParams }: ScaleDeploymentsProps) 
             </div>
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter className="sm:justify-center pt-2">
-          <Button
-            className="md:w-2/4 w-full"
-            type="submit"
-            onClick={resetDialog}
-          > <XIcon className="mr-2 h-4 w-4" />Cancel</Button>
-          <Button
-            onClick={updateDeploymentScale}
-            className="md:w-2/4 w-full"
-            type="submit"
-            disabled={!value}
-          >
-            <ScaleIcon className="mr-2 h-4 w-4" />Scale</Button>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="outline"><XIcon className="h-4 w-4" />Cancel</Button>
+          </DialogClose>
+          <Button type="submit" onClick={updateDeploymentScale}><ScaleIcon className="h-4 w-4" />Scale</Button>
         </DialogFooter>
       </DialogContent>
-    </Dialog>
+    </Dialog >
   );
 };
 

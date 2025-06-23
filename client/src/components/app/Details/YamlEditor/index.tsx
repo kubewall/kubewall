@@ -108,17 +108,16 @@ const YamlEditor = memo(function ({ instanceType, name, namespace, clusterName, 
               yamlUpdated &&
               <Button
                 variant="default"
-                size="sm"
-                className="absolute bottom-32 right-12 z-10 px-4 py-2 flex items-center gap-1 rounded-md shadow-sm hover:shadow transition duration-200"
+                className="absolute bottom-32 right-12 z-10"
                 onClick={yamlUpdate}
               >
                 {
                   yamlUpdateLoading ? (
                     <Loader className="w-4 h-4 text-white animate-spin fill-white" />
                   ) : (
-                    <SaveIcon className="w-[14px] h-[14px]" /> // ← slightly smaller icon
+                    <SaveIcon className="w-[14px] h-[14px]" />
                   )}
-                <span className='text-xs'>Save</span>
+                Save
               </Button>
             }
             <Editor
