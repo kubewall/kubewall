@@ -165,14 +165,13 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                   <SidebarMenu>
                     <SidebarMenuItem className="cursor-pointer">
                       <SidebarMenuButton asChild>
-                        <div className='flex items-center justify-center'>
+                        <div className={`flex items-center ${open || openMobile ? "justify-start pl-4" : "justify-center"}`}>
                           <a onClick={() => onNavClick('pods')}>
                             <img
-                              className={`transition-all duration-300 ease-in-out ${open || openMobile ? "w-28" : "w-4 max-w-none"}`}
+                              className={`${open || openMobile ? "w-28" : "w-4 max-w-none"}`}
                               src={getSystemTheme() === 'light' ? (open || openMobile ? kwLogoLight : kwLogoLightIcon) : (open || openMobile ? kwLogoDark : kwLogoDarkIcon)}
                               alt="kubewall"
                             />
-
                           </a>
                         </div>
                       </SidebarMenuButton>
