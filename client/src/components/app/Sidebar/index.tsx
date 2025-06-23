@@ -260,7 +260,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                 </SidebarGroup>
 
                 <SidebarGroup>
-                  <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">Custom Resources</SidebarGroupLabel>
+                  <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden truncate">Custom Resources</SidebarGroupLabel>
                   <SidebarMenu>
                     <SidebarMenuItem className="cursor-pointer">
                       <TooltipProvider delayDuration={0}>
