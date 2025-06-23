@@ -41,7 +41,7 @@ const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => 
         logString += `-------------------${log.containerName || 'All Containers'}-------------------\n`;
       } else {
         // eslint-disable-next-line no-control-regex
-        logString += `${log.containerName ? `${log.containerName}:`: '' } ${log.log.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '')}\n`;
+        logString += `${log.containerName ? `${log.containerName}:` : ''} ${log.log.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '')}\n`;
       }
     });
     a.href = `data:text/plain,${logString}`;
@@ -70,14 +70,14 @@ const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => 
             className="flex-1 text-xs shadow-none h-8 px-2 py-2 mx-1"
             onClick={() =>
               searchAddonRef.current?.findNext(podLogSearch)}>
-            <ChevronDownIcon className="h-3.5 w-3.5 cursor-pointer"/>
+            <ChevronDownIcon className="h-3.5 w-3.5 cursor-pointer" />
           </Button>
           <Button
             ref={previousSearchBtnRef}
             variant="outline"
             className="flex-1 text-xs shadow-none h-8 px-2 py-2"
             onClick={() => searchAddonRef.current?.findPrevious(podLogSearch)}>
-            <ChevronUpIcon className="h-3.5 w-3.5 cursor-pointer"/>
+            <ChevronUpIcon className="h-3.5 w-3.5 cursor-pointer" />
           </Button>
         </div>
         <div className="ml-auto flex w-full space-x-2 sm:justify-end">

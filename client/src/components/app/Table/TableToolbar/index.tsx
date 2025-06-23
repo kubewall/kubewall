@@ -15,6 +15,7 @@ import { ThemeModeSelector } from "@/components/app/Common/ThemeModeSelector";
 import { namespacesFilter } from "@/utils";
 import { resetFilterNamespace } from "@/data/Misc/ListTableNamesapceSlice";
 import { updateListTableFilter } from "@/data/Misc/ListTableFilterSlice";
+import { Kbd } from "@/components/ui/kbd";
 
 type DataTableToolbarProps<TData> = {
   table: Table<TData>;
@@ -42,15 +43,19 @@ export function DataTableToolbar<TData>({
       <div className="flex flex-1 items-center space-x-2">
         <SidebarTrigger />
         <Separator orientation="vertical" className="mr-2 h-4 ml-1" />
-        <DebouncedInput
-          placeholder="Search... (/)"
-          value={globalFilter ?? ''}
-          onChange={(value) => {
-            setGlobalFilter(String(value));
-            dispatch(updateListTableFilter(String(value)));
-          }}
-          className="h-8 basis-7/12 shadow-none px-2"
-        />
+        <div className="relative w-full basis-7/12">
+          <DebouncedInput
+            placeholder="Search..."
+            value={globalFilter ?? ''}
+            onChange={(value) => {
+              setGlobalFilter(String(value));
+              dispatch(updateListTableFilter(String(value)));
+            }}
+            className="h-8 w-full shadow-none pr-10 pl-2" // add pr-10 to make space for kbd
+          />
+
+          <Kbd inline={false}>/</Kbd>
+        </div>
         {showNamespaceFilter && !loading && namespaces && namespaces.length > 0 && (
           <DataTableFacetedFilter
             column={table.getColumn("Namespace")}
