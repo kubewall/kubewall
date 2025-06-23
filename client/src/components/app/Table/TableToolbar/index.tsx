@@ -16,6 +16,7 @@ import { namespacesFilter } from "@/utils";
 import { resetFilterNamespace } from "@/data/Misc/ListTableNamesapceSlice";
 import { updateListTableFilter } from "@/data/Misc/ListTableFilterSlice";
 import { Kbd } from "@/components/ui/kbd";
+import { Search } from "lucide-react";
 
 type DataTableToolbarProps<TData> = {
   table: Table<TData>;
@@ -44,14 +45,15 @@ export function DataTableToolbar<TData>({
         <SidebarTrigger />
         <Separator orientation="vertical" className="mr-2 h-4 ml-1" />
         <div className="relative w-full basis-7/12">
+          <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           <DebouncedInput
-            placeholder="Search..."
+            placeholder="Type / to search..."
             value={globalFilter ?? ''}
             onChange={(value) => {
               setGlobalFilter(String(value));
               dispatch(updateListTableFilter(String(value)));
             }}
-            className="h-8 w-full shadow-none pr-10 pl-2" // add pr-10 to make space for kbd
+            className="h-8 w-full shadow-none pl-8 pr-10" // add pr-10 to make space for kbd
           />
 
           <Kbd inline={false}>/</Kbd>
