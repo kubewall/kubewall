@@ -80,7 +80,7 @@ export function DataTableToolbar<TData>({
             <Tooltip delayDuration={0}>
               <TooltipTrigger asChild>
                 <div className="flex items-center mr-5 border px-3 text-xs font-medium rounded-md h-8 cursor-default">
-                  <span className="h-2 w-2 rounded-full bg-gray-400" />
+                  <span className="h-2 w-2 rounded-full bg-green-400" />
                   <span className="pl-2">{table.getFilteredRowModel().rows.length}</span>
                 </div>
               </TooltipTrigger>

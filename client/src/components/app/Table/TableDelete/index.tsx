@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { deleteResources, resetDeleteResource } from "@/data/Misc/DeleteResourceSlice";
 import { kwDetails, kwList } from "@/routes";
@@ -123,7 +123,7 @@ const TableDelete = ({ selectedRows, toggleAllRowsSelected, postDeleteCallback }
               > {
                   loading ?
                     <Loader className='w-5 h-5 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600' /> :
-                    <Trash2Icon className={`h-4 w-4 ${isListPage && `mr-1`}`} />
+                    <Trash2Icon className="h-4 w-4" />
                 }
                 {isListPage && <span className='text-xs'>Delete</span>}
               </Button>
@@ -142,17 +142,11 @@ const TableDelete = ({ selectedRows, toggleAllRowsSelected, postDeleteCallback }
           </DialogDescription>
         </DialogHeader>
 
-        <DialogFooter className="sm:justify-center">
-          <Button
-            className="md:w-2/4 w-full"
-            type="submit"
-            onClick={() => setModalOpen(false)}
-          >No</Button>
-          <Button
-            onClick={() => deleteResource()}
-            className="md:w-2/4 w-full"
-            type="submit"
-          >Yes</Button>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="outline"><Trash2Icon className="h-4 w-4" />Cancel</Button>
+          </DialogClose>
+          <Button type="submit" variant="destructive" onClick={() => deleteResource()}><Trash2Icon className="h-4 w-4" />Delete</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
