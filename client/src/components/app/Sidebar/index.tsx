@@ -7,7 +7,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem,
 import { SidebarContent, SidebarGroup, SidebarGroupLabel, Sidebar as SidebarMainComponent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarRail, useSidebar } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { createEventStreamQueryObject, getEventStreamUrl, getSystemTheme } from "@/utils";
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 
@@ -46,6 +46,21 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
   } = useAppSelector((state) => state.customResources);
   const { open, isMobile, openMobile } = useSidebar();
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
+
+  const sortedCustomResources = useMemo(() => {
+    const result: typeof customResourcesNavigation = {};
+
+    for (const group of Object.keys(customResourcesNavigation)) {
+      const { resources, ...rest } = customResourcesNavigation[group];
+
+      result[group] = {
+        ...rest,
+        resources: [...resources].sort((a, b) => a.name.localeCompare(b.name)),
+      };
+    }
+
+    return result;
+  }, [customResourcesNavigation]);
 
   useEffect(() => {
     const currentRoute = new URL(location.href).searchParams.get('resourcekind') || '';
@@ -138,6 +153,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
   const getActiveNav = (route: string, check = false) => {
     return route === (!check ? queryParams.get('kind') : queryParams.get('resourcekind'));
   };
+
   return (
     <div className={cn("col-span-1", className)}>
       <div className="h-screen space-y-4 py-1">
@@ -264,71 +280,70 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                         </Tooltip>
                       </TooltipProvider>
                     </SidebarMenuItem>
-                    {
-                      Object.keys(customResourcesNavigation).map((customResourceGroup) => (
-                        <Collapsible
-                          key={customResourceGroup}
-                          asChild
-                          open={openMenus[customResourceGroup]}
-                          // defaultOpen={openMenus[customResourceGroup]}
-                          className="group/collapsible"
-                        >
-                          <SidebarMenuItem>
-                            <DropdownMenu>
-                              <CollapsibleTrigger asChild onClick={() => toggleMenu(customResourceGroup)}>
-                                <DropdownMenuTrigger asChild>
-                                  <SidebarMenuButton className='group-data-[collapsible=icon]:justify-center' tooltip={customResourceGroup} showTooltipOnExpanded={true}>
+                    {Object.keys(sortedCustomResources).map((customResourceGroup) => (
+                      <Collapsible
+                        key={customResourceGroup}
+                        asChild
+                        open={openMenus[customResourceGroup]}
+                        className="group/collapsible"
+                      >
+                        <SidebarMenuItem>
+                          <DropdownMenu>
+                            <CollapsibleTrigger asChild onClick={() => toggleMenu(customResourceGroup)}>
+                              <DropdownMenuTrigger asChild>
+                                <SidebarMenuButton className='group-data-[collapsible=icon]:justify-center' tooltip={customResourceGroup} showTooltipOnExpanded={true}>
 
-                                    <div>
-                                      <SvgRenderer
-                                        name={customResourcesNavigation[customResourceGroup].resources[0].icon}
-                                        minWidth={16}
-                                      />
-                                    </div>
-                                    <span className='truncate text-gray-800 dark:text-gray-200 group-data-[collapsible=icon]:hidden'>{customResourceGroup}</span>
-                                    <ChevronRight size={16} className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 group-data-[collapsible=icon]:hidden" />
-                                  </SidebarMenuButton>
-                                </DropdownMenuTrigger>
-                              </CollapsibleTrigger>
+                                  <div>
+                                    <SvgRenderer
+                                      name={customResourcesNavigation[customResourceGroup].resources[0].icon}
+                                      minWidth={16}
+                                    />
+                                  </div>
+                                  <span className='truncate text-gray-800 dark:text-gray-200 group-data-[collapsible=icon]:hidden'>{customResourceGroup}</span>
+                                  <ChevronRight size={16} className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 group-data-[collapsible=icon]:hidden" />
+                                </SidebarMenuButton>
+                              </DropdownMenuTrigger>
+                            </CollapsibleTrigger>
 
-                              <CollapsibleContent>
-                                <SidebarMenuSub>
+                            <CollapsibleContent>
+                              <SidebarMenuSub>
+                                {sortedCustomResources[customResourceGroup].resources.map((customResource) => (
+                                  <SidebarMenuSubItem key={customResource.name} className="cursor-pointer">
+                                    <TooltipProvider delayDuration={0}>
+                                      <Tooltip >
+                                        <TooltipTrigger asChild>
+                                          <SidebarMenuSubButton asChild isActive={getActiveNav(customResource.name)}>
+                                            <a onClick={() => onCustomResourcesNavClick(customResource.route, customResource.name)}>
+                                              <span className="text-gray-600 dark:text-gray-400 group-data-[collapsible=icon]:hidden">{customResource.name}</span>
+                                            </a>
+                                          </SidebarMenuSubButton>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="right">
+                                          <p>{customResource.name}</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+
+                                  </SidebarMenuSubItem>
+                                ))
+                                }
+
+
+                              </SidebarMenuSub>
+                            </CollapsibleContent>
+                            {
+                              !open && <DropdownMenuContent
+                                className=" min-w-56 rounded-lg"
+                                align="start"
+                                side={isMobile ? "bottom" : "right"}
+                              >
+                                <DropdownMenuLabel className="truncate font-medium text-gray-800 dark:text-gray-200">{customResourceGroup}</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuGroup className='overflow-auto max-h-64'>
                                   {
-                                    customResourcesNavigation[customResourceGroup].resources.map((customResource) => (
-                                      <SidebarMenuSubItem key={customResource.name} className="cursor-pointer">
-                                        <TooltipProvider delayDuration={0}>
-                                          <Tooltip >
-                                            <TooltipTrigger asChild>
-                                              <SidebarMenuSubButton asChild isActive={getActiveNav(customResource.name)}>
-                                                <a onClick={() => onCustomResourcesNavClick(customResource.route, customResource.name)}>
-                                                  <span className="text-gray-600 dark:text-gray-400 group-data-[collapsible=icon]:hidden">{customResource.name}</span>
-                                                </a>
-                                              </SidebarMenuSubButton>
-                                            </TooltipTrigger>
-                                            <TooltipContent side="right">
-                                              <p>{customResource.name}</p>
-                                            </TooltipContent>
-                                          </Tooltip>
-                                        </TooltipProvider>
-
-                                      </SidebarMenuSubItem>
-                                    ))
-                                  }
-
-
-                                </SidebarMenuSub>
-                              </CollapsibleContent>
-                              {
-                                !open && <DropdownMenuContent
-                                  className=" min-w-56 rounded-lg"
-                                  align="start"
-                                  side={isMobile ? "bottom" : "right"}
-                                >
-                                  <DropdownMenuLabel className="truncate font-medium text-gray-800 dark:text-gray-200">{customResourceGroup}</DropdownMenuLabel>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuGroup className='overflow-auto max-h-64'>
-                                    {
-                                      customResourcesNavigation[customResourceGroup].resources.map((customResource) => (
+                                    [...customResourcesNavigation[customResourceGroup].resources]
+                                      .sort((a, b) => a.name.localeCompare(b.name))
+                                      .map((customResource) => (
                                         <DropdownMenuItem
                                           key={customResource.name}
                                           onClick={() => onCustomResourcesNavClick(customResource.route, customResource.name)}
@@ -338,15 +353,15 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                                         </DropdownMenuItem>
                                       )
                                       )
-                                    }
-                                  </DropdownMenuGroup>
-                                </DropdownMenuContent>
-                              }
+                                  }
+                                </DropdownMenuGroup>
+                              </DropdownMenuContent>
+                            }
 
-                            </DropdownMenu>
-                          </SidebarMenuItem>
-                        </Collapsible>
-                      ))
+                          </DropdownMenu>
+                        </SidebarMenuItem>
+                      </Collapsible>
+                    ))
                     }
                   </SidebarMenu>
                 </SidebarGroup>
