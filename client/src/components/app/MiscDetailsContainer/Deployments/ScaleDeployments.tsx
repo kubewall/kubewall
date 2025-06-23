@@ -8,9 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader } from "../../Loader";
 import { RootState } from "@/redux/store";
-import { SlidersHorizontal } from "lucide-react";
+import { ScaleIcon, SlidersHorizontal, XIcon } from "lucide-react";
 import { toast } from "sonner";
-
 type ScaleDeploymentsProps = {
   resourcename: string;
   queryParams: string;
@@ -98,7 +97,6 @@ const ScaleDeployments = ({ resourcename, queryParams }: ScaleDeploymentsProps) 
                 size='icon'
                 className='right-0 mt-1 rounded z-10 border w-20 mr-1'
                 onClick={() => setModalOpen(true)}
-
               >
                 {
                   loading ?
@@ -117,49 +115,53 @@ const ScaleDeployments = ({ resourcename, queryParams }: ScaleDeploymentsProps) 
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Scale Deployment</DialogTitle>
+          <DialogDescription className="text-sm">
+            Update the number of replicas for the deployment.
+          </DialogDescription>
           <DialogDescription>
-            {/* Are you sure you want to delete ? */}
-            <div className="mt-2">
-              <div className="flex flex-col gap-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">Current replicas:</span>
-                  <span className="px-2 py-1 rounded-md bg-muted text-muted-foreground">
-                    {deploymentDetails.status.replicas}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <label htmlFor="desired-replicas" className="font-medium">
-                    Desired replicas:
-                  </label>
-                  <Input
-                    id="desired-replicas"
-                    type="number"
-                    min="0"
-                    className="w-50 shadow-none h-7 text-sm rounded-sm px-1"
-                    placeholder="e.g. 5"
-                    onChange={handleChange}
-                    value={value}
-                  />
-                </div>
+            <div className="mt-3 space-y-4 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-foreground">Current Replicas:</span>
+                <span className="px-2 py-1 rounded bg-muted text-black">
+                  {deploymentDetails.status.replicas}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <label htmlFor="desired-replicas" className="font-medium text-foreground">
+                  Desired Replicas:
+                </label>
+                <Input
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && value) {
+                      e.preventDefault();
+                      updateDeploymentScale();
+                    }
+                  }}
+                  id="desired-replicas"
+                  type="number"
+                  min="0"
+                  className="h-9 w-64 rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+                  placeholder="e.g. 5"
+                  onChange={handleChange}
+                  value={value}
+                />
               </div>
             </div>
-
           </DialogDescription>
         </DialogHeader>
-
-        <DialogFooter className="sm:justify-center">
+        <DialogFooter className="sm:justify-center pt-2">
           <Button
             className="md:w-2/4 w-full"
             type="submit"
             onClick={resetDialog}
-          >Cancel</Button>
+          > <XIcon className="mr-2 h-4 w-4" />Cancel</Button>
           <Button
             onClick={updateDeploymentScale}
             className="md:w-2/4 w-full"
             type="submit"
             disabled={!value}
-          >Update</Button>
+          >
+            <ScaleIcon className="mr-2 h-4 w-4" />Scale</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
