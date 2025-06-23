@@ -95,7 +95,9 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
             </div>
           </TooltipTrigger>
           <TooltipContent side="right" align="center">
-            Open... <kbd className="ml-1 rounded border bg-muted px-1.5 py-0.5 text-xs font-mono text-muted-foreground">⌘K</kbd>
+            Open...
+            <Kbd>{isMac ? "⌘" : "Ctrl"}</Kbd>
+            <Kbd square>k</Kbd>
           </TooltipContent>
         </Tooltip>
       )}
