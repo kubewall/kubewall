@@ -129,7 +129,7 @@ const TableDelete = ({ selectedRows, toggleAllRowsSelected, postDeleteCallback }
               </Button>
             </DialogTrigger>
           </TooltipTrigger>
-          <TooltipContent side="bottom">
+          <TooltipContent side="top">
             Delete Resource{selectedRows.length > 1 ? 's' : ''}
           </TooltipContent>
         </Tooltip>
