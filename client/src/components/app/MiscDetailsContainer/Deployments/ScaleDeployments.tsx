@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader } from "../../Loader";
 import { RootState } from "@/redux/store";
-import { ScaleIcon, SlidersHorizontal, XIcon } from "lucide-react";
+import { ScaleIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 type ScaleDeploymentsProps = {
   resourcename: string;
@@ -101,7 +101,7 @@ const ScaleDeployments = ({ resourcename, queryParams }: ScaleDeploymentsProps) 
                 {
                   loading ?
                     <Loader className='w-4 h-4 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600' /> :
-                    <SlidersHorizontal className='h-4 w-4' />
+                    <ScaleIcon className='h-4 w-4' />
                 }
                 <span className='text-xs'>Scale</span>
               </Button>
