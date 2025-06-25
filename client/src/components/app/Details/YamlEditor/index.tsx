@@ -124,7 +124,7 @@ const YamlEditor = memo(function ({ instanceType, name, namespace, clusterName, 
               value={value}
               language="yaml"
               onChange={onChange}
-              className='border rounded-lg h-screen'
+              className='border rounded-md h-screen'
               theme={getSystemTheme()}
             />
           </div>

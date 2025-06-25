@@ -145,7 +145,7 @@ const AddResource = () => {
                 </Button>
               }
               <Editor
-                className='border rounded-lg h-screen'
+                className='border rounded-md h-screen'
                 value={value}
                 defaultLanguage='yaml'
                 onChange={onChange}
