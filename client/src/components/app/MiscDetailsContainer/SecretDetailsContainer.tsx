@@ -19,7 +19,7 @@ const SecretDetailsContainer = memo(function () {
   };
 
   return (
-    <div className={`mt-4`}>
+    <div className={`mt-2`}>
       <Card className="shadow-none rounded-lg">
         <CardHeader className="p-4 ">
           <CardTitle className="text-sm font-medium flex items-center shadow-none">
@@ -30,9 +30,8 @@ const SecretDetailsContainer = memo(function () {
               size="icon"
               onClick={() => setToggleSecretDecode(!toggleSecretDecode)}
             >
-              {toggleSecretDecode ? <EyeIcon className="h-4 w-4"/> : <EyeOff className="h-4 w-4"/>}
+              {toggleSecretDecode ? <EyeIcon className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
             </Button>
-
           </CardTitle>
         </CardHeader>
         <CardContent className="px-4">
@@ -42,12 +41,11 @@ const SecretDetailsContainer = memo(function () {
                 {
                   newData && Object.keys(newData).map((key: string) => {
                     return (
-                      <div className="py-1.5 border-b border-dashed flex flex-row">
-                        <div className="pl-4 text-sm text-muted-foreground basis-1/4">{key}</div>
+                      <div className="py-1.5 border-b border-solid flex flex-row">
+                        <div className="pl-4 text-sm  basis-1/4">{key}</div>
                         <div className="flex flex-row text-sm font-normal basis-3/4 group/item">
                           <div className="break-all basis-[97%] ">
                             <Badge variant="secondary" className="text-sm font-normal">
-
                               <span className={toggleSecretDecode ? 'whitespace-pre-line' : 'line-clamp-1'}>
                                 {toggleSecretDecode ? getDecodeOrDefault(newData[key] || '') : newData[key]}
                               </span>
