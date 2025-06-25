@@ -6,6 +6,7 @@ import (
 
 	"github.com/charmbracelet/log"
 	"github.com/kubewall/kubewall/backend/container"
+	"k8s.io/client-go/discovery"
 )
 
 const AllResourcesCacheKeyFormat = "%s-%s-allResourcesCache"
@@ -18,14 +19,16 @@ type Resource struct {
 }
 
 func CacheAllResources(container container.Container, config, cluster string) error {
-	apiResources, err := container.ClientSet(config, cluster).Discovery().ServerPreferredResources()
-	if err != nil {
-		return err
+	_, apiResourcesList, err := container.ClientSet(config, cluster).Discovery().ServerGroupsAndResources()
+	if err != nil && !discovery.IsGroupDiscoveryFailedError(err) {
+		return err // Only fail if it's not a partial discovery error
 	}
-
+	// Log partial errors for observability
+	if err != nil {
+		log.Info("partial discovery error", err)
+	}
 	var allResource []Resource
-
-	for _, group := range apiResources {
+	for _, group := range apiResourcesList {
 		for _, resource := range group.APIResources {
 			allResource = append(allResource, Resource{
 				Namespaced: resource.Namespaced,
