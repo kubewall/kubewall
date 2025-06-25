@@ -11,7 +11,8 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "@/components/ui/command";
-import { CubeIcon, EnterIcon } from "@radix-ui/react-icons";
+import { SvgRenderer } from '../../Common/SvgRenderer';
+import { BoxIcon, CornerDownLeftIcon } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { NAVIGATION_ROUTE } from "@/constants";
 import { resetListTableFilter } from "@/data/Misc/ListTableFilterSlice";
@@ -113,10 +114,10 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
                   className="group cursor-pointer"
                   onSelect={() => onSelectResources(routeValue, route)}
                 >
-                  <CubeIcon className="mr-2 h-4 w-4" />
+                  <BoxIcon className="mr-2 h-4 w-4" />
                   <span>{name}</span>
                   <CommandShortcut className="invisible group-aria-[selected=true]:visible">
-                    <EnterIcon />
+                    <CornerDownLeftIcon />
                   </CommandShortcut>
                 </CommandItem>
               ))}
@@ -131,13 +132,18 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
                   className="group cursor-pointer"
                   onSelect={() => onSelectCustomResources(customResource.route, customResourceGroup)}
                 >
-                  <CubeIcon className="mr-2 h-4 w-4" />
+                  <div className="mr-2 flex h-4 w-4 items-center justify-center">
+                    <SvgRenderer
+                      name={customResourcesNavigation[customResourceGroup].resources[0].icon}
+                      minWidth={18}
+                    />
+                  </div>
                   <span>
                     {customResource.name}{" "}
                     <span className="text-xs text-muted-foreground">({customResourceGroup})</span>
                   </span>
                   <CommandShortcut className="invisible group-aria-[selected=true]:visible">
-                    <EnterIcon />
+                    <CornerDownLeftIcon />
                   </CommandShortcut>
                 </CommandItem>
               ))
