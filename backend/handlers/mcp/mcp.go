@@ -143,9 +143,9 @@ func ProxyHandler(c echo.Context) error {
 
 func baseURL(appContainer container.Container) string {
 	if appContainer.Config().IsSecure {
-		return fmt.Sprintf("https://localhost%s", appContainer.Config().Port)
+		return fmt.Sprintf("https://%s", appContainer.Config().ListenAddr)
 	}
-	return fmt.Sprintf("http://localhost%s", appContainer.Config().Port)
+	return fmt.Sprintf("http://%s", appContainer.Config().ListenAddr)
 }
 
 // isHopByHopHeader checks if a header is a hop-by-hop header.

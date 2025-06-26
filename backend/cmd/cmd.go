@@ -16,7 +16,8 @@ import (
 func init() {
 	rootCmd.PersistentFlags().String("certFile", "", "absolute path to certificate file")
 	rootCmd.PersistentFlags().String("keyFile", "", "absolute path to key file")
-	rootCmd.PersistentFlags().StringP("port", "p", ":7080", "port to listen on")
+	rootCmd.PersistentFlags().StringP("port", "p", ":7080", "port to listen on [deprecated, use --listen instead]")
+	rootCmd.PersistentFlags().StringP("listen", "l", "127.0.0.1:7080", "IP and port to listen on (e.g., 127.0.0.1:7080 or :7080)")
 	rootCmd.PersistentFlags().Int("k8s-client-qps", 100, "maximum QPS to the master from client")
 	rootCmd.PersistentFlags().Int("k8s-client-burst", 200, "Maximum burst for throttle")
 	rootCmd.PersistentFlags().Bool("no-open-browser", false, "Do not open the default browser")
@@ -49,13 +50,24 @@ func Serve(cmd *cobra.Command) error {
 	if err != nil {
 		return err
 	}
-
-	port, err := cmd.Flags().GetString("port")
+	// Determine listen address
+	listenAddr, err := cmd.Flags().GetString("listen")
 	if err != nil {
 		return err
 	}
-	if port[0] != ':' {
-		port = ":" + port
+	// Backward compatibility: fallback to --port if --listen is not set
+	if listenAddr == "" {
+		port, err := cmd.Flags().GetString("port")
+		if err != nil {
+			return err
+		}
+		if port == "" {
+			listenAddr = "127.0.0.1:7080" // default
+		} else if port[0] == ':' {
+			listenAddr = "127.0.0.1" + port
+		} else {
+			listenAddr = "127.0.0.1:" + port
+		}
 	}
 
 	certFile, err := cmd.Flags().GetString("certFile")
@@ -73,7 +85,7 @@ func Serve(cmd *cobra.Command) error {
 
 	isSecure := certFile != "" || keyFile != ""
 
-	cfg := config.NewAppConfig(Version, port, k8sClientQPS, k9sClientBurst, isSecure)
+	cfg := config.NewAppConfig(Version, listenAddr, k8sClientQPS, k9sClientBurst, isSecure)
 	cfg.LoadAppConfig()
 
 	c := container.NewContainer(env, cfg)
@@ -82,27 +94,27 @@ func Serve(cmd *cobra.Command) error {
 	routes.ConfigureRoutes(e, c)
 
 	if !noOpen {
-		openDefaultBrowser(c.Config().IsSecure, c.Config().Port)
+		openDefaultBrowser(c.Config().IsSecure, c.Config().ListenAddr)
 	}
 
 	if c.Config().IsSecure {
 		e.Pre(middleware.HTTPSRedirect())
-		if err = e.StartTLS(c.Config().Port, certFile, keyFile); err != nil {
+		if err = e.StartTLS(c.Config().ListenAddr, certFile, keyFile); err != nil {
 			return err
 		}
 		return nil
 	}
 
-	if err = e.Start(c.Config().Port); err != nil {
+	if err = e.Start(c.Config().ListenAddr); err != nil {
 		return err
 	}
 	return nil
 }
 
-func openDefaultBrowser(isSecure bool, port string) {
-	url := fmt.Sprintf("http://localhost%s", port)
+func openDefaultBrowser(isSecure bool, listenAddr string) {
+	url := fmt.Sprintf("http://%s", listenAddr)
 	if isSecure {
-		url = fmt.Sprintf("https://localhost%s", port)
+		url = fmt.Sprintf("https://%s", listenAddr)
 	}
 	// we are going to ignore error in this case
 	// this will allow container apps to run
