@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"net"
 	"os"
 
 	"github.com/kubewall/kubewall/backend/config"
@@ -69,7 +70,6 @@ func Serve(cmd *cobra.Command) error {
 			listenAddr = "127.0.0.1:" + port
 		}
 	}
-
 	certFile, err := cmd.Flags().GetString("certFile")
 	if err != nil {
 		return err
@@ -112,11 +112,22 @@ func Serve(cmd *cobra.Command) error {
 }
 
 func openDefaultBrowser(isSecure bool, listenAddr string) {
-	url := fmt.Sprintf("http://%s", listenAddr)
-	if isSecure {
-		url = fmt.Sprintf("https://%s", listenAddr)
+	// Split IP and Port
+	host, port, err := net.SplitHostPort(listenAddr)
+	if err != nil {
+		// fallback if listenAddr is invalid
+		host = "127.0.0.1"
+		port = "7080"
 	}
-	// we are going to ignore error in this case
+	// Default to localhost if no IP is provided (e.g., ":7080")
+	if host == "" || host == "::" {
+		host = "127.0.0.1"
+	}
+	scheme := "http"
+	if isSecure {
+		scheme = "https"
+	}
+	url := fmt.Sprintf("%s://%s:%s", scheme, host, port)
 	// this will allow container apps to run
 	browser.OpenURL(url)
 }

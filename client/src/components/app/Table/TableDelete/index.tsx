@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Loader } from "../../Loader";
 import { RootState } from "@/redux/store";
 import { Row } from "@tanstack/react-table";
-import { Trash2Icon } from "lucide-react";
+import { Trash2Icon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 
 type TableDeleteProps = {
@@ -144,7 +144,7 @@ const TableDelete = ({ selectedRows, toggleAllRowsSelected, postDeleteCallback }
 
         <DialogFooter>
           <DialogClose asChild>
-            <Button variant="outline"><Trash2Icon className="h-4 w-4" />Cancel</Button>
+            <Button variant="outline"><XIcon className="h-4 w-4" />Cancel</Button>
           </DialogClose>
           <Button type="submit" variant="destructive" onClick={() => deleteResource()}><Trash2Icon className="h-4 w-4" />Delete</Button>
         </DialogFooter>

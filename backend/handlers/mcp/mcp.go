@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -142,10 +143,22 @@ func ProxyHandler(c echo.Context) error {
 }
 
 func baseURL(appContainer container.Container) string {
-	if appContainer.Config().IsSecure {
-		return fmt.Sprintf("https://%s", appContainer.Config().ListenAddr)
+	// Split IP and Port
+	host, port, err := net.SplitHostPort(appContainer.Config().ListenAddr)
+	if err != nil {
+		// fallback if listenAddr is invalid
+		host = "127.0.0.1"
+		port = "7080"
 	}
-	return fmt.Sprintf("http://%s", appContainer.Config().ListenAddr)
+	// Default to localhost if no IP is provided (e.g., ":7080")
+	if host == "" || host == "::" {
+		host = "127.0.0.1"
+	}
+	scheme := "http"
+	if appContainer.Config().IsSecure {
+		scheme = "https"
+	}
+	return fmt.Sprintf("%s://%s:%s", scheme, host, port)
 }
 
 // isHopByHopHeader checks if a header is a hop-by-hop header.
