@@ -3,14 +3,15 @@ package app
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/kubewall/kubewall/backend/container"
-	"github.com/labstack/echo/v4"
-	"k8s.io/client-go/tools/clientcmd"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/google/uuid"
+	"github.com/kubewall/kubewall/backend/container"
+	"github.com/labstack/echo/v4"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 type AppConfigHandler struct {
@@ -41,8 +42,8 @@ func (h *AppConfigHandler) Post(c echo.Context) error {
 	uuidStr := uuid.New().String()
 	path := filepath.Join(homeDir(), ".kubewall", "kubeconfigs", uuidStr)
 
-	if err := os.WriteFile(path, []byte(file), 0666); err != nil {
-		return echo.NewHTTPError(500, "Failed to write kubeconfig").SetInternal(err)
+	if err := writeKubeconfig(path, file); err != nil {
+		return echo.NewHTTPError(500, "Failed to create directory for kubeconfig")
 	}
 
 	if err := validateKubeConfig(path); err != nil {
@@ -74,8 +75,8 @@ func (h *AppConfigHandler) PostBearer(c echo.Context) error {
 		token,
 	)
 
-	if err := os.WriteFile(path, []byte(config), 0666); err != nil {
-		return echo.NewHTTPError(500, "Failed to write kubeconfig").SetInternal(err)
+	if err := writeKubeconfig(path, config); err != nil {
+		return echo.NewHTTPError(500, "Failed to create directory for kubeconfig")
 	}
 
 	h.container.Config().SaveKubeConfig(uuidStr)
@@ -105,8 +106,8 @@ func (h *AppConfigHandler) PostCertificate(c echo.Context) error {
 		clientKeyData,
 	)
 
-	if err := os.WriteFile(path, []byte(config), 0666); err != nil {
-		return echo.NewHTTPError(500, "Failed to write kubeconfig").SetInternal(err)
+	if err := writeKubeconfig(path, config); err != nil {
+		return echo.NewHTTPError(500, "Failed to create directory for kubeconfig")
 	}
 
 	h.container.Config().SaveKubeConfig(uuidStr)
@@ -179,4 +180,18 @@ users:
     client-certificate-data: %s
     client-key-data: %s
 `, clientCertData, serverIP, name, name, name, name, name, name, clientCertData, clientKeyData)
+}
+
+func writeKubeconfig(path string, file string) error {
+	// Ensure the parent directory exists
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return echo.NewHTTPError(500, "Failed to create directory for kubeconfig").SetInternal(err)
+	}
+
+	// Write the kubeconfig file
+	if err := os.WriteFile(path, []byte(file), 0666); err != nil {
+		return echo.NewHTTPError(500, "Failed to write kubeconfig").SetInternal(err)
+	}
+	return nil
 }
