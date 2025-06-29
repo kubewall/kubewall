@@ -27,7 +27,7 @@ func (h *AppConfigHandler) Get(c echo.Context) error {
 }
 
 func (h *AppConfigHandler) Reload(c echo.Context) error {
-	h.container.Cache().Clear()
+	h.container.Cache().InvalidateAll()
 	h.container.Config().ReloadConfig()
 	return c.Redirect(http.StatusTemporaryRedirect, "/")
 }

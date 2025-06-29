@@ -48,7 +48,7 @@ func CacheAllResources(container container.Container, config, cluster string) er
 
 func GetAllResourcesFromCache(container container.Container, config, cluster string) ([]Resource, error) {
 	cacheKey := fmt.Sprintf(AllResourcesCacheKeyFormat, config, cluster)
-	c, exists := container.Cache().Get(cacheKey)
+	c, exists := container.Cache().GetIfPresent(cacheKey)
 	if !exists {
 		return nil, fmt.Errorf("%s not found in cache", cacheKey)
 	}
@@ -56,7 +56,7 @@ func GetAllResourcesFromCache(container container.Container, config, cluster str
 }
 
 func RefreshAllResourcesCache(container container.Container, config, cluster string) error {
-	container.Cache().Delete(fmt.Sprintf(AllResourcesCacheKeyFormat, config, cluster))
+	container.Cache().Invalidate(fmt.Sprintf(AllResourcesCacheKeyFormat, config, cluster))
 	return CacheAllResources(container, config, cluster)
 }
 

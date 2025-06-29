@@ -65,7 +65,8 @@ func (h *BaseHandler) StartDynamicInformer(c echo.Context, cache cache.ResourceE
 }
 
 func (h *BaseHandler) baseInformer(_ echo.Context, cache cache.ResourceEventHandlerFuncs) {
-	if h.Container.Cache().Has(h.InformerCacheKey) {
+	_, exists := h.Container.Cache().GetIfPresent(h.InformerCacheKey)
+	if exists {
 		return
 	}
 	h.Container.Cache().Set(h.InformerCacheKey, true)

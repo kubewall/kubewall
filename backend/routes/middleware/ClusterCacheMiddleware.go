@@ -56,7 +56,8 @@ func ClusterCacheMiddleware(container container.Container) echo.MiddlewareFunc {
 				conn.MarkAsConnected()
 			}
 
-			if !container.Cache().Has(allResourcesKey) {
+			_, exists := container.Cache().GetIfPresent(allResourcesKey)
+			if !exists {
 				helpers.CacheAllResources(container, config, cluster)
 				loadAllInformerOfCluster(c, container)
 			}
