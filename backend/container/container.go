@@ -58,8 +58,8 @@ type container struct {
 // NewContainer is constructor.
 func NewContainer(env *config.Env, cfg *config.AppConfig) Container {
 	cache := otter.Must(&otter.Options[string, any]{
-		MaximumSize:      10_000,
-		ExpiryCalculator: otter.ExpiryAccessing[string, any](10 * time.Hour), // Reset timer on reads/writes
+		MaximumSize:      5000,
+		ExpiryCalculator: otter.ExpiryAccessing[string, any](4 * time.Hour), // Reset timer on reads/writes
 	})
 
 	s := sse.New()
