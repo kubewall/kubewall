@@ -35,8 +35,7 @@ func ClusterConnectivityMiddleware(container container.Container) echo.Middlewar
 			}
 
 			if value == false {
-				log.Error("previously failed to connect to this cluster, please read-load config or check network-connection")
-				return c.JSON(http.StatusInternalServerError, "Cluster is not available or failed to connect to cluster, please check network connection")
+				log.Warn("previously failed to connect to this cluster, please read-load config or check network-connection")
 			}
 
 			return next(c)
