@@ -28,14 +28,15 @@ func ClusterConnectivityMiddleware(container container.Container) echo.Middlewar
 				_, err = container.DiscoveryClient(config, cluster).ServerVersion()
 				if err != nil {
 					log.Error("failed to connect to cluster", "err", err)
-					container.Cache().Set(isAbleToConnectToClusterCacheKey, false)
-					return c.JSON(http.StatusInternalServerError, err.Error())
+					return c.JSON(http.StatusFailedDependency, err.Error())
 				}
 				container.Cache().Set(isAbleToConnectToClusterCacheKey, true)
 			}
 
 			if value == false {
 				log.Warn("previously failed to connect to this cluster, please read-load config or check network-connection")
+				container.Cache().Invalidate(isAbleToConnectToClusterCacheKey)
+				return c.JSON(http.StatusFailedDependency, "previously failed to connect to this cluster, please read-load config or check network-connection")
 			}
 
 			return next(c)
