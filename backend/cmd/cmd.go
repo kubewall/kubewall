@@ -18,7 +18,7 @@ func init() {
 	rootCmd.PersistentFlags().String("certFile", "", "absolute path to certificate file")
 	rootCmd.PersistentFlags().String("keyFile", "", "absolute path to key file")
 	rootCmd.PersistentFlags().StringP("port", "p", ":7080", "port to listen on [deprecated, use --listen instead]")
-	rootCmd.PersistentFlags().StringP("listen", "l", "127.0.0.1:7080", "IP and port to listen on (e.g., 127.0.0.1:7080 or :7080)")
+	rootCmd.PersistentFlags().StringP("listen", "l", "localhost:7080", "IP and port to listen on (e.g., localhost:7080 or :7080)")
 	rootCmd.PersistentFlags().Int("k8s-client-qps", 100, "maximum QPS to the master from client")
 	rootCmd.PersistentFlags().Int("k8s-client-burst", 200, "Maximum burst for throttle")
 	rootCmd.PersistentFlags().Bool("no-open-browser", false, "Do not open the default browser")
@@ -63,11 +63,11 @@ func Serve(cmd *cobra.Command) error {
 			return err
 		}
 		if port == "" {
-			listenAddr = "127.0.0.1:7080" // default
+			listenAddr = "localhost:7080" // default
 		} else if port[0] == ':' {
-			listenAddr = "127.0.0.1" + port
+			listenAddr = "localhost" + port
 		} else {
-			listenAddr = "127.0.0.1:" + port
+			listenAddr = "localhost:" + port
 		}
 	}
 	certFile, err := cmd.Flags().GetString("certFile")
@@ -116,12 +116,12 @@ func openDefaultBrowser(isSecure bool, listenAddr string) {
 	host, port, err := net.SplitHostPort(listenAddr)
 	if err != nil {
 		// fallback if listenAddr is invalid
-		host = "127.0.0.1"
+		host = "localhost"
 		port = "7080"
 	}
 	// Default to localhost if no IP is provided (e.g., ":7080")
 	if host == "" || host == "::" {
-		host = "127.0.0.1"
+		host = "localhost"
 	}
 	scheme := "http"
 	if isSecure {

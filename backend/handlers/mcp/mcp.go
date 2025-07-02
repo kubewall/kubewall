@@ -147,12 +147,12 @@ func baseURL(appContainer container.Container) string {
 	host, port, err := net.SplitHostPort(appContainer.Config().ListenAddr)
 	if err != nil {
 		// fallback if listenAddr is invalid
-		host = "127.0.0.1"
+		host = "localhost"
 		port = "7080"
 	}
 	// Default to localhost if no IP is provided (e.g., ":7080")
 	if host == "" || host == "::" {
-		host = "127.0.0.1"
+		host = "localhost"
 	}
 	scheme := "http"
 	if appContainer.Config().IsSecure {
