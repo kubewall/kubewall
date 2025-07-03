@@ -2,11 +2,12 @@ package config
 
 import (
 	"fmt"
+	"os"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd/api"
-	"os"
-	"testing"
 )
 
 func TestLoadK8ConfigFromFile(t *testing.T) {
@@ -101,7 +102,7 @@ func TestRestConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := restConfig(tt.config, tt.context)
+			_, err := restConfig("", tt.context)
 			if tt.expectErr {
 				assert.Error(t, err)
 			} else {
