@@ -16,7 +16,6 @@ import (
 
 	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions"
 
-	"github.com/charmbracelet/log"
 	"github.com/gorilla/websocket"
 	"github.com/kubewall/kubewall/backend/config"
 	"github.com/maypok86/otter/v2"
@@ -46,8 +45,6 @@ type Container interface {
 type container struct {
 	env            *config.Env
 	config         *config.AppConfig
-	logger         *log.Logger
-	configLock     sync.Mutex
 	cache          *otter.Cache[string, any]
 	sseServer      *sse.Server
 	eventProcessor *event.EventProcessor

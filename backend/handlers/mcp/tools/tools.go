@@ -137,12 +137,3 @@ func NewYamlDetailsTool(c echo.Context, routeName string) server.ServerTool {
 
 	return NewServerTool(tool, handler)
 }
-
-func getStringArg(m map[string]any, key string) (string, bool) {
-	v, ok := m[key]
-	if !ok {
-		return "", false
-	}
-	s, ok := v.(string)
-	return s, ok
-}

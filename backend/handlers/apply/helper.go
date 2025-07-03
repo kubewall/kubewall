@@ -5,9 +5,10 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"k8s.io/client-go/restmapper"
 	"net/http"
 	"strings"
+
+	"k8s.io/client-go/restmapper"
 
 	"github.com/pytimer/k8sutil/util"
 
@@ -72,7 +73,6 @@ func (o *ApplyOptions) Apply(ctx context.Context, data []byte) error {
 	}
 
 	for _, unstruct := range unstructList {
-
 		if _, err := ApplyUnstructured(ctx, o.dynamicClient, restmapper, unstruct, o.serverSide); err != nil {
 			return err
 		}
@@ -122,7 +122,6 @@ func Decode(data []byte) ([]unstructured.Unstructured, error) {
 }
 
 func ApplyUnstructured(ctx context.Context, dynamicClient dynamic.Interface, restMapper meta.RESTMapper, unstructuredObj unstructured.Unstructured, serverSide bool) (*unstructured.Unstructured, error) {
-
 	if len(unstructuredObj.GetName()) == 0 {
 		metadata, err := meta.Accessor(unstructuredObj)
 		if err != nil {
@@ -241,7 +240,7 @@ func Patch(currentUnstr *unstructured.Unstructured, modified []byte, name string
 		patch, err = jsonmergepatch.CreateThreeWayJSONMergePatch(original, modified, current, preconditions...)
 		if err != nil {
 			if mergepatch.IsPreconditionFailed(err) {
-				return nil, "", fmt.Errorf("At least one of apiVersion, kind and name was changed")
+				return nil, "", fmt.Errorf("at least one of apiVersion, kind and name was changed")
 			}
 			return nil, "", fmt.Errorf("unable to apply patch, %v", err)
 		}
