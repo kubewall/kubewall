@@ -7,16 +7,17 @@ import { Cross2Icon } from "@radix-ui/react-icons";
 import { DataTableFacetedFilter } from "@/components/app/Table/TableFacetedFilter";
 import { DataTableViewOptions } from "@/components/app/Table/TableViewOptions";
 import { DebouncedInput } from "@/components/app/Common/DeboucedInput";
+import { Kbd } from "@/components/ui/kbd";
 import { RootState } from "@/redux/store";
+import { Search } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Sparkles } from "lucide-react";
 import { Table } from "@tanstack/react-table";
 import { ThemeModeSelector } from "@/components/app/Common/ThemeModeSelector";
 import { namespacesFilter } from "@/utils";
 import { resetFilterNamespace } from "@/data/Misc/ListTableNamesapceSlice";
 import { updateListTableFilter } from "@/data/Misc/ListTableFilterSlice";
-import { Kbd } from "@/components/ui/kbd";
-import { Search } from "lucide-react";
 
 type DataTableToolbarProps<TData> = {
   table: Table<TData>;
@@ -24,6 +25,8 @@ type DataTableToolbarProps<TData> = {
   setGlobalFilter: React.Dispatch<React.SetStateAction<string>>;
   showNamespaceFilter: boolean;
   loading?: boolean;
+  showChat: boolean;
+  setShowChat: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export function DataTableToolbar<TData>({
@@ -32,6 +35,8 @@ export function DataTableToolbar<TData>({
   setGlobalFilter,
   showNamespaceFilter,
   loading = true,
+  showChat,
+  setShowChat,
 }: DataTableToolbarProps<TData>) {
   const {
     namespaces
@@ -94,6 +99,23 @@ export function DataTableToolbar<TData>({
       <DataTableViewOptions table={table} />
       <AddResource />
       <ThemeModeSelector />
+
+      <TooltipProvider>
+        <Tooltip delayDuration={0}>
+          <TooltipTrigger asChild>
+            <div className="ml-2 relative inline-block cursor-pointer" onClick={() => setShowChat(!showChat)}>
+              <div className="absolute inset-0 bg-gradient-to-r from-pink-500 via-purple-600 to-blue-500 rounded-sm blur-[4px] animate-pulse"></div>
+              <div className="relative inline-flex i gap-[0.125rem] w-12 h-8 bg-background rounded-md flex items-center justify-center border border-gray-200 dark:border-none shadow-sm hover:bg-accent hover:text-accent-foreground">
+                <Sparkles className="w-4 h-4" />
+                <span className='text-xs'>AI</span>
+              </div>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            kwAI Chat
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     </div>
   );
 }

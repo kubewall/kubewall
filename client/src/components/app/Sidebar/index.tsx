@@ -155,7 +155,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
   };
 
   return (
-    <div className={cn("col-span-1", className)}>
+    <div id="left-sidebar" className={cn("col-span-1", className)}>
       <div className="h-screen space-y-4 py-1">
         {
           <>

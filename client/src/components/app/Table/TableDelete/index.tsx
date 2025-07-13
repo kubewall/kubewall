@@ -1,5 +1,6 @@
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Trash2Icon, XIcon } from "lucide-react";
 import { deleteResources, resetDeleteResource } from "@/data/Misc/DeleteResourceSlice";
 import { kwDetails, kwList } from "@/routes";
 import { kwDetailsSearch, kwListSearch } from "@/types";
@@ -10,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Loader } from "../../Loader";
 import { RootState } from "@/redux/store";
 import { Row } from "@tanstack/react-table";
-import { Trash2Icon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 
 type TableDeleteProps = {
@@ -117,7 +117,7 @@ const TableDelete = ({ selectedRows, toggleAllRowsSelected, postDeleteCallback }
               <Button
                 variant={isListPage ? 'destructive' : 'ghost'}
                 size="icon"
-                className={`right-0 mt-1 rounded z-10 border w-9 ${isListPage && 'absolute mr-10 bottom-12 w-20'}`}
+                className={`right-0 mt-1 rounded z-10 border w-8 h-8 ${isListPage && 'absolute mr-10 bottom-12 w-20'}`}
                 onClick={() => setModalOpen(true)}
 
               > {

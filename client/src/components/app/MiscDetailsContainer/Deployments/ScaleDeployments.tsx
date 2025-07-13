@@ -1,4 +1,5 @@
-import { Dialog, DialogContent, DialogClose, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ScaleIcon, XIcon } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { deploymentScale, resetDeploymentScale } from "@/data/Workloads/Deployments/DeploymentScaleSlice";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
@@ -8,8 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader } from "../../Loader";
 import { RootState } from "@/redux/store";
-import { ScaleIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
+
 type ScaleDeploymentsProps = {
   resourcename: string;
   queryParams: string;
@@ -103,7 +104,7 @@ const ScaleDeployments = ({ resourcename, queryParams }: ScaleDeploymentsProps) 
                     <Loader className='w-4 h-4 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600' /> :
                     <ScaleIcon className='h-4 w-4' />
                 }
-                <span className='text-xs'>Scale</span>
+                <span className='text-xs'></span>
               </Button>
             </DialogTrigger>
           </TooltipTrigger>

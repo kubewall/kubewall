@@ -27,11 +27,11 @@ export function DataTableViewOptions<TData>({
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                size="sm"
-                className="ml-auto h-8 lg:flex shadow-none gap-0"
+                size="icon"
+                className="h-8 w-8 lg:flex shadow-none"
               >
-                <MixerHorizontalIcon className="mr-2 h-4 w-4" />
-                View
+                <MixerHorizontalIcon className=" h-4 w-4" />
+                {/* View */}
               </Button>
             </DropdownMenuTrigger>
           </TooltipTrigger>

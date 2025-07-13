@@ -5,9 +5,19 @@
 .list-table-max-width-expanded {
     max-width: calc(100vw - 16rem);
 }
+
+.list-table-max-width-expanded-with-ai-chat {
+  max-width: calc(100vw - 29rem);
+}
+
 .list-table-max-width-collapsed {
   max-width: calc(100vw - 6rem);
 }
+
+.list-table-max-width-collapsed-with-ai-chat {
+  max-width: calc(100vw - 19rem);
+}
+
 .list-table-max-width-collapsed-mobile {
   max-width: calc(100vw - 3rem);
 }

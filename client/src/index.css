@@ -1,7 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
- 
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -9,22 +9,22 @@
 
     --card: 0 0% 100%;
     --card-foreground: 20 14.3% 4.1%;
- 
+
     --popover: 0 0% 100%;
     --popover-foreground: 20 14.3% 4.1%;
- 
+
     --primary: 24 9.8% 10%;
     --primary-foreground: 60 9.1% 97.8%;
- 
+
     --secondary: 60 4.8% 95.9%;
     --secondary-foreground: 24 9.8% 10%;
- 
+
     --muted: 60 4.8% 95.9%;
     --muted-foreground: 25 5.3% 44.7%;
- 
+
     --accent: 60 4.8% 95.9%;
     --accent-foreground: 24 9.8% 10%;
- 
+
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 60 9.1% 97.8%;
 
@@ -34,7 +34,7 @@
     --border: 20 5.9% 90%;
     --input: 20 5.9% 90%;
     --ring: 20 14.3% 4.1%;
- 
+
     --radius: 0.5rem;
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
@@ -65,29 +65,29 @@
     --sidebar-border: 214.3 31.8% 91.4%;
     --sidebar-ring: 222.2 84% 4.9%;
   }
- 
+
   .dark {
     --background: 20 14.3% 4.1%;
     --foreground: 60 9.1% 97.8%;
- 
+
     --card: 20 14.3% 4.1%;
     --card-foreground: 60 9.1% 97.8%;
- 
+
     --popover: 20 14.3% 4.1%;
     --popover-foreground: 60 9.1% 97.8%;
- 
+
     --primary: 60 9.1% 97.8%;
     --primary-foreground: 24 9.8% 10%;
- 
+
     --secondary: 12 6.5% 15.1%;
     --secondary-foreground: 60 9.1% 97.8%;
- 
+
     --muted: 12 6.5% 15.1%;
     --muted-foreground: 24 5.4% 63.9%;
- 
+
     --accent: 12 6.5% 15.1%;
     --accent-foreground: 60 9.1% 97.8%;
- 
+
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 60 9.1% 97.8%;
 
@@ -126,11 +126,12 @@
     --sidebar-ring: 212.7 26.8% 83.9;
   }
 }
- 
+
 @layer base {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -180,6 +181,7 @@
 .dark {
   scrollbar-color: hsl(240 5% 34.9%) transparent;
 }
+
 /* Firefox support */
 html {
   /* scrollbar-color: transparent transparent; */
@@ -226,8 +228,8 @@ html {
   background-color: hsl(var(--success));
 }
 
-body { 
-  overflow: hidden; 
+body {
+  overflow: hidden;
 }
 
 .empty-table {
@@ -238,6 +240,7 @@ body {
   0% {
     background-color: hsl(var(--muted-foreground)/0.2);
   }
+
   100% {
     background-color: transparent;
   }
@@ -252,7 +255,7 @@ body {
 }
 
 /* Fix for Resizable.Panel */
-.resizable-panel > div {
+.resizable-panel>div {
   display: flex !important;
   min-width: 0;
   min-height: 0;
@@ -267,3 +270,267 @@ body {
 [data-radix-scroll-area-viewport] {
   min-width: 0 !important;
 }
+
+@keyframes spin-clockwise {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.group:hover .border-animate {
+  animation: spin-clockwise 2s linear infinite;
+}
+
+@keyframes spinGlow {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* @keyframes rotateBorder {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.rotating-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: conic-gradient(from 0deg, cyan, purple, yellow, cyan);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: rotateBorder 2s linear infinite;
+  z-index: 0;
+} */
+
+
+/* 
+@keyframes pulseBorder {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+.pulsating-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(90deg, cyan, purple, yellow);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: pulseBorder 2s ease-in-out infinite;
+  z-index: 0;
+} */
+
+/* Pause animation on hover */
+/* .pulsating-border:hover::before {
+  animation-play-state: paused;
+}
+ */
+
+
+
+
+@keyframes pulseBorder {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes pulseBackground {
+  0%, 100% {
+    background: radial-gradient(circle, rgba(0, 255, 255, 0.1) 0%, rgba(0, 255, 255, 0.05) 50%, transparent 100%);
+  }
+  33% {
+    background: radial-gradient(circle, rgba(128, 0, 128, 0.1) 0%, rgba(128, 0, 128, 0.05) 50%, transparent 100%);
+  }
+  66% {
+    background: radial-gradient(circle, rgba(255, 255, 0, 0.1) 0%, rgba(255, 255, 0, 0.05) 50%, transparent 100%);
+  }
+}
+
+.pulsating-border {
+  position: relative;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.pulsating-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: linear-gradient(90deg, rgb(0, 255, 21), purple, yellow);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: pulseBorder 2s ease-in-out infinite;
+  z-index: 0;
+}
+
+/* Animated background blur with matching colors */
+.pulsating-border::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  animation: pulseBackground 2s ease-in-out infinite;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: -1;
+}
+
+/* Pause animations on hover */
+.pulsating-border:hover::before {
+  animation-play-state: paused;
+}
+
+.pulsating-border:hover::after {
+  animation-play-state: paused;
+}
+
+
+/* @keyframes pulseBorder {
+      0%, 100% {
+        opacity: 0.4;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1.05);
+      }
+    }
+
+    .pulsating-border::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: 2px;
+      background: linear-gradient(90deg, cyan, purple, yellow);
+      -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      animation: pulseBorder 2s ease-in-out infinite;
+      z-index: 0;
+    } */
+
+    /* In your global CSS file, e.g., index.css or App.css */
+
+.mouse-cursor-gradient-tracking {
+  position: relative;
+  /* Remove the background gradient here as it's now applied to the outer div on hover */
+  /* background: radial-gradient(circle closest-side, pink, transparent); */
+  padding: 1rem 2rem; /* Button padding - adjust as needed */
+  border-radius: 0.5rem; /* Button border radius */
+  overflow: hidden; /* Hide overflow to make the border effect appear within the button's bounds */
+  transition: all 0.3s ease; /* Smooth transition for various properties */
+}
+
+/* This is where the magic happens for the dynamic border gradient */
+.mouse-cursor-gradient-tracking::before {
+  content: '';
+  position: absolute;
+  top: var(--y); /* Dynamically set by JavaScript */
+  left: var(--x); /* Dynamically set by JavaScript */
+  width: var(--size); /* Dynamically set by JavaScript */
+  height: var(--size); /* Dynamically set by JavaScript */
+  transform: translate(-50%, -50%); /* Center the pseudo-element */
+  background: radial-gradient(
+    circle closest-side,
+    hsl(
+      var(--hue),
+      80%,
+      80%
+    ), /* Dynamic hue for colorful effect */ transparent
+  ); /* Radial gradient for the border */
+  opacity: 0; /* Initially hidden */
+  transition: opacity 0.3s ease, background 0.3s ease; /* Smooth fade-in/out */
+  pointer-events: none; /* Crucial for mouse events to pass through to the button */
+  z-index: 0; /* Ensure this is behind the inner content */
+}
+
+.mouse-cursor-gradient-tracking:hover::before {
+  opacity: 1; /* Show the gradient border on hover */
+}
+
+/* The inner button content */
+.mouse-cursor-gradient-tracking > button {
+  /* Ensure the inner button is above the pseudo-element */
+  z-index: 1;
+  /* Example: If outer container is rounded-lg (8px), and p-px (1px padding/border),
+     inner button would be rounded-[calc(0.5rem-1px)] or rounded-[7px] */
+  border-radius: calc(0.5rem - 1px); /* Match inner radius to visually create the border */
+}
+
+.mouse-cursor-gradient-tracking > button svg {
+  position: relative;
+  z-index: 1; /* Ensure Lucide icon is above the gradient border */
+  /* Ensure icon color matches your button's content color */
+}
+
+/* @keyframes spin-clockwise {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes spin-counter-clockwise {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+.spin-clockwise:hover .gradient-border {
+  animation: spin-clockwise 2s linear infinite;
+}
+
+.spin-counter-clockwise:hover .gradient-border {
+  animation: spin-counter-clockwise 2s linear infinite;
+} */

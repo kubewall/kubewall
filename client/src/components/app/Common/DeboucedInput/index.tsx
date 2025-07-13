@@ -14,9 +14,16 @@ const DebouncedInput = ({
 } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'>) => {
   const [value, setValue] = useState(initialValue);
   const globalSearchRef = useRef<null | HTMLInputElement>(null);
+
+  const inputTextExceptionIds = [
+    'addKwAiConfigUrl',
+    'addKwAiConfigApiKey',
+    'addKwAiConfigAlias',
+    'global-search',
+  ];
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (e.key === "/" && (e.target as HTMLInputElement)?.id !== 'global-search') {
+      if (e.key === "/" && !inputTextExceptionIds.includes((e.target as HTMLInputElement)?.id) && (e.target as HTMLInputElement)?.role !== 'combobox') {
         e.preventDefault();
         globalSearchRef.current?.focus();
       }

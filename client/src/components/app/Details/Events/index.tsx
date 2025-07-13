@@ -53,13 +53,15 @@ export function Events({ instanceType, name, namespace, configName, clusterName,
 
   return (
     <DataTable
-      columns={eventsColumns({count:events.length,clusterName,configName,loading, instanceType: 'events'})}
+      columns={eventsColumns({ count: events.length, clusterName, configName, loading, instanceType: 'events' })}
       data={events}
       showToolbar={false}
       tableWidthCss="event-table-max-height rounded-lg"
       instanceType='events'
       showNamespaceFilter={false}
       isEventTable={true}
+      setShowChat={() => { }}
+      showChat={false}
     />
   );
 }

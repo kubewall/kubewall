@@ -68,6 +68,8 @@ const DeploymentDetailsContainer = memo(function () {
                 instanceType={PODS_ENDPOINT}
                 showToolbar={false}
                 showNamespaceFilter={false}
+                setShowChat={() => { }}
+                showChat={false}
               />
             </div>
           </div>

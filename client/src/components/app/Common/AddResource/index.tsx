@@ -7,10 +7,10 @@ import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Check } from "lucide-react";
 import Editor from '../../Details/YamlEditor/MonacoWrapper';
 import { FilePlusIcon } from "@radix-ui/react-icons";
 import { Loader } from '../../Loader';
-import { Check } from "lucide-react";
 import { getSystemTheme } from "@/utils";
 import { kwList } from '@/routes';
 import { toast } from 'sonner';
@@ -96,17 +96,9 @@ const AddResource = () => {
         <Tooltip delayDuration={0}>
           <TooltipTrigger asChild>
             <DialogTrigger asChild>
-              <Button className="ml-1 h-8 w-8" variant="outline" size="icon">
+              <Button className="ml-1 h-8 w-8 shadow-none" variant="outline" size="icon">
                 <FilePlusIcon
-                  className={
-                    `h-[1.2rem]
-                    w-[1.2rem]
-                    rotate-0
-                    scale-100
-                    transition-all
-                    dark:-rotate-${getSystemTheme() === 'light' ? '90' : '0'}
-                    dark:scale-${getSystemTheme() === 'light' ? '0' : '100'}`
-                  }
+                  className="h-[1.2rem] w-[1.2rem]"
                 />
               </Button>
             </DialogTrigger>
@@ -132,7 +124,7 @@ const AddResource = () => {
                 yamlUpdated &&
                 <Button
                   variant="default"
-                  className="absolute bottom-10 right-12 z-10"
+                  className="absolute bottom-10 right-12 z-10 shadow-none"
                   onClick={yamlUpdate}
                   disabled={yamlUpdateLoading}
                 >

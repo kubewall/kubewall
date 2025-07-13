@@ -8,6 +8,8 @@ import { useAppDispatch } from "@/redux/hooks";
 import { useEventSource } from "../EventSource";
 import useGenerateColumns from "../TableColumns";
 import { useSidebar } from "@/components/ui/sidebar";
+import { useSidebarSize } from "@/hooks/use-get-sidebar-size";
+import { useState } from "react";
 
 type CreateTableProps<T, C extends HeaderList> = {
   clusterName: string;
@@ -48,22 +50,20 @@ const CreateTable = <T extends ClusterDetails, C extends HeaderList>({
     sendMessage,
   });
 
-  const { open, isMobile } = useSidebar();
-
-  const getTableClasses = () => {
+  const { isMobile } = useSidebar();
+  const [showChat, setShowChat] = useState(false);
+  const leftSize = useSidebarSize("left-sidebar");
+  const getMaxWidth = () => {
     if(isMobile) {
-        return 'list-table-max-width-collapsed-mobile';
+      return 48;
     } else {
-      if (open) {
-        return 'list-table-max-width-expanded';
-      }
-      return 'list-table-max-width-collapsed';
+      return 47 + leftSize.width;
     }
   };
 
   return (
     <div className="col-span-7">
-      <div className="h-full">
+      <div className="h-full" style={{width: `calc(100vw - ${(getMaxWidth())}px)`}}>
         <DataTable<T, C>
           columns={useGenerateColumns<T, C>({
             clusterName,
@@ -76,9 +76,11 @@ const CreateTable = <T extends ClusterDetails, C extends HeaderList>({
           })}
           data={loading ? defaultSkeletonRow() : data}
           showNamespaceFilter={showNamespaceFilter}
-          tableWidthCss={cn('list-table-max-height', 'h-screen', getTableClasses())}
+          tableWidthCss={cn('list-table-max-height', 'h-screen')}
           instanceType={instanceType}
           loading={loading}
+          showChat={showChat}
+          setShowChat={setShowChat}
         />
       </div>
     </div>
