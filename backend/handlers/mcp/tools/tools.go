@@ -32,6 +32,7 @@ When to Use:
 - List status of all the {{.kindName}}.
 - When a high-level overview of {{.kindName}} is required.
 Response of this tool is in JSON format.
+Your response should be markdown table formatted
 `
 
 const yamlDetailsTemplate = `Get details and status of a single {{.kindName}}.
