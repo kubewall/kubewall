@@ -15,10 +15,10 @@ const KW_AI_PROVIDERS = [
     value: "anthropic",
     label: "Anthropic"
   },
-  {
-    value: "amazon-bedrock",
-    label: "Amazon Bedrock"
-  },
+  // {
+  //   value: "amazon-bedrock",
+  //   label: "Amazon Bedrock"
+  // },
   { 
     value: "groq",
     label: "Groq"
@@ -27,10 +27,10 @@ const KW_AI_PROVIDERS = [
     value: "deepinfra",
     label: "DeepInfra"
   },
-  {
-    value: "google-vertex",
-    label: "Google Vertex"
-  },
+  // {
+  //   value: "google-vertex",
+  //   label: "Google Vertex"
+  // },
   {
     value: "mistral",
     label: "Mistral AI"

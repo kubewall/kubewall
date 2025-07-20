@@ -230,13 +230,12 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
 
       for await (const textPart of fullStream) {
         if (textPart.type === "error") {
-          debugger;
           if ((textPart.error as Error).name === "AbortError") {
             setMessages((prev) => [
               ...prev.map((p) => (
                 p.id === id.toString() ? {
                   ...p,
-                  content: p.reasoning + 'Request Stopped',
+                  content: p.content + 'Request Stopped',
                   isReasoning: false,
                   error: true
                 } : p
@@ -249,7 +248,7 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
                 p.id === id.toString() ? {
                   ...p,
                   //@ts-ignore
-                  content: p.reasoning + textPart.error.responseBody,
+                  content: p.content + textPart.error.responseBody,
                   isReasoning: false,
                   error: true
                 } : p
@@ -261,7 +260,7 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
                 p.id === id.toString() ? {
                   ...p,
                    //@ts-ignore
-                  content: p.reasoning + JSON.stringify(textPart?.error?.responseBody || textPart?.error?.lastError?.responseBody || textPart),
+                  content: p.content + JSON.stringify(textPart?.error?.responseBody || textPart?.error?.lastError?.responseBody || textPart),
                   isReasoning: false,
                   error: true
                 } : p
@@ -288,7 +287,7 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
             ...prev.map((p) => (
               p.id === id.toString() ? {
                 ...p,
-                content: p.reasoning + textPart.textDelta,
+                content: p.content + textPart.textDelta,
                 isReasoning: false,
                 error: false
               } : p

@@ -88,7 +88,7 @@ const ChatHistory = ({ cluster, config, resumeChat }: ChatHistoryProps) => {
               chatHistory[clusterConfigKey] ?
                 Object.keys(chatHistory[clusterConfigKey]).reverse().map((uuid) => {
                   const isDeleting = deletingRowIds.has(uuid);
-                  const currentRow = chatHistory[clusterConfigKey][uuid].messages.findIndex(({ isNotVisible }) => !isNotVisible);
+                  const currentRow = chatHistory[clusterConfigKey][uuid].messages.findIndex(({ role }) => role == "user");
                   const visibleMessage = chatHistory[clusterConfigKey][uuid].messages[currentRow === -1 ? 0 : currentRow];
                   return (
                     <TableRow key={uuid}>
