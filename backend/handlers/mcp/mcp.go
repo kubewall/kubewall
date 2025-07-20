@@ -17,7 +17,10 @@ import (
 )
 
 func Server(e *echo.Echo, appContainer container.Container) {
-	mcpServer := server.NewMCPServer("kubewall-mcp-server", "0.0.1")
+	mcpServer := server.NewMCPServer("kubewall-mcp-server", "0.0.1",
+		server.WithToolCapabilities(true),
+		server.WithRecovery(),
+	)
 
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
