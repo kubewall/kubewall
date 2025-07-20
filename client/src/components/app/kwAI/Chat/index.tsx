@@ -259,7 +259,7 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
               ...prev.map((p) => (
                 p.id === id.toString() ? {
                   ...p,
-                   //@ts-ignore
+                  //@ts-ignore
                   content: p.content + JSON.stringify(textPart?.error?.responseBody || textPart?.error?.lastError?.responseBody || textPart),
                   isReasoning: false,
                   error: true
@@ -391,92 +391,43 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
   /* eslint-disable  @typescript-eslint/no-explicit-any */
   const getOverridenComponents = () => {
     return {
-      table: ({ node, ...props }: any) => (
-        <table className="w-full caption-bottom text-sm border border-collapse rounded-sm mr-4" {...props} />
-      ),
-      thead: ({ node, ...props }: any) => (
-        <thead className="[&_tr]:border-b bg-muted/50" {...props} />
-      ),
-      tbody: ({ node, ...props }: any) => (
-        <tbody className="[&_tr:last-child]:border-0" {...props} />
-      ),
-      tr: ({ node, ...props }: any) => (
-        <tr className="border-b transition-colors hover:bg-muted/50" {...props} />
-      ),
-      th: ({ node, ...props }: any) => (
-        <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0" {...props} />
-      ),
-      td: ({ node, ...props }: any) => (
-        <td className="p-4 align-middle [&:has([role=checkbox])]:pr-0" {...props} />
-      ),
-      h1: ({ node, ...props }: any) => (
-        <h1 className="text-4xl font-bold tracking-tight scroll-m-20" {...props} />
-      ),
-      h2: ({ node, ...props }: any) => (
-        <h2 className="text-3xl font-semibold tracking-tight scroll-m-20 mt-10 first:mt-0" {...props} />
-      ),
-      h3: ({ node, ...props }: any) => (
-        <h3 className="text-2xl font-semibold tracking-tight scroll-m-20 mt-8" {...props} />
-      ),
-      h4: ({ node, ...props }: any) => (
-        <h4 className="text-xl font-semibold tracking-tight scroll-m-20 mt-8" {...props} />
-      ),
-      h5: ({ node, ...props }: any) => (
-        <h5 className="text-lg font-semibold tracking-tight scroll-m-20 mt-6" {...props} />
-      ),
-      h6: ({ node, ...props }: any) => (
-        <h6 className="text-base font-semibold tracking-tight scroll-m-20 mt-6" {...props} />
-      ),
-      p: ({ node, ...props }: any) => (
-        <p className="leading-7 [&:not(:first-child)]:mt-6" {...props} />
-      ),
-      a: ({ node, ...props }: any) => (
-        <a className="font-medium text-primary underline underline-offset-4 hover:opacity-80 transition" {...props} />
-      ),
-      ul: ({ node, ...props }: any) => (
-        <ul className="my-6 ml-6 list-disc [&>li]:mt-2" {...props} />
-      ),
-      ol: ({ node, ...props }: any) => (
-        <ol className="my-6 ml-6 list-decimal [&>li]:mt-2" {...props} />
-      ),
-      li: ({ node, ...props }: any) => (
-        <li className="mt-2" {...props} />
-      ),
-      code: ({ node, ...props }: any) => {
-        console.log('props', props)
-        if (props?.inline) {
-          return (
-            <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm" {...props}>
-              {props?.children}
-            </code>
-          );
-        }
-        return (
-          <code className={`${props?.className} font-mono text-sm`} {...props}>
-            {props?.children}
-          </code>
-        );
+      table: ({ node, ...props }: any) => <div className="w-full overflow-x-auto my-4"><table className="w-full text-sm border-collapse border border-border rounded-lg" {...props} /></div>,
+      thead: ({ node, ...props }: any) => <thead className="[&_tr]:border-b bg-muted/50" {...props} />,
+      tbody: ({ node, ...props }: any) => <tbody className="[&_tr:last-child]:border-0" {...props} />,
+      tr: ({ node, ...props }: any) => <tr className="border-b border-border transition-colors hover:bg-muted/50" {...props} />,
+      th: ({ node, ...props }: any) => <th className="h-10 px-3 text-left align-middle font-medium text-muted-foreground text-xs uppercase tracking-wider" {...props} />,
+      td: ({ node, ...props }: any) => <td className="px-3 py-2 align-middle text-sm" {...props} />,
+      h1: ({ node, ...props }: any) => <h1 className="text-2xl font-semibold text-foreground mt-2 mb-2 first:mt-0" {...props} />,
+      h2: ({ node, ...props }: any) => <h2 className="text-xl font-semibold text-foreground mt-2 mb-2 first:mt-0" {...props} />,
+      h3: ({ node, ...props }: any) => <h3 className="text-lg font-medium text-foreground mt-2 mb-2" {...props} />,
+      h4: ({ node, ...props }: any) => <h4 className="text-base font-medium text-foreground mt-2 mb-2" {...props} />,
+      h5: ({ node, ...props }: any) => <h5 className="text-sm font-medium text-foreground mt-2 mb-1" {...props} />,
+      h6: ({ node, ...props }: any) => <h6 className="text-sm font-medium text-muted-foreground mt-2 mb-1" {...props} />,
+      p: ({ node, ...props }: any) => <p className="leading-7 [&:not(:first-child)]:mt-2" {...props} />,
+      a: ({ node, ...props }: any) => <a className="text-sm text-blue-600 hover:text-blue-800 underline underline-offset-2 transition-colors" {...props} />,
+      ul: ({ node, ...props }: any) => <ul className="my-1 ml-2 space-y-1 text-sm [&>li]:relative [&>li]:pl-4" {...props} />,
+      ol: ({ node, ...props }: any) => <ol className="my-1 ml-2 space-y-1 text-sm list-decimal [&>li]:pl-1" {...props} />,
+      li: ({ node, ...props }: any) => {
+        const isInOrderedList = props.className?.includes("list-decimal");
+        return <li className={`text-sm leading-relaxed ${!isInOrderedList ? 'before:content-["•"] before:absolute before:left-0 before:text-muted-foreground' : ""}`} {...props} />;
       },
-      pre: ({ node, ...props }: any) => (
-        <pre className="my-4 overflow-x-auto rounded-lg bg-muted p-4 font-mono text-sm" {...props} />
-      ),
-      hr: ({ node, ...props }: any) => (
-        <hr className="my-4 border-t" {...props} />
-      ),
-      img: ({ node, ...props }: any) => (
-        <img className="rounded-md border shadow" {...props} />
-      ),
-      strong: ({ node, ...props }: any) => (
-        <strong className="font-semibold" {...props} />
-      ),
-      em: ({ node, ...props }: any) => (
-        <em className="italic" {...props} />
-      ),
-      del: ({ node, ...props }: any) => (
-        <del className="line-through" {...props} />
-      ),
+      code: ({ node, ...props }: any) => {
+        const { inline, children, className } = props;
+        if (inline) {
+          return <code className="relative rounded-md bg-muted px-2 py-0.5 font-mono text-xs text-foreground border">{children}</code>;
+        }
+        return <code className={`${className} font-mono text-xs leading-relaxed `} {...props}>{children}</code>;
+      },
+      pre: ({ node, ...props }: any) => <pre className="my-1 overflow-x-auto rounded-md bg-muted/50 p-4 font-mono text-xs leading-relaxed border" {...props} />,
+      hr: ({ node, ...props }: any) => <hr className="my-4 border-t border-border" {...props} />,
+      img: ({ node, ...props }: any) => <img className="rounded-md border border-border shadow-sm my-1 max-w-full h-auto" {...props} />,
+      strong: ({ node, ...props }: any) => <strong className="font-semibold text-foreground" {...props} />,
+      em: ({ node, ...props }: any) => <em className="italic text-foreground" {...props} />,
+      del: ({ node, ...props }: any) => <del className="line-through text-muted-foreground" {...props} />,
+      blockquote: ({ node, ...props }: any) => <blockquote className="my-1 border-l-4 border-border pl-4 text-sm text-muted-foreground italic" {...props} />,
     };
   };
+
   /* eslint-enable  @typescript-eslint/no-explicit-any */
   const stopStream = () => {
     abortControllerRef.current?.abort();
