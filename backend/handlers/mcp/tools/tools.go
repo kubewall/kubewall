@@ -27,15 +27,12 @@ var readOnlyTools []string
 const listTemplate = `Retrieves list of all {{.kindName}}.
 Use this tool when you need to fetch information about all {{.kindName}} in the cluster.
 When to Use:
-- To list all {{.kindName}} in a cluster.
+- To list all {{.kindName}}.
 - Filter list of {{.kindName}} by namespace, age, status.
 - List status of all the {{.kindName}}.
-- When a high-level overview of {{.kindName}} is required.
-Response of this tool is in JSON format.
-Your response should be markdown table formatted
-`
+Response of this tool is in JSON format.`
 
-const yamlDetailsTemplate = `Get details and status of a single {{.kindName}}.
+const yamlDetailsTemplate = `Get details and status of a specific {{.kindName}}.
 It includes the full spec and current status of {{.kindName}}.
 If namespace is missing:
 - Call {{.kindName}}List tool to figure out the namespace.
