@@ -168,7 +168,6 @@ const Configuration = ({ cluster, config, kwAIStoredModelsCollection, setKwAISto
               </Tooltip>
             </TooltipProvider>
           </div>
-{/* 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 */}
         </div>
 
         <p className="text-sm text-muted-foreground">
