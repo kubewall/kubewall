@@ -1,7 +1,7 @@
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { kwAIConfigurations, kwAIStoredModels } from "@/types/kwAI/addConfiguration";
 import { kwAiModels, resetKwAiModels } from "@/data/KwClusters/kwAiModelsSlice";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { ComboboxDemo } from "@/components/app/Common/Combobox";
@@ -18,9 +18,10 @@ type AddConfigurationProps = {
   setShowAddConfiguration: React.Dispatch<React.SetStateAction<boolean>>;
   cluster: string;
   config: string;
+  setKwAIStoredModelsCollection: Dispatch<SetStateAction<kwAIStoredModels>>;
 }
 
-const AddConfiguration = ({ uuid, setShowAddConfiguration, config, cluster }: AddConfigurationProps) => {
+const AddConfiguration = ({ uuid, setShowAddConfiguration, config, cluster , setKwAIStoredModelsCollection}: AddConfigurationProps) => {
   const dispatch = useAppDispatch();
   const {
     error,
@@ -51,7 +52,7 @@ const AddConfiguration = ({ uuid, setShowAddConfiguration, config, cluster }: Ad
 
   const getDefaultCurrentProvider = (uuid?: string) => {
     if (!uuid) {
-      return false;
+      return true;
     }
     const storedKwAIModel = localStorage.getItem('kwAIStoredModels');
     if (storedKwAIModel) {
@@ -81,9 +82,7 @@ const AddConfiguration = ({ uuid, setShowAddConfiguration, config, cluster }: Ad
     dispatch(resetKwAiModels());
     setFormData(getDefaultState());
     setCurrentProviderIsDefault(false);
-    if (uuid) {
-      setShowAddConfiguration(false);
-    }
+    setShowAddConfiguration(false);
   };
 
   const storeConfigToLocalStorage = () => {
@@ -111,7 +110,7 @@ const AddConfiguration = ({ uuid, setShowAddConfiguration, config, cluster }: Ad
       };
 
       localStorage.setItem('kwAIStoredModels', JSON.stringify(kwAiModels));
-
+      setKwAIStoredModelsCollection(() => kwAiModels);
       toast.success("Success", {
         description: 'Configuration saved!',
       });

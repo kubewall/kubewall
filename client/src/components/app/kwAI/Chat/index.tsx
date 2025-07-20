@@ -1,14 +1,16 @@
 import './index.css';
 
 import { API_VERSION, MCP_SERVER_ENDPOINT } from '@/constants';
-import { ArrowUp, ChartNoAxesCombined, CheckIcon, ChevronsUpDown, Download, OctagonX, Upload } from "lucide-react";
+import { ArrowUp, ChartNoAxesCombined, CheckIcon, ChevronRight, ChevronsUpDown, Download, Lightbulb, OctagonX, ShieldAlert, Upload } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChatMessage, kwAIStoredChatHistory, kwAIStoredModel, kwAIStoredModels } from "@/types/kwAI/addConfiguration";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { RetryError, streamText } from "ai";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import Markdown from "react-markdown";
 import { Textarea } from "@/components/ui/textarea";
 import { TooltipWrapper } from "@/components/app/Common/TooltipWrapper";
@@ -38,7 +40,6 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import remarkParse from 'remark-parse';
 import remarkRehype from 'remark-rehype';
-import { streamText } from "ai";
 import { useAppSelector } from "@/redux/hooks";
 import { useSidebarSize } from '@/hooks/use-get-sidebar-size';
 
@@ -119,7 +120,6 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
   useEffect(() => {
     if (kwAIStoredModels) {
       setProviderList(kwAIStoredModels.providerCollection);
-      setSelectedProvider(kwAIStoredModels.defaultProvider);
     }
   }, []);
   const [isLoading, setIsLoading] = useState(false);
@@ -134,8 +134,52 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
     const currentProvider = getCurrentProvider();
     const controller = new AbortController();
     abortControllerRef.current = controller;
-    setIsLoading(true);
+    setIsLoading(() => true);
     if (!input.trim() || !currentProvider) return;
+
+    const systemMessage: ChatMessage[] = [{
+      id: Date.now().toString(),
+      content: `You are "kubewall-ai", an intelligent Kubernetes assistant capable of operating, analyzing, and performing actions against Kubernetes clusters using tools on behalf of the user. Your job is to help with Kubernetes-related queries, analysis manifests, related manifests with one another, find issues, and ensure configurations are accurate and complete.
+        You reason like a seasoned DevOps engineer, act with the precision of a policy-enforcing agent, and think like a systems architect.
+
+        ## Instructions:
+        1. Use available tools autonomously. You may invoke one or multiple tools as needed to gather necessary information.
+        2. Analyze tool responses (in JSON format), along with prior reasoning steps and observations.
+        3. Reflect on 5-7 different ways to solve the given query or task. Think carefully about each solution before picking the best one. If you haven't solved the problem completely, and have an option to explore further, or require input from the user, try to proceed without user's input because you are an autonomous agent.
+        4. Decide on the next action: use a tool or provide a final answer and respond in the following Markdown format.
+        5. Don't share the name of tool that is used until asked by the user, avoid adding tool name that is called.
+        6. Link related resources (e.g., Deployments ↔ Services ↔ PVCs ↔ ConfigMaps) and validate their cohesion.
+        7. Detect and warn about potential misconfigurations, deprecated APIs, or security risks (e.g., overly permissive RBAC).
+        8. Chain and coordinate tool responses to form a complete picture before acting.
+        9. Collect namespace (or suggest from existing), verify container images/tags and registry access, identify container ports and service type (check for conflicts), gather CPU/memory/storage/node requirements, extract env vars/configs/secrets/RBAC needs, and check dependencies including network policies, CRDs, and referenced resources
+
+        ### STRICT Rules:
+        - **NEVER** skip the information gathering phase.
+        - **NEVER** generate manifests with assumed defaults.
+        - **NEVER** rely on default assumptions, explicit is better than implicit.
+        - **NEVER** suggest kubectl command to get list or yaml details, rather call the tool to gather information.
+        - **NEVER** suggest tool name that can be used next rather invoke it and gather more information.
+        - **ALWAYS** ask specific questions about unclear requirements.
+        - **ALWAYS** show available options (namespaces, storage classes, etc.).
+        - **ALWAYS** call multiple tools if required.
+        - **ALWAYS** Link related resources (e.g., Deployments ↔ Services ↔ PVCs ↔ ConfigMaps) and validate their cohesion.
+        - **ALWAYS** output the final answer in MARKDOWN FORMAT.
+
+        ## Remember:
+        - Fetch current state of kubernetes resources relevant to user's query.
+        - For creating new resources, try to create the resource using the tools available. DO NOT ask the user to create the resource.
+        - Use tools when you need more information. Do not respond with the instructions on how to use the tools or what commands to run, instead just use the tool.
+        - Do not add tool name in response in final answer.
+        - Can call multiple tools and related data with with that one another.
+        - **CRITICAL**: Always gather specific resource details BEFORE generating any manifests.
+        - **NEVER generate manifests without asking the user for missing specifications first**
+        - Provide a final answer only when you're confident you have sufficient information.
+        - Provide clear, concise, and accurate responses.
+        - Feel free to respond with emojis where appropriate.
+        - Provide a final answer in MARKDOWN FORMAT.`,
+      role: "system",
+      timestamp: new Date(),
+    }];
 
     const userMessage: ChatMessage[] = [{
       id: Date.now().toString(),
@@ -154,82 +198,142 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
         isNotVisible: true
       });
     }
-    setMessages((prev) => [...prev, ...userMessage]);
+    setMessages((prev) => [...systemMessage, ...prev, ...userMessage]);
     setInput('');
     setMessageLoading(true);
-    const { fullStream, usage } = streamText({
-      model: currentProvider(providerList[selectedProvider].model),
-      messages: [...messages, ...userMessage],
-      maxSteps: 500,
-      toolChoice: "auto",
-      tools,
-      abortSignal: abortControllerRef.current.signal
-    });
+    try {
+      const { fullStream, usage } = streamText({
+        model: currentProvider(providerList[selectedProvider].model),
+        messages: [...systemMessage, ...messages, ...userMessage],
+        maxSteps: 500,
+        toolChoice: "auto",
+        tools,
+        abortSignal: abortControllerRef.current.signal,
+        // experimental_transform: smoothStream({
+        //   delayInMs: 100, // optional: defaults to 10ms
+        //   chunking: 'word', // optional: defaults to 'word'
 
-    const id = new Date().getTime();
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: id.toString(),
-        content: "",
-        role: "assistant",
-        timestamp: new Date(),
-      }
-    ]);
+        // }),
+      });
 
-    for await (const textPart of fullStream) {
-      if (textPart.type === "error") {
+      const id = new Date().getTime();
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: id.toString(),
+          content: "",
+          role: "assistant",
+          timestamp: new Date(),
+          reasoning: ""
+        }
+      ]);
 
-        if ((textPart.error as Error).name === "AbortError") {
+      for await (const textPart of fullStream) {
+        if (textPart.type === "error") {
+          debugger;
+          if ((textPart.error as Error).name === "AbortError") {
+            setMessages((prev) => [
+              ...prev.map((p) => (
+                p.id === id.toString() ? {
+                  ...p,
+                  content: p.reasoning + 'Request Stopped',
+                  isReasoning: false,
+                  error: true
+                } : p
+              ))
+            ]);
+          } //@ts-ignore
+          else if ((textPart.error as Error).statusCode === 401) {
+            setMessages((prev) => [
+              ...prev.map((p) => (
+                p.id === id.toString() ? {
+                  ...p,
+                  //@ts-ignore
+                  content: p.reasoning + textPart.error.responseBody,
+                  isReasoning: false,
+                  error: true
+                } : p
+              ))
+            ]);
+          } else {
+            setMessages((prev) => [
+              ...prev.map((p) => (
+                p.id === id.toString() ? {
+                  ...p,
+                   //@ts-ignore
+                  content: p.reasoning + JSON.stringify(textPart?.error?.responseBody || textPart?.error?.lastError?.responseBody || textPart),
+                  isReasoning: false,
+                  error: true
+                } : p
+              ))
+            ]);
+          }
+          setIsLoading(false);
+        }
+
+        if (textPart.type === "reasoning") {
           setMessages((prev) => [
             ...prev.map((p) => (
               p.id === id.toString() ? {
                 ...p,
-                content: p.content + 'Request Stopped',
+                reasoning: p.reasoning + textPart.textDelta,
+                isReasoning: true,
                 error: false
               } : p
             ))
           ]);
-        } else {
+        }
+        if (textPart.type === 'text-delta') {
           setMessages((prev) => [
             ...prev.map((p) => (
               p.id === id.toString() ? {
                 ...p,
-                content: p.content + JSON.stringify(textPart),
-                error: true
+                content: p.reasoning + textPart.textDelta,
+                isReasoning: false,
+                error: false
               } : p
             ))
           ]);
         }
-        setIsLoading(false);
       }
 
-      if (textPart.type === 'text-delta') {
-        setMessages((prev) => [
-          ...prev.map((p) => (
-            p.id === id.toString() ? {
-              ...p,
-              content: p.content + textPart.textDelta,
-              error: false
-            } : p
-          ))
-        ]);
+      const { completionTokens, promptTokens, totalTokens } = await usage;
+      setMessages((prev) => [
+        ...prev.map((p) => (
+          p.id === id.toString() ? {
+            ...p,
+            content: p.content || "Received Epmty response from LLM",
+            ...(!isNaN(completionTokens) && { completionTokens }),
+            ...(!isNaN(promptTokens) && { promptTokens }),
+            ...(!isNaN(totalTokens) && { totalTokens }),
+          } : p
+        ))
+      ]);
+      setIsLoading(false);
+    } catch (error: any) {
+      if (RetryError.isInstance(error)) {
+        console.log('RetryError', error)
       }
+      setMessages((prev) => {
+        const updated = [...prev];
+        updated[updated.length - 1] = {
+          ...updated[updated.length - 1],
+          isReasoning: false
+        };
+        return [
+          ...updated,
+          {
+            id: new Date().getTime().toString(),
+            content: JSON.stringify(error?.message || error),
+            role: "assistant",
+            timestamp: new Date(),
+            error: true,
+          }
+        ]
+      });
+      setIsLoading(false);
     }
 
-    const { completionTokens, promptTokens, totalTokens } = await usage;
-    setMessages((prev) => [
-      ...prev.map((p) => (
-        p.id === id.toString() ? {
-          ...p,
-          content: p.content || "Received Epmty response from LLM",
-          ...(!isNaN(completionTokens) && { completionTokens }),
-          ...(!isNaN(promptTokens) && { promptTokens }),
-          ...(!isNaN(totalTokens) && { totalTokens }),
-        } : p
-      ))
-    ]);
-    setIsLoading(false);
   };
   const scrollToBottom = () => {
     if (scrollAreaRef.current) {
@@ -244,7 +348,8 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
       if (!kwAIChatHistory[clusterConfigKey]) {
         kwAIChatHistory[clusterConfigKey] = {
           [key]: {
-            messages: []
+            messages: [],
+            provider: selectedProvider
           }
         };
       }
@@ -253,7 +358,8 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
         [clusterConfigKey]: {
           ...kwAIChatHistory[clusterConfigKey],
           [key]: {
-            messages: messages
+            messages: messages,
+            provider: selectedProvider
           }
         }
       };
@@ -268,11 +374,17 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
   }, [messages]);
 
   useEffect(() => {
-    const currentContextMessages = kwAIStoredChatHistory[clusterConfigKey]?.[currentChatKey]?.messages;
-    if (currentContextMessages) {
-      setMessages(currentContextMessages);
+    const currentContext = kwAIStoredChatHistory[clusterConfigKey]?.[currentChatKey];
+    if (currentContext?.messages) {
+      setMessages(currentContext?.messages);
+      if (kwAIStoredModels) {
+        setSelectedProvider(currentContext?.provider || kwAIStoredModels.defaultProvider);
+      }
     } else {
       setMessages([]);
+      if (kwAIStoredModels) {
+        setSelectedProvider(kwAIStoredModels.defaultProvider);
+      }
     }
 
   }, [currentChatKey]);
@@ -280,23 +392,89 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
   /* eslint-disable  @typescript-eslint/no-explicit-any */
   const getOverridenComponents = () => {
     return {
-      table: (props: any) => (
+      table: ({ node, ...props }: any) => (
         <table className="w-full caption-bottom text-sm border border-collapse rounded-sm mr-4" {...props} />
       ),
-      thead: (props: any) => (
+      thead: ({ node, ...props }: any) => (
         <thead className="[&_tr]:border-b bg-muted/50" {...props} />
       ),
-      tbody: (props: any) => (
+      tbody: ({ node, ...props }: any) => (
         <tbody className="[&_tr:last-child]:border-0" {...props} />
       ),
-      tr: (props: any) => (
+      tr: ({ node, ...props }: any) => (
         <tr className="border-b transition-colors hover:bg-muted/50" {...props} />
       ),
-      th: (props: any) => (
+      th: ({ node, ...props }: any) => (
         <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0" {...props} />
       ),
-      td: (props: any) => (
+      td: ({ node, ...props }: any) => (
         <td className="p-4 align-middle [&:has([role=checkbox])]:pr-0" {...props} />
+      ),
+      h1: ({ node, ...props }: any) => (
+        <h1 className="text-4xl font-bold tracking-tight scroll-m-20" {...props} />
+      ),
+      h2: ({ node, ...props }: any) => (
+        <h2 className="text-3xl font-semibold tracking-tight scroll-m-20 mt-10 first:mt-0" {...props} />
+      ),
+      h3: ({ node, ...props }: any) => (
+        <h3 className="text-2xl font-semibold tracking-tight scroll-m-20 mt-8" {...props} />
+      ),
+      h4: ({ node, ...props }: any) => (
+        <h4 className="text-xl font-semibold tracking-tight scroll-m-20 mt-8" {...props} />
+      ),
+      h5: ({ node, ...props }: any) => (
+        <h5 className="text-lg font-semibold tracking-tight scroll-m-20 mt-6" {...props} />
+      ),
+      h6: ({ node, ...props }: any) => (
+        <h6 className="text-base font-semibold tracking-tight scroll-m-20 mt-6" {...props} />
+      ),
+      p: ({ node, ...props }: any) => (
+        <p className="leading-7 [&:not(:first-child)]:mt-6" {...props} />
+      ),
+      a: ({ node, ...props }: any) => (
+        <a className="font-medium text-primary underline underline-offset-4 hover:opacity-80 transition" {...props} />
+      ),
+      ul: ({ node, ...props }: any) => (
+        <ul className="my-6 ml-6 list-disc [&>li]:mt-2" {...props} />
+      ),
+      ol: ({ node, ...props }: any) => (
+        <ol className="my-6 ml-6 list-decimal [&>li]:mt-2" {...props} />
+      ),
+      li: ({ node, ...props }: any) => (
+        <li className="mt-2" {...props} />
+      ),
+      code: ({ node, ...props }: any) => {
+        console.log('props', props)
+        if (props?.inline) {
+          return (
+            <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm" {...props}>
+              {props?.children}
+            </code>
+          );
+        }
+        return (
+          <code className={`${props?.className} font-mono text-sm`} {...props}>
+            {props?.children}
+          </code>
+        );
+      },
+      pre: ({ node, ...props }: any) => (
+        <pre className="my-4 overflow-x-auto rounded-lg bg-muted p-4 font-mono text-sm" {...props} />
+      ),
+      hr: ({ node, ...props }: any) => (
+        <hr className="my-4 border-t" {...props} />
+      ),
+      img: ({ node, ...props }: any) => (
+        <img className="rounded-md border shadow" {...props} />
+      ),
+      strong: ({ node, ...props }: any) => (
+        <strong className="font-semibold" {...props} />
+      ),
+      em: ({ node, ...props }: any) => (
+        <em className="italic" {...props} />
+      ),
+      del: ({ node, ...props }: any) => (
+        <del className="line-through" {...props} />
       ),
     };
   };
@@ -305,37 +483,118 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
     abortControllerRef.current?.abort();
     setIsLoading(false);
   };
+  console.log('messages', messages)
+
+  const IconCollapsibleCard = ({ icon: Icon, children, isReasoning }: any) => {
+    const [copen, setCOpen] = useState(isReasoning);
+    useEffect(() => {
+      if (!isReasoning) {
+        setCOpen(false)
+      }
+    }, [isReasoning])
+    return (
+      <Collapsible open={copen} onOpenChange={setCOpen} className='w-[95%]'>
+        <CollapsibleTrigger asChild>
+          <Card className={cn("rounded-none cursor-pointer shadow-none transition-all duration-200", copen ? "border-b-0 rounded-tl-lg rounded-tr-lg" : "rounded-md")}>
+            <CardHeader className="p-3">
+              <div className="flex items-center space-x-3">
+                <Icon className={cn("h-5 w-5 text-primary", isReasoning ? "animate-flashorange" : "text-orange-500")} />
+                <div className="flex-1">
+                  <CardTitle className="text-default font-medium tracking-tight">{isReasoning ? "Thinking..." : "Reasoning."}</CardTitle>
+                  <CardDescription className="text-xs"></CardDescription>
+                </div>
+                <ChevronRight className={`h-4 w-4 transition-transform duration-200 ${copen ? 'rotate-90' : ''}`} />
+              </div>
+            </CardHeader>
+          </Card>
+        </CollapsibleTrigger>
+        <CollapsibleContent className='transition-all duration-200'>
+          <CardContent className="pt-0 border border-t-0 rounded-b-md">
+            {children}
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
+    );
+  };
 
   return (
     <div className="flex flex-col h-full">
       <div ref={scrollAreaRef} className="flex-1 p-2 space-y-4 overflow-y-auto">
         <div>
           {messages.map((message) => (
-            !message.isNotVisible &&
+            !(message.role === "system") &&
             <div key={message.id} className={`flex gap-3 ${message.role === "user" ? "justify-end pt-4 pb-1" : "justify-start"}`}>
               <Card
-                className={`max-w-[95%] p-3 pb-0 ${message.role === "user" ? "bg-primary text-primary-foreground" : message.error ? "border-red-100" : ""}`}
+                className={`max-w-[95%] p-3 pb-0 ${message.role === "user" ? "bg-primary text-primary-foreground" : message.error ? "w-[95%] border-red-100 border-none shadow-none" : "w-[95%] border-none shadow-none"}`}
               >
                 {
-                  messageLoading && message.content === "" ? <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div
-                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: "0.1s" }}
-                    ></div>
-                    <div
-                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: "0.2s" }}
-                    ></div>
-                  </div> :
-                    <div className={`text-sm overflow-x-auto  ${message.error ? "text-destructive" : ""}`}>
-                      <Markdown
-                        remarkPlugins={[remarkGfm, rehypeFormat, remarkRehype, rehypeSanitize, remarkFrontmatter, remarkMath, remarkParse, remarkRehype, rehypeRaw, rehypeStringify, rehypeHighlight]}
-                        components={getOverridenComponents()}
-                      >
-                        {message.content}
-                      </Markdown>
+                  messageLoading && message.content === "" && !message.reasoning ?
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                      <div
+                        className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                        style={{ animationDelay: "0.1s" }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                        style={{ animationDelay: "0.2s" }}
+                      ></div>
                     </div>
+                    :
+                    <>
+                      <div className={`text-sm overflow-x-auto  ${message.error ? "" : ""}`}>
+                        {
+                          message.reasoning &&
+                          <IconCollapsibleCard
+                            icon={Lightbulb}
+                            title="General Settings"
+                            description="Configure your app preferences"
+                            isReasoning={message.isReasoning}
+                          >
+                            <Markdown
+                              remarkPlugins={[remarkGfm, rehypeFormat, remarkRehype, rehypeSanitize, remarkFrontmatter, remarkMath, remarkParse, remarkRehype, rehypeRaw, rehypeStringify, rehypeHighlight]}
+                              components={getOverridenComponents()}
+                            >
+                              {message.reasoning}
+                            </Markdown>
+                          </IconCollapsibleCard>
+                          // <Accordion
+                          //   type="single"
+                          //   collapsible
+                          //   className="w-full"
+                          //   defaultValue="item-1"
+                          // >
+                          //   <AccordionItem value="item-1">
+                          //     <AccordionTrigger className="hover:no-underline">
+                          //       <div className="flex items-center gap-1">
+                          //         <Lightbulb className="h-5 w-5" />
+                          //         Thinking...
+                          //       </div>
+
+                          //     </AccordionTrigger>
+                          //     <AccordionContent className="rounded-sm p-4 flex flex-col gap-4 text-balance bg-muted">
+                          //       <Markdown
+                          //         remarkPlugins={[remarkGfm, rehypeFormat, remarkRehype, rehypeSanitize, remarkFrontmatter, remarkMath, remarkParse, remarkRehype, rehypeRaw, rehypeStringify, rehypeHighlight]}
+                          //         components={getOverridenComponents()}
+                          //       >
+                          //         {message.reasoning}
+                          //       </Markdown>
+                          //     </AccordionContent>
+                          //   </AccordionItem>
+                          // </Accordion>
+                        }
+                        {
+                          message.error && <div className="flex items-center gap-2 text-red-500"><ShieldAlert className="h-4 w-4" /> An error occured, please check the below details.</div>
+                        }
+
+                        <Markdown
+                          remarkPlugins={[remarkGfm, rehypeFormat, remarkRehype, rehypeSanitize, remarkFrontmatter, remarkMath, remarkParse, remarkRehype, rehypeRaw, rehypeStringify, rehypeHighlight]}
+                          components={getOverridenComponents()}
+                        >
+                          {message.content}
+                        </Markdown>
+                      </div>
+                    </>
                 }
 
                 <p className="text-xs opacity-70 pt-1 pb-1 flex justify-end">

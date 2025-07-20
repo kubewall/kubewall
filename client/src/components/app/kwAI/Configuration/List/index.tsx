@@ -93,7 +93,7 @@ const ListConfigurations = ({ setSelectedUUId }: ListConfigurationsProps) => {
         </TableHeader>
         <TableBody className="overflow-auto">
           {
-            data ?
+            data?.providerCollection ?
               Object.keys(data.providerCollection).map((uuid) => {
                 const isDeleting = deletingRowIds.has(uuid);
                 const currentRow = data.providerCollection[uuid];

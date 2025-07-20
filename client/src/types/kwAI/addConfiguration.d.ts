@@ -26,19 +26,22 @@ type kwAIStoredModels = {
 interface ChatMessage {
   id: string
   content: string
-  role: "user" | "assistant"
+  role: "user" | "assistant" | "system"
   timestamp: Date,
   isNotVisible?: boolean,
   completionTokens?: number;
   promptTokens?: number;
   totalTokens?: number;
   error?: boolean;
+  reasoning?: string;
+  isReasoning?: boolean;
 }
 
 type kwAIStoredChatHistory = {
   [clusterConfig: string]: {
     [key: string]: {
       messages: ChatMessage[];
+      provider: string;
     };
   }
 };
