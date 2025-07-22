@@ -9,7 +9,7 @@ require (
 	github.com/labstack/echo/v4 v4.13.4
 	github.com/mark3labs/mcp-go v0.34.0
 	github.com/maruel/natural v1.1.1
-	github.com/maypok86/otter/v2 v2.2.0
+	github.com/maypok86/otter/v2 v2.2.1
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/pkg/errors v0.9.1
 	github.com/pytimer/k8sutil v0.0.0-20221114090626-86d6279d8e52
@@ -70,7 +70,7 @@ require (
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
 	golang.org/x/net v0.40.0 // indirect
 	golang.org/x/oauth2 v0.27.0 // indirect
-	golang.org/x/sys v0.33.0 // indirect
+	golang.org/x/sys v0.34.0 // indirect
 	golang.org/x/term v0.32.0 // indirect
 	golang.org/x/text v0.25.0 // indirect
 	golang.org/x/time v0.11.0 // indirect
