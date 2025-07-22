@@ -4,7 +4,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoonIcon, SunIcon } from "lucide-react";
+import { MoonIcon, SunIcon, LaptopIcon } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 import { Button } from "@/components/ui/button";
@@ -33,13 +33,13 @@ export function ThemeModeSelector() {
       </TooltipProvider>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={() => { setTheme("light"); location.reload(); }}>
-          Light
+          <SunIcon className="mr-2 h-4 w-4" /> Light
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => { setTheme("dark"); location.reload(); }}>
-          Dark
+          <MoonIcon className="mr-2 h-4 w-4" /> Dark
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => { setTheme("system"); location.reload(); }}>
-          System
+          <LaptopIcon className="mr-2 h-4 w-4" /> System
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
