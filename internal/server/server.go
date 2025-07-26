@@ -130,9 +130,11 @@ func (s *Server) setupRoutes() {
 		api.GET("/pods/:namespace/:name/logs", s.resourcesHandler.GetPodLogs)
 		api.GET("/pods/:namespace/:name/exec", s.resourcesHandler.GetPodExec)
 		api.GET("/pods/:namespace/:name/exec/ws", s.resourcesHandler.GetPodExecWebSocket)
+		// Routes for frontend compatibility - using query parameters for namespace
 		api.GET("/pod/:name", s.resourcesHandler.GetPodByName)
 		api.GET("/pod/:name/yaml", s.resourcesHandler.GetPodYAMLByName)
 		api.GET("/pod/:name/events", s.resourcesHandler.GetPodEventsByName)
+		api.GET("/pod/:name/logs", s.resourcesHandler.GetPodLogsByName)
 		api.GET("/deployments", s.resourcesHandler.GetDeploymentsSSE)
 		api.GET("/deployments/:namespace/:name", s.resourcesHandler.GetDeployment)
 		api.GET("/deployments/:namespace/:name/yaml", s.resourcesHandler.GetDeploymentYAML)

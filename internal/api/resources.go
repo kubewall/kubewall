@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"kubewall-backend/internal/k8s"
@@ -2365,12 +2366,67 @@ func (h *ResourcesHandler) GetPodLogs(c *gin.Context) {
 
 	// If all-containers is requested, get logs from all containers
 	if allContainers {
+		// Check if this is an SSE request
+		acceptHeader := c.GetHeader("Accept")
+		if acceptHeader == "text/event-stream" {
+			// For SSE with all containers, stream logs from all containers concurrently
+			c.Header("Content-Type", "text/event-stream")
+			c.Header("Cache-Control", "no-cache")
+			c.Header("Connection", "keep-alive")
+			c.Header("Access-Control-Allow-Origin", "*")
+			c.Header("Access-Control-Allow-Headers", "Cache-Control")
+
+			// Create a channel to coordinate goroutines
+			done := make(chan bool)
+			var activeStreams int32
+
+			for _, containerStatus := range pod.Status.ContainerStatuses {
+				containerName := containerStatus.Name
+
+				go func(containerName string) {
+					defer func() {
+						if atomic.AddInt32(&activeStreams, -1) == 0 {
+							close(done)
+						}
+					}()
+					atomic.AddInt32(&activeStreams, 1)
+
+					logs, err := client.CoreV1().Pods(namespace).GetLogs(name, &v1.PodLogOptions{
+						Container: containerName,
+						Follow:    true,
+					}).Stream(c.Request.Context())
+					if err != nil {
+						h.logger.WithError(err).WithField("container", containerName).Error("Failed to get logs for container")
+						return
+					}
+					defer logs.Close()
+
+					scanner := bufio.NewScanner(logs)
+					for scanner.Scan() {
+						logEntry := map[string]interface{}{
+							"containerName": containerName,
+							"timestamp":     time.Now().Format(time.RFC3339),
+							"log":           scanner.Text(),
+						}
+						data, _ := json.Marshal(logEntry)
+						fmt.Fprintf(c.Writer, "data: %s\n\n", data)
+						c.Writer.Flush()
+					}
+				}(containerName)
+			}
+
+			// Wait for all streams to complete
+			<-done
+			return
+		}
+
+		// For regular requests, return logs from all containers
 		var allLogs []map[string]interface{}
 		for _, containerStatus := range pod.Status.ContainerStatuses {
 			containerName := containerStatus.Name
 			logs, err := client.CoreV1().Pods(namespace).GetLogs(name, &v1.PodLogOptions{
 				Container: containerName,
-				Follow:    true,
+				Follow:    false, // Don't follow for regular requests
 			}).Stream(c.Request.Context())
 			if err != nil {
 				h.logger.WithError(err).WithField("container", containerName).Error("Failed to get logs for container")
@@ -2386,13 +2442,6 @@ func (h *ResourcesHandler) GetPodLogs(c *gin.Context) {
 					"log":           scanner.Text(),
 				})
 			}
-		}
-
-		// Check if this is an SSE request
-		acceptHeader := c.GetHeader("Accept")
-		if acceptHeader == "text/event-stream" {
-			h.sendSSEResponse(c, allLogs)
-			return
 		}
 
 		c.JSON(http.StatusOK, allLogs)
@@ -2650,7 +2699,6 @@ func NewWebSocketStdin(conn *websocket.Conn) *WebSocketStdin {
 				return
 			}
 
-
 			var data map[string]interface{}
 			if err := json.Unmarshal(message, &data); err != nil {
 				log.Printf("Failed to unmarshal WebSocket message: %v", err)
@@ -2769,4 +2817,175 @@ func (h *ResourcesHandler) GetGenericResourceEvents(c *gin.Context) {
 	}
 
 	h.getResourceEvents(c, kind, name)
+}
+
+// GetPodLogsByName returns logs for a specific pod by name using namespace from query parameters
+func (h *ResourcesHandler) GetPodLogsByName(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for pod logs")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	name := c.Param("name")
+	namespace := c.Query("namespace")
+	container := c.Query("container")
+	allContainers := c.Query("all-containers") == "true"
+
+	if namespace == "" {
+		h.logger.WithField("pod", name).Error("Namespace is required for pod logs lookup")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "namespace parameter is required"})
+		return
+	}
+
+	// Get pod to verify it exists and get container names
+	pod, err := client.CoreV1().Pods(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("pod", name).WithField("namespace", namespace).Error("Failed to get pod for logs")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// If all-containers is requested, get logs from all containers
+	if allContainers {
+		// Check if this is an SSE request
+		acceptHeader := c.GetHeader("Accept")
+		if acceptHeader == "text/event-stream" {
+			// For SSE with all containers, stream logs from all containers concurrently
+			c.Header("Content-Type", "text/event-stream")
+			c.Header("Cache-Control", "no-cache")
+			c.Header("Connection", "keep-alive")
+			c.Header("Access-Control-Allow-Origin", "*")
+			c.Header("Access-Control-Allow-Headers", "Cache-Control")
+
+			// Create a channel to coordinate goroutines
+			done := make(chan bool)
+			var activeStreams int32
+
+			for _, containerStatus := range pod.Status.ContainerStatuses {
+				containerName := containerStatus.Name
+
+				go func(containerName string) {
+					defer func() {
+						if atomic.AddInt32(&activeStreams, -1) == 0 {
+							close(done)
+						}
+					}()
+					atomic.AddInt32(&activeStreams, 1)
+
+					logs, err := client.CoreV1().Pods(namespace).GetLogs(name, &v1.PodLogOptions{
+						Container: containerName,
+						Follow:    true,
+					}).Stream(c.Request.Context())
+					if err != nil {
+						h.logger.WithError(err).WithField("container", containerName).Error("Failed to get logs for container")
+						return
+					}
+					defer logs.Close()
+
+					scanner := bufio.NewScanner(logs)
+					for scanner.Scan() {
+						logEntry := map[string]interface{}{
+							"containerName": containerName,
+							"timestamp":     time.Now().Format(time.RFC3339),
+							"log":           scanner.Text(),
+						}
+						data, _ := json.Marshal(logEntry)
+						fmt.Fprintf(c.Writer, "data: %s\n\n", data)
+						c.Writer.Flush()
+					}
+				}(containerName)
+			}
+
+			// Wait for all streams to complete
+			<-done
+			return
+		}
+
+		// For regular requests, return logs from all containers
+		var allLogs []map[string]interface{}
+		for _, containerStatus := range pod.Status.ContainerStatuses {
+			containerName := containerStatus.Name
+			logs, err := client.CoreV1().Pods(namespace).GetLogs(name, &v1.PodLogOptions{
+				Container: containerName,
+				Follow:    false, // Don't follow for regular requests
+			}).Stream(c.Request.Context())
+			if err != nil {
+				h.logger.WithError(err).WithField("container", containerName).Error("Failed to get logs for container")
+				continue
+			}
+			defer logs.Close()
+
+			scanner := bufio.NewScanner(logs)
+			for scanner.Scan() {
+				allLogs = append(allLogs, map[string]interface{}{
+					"containerName": containerName,
+					"timestamp":     time.Now().Format(time.RFC3339),
+					"log":           scanner.Text(),
+				})
+			}
+		}
+
+		c.JSON(http.StatusOK, allLogs)
+		return
+	}
+
+	// Get logs for specific container
+	if container == "" {
+		// If no container specified, use the first container
+		if len(pod.Spec.Containers) > 0 {
+			container = pod.Spec.Containers[0].Name
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "No containers found in pod"})
+			return
+		}
+	}
+
+	logs, err := client.CoreV1().Pods(namespace).GetLogs(name, &v1.PodLogOptions{
+		Container: container,
+		Follow:    true,
+	}).Stream(c.Request.Context())
+	if err != nil {
+		h.logger.WithError(err).WithField("container", container).Error("Failed to get logs for container")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer logs.Close()
+
+	// Check if this is an SSE request
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// For SSE, stream the logs
+		c.Header("Content-Type", "text/event-stream")
+		c.Header("Cache-Control", "no-cache")
+		c.Header("Connection", "keep-alive")
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Headers", "Cache-Control")
+
+		scanner := bufio.NewScanner(logs)
+		for scanner.Scan() {
+			logEntry := map[string]interface{}{
+				"containerName": container,
+				"timestamp":     time.Now().Format(time.RFC3339),
+				"log":           scanner.Text(),
+			}
+			data, _ := json.Marshal(logEntry)
+			fmt.Fprintf(c.Writer, "data: %s\n\n", data)
+			c.Writer.Flush()
+		}
+		return
+	}
+
+	// For regular requests, return all logs at once
+	var logLines []string
+	scanner := bufio.NewScanner(logs)
+	for scanner.Scan() {
+		logLines = append(logLines, scanner.Text())
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"containerName": container,
+		"logs":          logLines,
+	})
 }

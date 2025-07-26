@@ -45,7 +45,7 @@ export function SocketLogs({ pod, containerName, namespace, configName, clusterN
     }
   };
   useEventSource({
-    url: getEventStreamUrl(`pods/${pod}/logs`, {
+    url: getEventStreamUrl(`pod/${pod}/logs`, {
       namespace,
       config: configName,
       cluster: clusterName,

@@ -138,7 +138,7 @@ const KwDetails = () => {
                       name={resourcename}
                       configName={config}
                       clusterName={cluster}
-                      instanceType={resourcekind}
+                      instanceType={resourcekind === 'pods' ? 'pod' : resourcekind}
                       namespace={namespace || ''}
                     />
                   </TabsContent>
