@@ -135,6 +135,44 @@ export function PodExec({ pod, namespace, configName, clusterName, podDetailsSpe
       return;
     }
 
+    // Handle special terminal control sequences
+    // This includes Ctrl+L (clear screen), Ctrl+C (interrupt), etc.
+    if (data.length === 1) {
+      const charCode = data.charCodeAt(0);
+      
+      // Ctrl+L (form feed) - clear screen
+      if (charCode === 12) {
+        // Clear the terminal screen locally
+        if (xterm.current) {
+          xterm.current.clear();
+        }
+        // Still send to backend for proper terminal behavior
+      }
+      // Ctrl+C (ETX) - interrupt
+      else if (charCode === 3) {
+        // Let the backend handle the interrupt
+        console.log('Ctrl+C detected - sending interrupt signal');
+      }
+      // Ctrl+D (EOT) - end of transmission
+      else if (charCode === 4) {
+        // Let the backend handle the EOF
+        console.log('Ctrl+D detected - sending EOF signal');
+      }
+      // Ctrl+Z (SUB) - suspend
+      else if (charCode === 26) {
+        // Let the backend handle the suspend
+        console.log('Ctrl+Z detected - sending suspend signal');
+      }
+    }
+    // Handle ANSI escape sequences for clear screen
+    else if (data === '\x1b[2J' || data === '\x1b[H\x1b[2J') {
+      // ANSI clear screen sequence
+      if (xterm.current) {
+        xterm.current.clear();
+      }
+      // Still send to backend for proper terminal behavior
+    }
+
     // Send input to WebSocket
     const message = JSON.stringify({
       input: data

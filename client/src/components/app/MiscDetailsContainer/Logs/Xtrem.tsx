@@ -58,7 +58,13 @@ const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef, updateLogs, o
         cursorBlink: false,
         theme: getSystemTheme() === 'light' ? lightTheme : darkTheme,
         scrollback: 9999999,
-        fontSize: 13
+        fontSize: 13,
+        // Enable proper terminal behavior
+        allowTransparency: true,
+        // Enable terminal control sequences
+        convertEol: true,
+        // Enable proper handling of control sequences
+        windowsMode: true
       });
 
       fitAddon.current = new FitAddon();
