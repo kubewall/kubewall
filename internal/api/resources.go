@@ -93,6 +93,48 @@ type PodListResponse struct {
 	ClusterName       string `json:"clusterName"`
 }
 
+// DeploymentListResponse represents the response format expected by the frontend for deployments
+type DeploymentListResponse struct {
+	Age        string `json:"age"`
+	HasUpdated bool   `json:"hasUpdated"`
+	Name       string `json:"name"`
+	Namespace  string `json:"namespace"`
+	UID        string `json:"uid"`
+	Replicas   string `json:"replicas"`
+	Spec       struct {
+		Replicas int32 `json:"replicas"`
+	} `json:"spec"`
+	Status struct {
+		ObservedGeneration int64 `json:"observedGeneration"`
+		Replicas           int32 `json:"replicas"`
+		UpdatedReplicas    int32 `json:"updatedReplicas"`
+		ReadyReplicas      int32 `json:"readyReplicas"`
+		AvailableReplicas  int32 `json:"availableReplicas"`
+		Conditions         []struct {
+			Type   string `json:"type"`
+			Status string `json:"status"`
+		} `json:"conditions"`
+	} `json:"status"`
+}
+
+// DaemonSetListResponse represents the response format expected by the frontend for daemonsets
+type DaemonSetListResponse struct {
+	Age        string `json:"age"`
+	HasUpdated bool   `json:"hasUpdated"`
+	Name       string `json:"name"`
+	Namespace  string `json:"namespace"`
+	UID        string `json:"uid"`
+	Status     struct {
+		CurrentNumberScheduled int32 `json:"currentNumberScheduled"`
+		NumberMisscheduled     int32 `json:"numberMisscheduled"`
+		DesiredNumberScheduled int32 `json:"desiredNumberScheduled"`
+		NumberReady            int32 `json:"numberReady"`
+		ObservedGeneration     int64 `json:"observedGeneration"`
+		UpdatedNumberScheduled int32 `json:"updatedNumberScheduled"`
+		NumberAvailable        int32 `json:"numberAvailable"`
+	} `json:"status"`
+}
+
 // ResourcesHandler handles Kubernetes resource-related API requests
 type ResourcesHandler struct {
 	store         *storage.KubeConfigStore
@@ -860,14 +902,20 @@ func (h *ResourcesHandler) GetDeployments(c *gin.Context) {
 	}
 
 	namespace := c.Query("namespace")
-	deployments, err := client.AppsV1().Deployments(namespace).List(c.Request.Context(), metav1.ListOptions{})
+	deploymentList, err := client.AppsV1().Deployments(namespace).List(c.Request.Context(), metav1.ListOptions{})
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to list deployments")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, deployments)
+	// Transform deployments to frontend-expected format
+	var response []DeploymentListResponse
+	for _, deployment := range deploymentList.Items {
+		response = append(response, h.transformDeploymentToResponse(&deployment))
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 // GetDeploymentsSSE returns deployments as Server-Sent Events
@@ -887,7 +935,13 @@ func (h *ResourcesHandler) GetDeploymentsSSE(c *gin.Context) {
 		return
 	}
 
-	h.sendSSEResponse(c, deploymentList.Items)
+	// Transform deployments to frontend-expected format
+	var response []DeploymentListResponse
+	for _, deployment := range deploymentList.Items {
+		response = append(response, h.transformDeploymentToResponse(&deployment))
+	}
+
+	h.sendSSEResponse(c, response)
 }
 
 // GetDeployment returns a specific deployment
@@ -2008,7 +2062,18 @@ func (h *ResourcesHandler) GetGenericResource(c *gin.Context) {
 
 	switch resourceType {
 	case "daemonsets":
-		result, err2 = client.AppsV1().DaemonSets(namespace).List(c.Request.Context(), metav1.ListOptions{})
+		daemonSetList, err2 := client.AppsV1().DaemonSets(namespace).List(c.Request.Context(), metav1.ListOptions{})
+		if err2 == nil {
+			// Transform DaemonSets to frontend-expected format
+			var response []DaemonSetListResponse
+			for _, daemonSet := range daemonSetList.Items {
+				response = append(response, h.transformDaemonSetToResponse(&daemonSet))
+			}
+			c.JSON(http.StatusOK, response)
+			return
+		}
+		result = daemonSetList
+		err2 = err2
 	case "statefulsets":
 		result, err2 = client.AppsV1().StatefulSets(namespace).List(c.Request.Context(), metav1.ListOptions{})
 	case "replicasets":
@@ -2084,7 +2149,18 @@ func (h *ResourcesHandler) GetGenericResourceSSE(c *gin.Context) {
 
 	switch resourceType {
 	case "daemonsets":
-		result, err2 = client.AppsV1().DaemonSets(namespace).List(c.Request.Context(), metav1.ListOptions{})
+		daemonSetList, err2 := client.AppsV1().DaemonSets(namespace).List(c.Request.Context(), metav1.ListOptions{})
+		if err2 == nil {
+			// Transform DaemonSets to frontend-expected format
+			var response []DaemonSetListResponse
+			for _, daemonSet := range daemonSetList.Items {
+				response = append(response, h.transformDaemonSetToResponse(&daemonSet))
+			}
+			h.sendSSEResponse(c, response)
+			return
+		}
+		result = daemonSetList
+		err2 = err2
 	case "statefulsets":
 		result, err2 = client.AppsV1().StatefulSets(namespace).List(c.Request.Context(), metav1.ListOptions{})
 	case "replicasets":
@@ -2142,8 +2218,6 @@ func (h *ResourcesHandler) GetGenericResourceSSE(c *gin.Context) {
 
 	// For known types, send only .Items
 	switch typed := result.(type) {
-	case *appsV1.DaemonSetList:
-		h.sendSSEResponse(c, typed.Items)
 	case *appsV1.StatefulSetList:
 		h.sendSSEResponse(c, typed.Items)
 	case *appsV1.ReplicaSetList:
@@ -2988,4 +3062,96 @@ func (h *ResourcesHandler) GetPodLogsByName(c *gin.Context) {
 		"containerName": container,
 		"logs":          logLines,
 	})
+}
+
+func (h *ResourcesHandler) transformDeploymentToResponse(deployment *appsV1.Deployment) DeploymentListResponse {
+	// Send creation timestamp instead of calculated age
+	age := ""
+	if deployment.CreationTimestamp.Time != (time.Time{}) {
+		age = deployment.CreationTimestamp.Time.Format(time.RFC3339)
+	}
+
+	// Transform conditions
+	var conditions []struct {
+		Type   string `json:"type"`
+		Status string `json:"status"`
+	}
+	for _, condition := range deployment.Status.Conditions {
+		conditions = append(conditions, struct {
+			Type   string `json:"type"`
+			Status string `json:"status"`
+		}{
+			Type:   string(condition.Type),
+			Status: string(condition.Status),
+		})
+	}
+
+	response := DeploymentListResponse{
+		Age:        age,
+		HasUpdated: false, // This would need to be tracked separately
+		Name:       deployment.Name,
+		Namespace:  deployment.Namespace,
+		UID:        string(deployment.UID),
+		Replicas:   fmt.Sprintf("%d", *deployment.Spec.Replicas),
+		Spec: struct {
+			Replicas int32 `json:"replicas"`
+		}{
+			Replicas: *deployment.Spec.Replicas,
+		},
+		Status: struct {
+			ObservedGeneration int64 `json:"observedGeneration"`
+			Replicas           int32 `json:"replicas"`
+			UpdatedReplicas    int32 `json:"updatedReplicas"`
+			ReadyReplicas      int32 `json:"readyReplicas"`
+			AvailableReplicas  int32 `json:"availableReplicas"`
+			Conditions         []struct {
+				Type   string `json:"type"`
+				Status string `json:"status"`
+			} `json:"conditions"`
+		}{
+			ObservedGeneration: deployment.Status.ObservedGeneration,
+			Replicas:           deployment.Status.Replicas,
+			UpdatedReplicas:    deployment.Status.UpdatedReplicas,
+			ReadyReplicas:      deployment.Status.ReadyReplicas,
+			AvailableReplicas:  deployment.Status.AvailableReplicas,
+			Conditions:         conditions,
+		},
+	}
+
+	return response
+}
+
+func (h *ResourcesHandler) transformDaemonSetToResponse(daemonSet *appsV1.DaemonSet) DaemonSetListResponse {
+	// Send creation timestamp instead of calculated age
+	age := ""
+	if daemonSet.CreationTimestamp.Time != (time.Time{}) {
+		age = daemonSet.CreationTimestamp.Time.Format(time.RFC3339)
+	}
+
+	response := DaemonSetListResponse{
+		Age:        age,
+		HasUpdated: false, // This would need to be tracked separately
+		Name:       daemonSet.Name,
+		Namespace:  daemonSet.Namespace,
+		UID:        string(daemonSet.UID),
+		Status: struct {
+			CurrentNumberScheduled int32 `json:"currentNumberScheduled"`
+			NumberMisscheduled     int32 `json:"numberMisscheduled"`
+			DesiredNumberScheduled int32 `json:"desiredNumberScheduled"`
+			NumberReady            int32 `json:"numberReady"`
+			ObservedGeneration     int64 `json:"observedGeneration"`
+			UpdatedNumberScheduled int32 `json:"updatedNumberScheduled"`
+			NumberAvailable        int32 `json:"numberAvailable"`
+		}{
+			CurrentNumberScheduled: daemonSet.Status.CurrentNumberScheduled,
+			NumberMisscheduled:     daemonSet.Status.NumberMisscheduled,
+			DesiredNumberScheduled: daemonSet.Status.DesiredNumberScheduled,
+			NumberReady:            daemonSet.Status.NumberReady,
+			ObservedGeneration:     daemonSet.Status.ObservedGeneration,
+			UpdatedNumberScheduled: daemonSet.Status.UpdatedNumberScheduled,
+			NumberAvailable:        daemonSet.Status.NumberAvailable,
+		},
+	}
+
+	return response
 }

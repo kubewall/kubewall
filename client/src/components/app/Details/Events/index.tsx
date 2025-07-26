@@ -44,7 +44,8 @@ export function Events({ instanceType, name, namespace, configName, clusterName,
         clusterName,
         namespace
       ),
-      `/${name}/events`,
+      // For deployments, include namespace in path
+      instanceType === 'deployments' ? `/${namespace}/${name}/events` : `/${name}/events`,
       extraQuery
     ),
     sendMessage

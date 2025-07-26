@@ -87,7 +87,8 @@ const YamlEditor = memo(function ({ instanceType, name, namespace, clusterName, 
         clusterName,
         namespace
       ),
-      `/${name}/yaml`,
+      // For deployments, include namespace in path
+      instanceType === 'deployments' ? `/${namespace}/${name}/yaml` : `/${name}/yaml`,
       extraQuery
     ),
     sendMessage
