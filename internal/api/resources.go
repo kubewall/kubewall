@@ -65,6 +65,25 @@ type NodeListResponse struct {
 	UID string `json:"uid"`
 }
 
+// PodListResponse represents the response format expected by the frontend for pods
+type PodListResponse struct {
+	Age               string `json:"age"`
+	HasUpdated        bool   `json:"hasUpdated"`
+	Name              string `json:"name"`
+	Namespace         string `json:"namespace"`
+	Node              string `json:"node"`
+	Ready             string `json:"ready"`
+	Status            string `json:"status"`
+	CPU               string `json:"cpu"`
+	Memory            string `json:"memory"`
+	Restarts          string `json:"restarts"`
+	LastRestartAt     string `json:"lastRestartAt"`
+	LastRestartReason string `json:"lastRestartReason"`
+	PodIP             string `json:"podIP"`
+	QOS               string `json:"qos"`
+	UID               string `json:"uid"`
+}
+
 // ResourcesHandler handles Kubernetes resource-related API requests
 type ResourcesHandler struct {
 	store         *storage.KubeConfigStore
@@ -403,6 +422,85 @@ func (h *ResourcesHandler) transformNodeToResponse(node *v1.Node) NodeListRespon
 	return response
 }
 
+// transformPodToResponse transforms a Kubernetes Pod to the response format expected by the frontend
+func (h *ResourcesHandler) transformPodToResponse(pod *v1.Pod) PodListResponse {
+	// Send creation timestamp instead of calculated age
+	age := ""
+	if pod.CreationTimestamp.Time != (time.Time{}) {
+		age = pod.CreationTimestamp.Time.Format(time.RFC3339)
+	}
+
+	// Calculate ready status
+	ready := "0/0"
+	if pod.Status.ContainerStatuses != nil {
+		readyCount := 0
+		totalCount := len(pod.Status.ContainerStatuses)
+		for _, containerStatus := range pod.Status.ContainerStatuses {
+			if containerStatus.Ready {
+				readyCount++
+			}
+		}
+		ready = fmt.Sprintf("%d/%d", readyCount, totalCount)
+	}
+
+	// Get pod status
+	status := string(pod.Status.Phase)
+
+	// Calculate total restarts
+	restarts := int32(0)
+	lastRestartAt := ""
+	lastRestartReason := ""
+	if pod.Status.ContainerStatuses != nil {
+		for _, containerStatus := range pod.Status.ContainerStatuses {
+			restarts += containerStatus.RestartCount
+			if containerStatus.LastTerminationState.Terminated != nil {
+				if containerStatus.LastTerminationState.Terminated.StartedAt.Time.After(time.Time{}) {
+					if lastRestartAt == "" || containerStatus.LastTerminationState.Terminated.StartedAt.Time.After(time.Time{}) {
+						lastRestartAt = containerStatus.LastTerminationState.Terminated.StartedAt.Time.Format(time.RFC3339)
+						lastRestartReason = containerStatus.LastTerminationState.Terminated.Reason
+					}
+				}
+			}
+		}
+	}
+
+	// Calculate CPU and Memory (this would need metrics server integration for real values)
+	cpu := "0"
+	memory := "0"
+
+	// Get pod IP
+	podIP := ""
+	if pod.Status.PodIP != "" {
+		podIP = pod.Status.PodIP
+	}
+
+	// Get QOS class
+	qos := ""
+	if pod.Status.QOSClass != "" {
+		qos = string(pod.Status.QOSClass)
+	}
+
+	response := PodListResponse{
+		Age:               age,
+		HasUpdated:        false, // This would need to be tracked separately
+		Name:              pod.Name,
+		Namespace:         pod.Namespace,
+		Node:              pod.Spec.NodeName,
+		Ready:             ready,
+		Status:            status,
+		CPU:               cpu,
+		Memory:            memory,
+		Restarts:          fmt.Sprintf("%d", restarts),
+		LastRestartAt:     lastRestartAt,
+		LastRestartReason: lastRestartReason,
+		PodIP:             podIP,
+		QOS:               qos,
+		UID:               string(pod.UID),
+	}
+
+	return response
+}
+
 // GetNodes returns all nodes
 func (h *ResourcesHandler) GetNodes(c *gin.Context) {
 	client, _, err := h.getClientAndConfig(c)
@@ -580,7 +678,13 @@ func (h *ResourcesHandler) GetPodsSSE(c *gin.Context) {
 		return
 	}
 
-	h.sendSSEResponse(c, podList.Items)
+	// Transform pods to the expected format
+	var transformedPods []PodListResponse
+	for _, pod := range podList.Items {
+		transformedPods = append(transformedPods, h.transformPodToResponse(&pod))
+	}
+
+	h.sendSSEResponse(c, transformedPods)
 }
 
 // GetPod returns a specific pod
