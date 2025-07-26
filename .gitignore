@@ -28,9 +28,15 @@ dist
 # IDE config directories.
 .idea/
 .vscode/
+.kiro/
 backend/.idea/
 backend/.vscode/
 backend/.idea
+backend/.kiro/
+client/.idea/
+client/.vscode/
+client/.idea
+client/.kiro/
 
 # Dependency directories.
 node_modules/
