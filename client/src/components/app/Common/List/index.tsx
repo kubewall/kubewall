@@ -251,6 +251,7 @@ export function KwList() {
     } if (resourcekind === CUSTOM_RESOURCES_ENDPOINT) {
       return getTableConfig<CustomResourcesDefinitionsHeader>(customResourcesDefinitions, CUSTOM_RESOURCES_ENDPOINT, updateCustomResources, customResourcesNavigationLoading, customResourceDefinitionsColumnConfig(config, cluster));
     }
+    
     return;
   };
 

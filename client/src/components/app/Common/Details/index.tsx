@@ -9,6 +9,7 @@ import { Loader } from "../../Loader";
 import { Overview } from "../../Details/Overview";
 import { PODS_ENDPOINT } from "@/constants";
 import { PodLogs } from "../../MiscDetailsContainer";
+import { PodExec } from "../../MiscDetailsContainer/PodExec";
 import { RootState } from "@/redux/store";
 import { Row } from "@tanstack/react-table";
 import { ScaleDeployments } from "../../MiscDetailsContainer/Deployments/ScaleDeployments";
@@ -111,6 +112,7 @@ const KwDetails = () => {
                     <TabsTrigger value='yaml'>YAML</TabsTrigger>
                     <TabsTrigger value='events'>Events</TabsTrigger>
                     {resourceInitialData.label.toLowerCase() === PODS_ENDPOINT && <TabsTrigger value='logs'>Logs</TabsTrigger>}
+                    {resourceInitialData.label.toLowerCase() === PODS_ENDPOINT && <TabsTrigger value='exec'>Exec</TabsTrigger>}
                   </TabsList>
 
                   <TabsContent value='overview'>
@@ -150,7 +152,18 @@ const KwDetails = () => {
                         namespace={podDetails?.metadata?.namespace}
                       />
                     </TabsContent>
-
+                  }
+                  {
+                    resourceInitialData.label.toLowerCase() === PODS_ENDPOINT &&
+                    <TabsContent value='exec'>
+                      <PodExec
+                        pod={podDetails?.metadata?.name}
+                        configName={config}
+                        clusterName={cluster}
+                        namespace={podDetails?.metadata?.namespace}
+                        podDetailsSpec={podDetails?.spec}
+                      />
+                    </TabsContent>
                   }
                 </Tabs>
               }

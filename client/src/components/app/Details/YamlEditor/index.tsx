@@ -80,7 +80,8 @@ const YamlEditor = memo(function ({ instanceType, name, namespace, clusterName, 
 
   useEventSource({
     url: getEventStreamUrl(
-      instanceType,
+      // For pods, use singular form when namespace is in query params
+      instanceType === 'pods' ? 'pod' : instanceType,
       createEventStreamQueryObject(
         configName,
         clusterName,

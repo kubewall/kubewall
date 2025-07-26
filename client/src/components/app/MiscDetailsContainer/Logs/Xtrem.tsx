@@ -17,9 +17,10 @@ type XtermProp = {
   updateLogs: (currentLog: PodSocketResponse) => void;
   xterm: MutableRefObject<Terminal | null>
   searchAddonRef: MutableRefObject<SearchAddon | null>
+  onInput?: (data: string) => void;
 };
 
-const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef,updateLogs }: XtermProp) => {
+const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef, updateLogs, onInput }: XtermProp) => {
   const dispatch = useAppDispatch();
   const terminalRef = useRef<HTMLDivElement | null>(null);
 
@@ -65,6 +66,13 @@ const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef,updateLogs }: 
       xterm.current.loadAddon(fitAddon.current);
       xterm.current.loadAddon(searchAddonRef.current);
       xterm.current.open(terminalRef.current);
+
+      // Add input handler for exec functionality
+      if (onInput) {
+        xterm.current.onData((data) => {
+          onInput(data);
+        });
+      }
 
       // Fit the terminal to the container
       fitAddon.current.fit();

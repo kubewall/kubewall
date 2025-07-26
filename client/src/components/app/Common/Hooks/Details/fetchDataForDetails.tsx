@@ -188,8 +188,18 @@ const useFetchDataForDetails = ({
     }
   };
 
+  // For pods, we need to use the namespace/name pattern in the URL
+  let eventSourceUrl: string;
+  if (resourcekind === PODS_ENDPOINT && namespace) {
+    // Use the pattern /pods/{namespace}/{name} for pods
+    eventSourceUrl = getEventStreamUrl(data?.endpoint, queryParamObject, `/${namespace}/${resourcename}`);
+  } else {
+    // Use the default pattern for other resources
+    eventSourceUrl = getEventStreamUrl(data?.endpoint, queryParamObject, `/${resourcename}`);
+  }
+
   useEventSource({
-    url: getEventStreamUrl(data?.endpoint, queryParamObject, `/${resourcename}`),
+    url: eventSourceUrl,
     sendMessage,
   });
 
