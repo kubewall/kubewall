@@ -7,9 +7,10 @@ import (
 
 // Config holds all configuration for the application
 type Config struct {
-	Server  ServerConfig
-	Logging LoggingConfig
-	K8s     K8sConfig
+	Server      ServerConfig
+	Logging     LoggingConfig
+	K8s         K8sConfig
+	StaticFiles StaticFilesConfig
 }
 
 // ServerConfig holds server-specific configuration
@@ -28,6 +29,11 @@ type K8sConfig struct {
 	DefaultNamespace string
 }
 
+// StaticFilesConfig holds static files configuration
+type StaticFilesConfig struct {
+	Path string
+}
+
 // Load loads configuration from environment variables
 func Load() *Config {
 	return &Config{
@@ -40,6 +46,9 @@ func Load() *Config {
 		},
 		K8s: K8sConfig{
 			DefaultNamespace: getEnv("K8S_DEFAULT_NAMESPACE", "default"),
+		},
+		StaticFiles: StaticFilesConfig{
+			Path: getEnv("STATIC_FILES_PATH", "client/dist"),
 		},
 	}
 }

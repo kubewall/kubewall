@@ -1,247 +1,246 @@
-# kubewall
+# KubeWall
 
-[Install](https://github.com/kubewall/kubewall?tab=readme-ov-file#battery-install)
-| [Guide](https://github.com/kubewall/kubewall?tab=readme-ov-file#books-guide)
-| [Releases](https://github.com/kubewall/kubewall/releases)
-| [Source Code](https://github.com/kubewall/kubewall)
+A Kubernetes dashboard application with a Go backend and React frontend.
 
-A single binary to manage your multiple kubernetes clusters.
+## Features
 
-**kubewall** provides a simple and rich real time interface to manage and investigate your clusters.
+- Kubernetes resource management
+- Real-time resource monitoring
+- Multi-cluster support
+- Modern web interface
 
+## Architecture
 
-**Key features of kubewall include:**
+The application consists of:
+- **Backend**: Go server with Gin framework
+- **Frontend**: React application with TypeScript
+- **Static File Serving**: The Go backend serves the built React application
 
-* **Single binary deployment:** kubewall can be easily deployed as a single binary, eliminating the need for complex configurations.
-* **Browser-based access:** kubewall can be accessed directly from your favorite web browser, providing a seamless user experience.
-* **Real-time cluster monitoring:** kubewall offers a rich, real-time interface that displays the current state of your Kubernetes clusters, allowing you to quickly identify and address issues.
-* **Cluster management:** kubewall enables you to manage multiple Kubernetes clusters from a single pane of glass, reducing the overhead of switching between different tools and interfaces.
-* **Detailed cluster insights:** kubewall provides comprehensive insights into your Kubernetes clusters, manifest info of your pods, services, config and others.
+## Development
 
-# :movie_camera: Intro
+### Using Makefile (Recommended)
 
-![kubewall](/media/readme.jpg)
-
-> [!Important]
-> Please keep in mind that kubewall is still under active development.
-
-# :battery: Install
-
-#### Docker
-
-```shell
-docker run -p 7080:7080 -v kubewall:/.kubewall ghcr.io/kubewall/kubewall:latest
-```
-
-> To access local kind cluster you can use "--network host" docker flag.
-
-#### Helm
+The project includes a comprehensive Makefile that simplifies common development tasks:
 
 ```bash
-helm install kubewall oci://ghcr.io/kubewall/charts/kubewall -n kubewall-system --create-namespace
+# Show all available commands
+make help
+
+# Setup development environment
+make setup
+
+# Build the entire application
+make build
+
+# Run in development mode
+make dev
+
+# Run tests
+make test-all
+
+# Format code
+make fmt-all
+
+# Clean build artifacts
+make clean
 ```
 
-> With helm kubewall runs on port `8443` with self-signed certificates. [see charts](https://github.com/kubewall/kubewall/tree/main/charts/kubewall)
+### Manual Development
 
-#### Homebrew
+#### Backend
 
-```shell
-brew install kubewall/tap/kubewall
+The Go backend is located in the `cmd/server` directory and serves both the API and the static frontend files.
+
+##### Building the Backend
+
+```bash
+cd cmd/server
+go build -o ../../kubewall-server
 ```
 
-#### Snap
+##### Running the Backend
 
-```shell
-sudo snap install kubewall
+```bash
+./kubewall-server
 ```
 
-#### Arch Linux
+The server will:
+- Start on the configured host and port (default: `0.0.0.0:7080`)
+- Serve API endpoints under `/api/v1/`
+- Serve static files from `client/dist/` (configurable via `STATIC_FILES_PATH` environment variable)
+- Handle SPA routing for the React application
 
-```shell
-yay -S kubewall-bin
+#### Frontend
+
+The React frontend is located in the `client` directory.
+
+##### Building the Frontend
+
+```bash
+cd client
+npm install
+npm run build
 ```
 
-#### Winget 
+This will create the `dist` folder with the built application that the Go backend serves.
 
-```shell
-winget install --id=kubewall.kubewall -e
+##### Development Server
+
+For development, you can run the frontend separately:
+
+```bash
+cd client
+npm run dev
 ```
 
-#### Scoop
+## Configuration
 
-```shell
-scoop bucket add kubewall https://github.com/kubewall/scoop-bucket.git
-scoop install kubewall
+### Environment Variables
+
+- `PORT`: Server port (default: `7080`)
+- `HOST`: Server host (default: `0.0.0.0`)
+- `LOG_LEVEL`: Logging level (default: `info`)
+- `K8S_DEFAULT_NAMESPACE`: Default Kubernetes namespace (default: `default`)
+- `STATIC_FILES_PATH`: Path to static files (default: `client/dist`)
+
+## Static File Serving
+
+The Go backend automatically serves the React application from the `client/dist` directory. The setup includes:
+
+1. **Static Assets**: All files in `client/dist/assets/` are served under `/assets/`
+2. **SPA Routing**: All non-API routes serve the main `index.html` file for client-side routing
+3. **API Routes**: All `/api/*` routes are handled by the backend API
+
+### File Structure
+
+```
+client/dist/
+├── index.html          # Main HTML file
+└── assets/
+    ├── index-*.js      # Main JavaScript bundle
+    ├── index-*.css     # Main CSS bundle
+    ├── favicon-*.ico   # Favicon
+    └── *.js            # Other JavaScript modules
 ```
 
-#### Binary
+## API Endpoints
 
-**MacOS**
-[Binary](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Darwin_all.tar.gz) ( Multi-Architecture )
+- `GET /health` - Health check
+- `GET /api/v1/` - API information
+- `GET /api/v1/app/config` - Get Kubernetes configurations
+- `POST /api/v1/app/config/kubeconfigs` - Add kubeconfig
+- `GET /api/v1/namespaces` - Get namespaces (SSE)
+- `GET /api/v1/pods` - Get pods (SSE)
+- And many more Kubernetes resource endpoints...
 
-**Linux (Binaries)**
-[amd64](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Linux_x86_64.tar.gz) | [arm64](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Linux_arm64.tar.gz) | [i386](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Linux_i386.tar.gz)
+## Deployment
 
-**Windows (Exe)**
-[amd64](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Windows_x86_64.zip) | [arm64](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Windows_arm64.zip) | [i386](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Windows_i386.zip)
+### Using Makefile
 
-**FreeBSD (Binaries)**
-[amd64](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Freebsd_x86_64.tar.gz) | [arm64](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Freebsd_arm64.tar.gz) | [i386](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Freebsd_i386.tar.gz)
+```bash
+# Build for current platform
+make build
 
-Manually
-Download the pre-compiled binaries from the [Release!](https://github.com/kubewall/kubewall/releases) page and copy them to the desired location or system path.
+# Build for specific platforms
+make build-linux
+make build-windows
+make build-darwin
 
-> [!TIP] 
-> After installation, you can access **kubewall** at `http://localhost:7080`
->
->  If you're running it in a Kubernetes cluster or on an on-premises server, we recommend using **HTTPS**.
->  When not used over HTTP/2 SSE suffers from a limitation to the maximum number of open connections. [Mozzila](https://developer.mozilla.org/en-US/docs/Web/API/EventSource)⤴
->
->  You can start **kubewall** with **HTTPS** using the following command:
->
-> ```
-> $ kubewall --certFile=/path/to/cert.pem --keyFile=/path/to/key.pem
-> ```
-
-# :books: Guide
-
-### Flags
-
-Since kubewall runs as binary there are few of flag you can use.
-
-```shell
-> kubewall --help
-
-Usage:
-  kubewall [flags]
-  kubewall [command]
-
-Available Commands:
-  completion  Generate the autocompletion script for the specified shell
-  help        Help about any command
-  version     Print the version of kubewall
-
-Flags:
-      --certFile string        absolute path to certificate file
-  -h, --help                   help for kubewall
-      --k8s-client-burst int   Maximum burst for throttle (default 200)
-      --k8s-client-qps int     maximum QPS to the master from client (default 100)
-      --keyFile string         absolute path to key file
-      --no-open-browser        Do not open the default browser
-  -p, --port string            port to listen on (default ":7080")
-
-Use "kubewall [command] --help" for more information about a command.
+# Create release builds
+make release
+make release-linux
+make release-windows
+make release-darwin
 ```
 
-### Setting up HTTPS locally
+### Manual Deployment
 
-You can use your own certificates or create new local trusted certificates using [mkcert](https://github.com/FiloSottile/mkcert)⤴.
+1. Build the frontend: `cd client && npm run build`
+2. Build the backend: `cd cmd/server && go build -o ../../kubewall-server`
+3. Run the server: `./kubewall-server`
 
-> [!Important]
-> You'll need to install [mkcert](https://github.com/FiloSottile/mkcert)⤴ separately.
+The application will be available at `http://localhost:7080` (or your configured host/port).
 
-1. Install mkcert on your computer.
-2. Run the following command in your terminal or command prompt:
+## Development Workflow
 
-`mkcert kubewall.test localhost 127.0.0.1 ::1`
+### Quick Start
 
-3. This command will generate two files: a certificate file and a key file (the key file will have `-key.pem` at the end of its name).
-4. To use these files with **kubewall**, use `--certFile=` and `--keyFile=` flags.
+```bash
+# Clone the repository
+git clone <repository-url>
+cd kube-dash
 
-```shell
-kubewall --certFile=kubewall.test+3.pem --keyFile=kubewall.test+3-key.pem
+# Setup development environment
+make setup
+
+# Run in development mode
+make dev
 ```
 
-**When using Docker**
+### Common Commands
 
-When using Docker, you can attach volumes and provide certificates by using specific flags. 
+```bash
+# Development
+make dev              # Run in development mode
+make build            # Build the application
+make test-all         # Run all tests
+make lint-all         # Run all linters
+make fmt-all          # Format all code
 
-In the following example, we mount the current directory from your host to the `/.certs` directory inside the Docker container:
+# Cleaning
+make clean            # Clean build artifacts
+make clean-all        # Clean everything
 
-```shell
-docker run -p 7080:7080 \
-    -v kubewall:/.kubewall \
-    -v $(pwd):/.certs \
-    ghcr.io/kubewall/kubewall:latest \
-    --certFile=/.certs/kubewall.test+3.pem \
-    --keyFile=/.certs/kubewall.test+3-key.pem
+# Platform-specific builds
+make build-linux      # Build for Linux
+make build-windows    # Build for Windows
+make build-darwin     # Build for macOS
+
+# CI/CD
+make ci               # Run CI pipeline (lint + test + build)
+make check            # Run all checks (lint + test)
 ```
 
-### Custom Port
+### Cross-Platform Building
 
-You can run **kubewall** on any port you like. by using `-p` or `--port` flag
+The Makefile supports building for different platforms:
 
-```shell
-kubewall -p 7080
+```bash
+# Build for current platform
+make build
+
+# Build for specific platforms
+make build-linux      # Linux AMD64
+make build-windows    # Windows AMD64
+make build-darwin     # macOS AMD64
+
+# Create release builds
+make release-linux    # Frontend + Linux backend
+make release-windows  # Frontend + Windows backend
+make release-darwin   # Frontend + macOS backend
 ```
 
-# :man_technologist: Developers
+## Troubleshooting
 
+### Common Issues
 
-<p float="left">
-   <picture width="49%">
-      <source media="(prefers-color-scheme: dark)" srcset="./media/Abhimanyu-Dark.png" width="49%">
-      <source media="(prefers-color-scheme: light)" srcset="./media/Abhimanyu-Light.png" width="49%">
-      <img src="./media/Abhimanyu-Light.png" width="49%">
-   </picture>
-   <picture width="49%">
-      <source media="(prefers-color-scheme: dark)" srcset="./media/Kshitij-Dark.png" width="49%">
-      <source media="(prefers-color-scheme: light)" srcset="./media/Kshitij-Light.png" width="49%">
-      <img src="./media/Abhimanyu-Light.png" width="49%">
-   </picture>
-   <a target="_blank" href="https://github.com/abhimanyu003">
-      <picture width="49%">
-         <source media="(prefers-color-scheme: dark)" srcset="./media/Github-Dark.png" width="49%">
-         <source media="(prefers-color-scheme: light)" srcset="./media/Github-Light.png" width="49%">
-         <img src="./media/Github-Light.png" width="49%">
-      </picture>
-   </a>
-   <a target="_blank" href="https://github.com/kshitijmehta">
-      <picture width="49%">
-         <source media="(prefers-color-scheme: dark)" srcset="./media/Github-Dark.png" width="49%">
-         <source media="(prefers-color-scheme: light)" srcset="./media/Github-Light.png" width="49%">
-         <img src="./media/Github-Light.png" width="49%">
-      </picture>
-   </a>
-   <a target="_blank" href="https://x.com/abhimanyu003">
-      <picture width="49%">
-         <source media="(prefers-color-scheme: dark)" srcset="./media/Twitter-Dark.png" width="49%">
-         <source media="(prefers-color-scheme: light)" srcset="./media/Twitter-Light.png" width="49%">
-         <img src="./media/Twitter-Light.png" width="49%">
-      </picture>
-   </a>
-   <a target="_blank" href="https://x.com/kshitijjazz">
-      <picture width="49%">
-         <source media="(prefers-color-scheme: dark)" srcset="./media/Twitter-Dark.png" width="49%">
-         <source media="(prefers-color-scheme: light)" srcset="./media/Twitter-Light.png" width="49%">
-         <img src="./media/Twitter-Light.png" width="49%">
-      </picture>
-   </a>
-   <a target="_blank" href="https://www.linkedin.com/in/abhimanyu003/">
-      <picture width="49%">
-         <source media="(prefers-color-scheme: dark)" srcset="./media/LinkedIn-Dark.png" width="49%">
-         <source media="(prefers-color-scheme: light)" srcset="./media/LinkedIn-Light.png" width="49%">
-         <img src="./media/LinkedIn-Light.png" width="49%">
-      </picture>
-   </a>
-   <a target="_blank" href="https://www.linkedin.com/in/kshitijkmehta/">
-      <picture width="49%">
-         <source media="(prefers-color-scheme: dark)" srcset="./media/LinkedIn-Dark.png" width="49%">
-         <source media="(prefers-color-scheme: light)" srcset="./media/LinkedIn-Light.png" width="49%">
-         <img src="./media/LinkedIn-Light.png" width="49%">
-      </picture>
-   </a>
-</p>
+1. **Node.js not found**: Install Node.js from [nodejs.org](https://nodejs.org/)
+2. **Go not found**: Install Go from [golang.org](https://golang.org/)
+3. **Build fails**: Run `make clean-all` and then `make build`
+4. **Port already in use**: Change the port using `PORT=8080 make run`
 
-# Contribution
+### Getting Help
 
-This project welcomes your PR and issues. For example, refactoring, adding features, correcting English, etc.
+```bash
+# Show all available commands
+make help
 
-If you need any help, you can contact us from the above Developers sections.
+# Check project status
+make status
 
-Thanks to all the people who already contributed and using the project.
+# Show version information
+make version
 
-
-# License
-
-kubewall is licensed under [Apache License, Version 2.0](./LICENSE)
+# Check dependencies
+make check-deps
+```

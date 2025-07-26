@@ -296,6 +296,15 @@ func (h *ResourcesHandler) GetNamespaceYAML(c *gin.Context) {
 		return
 	}
 
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// For EventSource, send the YAML data as base64 encoded string
+		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
+		return
+	}
+
 	// Return as base64 encoded string to match frontend expectations
 	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
 	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
@@ -303,26 +312,8 @@ func (h *ResourcesHandler) GetNamespaceYAML(c *gin.Context) {
 
 // GetNamespaceEvents returns events for a specific namespace
 func (h *ResourcesHandler) GetNamespaceEvents(c *gin.Context) {
-	client, _, err := h.getClientAndConfig(c)
-	if err != nil {
-		h.logger.WithError(err).Error("Failed to get client for namespace events")
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
 	name := c.Param("name")
-
-	// Get events filtered by the namespace name
-	events, err := client.CoreV1().Events("").List(c.Request.Context(), metav1.ListOptions{
-		FieldSelector: fmt.Sprintf("involvedObject.name=%s,involvedObject.kind=Namespace", name),
-	})
-	if err != nil {
-		h.logger.WithError(err).WithField("namespace", name).Error("Failed to get namespace events")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, events.Items)
+	h.getResourceEvents(c, "Namespace", name)
 }
 
 // transformNodeToResponse transforms a Kubernetes node to the frontend-expected format
@@ -514,6 +505,17 @@ func (h *ResourcesHandler) GetNodeYAML(c *gin.Context) {
 		return
 	}
 
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	h.logger.WithField("acceptHeader", acceptHeader).Info("Accept header received")
+	if acceptHeader == "text/event-stream" {
+		h.logger.Info("Sending SSE response for EventSource")
+		// For EventSource, send the YAML data as base64 encoded string
+		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
+		return
+	}
+
 	// Return as base64 encoded string to match frontend expectations
 	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
 	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
@@ -521,26 +523,8 @@ func (h *ResourcesHandler) GetNodeYAML(c *gin.Context) {
 
 // GetNodeEvents returns events for a specific node
 func (h *ResourcesHandler) GetNodeEvents(c *gin.Context) {
-	client, _, err := h.getClientAndConfig(c)
-	if err != nil {
-		h.logger.WithError(err).Error("Failed to get client for node events")
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
 	name := c.Param("name")
-
-	// Get events filtered by the node name
-	events, err := client.CoreV1().Events("").List(c.Request.Context(), metav1.ListOptions{
-		FieldSelector: fmt.Sprintf("involvedObject.name=%s,involvedObject.kind=Node", name),
-	})
-	if err != nil {
-		h.logger.WithError(err).WithField("node", name).Error("Failed to get node events")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, events.Items)
+	h.getResourceEvents(c, "Node", name)
 }
 
 // GetPods returns all pods in a namespace (or all namespaces if namespace is not specified)
@@ -1404,4 +1388,121 @@ func (h *ResourcesHandler) GetGenericResourceDetails(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, result)
+}
+
+// getResourceEvents is a common function to get events for any resource type
+func (h *ResourcesHandler) getResourceEvents(c *gin.Context, resourceKind, resourceName string) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for resource events")
+		// For EventSource, send error as SSE
+		if c.GetHeader("Accept") == "text/event-stream" {
+			h.sendSSEError(c, http.StatusBadRequest, err.Error())
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	// Get events filtered by the resource name and kind
+	events, err := client.CoreV1().Events("").List(c.Request.Context(), metav1.ListOptions{
+		FieldSelector: fmt.Sprintf("involvedObject.name=%s,involvedObject.kind=%s", resourceName, resourceKind),
+	})
+	if err != nil {
+		h.logger.WithError(err).WithField("resource", resourceName).WithField("kind", resourceKind).Error("Failed to get resource events")
+		// For EventSource, send error as SSE
+		if c.GetHeader("Accept") == "text/event-stream" {
+			h.sendSSEError(c, http.StatusInternalServerError, err.Error())
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	// Ensure we always have a valid array, even if empty
+	eventsList := events.Items
+	if eventsList == nil {
+		eventsList = []v1.Event{}
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	h.logger.WithField("acceptHeader", acceptHeader).Info("Accept header received for resource events")
+	if acceptHeader == "text/event-stream" {
+		h.logger.Info("Sending SSE response for resource events EventSource")
+		h.sendSSEResponse(c, eventsList)
+		return
+	}
+
+	c.JSON(http.StatusOK, eventsList)
+}
+
+// GetPodEvents returns events for a specific pod
+func (h *ResourcesHandler) GetPodEvents(c *gin.Context) {
+	name := c.Param("name")
+	h.getResourceEvents(c, "Pod", name)
+}
+
+// GetDeploymentEvents returns events for a specific deployment
+func (h *ResourcesHandler) GetDeploymentEvents(c *gin.Context) {
+	name := c.Param("name")
+	h.getResourceEvents(c, "Deployment", name)
+}
+
+// GetServiceEvents returns events for a specific service
+func (h *ResourcesHandler) GetServiceEvents(c *gin.Context) {
+	name := c.Param("name")
+	h.getResourceEvents(c, "Service", name)
+}
+
+// GetConfigMapEvents returns events for a specific configmap
+func (h *ResourcesHandler) GetConfigMapEvents(c *gin.Context) {
+	name := c.Param("name")
+	h.getResourceEvents(c, "ConfigMap", name)
+}
+
+// GetSecretEvents returns events for a specific secret
+func (h *ResourcesHandler) GetSecretEvents(c *gin.Context) {
+	name := c.Param("name")
+	h.getResourceEvents(c, "Secret", name)
+}
+
+// GetGenericResourceEvents returns events for any generic resource
+func (h *ResourcesHandler) GetGenericResourceEvents(c *gin.Context) {
+	resourceType := c.Param("resource")
+	name := c.Param("name")
+
+	// Map resource type to Kubernetes kind
+	kindMap := map[string]string{
+		"daemonsets":               "DaemonSet",
+		"statefulsets":             "StatefulSet",
+		"replicasets":              "ReplicaSet",
+		"jobs":                     "Job",
+		"cronjobs":                 "CronJob",
+		"horizontalpodautoscalers": "HorizontalPodAutoscaler",
+		"limitranges":              "LimitRange",
+		"resourcequotas":           "ResourceQuota",
+		"serviceaccounts":          "ServiceAccount",
+		"roles":                    "Role",
+		"rolebindings":             "RoleBinding",
+		"clusterroles":             "ClusterRole",
+		"clusterrolebindings":      "ClusterRoleBinding",
+		"persistentvolumes":        "PersistentVolume",
+		"persistentvolumeclaims":   "PersistentVolumeClaim",
+		"storageclasses":           "StorageClass",
+		"priorityclasses":          "PriorityClass",
+		"leases":                   "Lease",
+		"runtimeclasses":           "RuntimeClass",
+		"poddisruptionbudgets":     "PodDisruptionBudget",
+		"endpoints":                "Endpoints",
+		"ingresses":                "Ingress",
+	}
+
+	kind, exists := kindMap[resourceType]
+	if !exists {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Resource type %s not supported for events", resourceType)})
+		return
+	}
+
+	h.getResourceEvents(c, kind, name)
 }

@@ -125,19 +125,31 @@ func (s *Server) setupRoutes() {
 		// Kubernetes Resources - Namespace-scoped resources (SSE)
 		api.GET("/pods", s.resourcesHandler.GetPodsSSE)
 		api.GET("/pods/:namespace/:name", s.resourcesHandler.GetPod)
+		api.GET("/pods/:namespace/:name/events", s.resourcesHandler.GetPodEvents)
 		api.GET("/deployments", s.resourcesHandler.GetDeploymentsSSE)
 		api.GET("/deployments/:namespace/:name", s.resourcesHandler.GetDeployment)
+		api.GET("/deployments/:namespace/:name/events", s.resourcesHandler.GetDeploymentEvents)
 		api.GET("/services", s.resourcesHandler.GetServicesSSE)
 		api.GET("/services/:namespace/:name", s.resourcesHandler.GetService)
+		api.GET("/services/:namespace/:name/events", s.resourcesHandler.GetServiceEvents)
 		api.GET("/configmaps", s.resourcesHandler.GetConfigMapsSSE)
 		api.GET("/configmaps/:namespace/:name", s.resourcesHandler.GetConfigMap)
+		api.GET("/configmaps/:namespace/:name/events", s.resourcesHandler.GetConfigMapEvents)
 		api.GET("/secrets", s.resourcesHandler.GetSecretsSSE)
 		api.GET("/secrets/:namespace/:name", s.resourcesHandler.GetSecret)
+		api.GET("/secrets/:namespace/:name/events", s.resourcesHandler.GetSecretEvents)
 
 		// Generic resource handlers for other Kubernetes resources (SSE)
 		api.GET("/:resource", s.resourcesHandler.GetGenericResourceSSE)
 		api.GET("/:resource/:namespace/:name", s.resourcesHandler.GetGenericResourceDetails)
+		api.GET("/:resource/:namespace/:name/events", s.resourcesHandler.GetGenericResourceEvents)
 	}
+
+	// Serve static files from the dist folder
+	s.router.Static("/assets", s.config.StaticFiles.Path+"/assets")
+
+	// Serve the main index.html for all other routes (SPA routing)
+	s.router.NoRoute(s.serveSPA)
 }
 
 // healthCheck handles health check requests
@@ -159,9 +171,34 @@ func (s *Server) apiInfo(c *gin.Context) {
 	})
 }
 
+// serveSPA serves the main index.html file for SPA routing
+func (s *Server) serveSPA(c *gin.Context) {
+	// Check if the request is for the root path or a path that should serve the SPA
+	path := c.Request.URL.Path
+
+	// Skip API routes
+	if len(path) >= 4 && path[:4] == "/api" {
+		c.Status(http.StatusNotFound)
+		return
+	}
+
+	// Skip health check
+	if path == "/health" {
+		c.Status(http.StatusNotFound)
+		return
+	}
+
+	// Log the SPA request for debugging
+	s.logger.WithField("path", path).Debug("Serving SPA for path")
+
+	// Serve the index.html file for all other routes
+	c.File(s.config.StaticFiles.Path + "/index.html")
+}
+
 // Start starts the server
 func (s *Server) Start() error {
 	s.logger.WithField("address", s.server.Addr).Info("Starting server")
+	s.logger.WithField("static_files_path", s.config.StaticFiles.Path).Info("Static files configuration")
 	return s.server.ListenAndServe()
 }
 
