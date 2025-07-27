@@ -188,13 +188,13 @@ const useFetchDataForDetails = ({
     }
   };
 
-  // For pods and deployments, we need to use the namespace/name pattern in the URL
+  // For pods, deployments, and other namespace-scoped resources, we need to use the namespace/name pattern in the URL
   let eventSourceUrl: string;
-  if ((resourcekind === PODS_ENDPOINT || resourcekind === DEPLOYMENT_ENDPOINT) && namespace) {
-    // Use the pattern /{resource}/{namespace}/{name} for pods and deployments
+  if ((resourcekind === PODS_ENDPOINT || resourcekind === DEPLOYMENT_ENDPOINT || resourcekind === DAEMON_SETS_ENDPOINT || resourcekind === STATEFUL_SETS_ENDPOINT || resourcekind === REPLICA_SETS_ENDPOINT || resourcekind === JOBS_ENDPOINT || resourcekind === CRON_JOBS_ENDPOINT || resourcekind === SERVICES_ENDPOINT || resourcekind === CONFIG_MAPS_ENDPOINT || resourcekind === SECRETS_ENDPOINT || resourcekind === HPA_ENDPOINT || resourcekind === LIMIT_RANGE_ENDPOINT || resourcekind === RESOURCE_QUOTAS_ENDPOINT || resourcekind === SERVICE_ACCOUNTS_ENDPOINT || resourcekind === ROLES_ENDPOINT || resourcekind === ROLE_BINDINGS_ENDPOINT || resourcekind === PERSISTENT_VOLUME_CLAIMS_ENDPOINT || resourcekind === POD_DISRUPTION_BUDGETS_ENDPOINT || resourcekind === ENDPOINTS_ENDPOINT || resourcekind === INGRESSES_ENDPOINT || resourcekind === LEASES_ENDPOINT) && namespace) {
+    // Use the pattern /{resource}/{namespace}/{name} for namespace-scoped resources
     eventSourceUrl = getEventStreamUrl(data?.endpoint, queryParamObject, `/${namespace}/${resourcename}`);
   } else {
-    // Use the default pattern for other resources
+    // Use the default pattern for cluster-scoped resources
     eventSourceUrl = getEventStreamUrl(data?.endpoint, queryParamObject, `/${resourcename}`);
   }
 

@@ -169,6 +169,7 @@ func (s *Server) setupRoutes() {
 		// Generic resource handlers for other Kubernetes resources (SSE)
 		api.GET("/:resource", s.resourcesHandler.GetGenericResourceSSE)
 		api.GET("/:resource/:namespace/:name", s.resourcesHandler.GetGenericResourceDetails)
+		api.GET("/:resource/:namespace/:name/yaml", s.resourcesHandler.GetGenericResourceYAML)
 		api.GET("/:resource/:namespace/:name/events", s.resourcesHandler.GetGenericResourceEvents)
 	}
 

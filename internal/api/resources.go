@@ -3155,3 +3155,175 @@ func (h *ResourcesHandler) transformDaemonSetToResponse(daemonSet *appsV1.Daemon
 
 	return response
 }
+
+// GetGenericResourceYAML returns the YAML representation of a specific generic resource
+func (h *ResourcesHandler) GetGenericResourceYAML(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for generic resource YAML")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	resourceType := c.Param("resource")
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+
+	var result interface{}
+	var err2 error
+
+	switch resourceType {
+	case "daemonsets":
+		result, err2 = client.AppsV1().DaemonSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	case "statefulsets":
+		result, err2 = client.AppsV1().StatefulSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	case "replicasets":
+		result, err2 = client.AppsV1().ReplicaSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	case "jobs":
+		result, err2 = client.BatchV1().Jobs(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	case "cronjobs":
+		result, err2 = client.BatchV1().CronJobs(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	case "horizontalpodautoscalers":
+		result, err2 = client.AutoscalingV2().HorizontalPodAutoscalers(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	case "limitranges":
+		result, err2 = client.CoreV1().LimitRanges(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	case "resourcequotas":
+		result, err2 = client.CoreV1().ResourceQuotas(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	case "serviceaccounts":
+		result, err2 = client.CoreV1().ServiceAccounts(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	case "roles":
+		result, err2 = client.RbacV1().Roles(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	case "rolebindings":
+		result, err2 = client.RbacV1().RoleBindings(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	case "persistentvolumeclaims":
+		result, err2 = client.CoreV1().PersistentVolumeClaims(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	case "poddisruptionbudgets":
+		result, err2 = client.PolicyV1().PodDisruptionBudgets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	case "endpoints":
+		result, err2 = client.CoreV1().Endpoints(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	case "ingresses":
+		result, err2 = client.NetworkingV1().Ingresses(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	case "leases":
+		result, err2 = client.CoordinationV1().Leases(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	default:
+		h.logger.WithField("resource_type", resourceType).Error("Unsupported resource type for YAML")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Unsupported resource type"})
+		return
+	}
+
+	if err2 != nil {
+		h.logger.WithError(err2).WithField("resource_type", resourceType).WithField("name", name).WithField("namespace", namespace).Error("Failed to get resource for YAML")
+		c.JSON(http.StatusNotFound, gin.H{"error": err2.Error()})
+		return
+	}
+
+	// Convert to YAML
+	yamlData, err := yaml.Marshal(result)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to marshal resource to YAML")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// For EventSource, send the YAML data as base64 encoded string
+		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
+		return
+	}
+
+	// Return as base64 encoded string to match frontend expectations
+	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+}
+
+// GetGenericResourceYAMLByName returns the YAML representation of a specific generic resource by name using namespace from query parameters
+func (h *ResourcesHandler) GetGenericResourceYAMLByName(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for generic resource YAML")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	resourceType := c.Param("resource")
+	name := c.Param("name")
+	namespace := c.Query("namespace")
+
+	if namespace == "" {
+		h.logger.WithField("resource_type", resourceType).WithField("name", name).Error("Namespace is required for generic resource YAML lookup")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "namespace parameter is required"})
+		return
+	}
+
+	var result interface{}
+	var err2 error
+
+	switch resourceType {
+	case "daemonsets":
+		result, err2 = client.AppsV1().DaemonSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	case "statefulsets":
+		result, err2 = client.AppsV1().StatefulSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	case "replicasets":
+		result, err2 = client.AppsV1().ReplicaSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	case "jobs":
+		result, err2 = client.BatchV1().Jobs(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	case "cronjobs":
+		result, err2 = client.BatchV1().CronJobs(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	case "horizontalpodautoscalers":
+		result, err2 = client.AutoscalingV2().HorizontalPodAutoscalers(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	case "limitranges":
+		result, err2 = client.CoreV1().LimitRanges(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	case "resourcequotas":
+		result, err2 = client.CoreV1().ResourceQuotas(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	case "serviceaccounts":
+		result, err2 = client.CoreV1().ServiceAccounts(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	case "roles":
+		result, err2 = client.RbacV1().Roles(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	case "rolebindings":
+		result, err2 = client.RbacV1().RoleBindings(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	case "persistentvolumeclaims":
+		result, err2 = client.CoreV1().PersistentVolumeClaims(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	case "poddisruptionbudgets":
+		result, err2 = client.PolicyV1().PodDisruptionBudgets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	case "endpoints":
+		result, err2 = client.CoreV1().Endpoints(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	case "ingresses":
+		result, err2 = client.NetworkingV1().Ingresses(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	case "leases":
+		result, err2 = client.CoordinationV1().Leases(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	default:
+		h.logger.WithField("resource_type", resourceType).Error("Unsupported resource type for YAML")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Unsupported resource type"})
+		return
+	}
+
+	if err2 != nil {
+		h.logger.WithError(err2).WithField("resource_type", resourceType).WithField("name", name).WithField("namespace", namespace).Error("Failed to get resource for YAML")
+		c.JSON(http.StatusNotFound, gin.H{"error": err2.Error()})
+		return
+	}
+
+	// Convert to YAML
+	yamlData, err := yaml.Marshal(result)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to marshal resource to YAML")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// For EventSource, send the YAML data as base64 encoded string
+		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
+		return
+	}
+
+	// Return as base64 encoded string to match frontend expectations
+	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+}
