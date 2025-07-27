@@ -19,16 +19,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 	appsV1 "k8s.io/api/apps/v1"
-	v2 "k8s.io/api/autoscaling/v2"
-	batchV1 "k8s.io/api/batch/v1"
-	coordinationv1 "k8s.io/api/coordination/v1"
 	v1 "k8s.io/api/core/v1"
-	networkingv1 "k8s.io/api/networking/v1"
-	nodev1 "k8s.io/api/node/v1"
-	policyv1 "k8s.io/api/policy/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
-	schedulingv1 "k8s.io/api/scheduling/v1"
-	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
@@ -254,7 +245,7 @@ func (h *ResourcesHandler) getDynamicClient(c *gin.Context) (dynamic.Interface, 
 	return dynamicClient, nil
 }
 
-// sendSSEResponse sends a Server-Sent Events response
+// sendSSEResponse sends a Server-Sent Events response with real-time updates
 func (h *ResourcesHandler) sendSSEResponse(c *gin.Context, data interface{}) {
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
@@ -272,19 +263,84 @@ func (h *ResourcesHandler) sendSSEResponse(c *gin.Context, data interface{}) {
 	c.SSEvent("message", string(jsonData))
 	c.Writer.Flush()
 
-	// Set up periodic updates (every 30 seconds)
-	ticker := time.NewTicker(30 * time.Second)
+	// Set up periodic updates (every 10 seconds for real-time updates)
+	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 
 	// Keep connection alive with periodic updates
 	for {
 		select {
 		case <-c.Request.Context().Done():
+			h.logger.Info("SSE connection closed by client")
 			return
 		case <-ticker.C:
-			// Send a keep-alive comment
+			// Send a keep-alive comment to prevent connection timeout
 			c.SSEvent("", "")
 			c.Writer.Flush()
+		}
+	}
+}
+
+// sendSSEResponseWithUpdates sends a Server-Sent Events response with periodic data updates
+func (h *ResourcesHandler) sendSSEResponseWithUpdates(c *gin.Context, data interface{}, updateFunc func() (interface{}, error)) {
+	// Set proper headers for SSE
+	c.Header("Content-Type", "text/event-stream")
+	c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
+	c.Header("Connection", "keep-alive")
+	c.Header("Access-Control-Allow-Origin", "*")
+	c.Header("Access-Control-Allow-Headers", "Cache-Control")
+	c.Header("X-Accel-Buffering", "no") // Disable nginx buffering if present
+
+	// Send initial data
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to marshal SSE data")
+		return
+	}
+
+	// Use Gin's SSEvent for initial data
+	c.SSEvent("message", string(jsonData))
+	c.Writer.Flush()
+
+	// Set up periodic updates (every 10 seconds for real-time updates)
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+
+	// Keep connection alive with periodic updates
+	for {
+		select {
+		case <-c.Request.Context().Done():
+			h.logger.Info("SSE connection closed by client")
+			return
+		case <-ticker.C:
+			// Fetch fresh data and send update
+			if updateFunc != nil {
+				freshData, err := updateFunc()
+				if err != nil {
+					h.logger.WithError(err).Error("Failed to fetch fresh data for SSE update")
+					// Send keep-alive using SSEvent
+					c.SSEvent("", "")
+					c.Writer.Flush()
+					continue
+				}
+
+				jsonData, err := json.Marshal(freshData)
+				if err != nil {
+					h.logger.WithError(err).Error("Failed to marshal fresh SSE data")
+					// Send keep-alive using SSEvent
+					c.SSEvent("", "")
+					c.Writer.Flush()
+					continue
+				}
+
+				// Send data using SSEvent
+				c.SSEvent("message", string(jsonData))
+				c.Writer.Flush()
+			} else {
+				// Send a keep-alive using SSEvent
+				c.SSEvent("", "")
+				c.Writer.Flush()
+			}
 		}
 	}
 }
@@ -327,7 +383,7 @@ func (h *ResourcesHandler) GetNamespaces(c *gin.Context) {
 	c.JSON(http.StatusOK, namespaces)
 }
 
-// GetNamespacesSSE returns namespaces as Server-Sent Events
+// GetNamespacesSSE returns namespaces as Server-Sent Events with real-time updates
 func (h *ResourcesHandler) GetNamespacesSSE(c *gin.Context) {
 	client, _, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -336,14 +392,25 @@ func (h *ResourcesHandler) GetNamespacesSSE(c *gin.Context) {
 		return
 	}
 
-	namespaceList, err := client.CoreV1().Namespaces().List(c.Request.Context(), metav1.ListOptions{})
+	// Function to fetch namespaces data
+	fetchNamespaces := func() (interface{}, error) {
+		namespaceList, err := client.CoreV1().Namespaces().List(c.Request.Context(), metav1.ListOptions{})
+		if err != nil {
+			return nil, err
+		}
+		return namespaceList.Items, nil
+	}
+
+	// Get initial data
+	initialData, err := fetchNamespaces()
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to list namespaces for SSE")
 		h.sendSSEError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	h.sendSSEResponse(c, namespaceList.Items)
+	// Send SSE response with periodic updates
+	h.sendSSEResponseWithUpdates(c, initialData, fetchNamespaces)
 }
 
 // GetNamespace returns a specific namespace
@@ -611,7 +678,7 @@ func (h *ResourcesHandler) GetNodes(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// GetNodesSSE returns nodes as Server-Sent Events
+// GetNodesSSE returns nodes as Server-Sent Events with real-time updates
 func (h *ResourcesHandler) GetNodesSSE(c *gin.Context) {
 	client, _, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -620,20 +687,32 @@ func (h *ResourcesHandler) GetNodesSSE(c *gin.Context) {
 		return
 	}
 
-	nodeList, err := client.CoreV1().Nodes().List(c.Request.Context(), metav1.ListOptions{})
+	// Function to fetch and transform nodes data
+	fetchNodes := func() (interface{}, error) {
+		nodeList, err := client.CoreV1().Nodes().List(c.Request.Context(), metav1.ListOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		// Transform nodes to frontend-expected format
+		var response []NodeListResponse
+		for _, node := range nodeList.Items {
+			response = append(response, h.transformNodeToResponse(&node))
+		}
+
+		return response, nil
+	}
+
+	// Get initial data
+	initialData, err := fetchNodes()
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to list nodes for SSE")
 		h.sendSSEError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	// Transform nodes to frontend-expected format
-	var response []NodeListResponse
-	for _, node := range nodeList.Items {
-		response = append(response, h.transformNodeToResponse(&node))
-	}
-
-	h.sendSSEResponse(c, response)
+	// Send SSE response with periodic updates
+	h.sendSSEResponseWithUpdates(c, initialData, fetchNodes)
 }
 
 // GetNode returns a specific node
@@ -738,7 +817,7 @@ func (h *ResourcesHandler) GetPods(c *gin.Context) {
 	c.JSON(http.StatusOK, pods)
 }
 
-// GetPodsSSE returns pods as Server-Sent Events
+// GetPodsSSE returns pods as Server-Sent Events with real-time updates
 func (h *ResourcesHandler) GetPodsSSE(c *gin.Context) {
 	client, _, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -751,19 +830,20 @@ func (h *ResourcesHandler) GetPodsSSE(c *gin.Context) {
 	node := c.Query("node")
 	owner := c.Query("owner")
 	ownerName := c.Query("ownerName")
+	configID := c.Query("config")
+	cluster := c.Query("cluster")
 
-	var podList *v1.PodList
-	var err2 error
+	// Function to fetch and transform pods data
+	fetchPods := func() (interface{}, error) {
+		// Build list options with filters
+		listOptions := metav1.ListOptions{}
 
-	// Build list options with filters
-	listOptions := metav1.ListOptions{}
+		// If filtering by node, use field selector
+		if node != "" {
+			listOptions.FieldSelector = fmt.Sprintf("spec.nodeName=%s", node)
+		}
 
-	// If filtering by node, use field selector
-	if node != "" {
-		listOptions.FieldSelector = fmt.Sprintf("spec.nodeName=%s", node)
-	}
-
-			// If filtering by owner (deployment, daemonset, etc.), we need to get the owner first
+		// If filtering by owner (deployment, daemonset, etc.), we need to get the owner first
 		if owner != "" && ownerName != "" && namespace != "" {
 			switch owner {
 			case "deployment":
@@ -784,27 +864,38 @@ func (h *ResourcesHandler) GetPodsSSE(c *gin.Context) {
 			}
 		}
 
-	if namespace != "" {
-		podList, err2 = client.CoreV1().Pods(namespace).List(c.Request.Context(), listOptions)
-	} else {
-		podList, err2 = client.CoreV1().Pods("").List(c.Request.Context(), listOptions)
+		var podList *v1.PodList
+		var err2 error
+
+		if namespace != "" {
+			podList, err2 = client.CoreV1().Pods(namespace).List(c.Request.Context(), listOptions)
+		} else {
+			podList, err2 = client.CoreV1().Pods("").List(c.Request.Context(), listOptions)
+		}
+
+		if err2 != nil {
+			return nil, err2
+		}
+
+		// Transform pods to the expected format
+		var transformedPods []PodListResponse
+		for _, pod := range podList.Items {
+			transformedPods = append(transformedPods, h.transformPodToResponse(&pod, configID, cluster))
+		}
+
+		return transformedPods, nil
 	}
 
-	if err2 != nil {
-		h.logger.WithError(err2).Error("Failed to list pods for SSE")
-		h.sendSSEError(c, http.StatusInternalServerError, err2.Error())
+	// Get initial data
+	initialData, err := fetchPods()
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to list pods for SSE")
+		h.sendSSEError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	// Transform pods to the expected format
-	var transformedPods []PodListResponse
-	configID := c.Query("config")
-	cluster := c.Query("cluster")
-	for _, pod := range podList.Items {
-		transformedPods = append(transformedPods, h.transformPodToResponse(&pod, configID, cluster))
-	}
-
-	h.sendSSEResponse(c, transformedPods)
+	// Send SSE response with periodic updates
+	h.sendSSEResponseWithUpdates(c, initialData, fetchPods)
 }
 
 // GetPodByName returns a specific pod by name using namespace from query parameters
@@ -983,7 +1074,7 @@ func (h *ResourcesHandler) GetDeployments(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// GetDeploymentsSSE returns deployments as Server-Sent Events
+// GetDeploymentsSSE returns deployments as Server-Sent Events with real-time updates
 func (h *ResourcesHandler) GetDeploymentsSSE(c *gin.Context) {
 	client, _, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -993,20 +1084,33 @@ func (h *ResourcesHandler) GetDeploymentsSSE(c *gin.Context) {
 	}
 
 	namespace := c.Query("namespace")
-	deploymentList, err := client.AppsV1().Deployments(namespace).List(c.Request.Context(), metav1.ListOptions{})
+
+	// Function to fetch and transform deployments data
+	fetchDeployments := func() (interface{}, error) {
+		deploymentList, err := client.AppsV1().Deployments(namespace).List(c.Request.Context(), metav1.ListOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		// Transform deployments to frontend-expected format
+		var response []DeploymentListResponse
+		for _, deployment := range deploymentList.Items {
+			response = append(response, h.transformDeploymentToResponse(&deployment))
+		}
+
+		return response, nil
+	}
+
+	// Get initial data
+	initialData, err := fetchDeployments()
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to list deployments for SSE")
 		h.sendSSEError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	// Transform deployments to frontend-expected format
-	var response []DeploymentListResponse
-	for _, deployment := range deploymentList.Items {
-		response = append(response, h.transformDeploymentToResponse(&deployment))
-	}
-
-	h.sendSSEResponse(c, response)
+	// Send SSE response with periodic updates
+	h.sendSSEResponseWithUpdates(c, initialData, fetchDeployments)
 }
 
 // GetDeployment returns a specific deployment
@@ -1295,7 +1399,7 @@ func (h *ResourcesHandler) GetServices(c *gin.Context) {
 	c.JSON(http.StatusOK, services)
 }
 
-// GetServicesSSE returns services as Server-Sent Events
+// GetServicesSSE returns services as Server-Sent Events with real-time updates
 func (h *ResourcesHandler) GetServicesSSE(c *gin.Context) {
 	client, _, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -1305,14 +1409,26 @@ func (h *ResourcesHandler) GetServicesSSE(c *gin.Context) {
 	}
 
 	namespace := c.Query("namespace")
-	serviceList, err := client.CoreV1().Services(namespace).List(c.Request.Context(), metav1.ListOptions{})
+
+	// Function to fetch services data
+	fetchServices := func() (interface{}, error) {
+		serviceList, err := client.CoreV1().Services(namespace).List(c.Request.Context(), metav1.ListOptions{})
+		if err != nil {
+			return nil, err
+		}
+		return serviceList.Items, nil
+	}
+
+	// Get initial data
+	initialData, err := fetchServices()
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to list services for SSE")
 		h.sendSSEError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	h.sendSSEResponse(c, serviceList.Items)
+	// Send SSE response with periodic updates
+	h.sendSSEResponseWithUpdates(c, initialData, fetchServices)
 }
 
 // GetService returns a specific service
@@ -1499,7 +1615,7 @@ func (h *ResourcesHandler) GetConfigMaps(c *gin.Context) {
 	c.JSON(http.StatusOK, configMaps)
 }
 
-// GetConfigMapsSSE returns configmaps as Server-Sent Events
+// GetConfigMapsSSE returns configmaps as Server-Sent Events with real-time updates
 func (h *ResourcesHandler) GetConfigMapsSSE(c *gin.Context) {
 	client, _, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -1509,14 +1625,26 @@ func (h *ResourcesHandler) GetConfigMapsSSE(c *gin.Context) {
 	}
 
 	namespace := c.Query("namespace")
-	configMapList, err := client.CoreV1().ConfigMaps(namespace).List(c.Request.Context(), metav1.ListOptions{})
+
+	// Function to fetch configmaps data
+	fetchConfigMaps := func() (interface{}, error) {
+		configMapList, err := client.CoreV1().ConfigMaps(namespace).List(c.Request.Context(), metav1.ListOptions{})
+		if err != nil {
+			return nil, err
+		}
+		return configMapList.Items, nil
+	}
+
+	// Get initial data
+	initialData, err := fetchConfigMaps()
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to list configmaps for SSE")
 		h.sendSSEError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	h.sendSSEResponse(c, configMapList.Items)
+	// Send SSE response with periodic updates
+	h.sendSSEResponseWithUpdates(c, initialData, fetchConfigMaps)
 }
 
 // GetConfigMap returns a specific configmap
@@ -1703,7 +1831,7 @@ func (h *ResourcesHandler) GetSecrets(c *gin.Context) {
 	c.JSON(http.StatusOK, secrets)
 }
 
-// GetSecretsSSE returns secrets as Server-Sent Events
+// GetSecretsSSE returns secrets as Server-Sent Events with real-time updates
 func (h *ResourcesHandler) GetSecretsSSE(c *gin.Context) {
 	client, _, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -1713,14 +1841,26 @@ func (h *ResourcesHandler) GetSecretsSSE(c *gin.Context) {
 	}
 
 	namespace := c.Query("namespace")
-	secretList, err := client.CoreV1().Secrets(namespace).List(c.Request.Context(), metav1.ListOptions{})
+
+	// Function to fetch secrets data
+	fetchSecrets := func() (interface{}, error) {
+		secretList, err := client.CoreV1().Secrets(namespace).List(c.Request.Context(), metav1.ListOptions{})
+		if err != nil {
+			return nil, err
+		}
+		return secretList.Items, nil
+	}
+
+	// Get initial data
+	initialData, err := fetchSecrets()
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to list secrets for SSE")
 		h.sendSSEError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	h.sendSSEResponse(c, secretList.Items)
+	// Send SSE response with periodic updates
+	h.sendSSEResponseWithUpdates(c, initialData, fetchSecrets)
 }
 
 // GetSecret returns a specific secret
@@ -1913,7 +2053,7 @@ func (h *ResourcesHandler) GetCustomResourceDefinitions(c *gin.Context) {
 	c.JSON(http.StatusOK, crdList)
 }
 
-// GetCustomResourceDefinitionsSSE returns CRDs as Server-Sent Events
+// GetCustomResourceDefinitionsSSE returns CRDs as Server-Sent Events with real-time updates
 func (h *ResourcesHandler) GetCustomResourceDefinitionsSSE(c *gin.Context) {
 	dynamicClient, err := h.getDynamicClient(c)
 	if err != nil {
@@ -1922,22 +2062,34 @@ func (h *ResourcesHandler) GetCustomResourceDefinitionsSSE(c *gin.Context) {
 		return
 	}
 
-	// CRDs are in the apiextensions.k8s.io/v1 API group
-	gvr := schema.GroupVersionResource{
-		Group:    "apiextensions.k8s.io",
-		Version:  "v1",
-		Resource: "customresourcedefinitions",
+	// Function to fetch CRDs data
+	fetchCRDs := func() (interface{}, error) {
+		// CRDs are in the apiextensions.k8s.io/v1 API group
+		gvr := schema.GroupVersionResource{
+			Group:    "apiextensions.k8s.io",
+			Version:  "v1",
+			Resource: "customresourcedefinitions",
+		}
+
+		crdList, err := dynamicClient.Resource(gvr).List(c.Request.Context(), metav1.ListOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		items, _ := crdList.UnstructuredContent()["items"].([]interface{})
+		return items, nil
 	}
 
-	crdList, err := dynamicClient.Resource(gvr).List(c.Request.Context(), metav1.ListOptions{})
+	// Get initial data
+	initialData, err := fetchCRDs()
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to list custom resource definitions for SSE")
 		h.sendSSEError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	items, _ := crdList.UnstructuredContent()["items"].([]interface{})
-	h.sendSSEResponse(c, items)
+	// Send SSE response with periodic updates
+	h.sendSSEResponseWithUpdates(c, initialData, fetchCRDs)
 }
 
 // GetCustomResourceDefinition returns a specific CRD
@@ -2219,7 +2371,7 @@ func (h *ResourcesHandler) GetGenericResource(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-// GetGenericResourceSSE returns generic resources as Server-Sent Events
+// GetGenericResourceSSE returns generic resources as Server-Sent Events with real-time updates
 func (h *ResourcesHandler) GetGenericResourceSSE(c *gin.Context) {
 	client, _, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -2231,149 +2383,177 @@ func (h *ResourcesHandler) GetGenericResourceSSE(c *gin.Context) {
 	resourceType := c.Param("resource")
 	namespace := c.Query("namespace")
 
-	var result interface{}
-	var err2 error
-
-	switch resourceType {
-	case "daemonsets":
-		daemonSetList, err2 := client.AppsV1().DaemonSets(namespace).List(c.Request.Context(), metav1.ListOptions{})
-		if err2 == nil {
+	// Function to fetch and transform data based on resource type
+	fetchResource := func() (interface{}, error) {
+		switch resourceType {
+		case "daemonsets":
+			daemonSetList, err := client.AppsV1().DaemonSets(namespace).List(c.Request.Context(), metav1.ListOptions{})
+			if err != nil {
+				return nil, err
+			}
 			// Transform DaemonSets to frontend-expected format
 			var response []DaemonSetListResponse
 			for _, daemonSet := range daemonSetList.Items {
 				response = append(response, h.transformDaemonSetToResponse(&daemonSet))
 			}
-			h.sendSSEResponse(c, response)
-			return
-		}
-		result = daemonSetList
-		err2 = err2
-	case "statefulsets":
-		statefulSetList, err2 := client.AppsV1().StatefulSets(namespace).List(c.Request.Context(), metav1.ListOptions{})
-		if err2 == nil {
+			return response, nil
+		case "statefulsets":
+			statefulSetList, err := client.AppsV1().StatefulSets(namespace).List(c.Request.Context(), metav1.ListOptions{})
+			if err != nil {
+				return nil, err
+			}
 			// Transform StatefulSets to frontend-expected format
 			var response []StatefulSetListResponse
 			for _, statefulSet := range statefulSetList.Items {
 				response = append(response, h.transformStatefulSetToResponse(&statefulSet))
 			}
-			h.sendSSEResponse(c, response)
-			return
-		}
-		result = statefulSetList
-		err2 = err2
-	case "replicasets":
-		replicaSetList, err2 := client.AppsV1().ReplicaSets(namespace).List(c.Request.Context(), metav1.ListOptions{})
-		if err2 == nil {
+			return response, nil
+		case "replicasets":
+			replicaSetList, err := client.AppsV1().ReplicaSets(namespace).List(c.Request.Context(), metav1.ListOptions{})
+			if err != nil {
+				return nil, err
+			}
 			// Transform ReplicaSets to frontend-expected format
 			var response []ReplicaSetListResponse
 			for _, replicaSet := range replicaSetList.Items {
 				response = append(response, h.transformReplicaSetToResponse(&replicaSet))
 			}
-			h.sendSSEResponse(c, response)
-			return
+			return response, nil
+		case "jobs":
+			result, err := client.BatchV1().Jobs(namespace).List(c.Request.Context(), metav1.ListOptions{})
+			if err != nil {
+				return nil, err
+			}
+			return result.Items, nil
+		case "cronjobs":
+			result, err := client.BatchV1().CronJobs(namespace).List(c.Request.Context(), metav1.ListOptions{})
+			if err != nil {
+				return nil, err
+			}
+			return result.Items, nil
+		case "horizontalpodautoscalers":
+			result, err := client.AutoscalingV2().HorizontalPodAutoscalers(namespace).List(c.Request.Context(), metav1.ListOptions{})
+			if err != nil {
+				return nil, err
+			}
+			return result.Items, nil
+		case "limitranges":
+			result, err := client.CoreV1().LimitRanges(namespace).List(c.Request.Context(), metav1.ListOptions{})
+			if err != nil {
+				return nil, err
+			}
+			return result.Items, nil
+		case "resourcequotas":
+			result, err := client.CoreV1().ResourceQuotas(namespace).List(c.Request.Context(), metav1.ListOptions{})
+			if err != nil {
+				return nil, err
+			}
+			return result.Items, nil
+		case "serviceaccounts":
+			result, err := client.CoreV1().ServiceAccounts(namespace).List(c.Request.Context(), metav1.ListOptions{})
+			if err != nil {
+				return nil, err
+			}
+			return result.Items, nil
+		case "roles":
+			result, err := client.RbacV1().Roles(namespace).List(c.Request.Context(), metav1.ListOptions{})
+			if err != nil {
+				return nil, err
+			}
+			return result.Items, nil
+		case "rolebindings":
+			result, err := client.RbacV1().RoleBindings(namespace).List(c.Request.Context(), metav1.ListOptions{})
+			if err != nil {
+				return nil, err
+			}
+			return result.Items, nil
+		case "clusterroles":
+			result, err := client.RbacV1().ClusterRoles().List(c.Request.Context(), metav1.ListOptions{})
+			if err != nil {
+				return nil, err
+			}
+			return result.Items, nil
+		case "clusterrolebindings":
+			result, err := client.RbacV1().ClusterRoleBindings().List(c.Request.Context(), metav1.ListOptions{})
+			if err != nil {
+				return nil, err
+			}
+			return result.Items, nil
+		case "persistentvolumes":
+			result, err := client.CoreV1().PersistentVolumes().List(c.Request.Context(), metav1.ListOptions{})
+			if err != nil {
+				return nil, err
+			}
+			return result.Items, nil
+		case "persistentvolumeclaims":
+			result, err := client.CoreV1().PersistentVolumeClaims(namespace).List(c.Request.Context(), metav1.ListOptions{})
+			if err != nil {
+				return nil, err
+			}
+			return result.Items, nil
+		case "storageclasses":
+			result, err := client.StorageV1().StorageClasses().List(c.Request.Context(), metav1.ListOptions{})
+			if err != nil {
+				return nil, err
+			}
+			return result.Items, nil
+		case "priorityclasses":
+			result, err := client.SchedulingV1().PriorityClasses().List(c.Request.Context(), metav1.ListOptions{})
+			if err != nil {
+				return nil, err
+			}
+			return result.Items, nil
+		case "leases":
+			result, err := client.CoordinationV1().Leases(namespace).List(c.Request.Context(), metav1.ListOptions{})
+			if err != nil {
+				return nil, err
+			}
+			return result.Items, nil
+		case "runtimeclasses":
+			result, err := client.NodeV1().RuntimeClasses().List(c.Request.Context(), metav1.ListOptions{})
+			if err != nil {
+				return nil, err
+			}
+			return result.Items, nil
+		case "poddisruptionbudgets":
+			result, err := client.PolicyV1().PodDisruptionBudgets(namespace).List(c.Request.Context(), metav1.ListOptions{})
+			if err != nil {
+				return nil, err
+			}
+			return result.Items, nil
+		case "endpoints":
+			result, err := client.CoreV1().Endpoints(namespace).List(c.Request.Context(), metav1.ListOptions{})
+			if err != nil {
+				return nil, err
+			}
+			return result.Items, nil
+		case "ingresses":
+			result, err := client.NetworkingV1().Ingresses(namespace).List(c.Request.Context(), metav1.ListOptions{})
+			if err != nil {
+				return nil, err
+			}
+			return result.Items, nil
+		case "events":
+			result, err := client.CoreV1().Events(namespace).List(c.Request.Context(), metav1.ListOptions{})
+			if err != nil {
+				return nil, err
+			}
+			return result.Items, nil
+		default:
+			return nil, fmt.Errorf("Resource type %s not supported", resourceType)
 		}
-		result = replicaSetList
-		err2 = err2
-	case "jobs":
-		result, err2 = client.BatchV1().Jobs(namespace).List(c.Request.Context(), metav1.ListOptions{})
-	case "cronjobs":
-		result, err2 = client.BatchV1().CronJobs(namespace).List(c.Request.Context(), metav1.ListOptions{})
-	case "horizontalpodautoscalers":
-		result, err2 = client.AutoscalingV2().HorizontalPodAutoscalers(namespace).List(c.Request.Context(), metav1.ListOptions{})
-	case "limitranges":
-		result, err2 = client.CoreV1().LimitRanges(namespace).List(c.Request.Context(), metav1.ListOptions{})
-	case "resourcequotas":
-		result, err2 = client.CoreV1().ResourceQuotas(namespace).List(c.Request.Context(), metav1.ListOptions{})
-	case "serviceaccounts":
-		result, err2 = client.CoreV1().ServiceAccounts(namespace).List(c.Request.Context(), metav1.ListOptions{})
-	case "roles":
-		result, err2 = client.RbacV1().Roles(namespace).List(c.Request.Context(), metav1.ListOptions{})
-	case "rolebindings":
-		result, err2 = client.RbacV1().RoleBindings(namespace).List(c.Request.Context(), metav1.ListOptions{})
-	case "clusterroles":
-		result, err2 = client.RbacV1().ClusterRoles().List(c.Request.Context(), metav1.ListOptions{})
-	case "clusterrolebindings":
-		result, err2 = client.RbacV1().ClusterRoleBindings().List(c.Request.Context(), metav1.ListOptions{})
-	case "persistentvolumes":
-		result, err2 = client.CoreV1().PersistentVolumes().List(c.Request.Context(), metav1.ListOptions{})
-	case "persistentvolumeclaims":
-		result, err2 = client.CoreV1().PersistentVolumeClaims(namespace).List(c.Request.Context(), metav1.ListOptions{})
-	case "storageclasses":
-		result, err2 = client.StorageV1().StorageClasses().List(c.Request.Context(), metav1.ListOptions{})
-	case "priorityclasses":
-		result, err2 = client.SchedulingV1().PriorityClasses().List(c.Request.Context(), metav1.ListOptions{})
-	case "leases":
-		result, err2 = client.CoordinationV1().Leases(namespace).List(c.Request.Context(), metav1.ListOptions{})
-	case "runtimeclasses":
-		result, err2 = client.NodeV1().RuntimeClasses().List(c.Request.Context(), metav1.ListOptions{})
-	case "poddisruptionbudgets":
-		result, err2 = client.PolicyV1().PodDisruptionBudgets(namespace).List(c.Request.Context(), metav1.ListOptions{})
-	case "endpoints":
-		result, err2 = client.CoreV1().Endpoints(namespace).List(c.Request.Context(), metav1.ListOptions{})
-	case "ingresses":
-		result, err2 = client.NetworkingV1().Ingresses(namespace).List(c.Request.Context(), metav1.ListOptions{})
-	case "events":
-		result, err2 = client.CoreV1().Events(namespace).List(c.Request.Context(), metav1.ListOptions{})
-	default:
-		c.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("Resource type %s not supported", resourceType)})
+	}
+
+	// Get initial data
+	initialData, err := fetchResource()
+	if err != nil {
+		h.logger.WithError(err).WithField("resource_type", resourceType).Error("Failed to list resource for SSE")
+		h.sendSSEError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	if err2 != nil {
-		h.logger.WithError(err2).WithField("resource_type", resourceType).Error("Failed to list resource for SSE")
-		h.sendSSEError(c, http.StatusInternalServerError, err2.Error())
-		return
-	}
-
-	// For known types, send only .Items
-	switch typed := result.(type) {
-	case *appsV1.StatefulSetList:
-		h.sendSSEResponse(c, typed.Items)
-	case *appsV1.ReplicaSetList:
-		h.sendSSEResponse(c, typed.Items)
-	case *batchV1.JobList:
-		h.sendSSEResponse(c, typed.Items)
-	case *batchV1.CronJobList:
-		h.sendSSEResponse(c, typed.Items)
-	case *v2.HorizontalPodAutoscalerList:
-		h.sendSSEResponse(c, typed.Items)
-	case *v1.LimitRangeList:
-		h.sendSSEResponse(c, typed.Items)
-	case *v1.ResourceQuotaList:
-		h.sendSSEResponse(c, typed.Items)
-	case *v1.ServiceAccountList:
-		h.sendSSEResponse(c, typed.Items)
-	case *rbacv1.RoleList:
-		h.sendSSEResponse(c, typed.Items)
-	case *rbacv1.RoleBindingList:
-		h.sendSSEResponse(c, typed.Items)
-	case *rbacv1.ClusterRoleList:
-		h.sendSSEResponse(c, typed.Items)
-	case *rbacv1.ClusterRoleBindingList:
-		h.sendSSEResponse(c, typed.Items)
-	case *v1.PersistentVolumeList:
-		h.sendSSEResponse(c, typed.Items)
-	case *v1.PersistentVolumeClaimList:
-		h.sendSSEResponse(c, typed.Items)
-	case *storagev1.StorageClassList:
-		h.sendSSEResponse(c, typed.Items)
-	case *schedulingv1.PriorityClassList:
-		h.sendSSEResponse(c, typed.Items)
-	case *coordinationv1.LeaseList:
-		h.sendSSEResponse(c, typed.Items)
-	case *nodev1.RuntimeClassList:
-		h.sendSSEResponse(c, typed.Items)
-	case *policyv1.PodDisruptionBudgetList:
-		h.sendSSEResponse(c, typed.Items)
-	case *v1.EndpointsList:
-		h.sendSSEResponse(c, typed.Items)
-	case *networkingv1.IngressList:
-		h.sendSSEResponse(c, typed.Items)
-	case *v1.EventList:
-		h.sendSSEResponse(c, typed.Items)
-	default:
-		h.sendSSEResponse(c, result)
-	}
+	// Send SSE response with periodic updates
+	h.sendSSEResponseWithUpdates(c, initialData, fetchResource)
 }
 
 // GetGenericResourceDetails returns details for a specific resource
@@ -3500,6 +3680,7 @@ func (h *ResourcesHandler) GetGenericResourceYAMLByName(c *gin.Context) {
 }
 
 // GetDaemonSetsSSE returns daemonsets as Server-Sent Events
+// GetDaemonSetsSSE returns daemonsets as Server-Sent Events with real-time updates
 func (h *ResourcesHandler) GetDaemonSetsSSE(c *gin.Context) {
 	client, _, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -3509,20 +3690,33 @@ func (h *ResourcesHandler) GetDaemonSetsSSE(c *gin.Context) {
 	}
 
 	namespace := c.Query("namespace")
-	daemonSetList, err := client.AppsV1().DaemonSets(namespace).List(c.Request.Context(), metav1.ListOptions{})
+
+	// Function to fetch and transform daemonsets data
+	fetchDaemonSets := func() (interface{}, error) {
+		daemonSetList, err := client.AppsV1().DaemonSets(namespace).List(c.Request.Context(), metav1.ListOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		// Transform daemonsets to frontend-expected format
+		var response []DaemonSetListResponse
+		for _, daemonSet := range daemonSetList.Items {
+			response = append(response, h.transformDaemonSetToResponse(&daemonSet))
+		}
+
+		return response, nil
+	}
+
+	// Get initial data
+	initialData, err := fetchDaemonSets()
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to list daemonsets for SSE")
 		h.sendSSEError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	// Transform daemonsets to frontend-expected format
-	var response []DaemonSetListResponse
-	for _, daemonSet := range daemonSetList.Items {
-		response = append(response, h.transformDaemonSetToResponse(&daemonSet))
-	}
-
-	h.sendSSEResponse(c, response)
+	// Send SSE response with periodic updates
+	h.sendSSEResponseWithUpdates(c, initialData, fetchDaemonSets)
 }
 
 // GetDaemonSet returns a specific daemonset

@@ -63,7 +63,7 @@ export function PodExec({ pod, namespace, configName, clusterName, podDetailsSpe
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/api/v1/pods/${namespace}/${pod}/exec/ws?container=${selectedContainer}&command=${command}&config=${configName}&cluster=${clusterName}`;
     
-    console.log('Connecting to WebSocket:', wsUrl);
+    // console.log('Connecting to WebSocket:', wsUrl);
     
     const websocket = new WebSocket(wsUrl);
     
@@ -71,7 +71,7 @@ export function PodExec({ pod, namespace, configName, clusterName, podDetailsSpe
     wsRef.current = websocket;
     
     websocket.onopen = () => {
-      console.log('WebSocket connected successfully');
+      // console.log('WebSocket connected successfully');
       setIsConnected(true);
       if (xterm.current) {
         xterm.current.writeln(`\r\n\x1b[32mConnected to pod ${pod} in container ${selectedContainer}\x1b[0m`);
@@ -81,7 +81,7 @@ export function PodExec({ pod, namespace, configName, clusterName, podDetailsSpe
     };
 
     websocket.onmessage = (event) => {
-      console.log('WebSocket message received:', event.data);
+      // console.log('WebSocket message received:', event.data);
       try {
         const data = JSON.parse(event.data);
         if (xterm.current) {
@@ -111,7 +111,7 @@ export function PodExec({ pod, namespace, configName, clusterName, podDetailsSpe
     };
 
     websocket.onclose = (event) => {
-      console.log('WebSocket closed:', event.code, event.reason);
+      // console.log('WebSocket closed:', event.code, event.reason);
       setIsConnected(false);
       wsRef.current = null;
       if (xterm.current) {
@@ -131,7 +131,7 @@ export function PodExec({ pod, namespace, configName, clusterName, podDetailsSpe
   const handleTerminalInput = (data: string) => {
     
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      console.log('Cannot send input - WebSocket not connected or not open');
+      // console.log('Cannot send input - WebSocket not connected or not open');
       return;
     }
 
@@ -151,17 +151,17 @@ export function PodExec({ pod, namespace, configName, clusterName, podDetailsSpe
       // Ctrl+C (ETX) - interrupt
       else if (charCode === 3) {
         // Let the backend handle the interrupt
-        console.log('Ctrl+C detected - sending interrupt signal');
+        // console.log('Ctrl+C detected - sending interrupt signal');
       }
       // Ctrl+D (EOT) - end of transmission
       else if (charCode === 4) {
         // Let the backend handle the EOF
-        console.log('Ctrl+D detected - sending EOF signal');
+        // console.log('Ctrl+D detected - sending EOF signal');
       }
       // Ctrl+Z (SUB) - suspend
       else if (charCode === 26) {
         // Let the backend handle the suspend
-        console.log('Ctrl+Z detected - sending suspend signal');
+        // console.log('Ctrl+Z detected - sending suspend signal');
       }
     }
     // Handle ANSI escape sequences for clear screen

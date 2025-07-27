@@ -8,6 +8,7 @@ import { useAppDispatch } from "@/redux/hooks";
 import { useEventSource } from "../EventSource";
 import useGenerateColumns from "../TableColumns";
 import { useSidebar } from "@/components/ui/sidebar";
+import { useState } from "react";
 
 type CreateTableProps<T, C extends HeaderList> = {
   clusterName: string;
@@ -39,6 +40,8 @@ const CreateTable = <T extends ClusterDetails, C extends HeaderList>({
 }: CreateTableProps<T, C>) => {
 
   const dispatch = useAppDispatch();
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'reconnecting' | 'error'>('connecting');
+  
   const sendMessage = (message: object[]) => {
     dispatch(dispatchMethod(message));
   };
@@ -46,6 +49,7 @@ const CreateTable = <T extends ClusterDetails, C extends HeaderList>({
   useEventSource({
     url: getEventStreamUrl(endpoint, queryParmObject),
     sendMessage,
+    onConnectionStatusChange: setConnectionStatus,
   });
 
   const { open, isMobile } = useSidebar();
@@ -79,6 +83,7 @@ const CreateTable = <T extends ClusterDetails, C extends HeaderList>({
           tableWidthCss={cn('list-table-max-height', 'h-screen', getTableClasses())}
           instanceType={instanceType}
           loading={loading}
+          connectionStatus={connectionStatus}
         />
       </div>
     </div>

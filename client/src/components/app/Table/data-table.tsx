@@ -37,6 +37,7 @@ type DataTableProps<TData, TValue> = {
   showToolbar?: boolean;
   loading?: boolean;
   isEventTable?: boolean;
+  connectionStatus?: 'connecting' | 'connected' | 'reconnecting' | 'error';
 }
 
 declare global {
@@ -71,6 +72,7 @@ export function DataTable<TData, TValue>({
   showToolbar = true,
   loading = false,
   isEventTable = false,
+  connectionStatus = 'connected',
 }: DataTableProps<TData, TValue>) {
 
   const {
@@ -133,7 +135,7 @@ export function DataTable<TData, TValue>({
     <>
       {
         showToolbar
-        && <DataTableToolbar loading={loading} table={table} globalFilter={globalFilter} setGlobalFilter={setGlobalFilter} showNamespaceFilter={showNamespaceFilter} />
+        && <DataTableToolbar loading={loading} table={table} globalFilter={globalFilter} setGlobalFilter={setGlobalFilter} showNamespaceFilter={showNamespaceFilter} connectionStatus={connectionStatus} />
       }
       {
          
