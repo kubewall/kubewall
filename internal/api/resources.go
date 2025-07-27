@@ -185,6 +185,27 @@ type JobListResponse struct {
 	} `json:"status"`
 }
 
+// CronJobListResponse represents the response format expected by the frontend for cronjobs
+type CronJobListResponse struct {
+	Age        string `json:"age"`
+	HasUpdated bool   `json:"hasUpdated"`
+	Name       string `json:"name"`
+	Namespace  string `json:"namespace"`
+	UID        string `json:"uid"`
+	Spec       struct {
+		Schedule                   string `json:"schedule"`
+		ConcurrencyPolicy          string `json:"concurrencyPolicy"`
+		Suspend                    bool   `json:"suspend"`
+		SuccessfulJobsHistoryLimit int32  `json:"successfulJobsHistoryLimit"`
+		FailedJobsHistoryLimit     int32  `json:"failedJobsHistoryLimit"`
+	} `json:"spec"`
+	Status struct {
+		Active             int32  `json:"active"`
+		LastScheduleTime   string `json:"lastScheduleTime"`
+		LastSuccessfulTime string `json:"lastSuccessfulTime"`
+	} `json:"status"`
+}
+
 // ResourcesHandler handles Kubernetes resource-related API requests
 type ResourcesHandler struct {
 	store         *storage.KubeConfigStore
@@ -2353,7 +2374,12 @@ func (h *ResourcesHandler) GetGenericResourceSSE(c *gin.Context) {
 			if err != nil {
 				return nil, err
 			}
-			return result.Items, nil
+			// Transform CronJobs to frontend-expected format
+			var response []CronJobListResponse
+			for _, cronJob := range result.Items {
+				response = append(response, h.transformCronJobToResponse(&cronJob))
+			}
+			return response, nil
 		case "horizontalpodautoscalers":
 			result, err := client.AutoscalingV2().HorizontalPodAutoscalers(namespace).List(c.Request.Context(), metav1.ListOptions{})
 			if err != nil {
@@ -3405,6 +3431,78 @@ func (h *ResourcesHandler) transformJobToResponse(job *batchV1.Job) JobListRespo
 	return response
 }
 
+func (h *ResourcesHandler) transformCronJobToResponse(cronJob *batchV1.CronJob) CronJobListResponse {
+	// Send creation timestamp instead of calculated age
+	age := ""
+	if cronJob.CreationTimestamp.Time != (time.Time{}) {
+		age = cronJob.CreationTimestamp.Time.Format(time.RFC3339)
+	}
+
+	// Set default values for spec fields
+	schedule := cronJob.Spec.Schedule
+	concurrencyPolicy := string(cronJob.Spec.ConcurrencyPolicy)
+
+	suspend := false
+	if cronJob.Spec.Suspend != nil {
+		suspend = *cronJob.Spec.Suspend
+	}
+
+	successfulJobsHistoryLimit := int32(3)
+	if cronJob.Spec.SuccessfulJobsHistoryLimit != nil {
+		successfulJobsHistoryLimit = *cronJob.Spec.SuccessfulJobsHistoryLimit
+	}
+
+	failedJobsHistoryLimit := int32(1)
+	if cronJob.Spec.FailedJobsHistoryLimit != nil {
+		failedJobsHistoryLimit = *cronJob.Spec.FailedJobsHistoryLimit
+	}
+
+	// Set default values for status fields
+	active := int32(len(cronJob.Status.Active))
+
+	lastScheduleTime := ""
+	if cronJob.Status.LastScheduleTime != nil {
+		lastScheduleTime = cronJob.Status.LastScheduleTime.Time.Format(time.RFC3339)
+	}
+
+	lastSuccessfulTime := ""
+	if cronJob.Status.LastSuccessfulTime != nil {
+		lastSuccessfulTime = cronJob.Status.LastSuccessfulTime.Time.Format(time.RFC3339)
+	}
+
+	response := CronJobListResponse{
+		Age:        age,
+		HasUpdated: false, // This would need to be tracked separately
+		Name:       cronJob.Name,
+		Namespace:  cronJob.Namespace,
+		UID:        string(cronJob.UID),
+		Spec: struct {
+			Schedule                   string `json:"schedule"`
+			ConcurrencyPolicy          string `json:"concurrencyPolicy"`
+			Suspend                    bool   `json:"suspend"`
+			SuccessfulJobsHistoryLimit int32  `json:"successfulJobsHistoryLimit"`
+			FailedJobsHistoryLimit     int32  `json:"failedJobsHistoryLimit"`
+		}{
+			Schedule:                   schedule,
+			ConcurrencyPolicy:          concurrencyPolicy,
+			Suspend:                    suspend,
+			SuccessfulJobsHistoryLimit: successfulJobsHistoryLimit,
+			FailedJobsHistoryLimit:     failedJobsHistoryLimit,
+		},
+		Status: struct {
+			Active             int32  `json:"active"`
+			LastScheduleTime   string `json:"lastScheduleTime"`
+			LastSuccessfulTime string `json:"lastSuccessfulTime"`
+		}{
+			Active:             active,
+			LastScheduleTime:   lastScheduleTime,
+			LastSuccessfulTime: lastSuccessfulTime,
+		},
+	}
+
+	return response
+}
+
 // GetDaemonSetsSSE returns daemonsets as Server-Sent Events
 // GetDaemonSetsSSE returns daemonsets as Server-Sent Events with real-time updates
 func (h *ResourcesHandler) GetDaemonSetsSSE(c *gin.Context) {
@@ -4054,7 +4152,12 @@ func (h *ResourcesHandler) GetCronJobsSSE(c *gin.Context) {
 		if err != nil {
 			return nil, err
 		}
-		return cronJobList.Items, nil
+		// Transform CronJobs to frontend-expected format
+		var response []CronJobListResponse
+		for _, cronJob := range cronJobList.Items {
+			response = append(response, h.transformCronJobToResponse(&cronJob))
+		}
+		return response, nil
 	}
 
 	// Get initial data
