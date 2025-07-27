@@ -110,8 +110,8 @@ export function PodExec({ pod, namespace, configName, clusterName, podDetailsSpe
       }
     };
 
-    websocket.onclose = (event) => {
-      // console.log('WebSocket closed:', event.code, event.reason);
+    websocket.onclose = () => {
+      // console.log('WebSocket closed');
       setIsConnected(false);
       wsRef.current = null;
       if (xterm.current) {
