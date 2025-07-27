@@ -73,6 +73,7 @@ import serviceDetailSlice from '@/data/Networks/Services/ServiceDetailSlice';
 import servicesListSlice from '@/data/Networks/Services/ServicesListSlice';
 import statefulSetDetailsSlice from '@/data/Workloads/StatefulSets/StatefulSetDetailsSlice';
 import statefulSetsSlice from '@/data/Workloads/StatefulSets/StatefulSetsSlice';
+import statefulSetPodsSlice from '@/data/Workloads/StatefulSets/StatefulSetPodsSlice';
 import storageClassDetailsSlice from '@/data/Storages/StorageClasses/StorageClassDetailsSlice';
 import storageClassesListSlice from '@/data/Storages/StorageClasses/StorageClassesListSlice';
 import updateYamlSlice from '@/data/Yaml/YamlUpdateSlice';
@@ -101,6 +102,7 @@ const store = configureStore({
     replicaSetDetails: replicaSetDetailsSlice,
     statefulSets: statefulSetsSlice,
     statefulSetDetails: statefulSetDetailsSlice,
+    statefulSetPods: statefulSetPodsSlice,
     configMaps: configMapsSlice,
     yaml: yamlSlice,
     updateYaml: updateYamlSlice,

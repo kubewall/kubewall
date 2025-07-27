@@ -135,6 +135,22 @@ type DaemonSetListResponse struct {
 	} `json:"status"`
 }
 
+// StatefulSetListResponse represents the response format expected by the frontend for statefulsets
+type StatefulSetListResponse struct {
+	Age        string `json:"age"`
+	HasUpdated bool   `json:"hasUpdated"`
+	Name       string `json:"name"`
+	Namespace  string `json:"namespace"`
+	UID        string `json:"uid"`
+	Status     struct {
+		Replicas             int32 `json:"replicas"`
+		FullyLabeledReplicas int32 `json:"fullyLabeledReplicas"`
+		ReadyReplicas        int32 `json:"readyReplicas"`
+		AvailableReplicas    int32 `json:"availableReplicas"`
+		ObservedGeneration   int64 `json:"observedGeneration"`
+	} `json:"status"`
+}
+
 // ResourcesHandler handles Kubernetes resource-related API requests
 type ResourcesHandler struct {
 	store         *storage.KubeConfigStore
@@ -2103,7 +2119,18 @@ func (h *ResourcesHandler) GetGenericResource(c *gin.Context) {
 		result = daemonSetList
 		err2 = err2
 	case "statefulsets":
-		result, err2 = client.AppsV1().StatefulSets(namespace).List(c.Request.Context(), metav1.ListOptions{})
+		statefulSetList, err2 := client.AppsV1().StatefulSets(namespace).List(c.Request.Context(), metav1.ListOptions{})
+		if err2 == nil {
+			// Transform StatefulSets to frontend-expected format
+			var response []StatefulSetListResponse
+			for _, statefulSet := range statefulSetList.Items {
+				response = append(response, h.transformStatefulSetToResponse(&statefulSet))
+			}
+			c.JSON(http.StatusOK, response)
+			return
+		}
+		result = statefulSetList
+		err2 = err2
 	case "replicasets":
 		result, err2 = client.AppsV1().ReplicaSets(namespace).List(c.Request.Context(), metav1.ListOptions{})
 	case "jobs":
@@ -2190,7 +2217,18 @@ func (h *ResourcesHandler) GetGenericResourceSSE(c *gin.Context) {
 		result = daemonSetList
 		err2 = err2
 	case "statefulsets":
-		result, err2 = client.AppsV1().StatefulSets(namespace).List(c.Request.Context(), metav1.ListOptions{})
+		statefulSetList, err2 := client.AppsV1().StatefulSets(namespace).List(c.Request.Context(), metav1.ListOptions{})
+		if err2 == nil {
+			// Transform StatefulSets to frontend-expected format
+			var response []StatefulSetListResponse
+			for _, statefulSet := range statefulSetList.Items {
+				response = append(response, h.transformStatefulSetToResponse(&statefulSet))
+			}
+			h.sendSSEResponse(c, response)
+			return
+		}
+		result = statefulSetList
+		err2 = err2
 	case "replicasets":
 		result, err2 = client.AppsV1().ReplicaSets(namespace).List(c.Request.Context(), metav1.ListOptions{})
 	case "jobs":
@@ -3184,6 +3222,37 @@ func (h *ResourcesHandler) transformDaemonSetToResponse(daemonSet *appsV1.Daemon
 	return response
 }
 
+func (h *ResourcesHandler) transformStatefulSetToResponse(statefulSet *appsV1.StatefulSet) StatefulSetListResponse {
+	// Send creation timestamp instead of calculated age
+	age := ""
+	if statefulSet.CreationTimestamp.Time != (time.Time{}) {
+		age = statefulSet.CreationTimestamp.Time.Format(time.RFC3339)
+	}
+
+	response := StatefulSetListResponse{
+		Age:        age,
+		HasUpdated: false, // This would need to be tracked separately
+		Name:       statefulSet.Name,
+		Namespace:  statefulSet.Namespace,
+		UID:        string(statefulSet.UID),
+		Status: struct {
+			Replicas             int32 `json:"replicas"`
+			FullyLabeledReplicas int32 `json:"fullyLabeledReplicas"`
+			ReadyReplicas        int32 `json:"readyReplicas"`
+			AvailableReplicas    int32 `json:"availableReplicas"`
+			ObservedGeneration   int64 `json:"observedGeneration"`
+		}{
+			Replicas:             statefulSet.Status.Replicas,
+			FullyLabeledReplicas: statefulSet.Status.Replicas, // Use Replicas as fallback since FullyLabeledReplicas doesn't exist
+			ReadyReplicas:        statefulSet.Status.ReadyReplicas,
+			AvailableReplicas:    statefulSet.Status.AvailableReplicas,
+			ObservedGeneration:   statefulSet.Status.ObservedGeneration,
+		},
+	}
+
+	return response
+}
+
 // GetGenericResourceYAML returns the YAML representation of a specific generic resource
 func (h *ResourcesHandler) GetGenericResourceYAML(c *gin.Context) {
 	client, _, err := h.getClientAndConfig(c)
@@ -3514,6 +3583,140 @@ func (h *ResourcesHandler) GetDaemonSetPods(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, transformedPods)
+}
+
+// GetStatefulSetPods returns pods for a specific statefulset
+func (h *ResourcesHandler) GetStatefulSetPods(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for statefulset pods")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+
+	// Get the statefulset to find its labels
+	statefulSet, err := client.AppsV1().StatefulSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("statefulset", name).WithField("namespace", namespace).Error("Failed to get statefulset")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Get pods that match the statefulset's selector
+	podList, err := client.CoreV1().Pods(namespace).List(c.Request.Context(), metav1.ListOptions{
+		LabelSelector: metav1.FormatLabelSelector(statefulSet.Spec.Selector),
+	})
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to list statefulset pods")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Transform pods to the expected format
+	var transformedPods []PodListResponse
+	configID := c.Query("config")
+	cluster := c.Query("cluster")
+	for _, pod := range podList.Items {
+		transformedPods = append(transformedPods, h.transformPodToResponse(&pod, configID, cluster))
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		h.sendSSEResponse(c, transformedPods)
+		return
+	}
+
+	c.JSON(http.StatusOK, transformedPods)
+}
+
+// GetStatefulSet returns a specific statefulset
+func (h *ResourcesHandler) GetStatefulSet(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for statefulset")
+		// For EventSource, send error as SSE
+		if c.GetHeader("Accept") == "text/event-stream" {
+			h.sendSSEError(c, http.StatusBadRequest, err.Error())
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+
+	statefulSet, err := client.AppsV1().StatefulSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("statefulset", name).WithField("namespace", namespace).Error("Failed to get statefulset")
+		// For EventSource, send error as SSE
+		if c.GetHeader("Accept") == "text/event-stream" {
+			h.sendSSEError(c, http.StatusNotFound, err.Error())
+		} else {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		h.sendSSEResponse(c, statefulSet)
+		return
+	}
+
+	c.JSON(http.StatusOK, statefulSet)
+}
+
+// GetStatefulSetYAML returns the YAML representation of a specific statefulset
+func (h *ResourcesHandler) GetStatefulSetYAML(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for statefulset YAML")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+
+	statefulSet, err := client.AppsV1().StatefulSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("statefulset", name).WithField("namespace", namespace).Error("Failed to get statefulset for YAML")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Convert to YAML
+	yamlData, err := yaml.Marshal(statefulSet)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to marshal statefulset to YAML")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// For EventSource, send the YAML data as base64 encoded string
+		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
+		return
+	}
+
+	// Return as base64 encoded string to match frontend expectations
+	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+}
+
+// GetStatefulSetEvents returns events for a specific statefulset
+func (h *ResourcesHandler) GetStatefulSetEvents(c *gin.Context) {
+	name := c.Param("name")
+	h.getResourceEvents(c, "StatefulSet", name)
 }
 
 // GetNodePods returns pods running on a specific node
