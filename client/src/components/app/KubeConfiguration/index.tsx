@@ -1,6 +1,6 @@
 import './index.css';
 
-import { Fragment, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { resetAllStates, useAppDispatch, useAppSelector } from '@/redux/hooks';
@@ -132,52 +132,38 @@ export function KubeConfiguration() {
               <TableBody>
                 {
                   filteredClusters?.kubeConfigs && Object.keys(filteredClusters.kubeConfigs).length ?
-                    Object.keys(filteredClusters.kubeConfigs).map((config, index) => {
-                      return (
-                        <Fragment key={config + index}>
-                          <TableRow className="border-t group/item">
-                            <TableCell colSpan={3} className="bg-muted/50">
-                              <div className="flex items-center justify-between">
-                                <span> {config} </span>
-                                <DeleteConfiguration configId={config} />
-                              </div>
+                    Object.keys(filteredClusters.kubeConfigs).map((config) => {
+                      return Object.keys(filteredClusters.kubeConfigs[config].clusters).map((key) => {
+                        const {
+                          name,
+                          namespace,
+                          connected
+                        } = filteredClusters.kubeConfigs[config].clusters[key];
+                        return (
+                          <TableRow
+                            className="group/item hover:cursor-pointer"
+                            onClick={() => navigateTo(config, name)}
+                            key={`${config}-${name}`}
+                          >
+                            <TableCell className="flex items-center space-x-3">
+                              <div className="flex w-12 flex-shrink-0 items-center justify-center bg-primary rounded-md text-sm font-medium text-secondary">{name.substring(0, 2).toUpperCase()}</div>
+                              <span className="font-normal">{name}</span>
                             </TableCell>
-
+                            <TableCell className="">
+                              <span>{namespace || 'N/A'}</span>
+                            </TableCell>
+                            <TableCell className="flex items-center justify-between">
+                              <span>
+                                {
+                                  connected ? <StatusCell cellValue='Active' /> : <StatusCell cellValue='InActive' />
+                                }
+                              </span>
+                              <DeleteConfiguration configId={config} />
+                            </TableCell>
                           </TableRow>
-                          {
-                            Object.keys(filteredClusters.kubeConfigs[config].clusters).map((key) => {
-                              const {
-                                name,
-                                namespace,
-                                connected
-                              } = filteredClusters.kubeConfigs[config].clusters[key];
-                              return (
-                                <TableRow
-                                  className="group/item hover:cursor-pointer"
-                                  onClick={() => navigateTo(config, name)}
-                                  key={name}
-                                >
-                                  <TableCell className="flex items-center space-x-3">
-                                    <div className="flex w-12 flex-shrink-0 items-center justify-center bg-primary rounded-md text-sm font-medium text-secondary">{name.substring(0, 2).toUpperCase()}</div>
-                                    <span className="font-normal">{name}</span>
-                                  </TableCell>
-                                  <TableCell className="">
-                                    <span>{namespace || 'N/A'}</span>
-                                  </TableCell>
-                                  <TableCell className="">
-                                    {
-                                      connected ? <StatusCell cellValue='Active' /> : <StatusCell cellValue='InActive' />
-                                    }
-
-                                  </TableCell>
-                                </TableRow >
-
-                              );
-                            })
-                          }
-                        </Fragment>
-                      );
-                    }) :
+                        );
+                      });
+                    }).flat() :
                     <TableRow className="cluster-empty-table">
                       <TableCell
                         colSpan={3}

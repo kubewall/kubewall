@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"k8s.io/client-go/tools/clientcmd/api"
 )
 
@@ -22,7 +23,6 @@ type KubeConfigStore struct {
 	mu       sync.RWMutex
 	configs  map[string]*api.Config
 	metadata map[string]*KubeConfig
-	nextID   int
 }
 
 // NewKubeConfigStore creates a new kubeconfig store
@@ -30,7 +30,6 @@ func NewKubeConfigStore() *KubeConfigStore {
 	return &KubeConfigStore{
 		configs:  make(map[string]*api.Config),
 		metadata: make(map[string]*KubeConfig),
-		nextID:   1,
 	}
 }
 
@@ -44,9 +43,8 @@ func (s *KubeConfigStore) AddKubeConfig(config *api.Config, name string) (string
 		return "", fmt.Errorf("invalid kubeconfig: %w", err)
 	}
 
-	// Generate unique ID
-	id := fmt.Sprintf("config-%d", s.nextID)
-	s.nextID++
+	// Generate unique ID using UUID
+	id := uuid.New().String()
 
 	now := time.Now()
 
