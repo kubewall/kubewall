@@ -58,7 +58,9 @@ export function ThemeProvider({
 
   return (
     <ThemeProviderContext.Provider {...props} value={value}>
-      {children}
+      <div data-testid="theme-provider" data-default-theme={defaultTheme} data-storage-key={storageKey}>
+        {children}
+      </div>
     </ThemeProviderContext.Provider>
   );
 }

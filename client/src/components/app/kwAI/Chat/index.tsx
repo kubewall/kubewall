@@ -30,6 +30,8 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { createTogetherAI } from '@ai-sdk/togetherai';
 import { createXai } from '@ai-sdk/xai';
+import { getFullTools } from '@/data/KwAi/KwAiToolsSlice';
+// import { getFullTools } from '@/data/KwAi/KwAiToolsSlice';
 import rehypeFormat from 'rehype-format';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeRaw from 'rehype-raw';
@@ -63,37 +65,38 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
   const [selectedProvider, setSelectedProvider] = useState('');
   const [open, setOpen] = useState(false);
   const kwAiChatWindow = useSidebarSize("kwai-chat");
+  const isThinkingRef = useRef<boolean>(false);
   const getCurrentProvider = () => {
     const providerData = providerList[selectedProvider];
     switch (providerData.provider) {
       case "xai":
-        return createXai({ apiKey: providerData.apiKey });
+        return createXai({ apiKey: providerData.apiKey, baseURL: providerData.url });
       case "openai":
-        return createOpenAI({ apiKey: providerData.apiKey });
+        return createOpenAI({ apiKey: providerData.apiKey, baseURL: providerData.url });
       case "azure":
-        return createAzure({ apiKey: providerData.apiKey });
+        return createAzure({ apiKey: providerData.apiKey, baseURL: providerData.url });
       case "anthropic":
-        return createAnthropic({ apiKey: providerData.apiKey });
+        return createAnthropic({ apiKey: providerData.apiKey, baseURL: providerData.url });
       // case "amazon-bedrock":
-      //   return createAmazonBedrock({ apiKey: providerData.apiKey });
+      //   return createAmazonBedrock({ apiKey: providerData.apiKey, baseURL: providerData.url  });
       case "groq":
-        return createGroq({ apiKey: providerData.apiKey });
+        return createGroq({ apiKey: providerData.apiKey, baseURL: providerData.url });
       case "deepinfra":
-        return createDeepInfra({ apiKey: providerData.apiKey });
+        return createDeepInfra({ apiKey: providerData.apiKey, baseURL: providerData.url });
       // case "google-vertex":
-      //   return createVertex({ apiKey: providerData.apiKey });
+      //   return createVertex({ apiKey: providerData.apiKey, baseURL: providerData.url  });
       case "mistral":
-        return createMistral({ apiKey: providerData.apiKey });
+        return createMistral({ apiKey: providerData.apiKey, baseURL: providerData.url });
       case "togetherai":
-        return createTogetherAI({ apiKey: providerData.apiKey });
+        return createTogetherAI({ apiKey: providerData.apiKey, baseURL: providerData.url });
       case "cohere":
-        return createCohere({ apiKey: providerData.apiKey });
+        return createCohere({ apiKey: providerData.apiKey, baseURL: providerData.url });
       case "fireworks":
-        return createFireworks({ apiKey: providerData.apiKey });
+        return createFireworks({ apiKey: providerData.apiKey, baseURL: providerData.url });
       case "deepseek":
-        return createDeepSeek({ apiKey: providerData.apiKey });
+        return createDeepSeek({ apiKey: providerData.apiKey, baseURL: providerData.url });
       case "cerebras":
-        return createCerebras({ apiKey: providerData.apiKey });
+        return createCerebras({ apiKey: providerData.apiKey, baseURL: providerData.url });
       case "ollama":
         return createOllama({
           baseURL: `${providerData.url}/`, fetch: (url, options) => {
@@ -110,7 +113,7 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
           }
         });
       case "openrouter":
-        return createOpenRouter({ apiKey: providerData.apiKey });
+        return createOpenRouter({ apiKey: providerData.apiKey, baseURL: providerData.url });
       default:
         return '';
     }
@@ -123,9 +126,6 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
     }
   }, []);
   const [isLoading, setIsLoading] = useState(false);
-  const {
-    tools
-  } = useAppSelector((state) => state.kwAiTools);
   const {
     yamlData,
   } = useAppSelector((state) => state.yaml);
@@ -207,7 +207,7 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
         messages: [...systemMessage, ...messages, ...userMessage],
         maxSteps: 500,
         toolChoice: "auto",
-        tools,
+        tools: getFullTools(),
         abortSignal: abortControllerRef.current.signal,
         // experimental_transform: smoothStream({
         //   delayInMs: 100, // optional: defaults to 10ms
@@ -241,13 +241,13 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
                 } : p
               ))
             ]);
-          } //@ts-ignore
+          } //@ts-expect-error : skip error
           else if ((textPart.error as Error).statusCode === 401) {
             setMessages((prev) => [
               ...prev.map((p) => (
                 p.id === id.toString() ? {
                   ...p,
-                  //@ts-ignore
+                  //@ts-expect-error : skip error
                   content: p.content + textPart.error.responseBody,
                   isReasoning: false,
                   error: true
@@ -259,7 +259,7 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
               ...prev.map((p) => (
                 p.id === id.toString() ? {
                   ...p,
-                  //@ts-ignore
+                  //@ts-expect-error : skip error
                   content: p.content + JSON.stringify(textPart?.error?.responseBody || textPart?.error?.lastError?.responseBody || textPart),
                   isReasoning: false,
                   error: true
@@ -283,15 +283,57 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
           ]);
         }
         if (textPart.type === 'text-delta') {
+          let delta = textPart.textDelta;
+          let contentDelta = '';
+          let reasoningDelta = '';
+
+          while (delta.length > 0) {
+            if (!isThinkingRef.current) {
+              // Look for opening <think> or <thinking> tag
+              const openTagMatch = delta.match(/<(think|thinking)>/i);
+              if (openTagMatch) {
+                // Add text before tag to content
+                contentDelta += delta.slice(0, openTagMatch.index);
+                // Enter thinking mode
+                isThinkingRef.current = true;
+                // Remove up to and including the opening tag
+                delta = delta.slice(openTagMatch.index! + openTagMatch[0].length);
+              } else {
+                // No opening tag, all goes to content
+                contentDelta += delta;
+                delta = '';
+              }
+            } else {
+              // We're inside a thinking block
+              const closeTagMatch = delta.match(/<\/(think|thinking)>/i);
+              if (closeTagMatch) {
+                // Add up to the closing tag to the buffer
+                reasoningDelta += delta.slice(0, closeTagMatch.index);
+                // Exit thinking mode
+                isThinkingRef.current = false;
+                // Remove up to and including the closing tag
+                delta = delta.slice(closeTagMatch.index! + closeTagMatch[0].length);
+              } else {
+                // No closing tag yet, buffer everything
+                reasoningDelta += delta;
+                delta = '';
+              }
+            }
+          }
+
           setMessages((prev) => [
-            ...prev.map((p) => (
-              p.id === id.toString() ? {
-                ...p,
-                content: p.content + textPart.textDelta,
-                isReasoning: false,
-                error: false
-              } : p
-            ))
+            ...prev.map((p) => {
+              if (p.id === id.toString()) {
+                return {
+                  ...p,
+                  content: p.content + contentDelta,
+                  reasoning: p.reasoning + reasoningDelta,
+                  isReasoning: isThinkingRef.current,
+                  error: false
+                };
+              }
+              return p;
+            })
           ]);
         }
       }
@@ -309,10 +351,9 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
         ))
       ]);
       setIsLoading(false);
-    } catch (error: any) {
-      if (RetryError.isInstance(error)) {
-        console.log('RetryError', error)
-      }
+    }
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+    catch (error: any) {
       setMessages((prev) => {
         const updated = [...prev];
         updated[updated.length - 1] = {
@@ -328,7 +369,7 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
             timestamp: new Date(),
             error: true,
           }
-        ]
+        ];
       });
       setIsLoading(false);
     }
@@ -389,7 +430,8 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
   }, [currentChatKey]);
 
   /* eslint-disable  @typescript-eslint/no-explicit-any */
-  const getOverridenComponents = () => {
+  /* eslint-disable  @typescript-eslint/no-unused-vars */
+  const getOverriddenComponents = () => {
     return {
       table: ({ node, ...props }: any) => <div className="w-full overflow-x-auto my-4"><table className="w-full text-sm border-collapse border border-border rounded-lg" {...props} /></div>,
       thead: ({ node, ...props }: any) => <thead className="[&_tr]:border-b bg-muted/50" {...props} />,
@@ -427,21 +469,21 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
       blockquote: ({ node, ...props }: any) => <blockquote className="my-1 border-l-4 border-border pl-4 text-sm text-muted-foreground italic" {...props} />,
     };
   };
-
+  /* eslint-enable  @typescript-eslint/no-unused-vars */
   /* eslint-enable  @typescript-eslint/no-explicit-any */
   const stopStream = () => {
     abortControllerRef.current?.abort();
     setIsLoading(false);
   };
-  console.log('messages', messages)
 
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
   const IconCollapsibleCard = ({ icon: Icon, children, isReasoning }: any) => {
     const [copen, setCOpen] = useState(isReasoning);
     useEffect(() => {
       if (!isReasoning) {
-        setCOpen(false)
+        setCOpen(false);
       }
-    }, [isReasoning])
+    }, [isReasoning]);
     return (
       <Collapsible open={copen} onOpenChange={setCOpen} className='w-[95%]'>
         <CollapsibleTrigger asChild>
@@ -503,7 +545,7 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
                           >
                             <Markdown
                               remarkPlugins={[remarkGfm, rehypeFormat, remarkRehype, rehypeSanitize, remarkFrontmatter, remarkMath, remarkParse, remarkRehype, rehypeRaw, rehypeStringify, rehypeHighlight]}
-                              components={getOverridenComponents()}
+                              components={getOverriddenComponents()}
                             >
                               {message.reasoning}
                             </Markdown>
@@ -525,7 +567,7 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
                           //     <AccordionContent className="rounded-sm p-4 flex flex-col gap-4 text-balance bg-muted">
                           //       <Markdown
                           //         remarkPlugins={[remarkGfm, rehypeFormat, remarkRehype, rehypeSanitize, remarkFrontmatter, remarkMath, remarkParse, remarkRehype, rehypeRaw, rehypeStringify, rehypeHighlight]}
-                          //         components={getOverridenComponents()}
+                          //         components={getOverriddenComponents()}
                           //       >
                           //         {message.reasoning}
                           //       </Markdown>
@@ -539,7 +581,7 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
 
                         <Markdown
                           remarkPlugins={[remarkGfm, rehypeFormat, remarkRehype, rehypeSanitize, remarkFrontmatter, remarkMath, remarkParse, remarkRehype, rehypeRaw, rehypeStringify, rehypeHighlight]}
-                          components={getOverridenComponents()}
+                          components={getOverriddenComponents()}
                         >
                           {message.content}
                         </Markdown>

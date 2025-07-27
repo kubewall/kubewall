@@ -21,7 +21,7 @@ type AddConfigurationProps = {
   setKwAIStoredModelsCollection: Dispatch<SetStateAction<kwAIStoredModels>>;
 }
 
-const AddConfiguration = ({ uuid, setShowAddConfiguration, config, cluster , setKwAIStoredModelsCollection}: AddConfigurationProps) => {
+const AddConfiguration = ({ uuid, setShowAddConfiguration, config, cluster, setKwAIStoredModelsCollection }: AddConfigurationProps) => {
   const dispatch = useAppDispatch();
   const {
     error,
@@ -63,7 +63,10 @@ const AddConfiguration = ({ uuid, setShowAddConfiguration, config, cluster , set
   const [currentProviderIsDefault, setCurrentProviderIsDefault] = useState(getDefaultCurrentProvider(uuid));
   const handleChange = (name: string, value: string | boolean) => setFormData(prev => ({ ...prev, [name]: value }));
   const isInvalid = (Object.keys(formData) as kwAIConfigurations[]).some((key) => key === 'apiKey' && ['ollama', 'lmstudio'].includes(formData.provider) ? false : formData[key] === '');
-
+  const handleProviderChange = (name: string, providerValue: string | boolean) => {
+    const providerDefaultUrl = KW_AI_PROVIDERS.find(({ value }) => value === providerValue)?.providerDefaultUrl || '';
+    setFormData(prev => ({ ...prev, [name]: providerValue, url: providerDefaultUrl }));
+  };
   useEffect(() => {
     const {
       url,
@@ -129,7 +132,7 @@ const AddConfiguration = ({ uuid, setShowAddConfiguration, config, cluster , set
       <div className="p-4 pt-0 flex-1 flex flex-col space-y-4 overflow-auto pr-2">
         <div>
           <Label>Provider</Label>
-          <ComboboxDemo data={KW_AI_PROVIDERS} setValue={(value) => handleChange('provider', value)} value={formData.provider} placeholder="Select Provider..." />
+          <ComboboxDemo data={KW_AI_PROVIDERS} setValue={(value) => handleProviderChange('provider', value)} value={formData.provider} placeholder="Select Provider..." />
         </div>
         <div>
           <Label>URL</Label>

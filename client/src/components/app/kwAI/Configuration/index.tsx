@@ -26,9 +26,9 @@ const Configuration = ({ cluster, config, kwAIStoredModelsCollection, setKwAISto
     navigator.clipboard.writeText(JSON.stringify(kwAIStoredModelsCollection));
     setShowCopyCheck(true);
     setTimeout(() => {
-      setShowCopyCheck(false)
+      setShowCopyCheck(false);
     }, 2000);
-  }
+  };
   return (
     <div className="flex flex-col h-full">
       <div className="p-4">
@@ -177,7 +177,7 @@ const Configuration = ({ cluster, config, kwAIStoredModelsCollection, setKwAISto
       {
         showAddConfiguration ?
           <AddConfiguration cluster={cluster} config={config} uuid={selectedUUID} setShowAddConfiguration={setShowAddConfiguration} setKwAIStoredModelsCollection={setKwAIStoredModelsCollection} /> :
-          <ListConfigurations setSelectedUUId={addNewConfiguration} />
+          <ListConfigurations setSelectedUUId={addNewConfiguration} setKwAIStoredModelsCollection={setKwAIStoredModelsCollection} />
       }
 
 

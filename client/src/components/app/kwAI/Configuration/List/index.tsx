@@ -1,4 +1,5 @@
 import { Check, Pencil, Star, Trash2Icon, X } from "lucide-react";
+import { Dispatch, SetStateAction, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -6,13 +7,13 @@ import { Button } from "@/components/ui/button";
 import { TooltipWrapper } from "@/components/app/Common/TooltipWrapper";
 import { cn } from "@/lib/utils";
 import { kwAIStoredModels } from "@/types/kwAI/addConfiguration";
-import { useState } from "react";
 
 type ListConfigurationsProps = {
   setSelectedUUId: (uuid: string) => void;
+  setKwAIStoredModelsCollection: Dispatch<SetStateAction<kwAIStoredModels>>;
 };
 
-const ListConfigurations = ({ setSelectedUUId }: ListConfigurationsProps) => {
+const ListConfigurations = ({ setSelectedUUId, setKwAIStoredModelsCollection }: ListConfigurationsProps) => {
   const kwAIStoredModels = JSON.parse(localStorage.getItem('kwAIStoredModels') || '{}') as kwAIStoredModels;
   const [data, setData] = useState(kwAIStoredModels);
   const [deletingRowIds, setDeletingRowIds] = useState<Set<string>>(new Set());
@@ -59,6 +60,7 @@ const ListConfigurations = ({ setSelectedUUId }: ListConfigurationsProps) => {
     if (storedKwAIModel) {
       const kwAIModelCollection = JSON.parse(storedKwAIModel) as kwAIStoredModels;
       delete kwAIModelCollection.providerCollection[uuid];
+      setKwAIStoredModelsCollection(kwAIModelCollection);
       localStorage.setItem('kwAIStoredModels', JSON.stringify(kwAIModelCollection));
     }
   };
@@ -68,6 +70,7 @@ const ListConfigurations = ({ setSelectedUUId }: ListConfigurationsProps) => {
     if (storedKwAIModel) {
       const kwAIModelCollection = JSON.parse(storedKwAIModel) as kwAIStoredModels;
       kwAIModelCollection.defaultProvider = uuid;
+      setKwAIStoredModelsCollection(kwAIModelCollection);
       localStorage.setItem('kwAIStoredModels', JSON.stringify(kwAIModelCollection));
       setData((prev) => {
         const cluster = prev;
