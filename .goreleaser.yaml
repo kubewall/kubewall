@@ -57,23 +57,22 @@ nfpms:
     recommends:
       - kubectl
 
-brews:
-  - repository:
-      owner: kubewall
-      name: homebrew-tap
-    name: kubewall
+homebrew_casks:
+  - name: kubewall
+    conflicts:
+      - formula: kubewall
     homepage: "https://github.com/kubewall/kubewall"
     description: "kubewall is a single binary to manage multiple clusters."
-    license: "Apache License 2.0"
-    skip_upload: auto
-    commit_author:
-      name: abhimanyu003
-      email: abhimanyusharma003@gmail.com
-    directory: Formula
-    install: |-
-      bin.install "kubewall"
-    test: |
-      system "#{bin}/kubewall version"
+    repository:
+      owner: kubewall
+      name: homebrew-tap
+    hooks:
+      post:
+        # This hook is needed until this binary is signed and notarized
+        install: |
+          if system_command("/usr/bin/xattr", args: ["-h"]).exit_status == 0
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/kubewall"]
+          end
 
 scoops:
   - repository:
