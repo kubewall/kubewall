@@ -35,102 +35,6 @@ const Configuration = ({ cluster, config, kwAIStoredModelsCollection, setKwAISto
         <div className="flex justify-between">
           <h3 className="text-lg font-medium">kwAI Configuration</h3>
           <div className="flex justify-between">
-            {/* <NavigationMenu className="z-[12]">
-              <NavigationMenuList>
-                <NavigationMenuItem >
-                  <NavigationMenuTrigger>
-                    <Button variant="ghost">
-                      Action
-                    </Button>
-
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <ul className="grid gap-4">
-                      <li>
-                        <NavigationMenuLink asChild>
-                          <TooltipProvider>
-                            <Tooltip delayDuration={0}>
-                              <TooltipTrigger asChild>
-                                <Button variant="outline" size="icon" className="h-8 w-8 shadow-none" onClick={() => addNewConfiguration('')}>
-                                  {showAddConfiguration ? <List className="h-4 w-4" /> : <CirclePlus className="h-4 w-4" />}
-
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side="bottom" className="px-1.5">
-                                {showAddConfiguration ? 'List Configurations' : 'Add Configuration'}
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </NavigationMenuLink>
-                      </li>
-                      <li>
-                        <NavigationMenuLink asChild>
-                          <TooltipProvider>
-                            <Tooltip delayDuration={0}>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 shadow-none" onClick={() => addNewConfiguration('')}>
-                                  {showAddConfiguration ? <Copy className="h-4 w-4" /> : <CopyCheck className="h-4 w-4" />}
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side="bottom" className="px-1.5">
-                                Copy Provider config to another broswer
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </NavigationMenuLink>
-                      </li>
-                      <li>
-                        <NavigationMenuLink asChild>
-                          <TooltipProvider>
-                            <Tooltip delayDuration={0}>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 shadow-none" onClick={() => addNewConfiguration('')}>
-                                  <Import className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side="bottom" className="px-1.5">
-                                Import Copied config
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </NavigationMenuLink>
-                      </li>
-                    </ul>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-              <NavigationMenuItem>
-                <NavigationMenuTrigger>With Icon</NavigationMenuTrigger>
-                <NavigationMenuContent>
-                  <ul className="grid w-[200px] gap-4">
-                    <li>
-                      <NavigationMenuLink asChild>
-                        <Link href="#" className="flex-row items-center gap-2">
-                          <CircleHelpIcon />
-                          Backlog
-                        </Link>
-                      </NavigationMenuLink>
-                    </li>
-                    <li>
-                      <NavigationMenuLink asChild>
-                        <Link href="#" className="flex-row items-center gap-2">
-                          <CircleIcon />
-                          To Do
-                        </Link>
-                      </NavigationMenuLink>
-                    </li>
-                    <li>
-                      <NavigationMenuLink asChild>
-                        <Link href="#" className="flex-row items-center gap-2">
-                          <CircleCheckIcon />
-                          Done
-                        </Link>
-                      </NavigationMenuLink>
-                    </li>
-                  </ul>
-                </NavigationMenuContent>
-              </NavigationMenuItem>
-            </NavigationMenu> */}
             <TooltipProvider>
               <Tooltip delayDuration={0}>
                 <TooltipTrigger asChild>
@@ -143,7 +47,7 @@ const Configuration = ({ cluster, config, kwAIStoredModelsCollection, setKwAISto
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            <TooltipProvider>
+            {/* <TooltipProvider>
               <Tooltip delayDuration={0}>
                 <TooltipTrigger asChild>
                   <Button variant="outline" size="icon" className="h-8 w-8 shadow-none" onClick={copyKwAIStoredModelsCollection}>
@@ -166,7 +70,7 @@ const Configuration = ({ cluster, config, kwAIStoredModelsCollection, setKwAISto
                   Import Copied config
                 </TooltipContent>
               </Tooltip>
-            </TooltipProvider>
+            </TooltipProvider> */}
           </div>
         </div>
 
