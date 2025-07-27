@@ -19,6 +19,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 	appsV1 "k8s.io/api/apps/v1"
+	batchV1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -155,6 +156,32 @@ type ReplicaSetListResponse struct {
 		ReadyReplicas        int32 `json:"readyReplicas"`
 		AvailableReplicas    int32 `json:"availableReplicas"`
 		ObservedGeneration   int64 `json:"observedGeneration"`
+	} `json:"status"`
+}
+
+// JobListResponse represents the response format expected by the frontend for jobs
+type JobListResponse struct {
+	Age        string `json:"age"`
+	HasUpdated bool   `json:"hasUpdated"`
+	Name       string `json:"name"`
+	Namespace  string `json:"namespace"`
+	UID        string `json:"uid"`
+	Spec       struct {
+		Completions    int32  `json:"completions"`
+		BackoffLimit   int32  `json:"backoffLimit"`
+		CompletionMode string `json:"completionMode"`
+		Suspend        bool   `json:"suspend"`
+	} `json:"spec"`
+	Status struct {
+		Conditions []struct {
+			Type   string `json:"type"`
+			Status string `json:"status"`
+		} `json:"conditions"`
+		Active    int32  `json:"active"`
+		Ready     int32  `json:"ready"`
+		Failed    int32  `json:"failed"`
+		Succeeded int32  `json:"succeeded"`
+		StartTime string `json:"startTime"`
 	} `json:"status"`
 }
 
@@ -2424,7 +2451,12 @@ func (h *ResourcesHandler) GetGenericResourceSSE(c *gin.Context) {
 			if err != nil {
 				return nil, err
 			}
-			return result.Items, nil
+			// Transform Jobs to frontend-expected format
+			var response []JobListResponse
+			for _, job := range result.Items {
+				response = append(response, h.transformJobToResponse(&job))
+			}
+			return response, nil
 		case "cronjobs":
 			result, err := client.BatchV1().CronJobs(namespace).List(c.Request.Context(), metav1.ListOptions{})
 			if err != nil {
@@ -3501,6 +3533,103 @@ func (h *ResourcesHandler) transformReplicaSetToResponse(replicaSet *appsV1.Repl
 			ReadyReplicas:        replicaSet.Status.ReadyReplicas,
 			AvailableReplicas:    replicaSet.Status.AvailableReplicas,
 			ObservedGeneration:   replicaSet.Status.ObservedGeneration,
+		},
+	}
+
+	return response
+}
+
+func (h *ResourcesHandler) transformJobToResponse(job *batchV1.Job) JobListResponse {
+	// Send creation timestamp instead of calculated age
+	age := ""
+	if job.CreationTimestamp.Time != (time.Time{}) {
+		age = job.CreationTimestamp.Time.Format(time.RFC3339)
+	}
+
+	// Transform conditions
+	var conditions []struct {
+		Type   string `json:"type"`
+		Status string `json:"status"`
+	}
+	for _, condition := range job.Status.Conditions {
+		conditions = append(conditions, struct {
+			Type   string `json:"type"`
+			Status string `json:"status"`
+		}{
+			Type:   string(condition.Type),
+			Status: string(condition.Status),
+		})
+	}
+
+	// Set default values for spec fields
+	completions := int32(1)
+	if job.Spec.Completions != nil {
+		completions = *job.Spec.Completions
+	}
+
+	backoffLimit := int32(6)
+	if job.Spec.BackoffLimit != nil {
+		backoffLimit = *job.Spec.BackoffLimit
+	}
+
+	suspend := false
+	if job.Spec.Suspend != nil {
+		suspend = *job.Spec.Suspend
+	}
+
+	// Set default values for status fields
+	active := job.Status.Active
+	ready := int32(0)
+	if job.Status.Ready != nil {
+		ready = *job.Status.Ready
+	}
+	failed := job.Status.Failed
+	succeeded := job.Status.Succeeded
+
+	startTime := ""
+	if job.Status.StartTime != nil {
+		startTime = job.Status.StartTime.Time.Format(time.RFC3339)
+	}
+
+	completionMode := ""
+	if job.Spec.CompletionMode != nil {
+		completionMode = string(*job.Spec.CompletionMode)
+	}
+
+	response := JobListResponse{
+		Age:        age,
+		HasUpdated: false, // This would need to be tracked separately
+		Name:       job.Name,
+		Namespace:  job.Namespace,
+		UID:        string(job.UID),
+		Spec: struct {
+			Completions    int32  `json:"completions"`
+			BackoffLimit   int32  `json:"backoffLimit"`
+			CompletionMode string `json:"completionMode"`
+			Suspend        bool   `json:"suspend"`
+		}{
+			Completions:    completions,
+			BackoffLimit:   backoffLimit,
+			CompletionMode: completionMode,
+			Suspend:        suspend,
+		},
+		Status: struct {
+			Conditions []struct {
+				Type   string `json:"type"`
+				Status string `json:"status"`
+			} `json:"conditions"`
+			Active    int32  `json:"active"`
+			Ready     int32  `json:"ready"`
+			Failed    int32  `json:"failed"`
+			Succeeded int32  `json:"succeeded"`
+			StartTime string `json:"startTime"`
+		}{
+			Conditions: conditions,
+			Active:     active,
+			Ready:      ready,
+			Failed:     failed,
+			Succeeded:  succeeded,
+			StartTime:  startTime,
 		},
 	}
 
