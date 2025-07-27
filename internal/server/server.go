@@ -157,6 +157,14 @@ func (s *Server) setupRoutes() {
 		api.GET("/replicasets/:namespace/:name/yaml", s.resourcesHandler.GetReplicaSetYAML)
 		api.GET("/replicasets/:namespace/:name/events", s.resourcesHandler.GetReplicaSetEvents)
 		api.GET("/replicasets/:namespace/:name/pods", s.resourcesHandler.GetReplicaSetPods)
+		api.GET("/jobs", s.resourcesHandler.GetJobsSSE)
+		api.GET("/jobs/:namespace/:name", s.resourcesHandler.GetJob)
+		api.GET("/jobs/:namespace/:name/yaml", s.resourcesHandler.GetJobYAML)
+		api.GET("/jobs/:namespace/:name/events", s.resourcesHandler.GetJobEvents)
+		api.GET("/cronjobs", s.resourcesHandler.GetCronJobsSSE)
+		api.GET("/cronjobs/:namespace/:name", s.resourcesHandler.GetCronJob)
+		api.GET("/cronjobs/:namespace/:name/yaml", s.resourcesHandler.GetCronJobYAML)
+		api.GET("/cronjobs/:namespace/:name/events", s.resourcesHandler.GetCronJobEvents)
 		api.GET("/nodes/:name/pods", s.resourcesHandler.GetNodePods)
 		api.GET("/namespaces/:name/pods", s.resourcesHandler.GetNamespacePods)
 		api.GET("/services", s.resourcesHandler.GetServicesSSE)
@@ -183,9 +191,6 @@ func (s *Server) setupRoutes() {
 
 		// Generic resource handlers for other Kubernetes resources (SSE)
 		api.GET("/:resource", s.resourcesHandler.GetGenericResourceSSE)
-		api.GET("/:resource/:namespace/:name", s.resourcesHandler.GetGenericResourceDetails)
-		api.GET("/:resource/:namespace/:name/yaml", s.resourcesHandler.GetGenericResourceYAML)
-		api.GET("/:resource/:namespace/:name/events", s.resourcesHandler.GetGenericResourceEvents)
 	}
 
 	// Serve static files from the dist folder

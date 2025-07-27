@@ -2289,115 +2289,6 @@ func (h *ResourcesHandler) GetCustomResource(c *gin.Context) {
 	c.JSON(http.StatusOK, cr)
 }
 
-// Generic resource handler for other Kubernetes resources
-func (h *ResourcesHandler) GetGenericResource(c *gin.Context) {
-	client, _, err := h.getClientAndConfig(c)
-	if err != nil {
-		h.logger.WithError(err).Error("Failed to get client for generic resource")
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	resourceType := c.Param("resource")
-	namespace := c.Query("namespace")
-
-	var result interface{}
-	var err2 error
-
-	switch resourceType {
-	case "daemonsets":
-		daemonSetList, err2 := client.AppsV1().DaemonSets(namespace).List(c.Request.Context(), metav1.ListOptions{})
-		if err2 == nil {
-			// Transform DaemonSets to frontend-expected format
-			var response []DaemonSetListResponse
-			for _, daemonSet := range daemonSetList.Items {
-				response = append(response, h.transformDaemonSetToResponse(&daemonSet))
-			}
-			c.JSON(http.StatusOK, response)
-			return
-		}
-		result = daemonSetList
-		err2 = err2
-	case "statefulsets":
-		statefulSetList, err2 := client.AppsV1().StatefulSets(namespace).List(c.Request.Context(), metav1.ListOptions{})
-		if err2 == nil {
-			// Transform StatefulSets to frontend-expected format
-			var response []StatefulSetListResponse
-			for _, statefulSet := range statefulSetList.Items {
-				response = append(response, h.transformStatefulSetToResponse(&statefulSet))
-			}
-			c.JSON(http.StatusOK, response)
-			return
-		}
-		result = statefulSetList
-		err2 = err2
-	case "replicasets":
-		replicaSetList, err2 := client.AppsV1().ReplicaSets(namespace).List(c.Request.Context(), metav1.ListOptions{})
-		if err2 == nil {
-			// Transform ReplicaSets to frontend-expected format
-			var response []ReplicaSetListResponse
-			for _, replicaSet := range replicaSetList.Items {
-				response = append(response, h.transformReplicaSetToResponse(&replicaSet))
-			}
-			h.sendSSEResponse(c, response)
-			return
-		}
-		result = replicaSetList
-		err2 = err2
-	case "jobs":
-		result, err2 = client.BatchV1().Jobs(namespace).List(c.Request.Context(), metav1.ListOptions{})
-	case "cronjobs":
-		result, err2 = client.BatchV1().CronJobs(namespace).List(c.Request.Context(), metav1.ListOptions{})
-	case "horizontalpodautoscalers":
-		result, err2 = client.AutoscalingV2().HorizontalPodAutoscalers(namespace).List(c.Request.Context(), metav1.ListOptions{})
-	case "limitranges":
-		result, err2 = client.CoreV1().LimitRanges(namespace).List(c.Request.Context(), metav1.ListOptions{})
-	case "resourcequotas":
-		result, err2 = client.CoreV1().ResourceQuotas(namespace).List(c.Request.Context(), metav1.ListOptions{})
-	case "serviceaccounts":
-		result, err2 = client.CoreV1().ServiceAccounts(namespace).List(c.Request.Context(), metav1.ListOptions{})
-	case "roles":
-		result, err2 = client.RbacV1().Roles(namespace).List(c.Request.Context(), metav1.ListOptions{})
-	case "rolebindings":
-		result, err2 = client.RbacV1().RoleBindings(namespace).List(c.Request.Context(), metav1.ListOptions{})
-	case "clusterroles":
-		result, err2 = client.RbacV1().ClusterRoles().List(c.Request.Context(), metav1.ListOptions{})
-	case "clusterrolebindings":
-		result, err2 = client.RbacV1().ClusterRoleBindings().List(c.Request.Context(), metav1.ListOptions{})
-	case "persistentvolumes":
-		result, err2 = client.CoreV1().PersistentVolumes().List(c.Request.Context(), metav1.ListOptions{})
-	case "persistentvolumeclaims":
-		result, err2 = client.CoreV1().PersistentVolumeClaims(namespace).List(c.Request.Context(), metav1.ListOptions{})
-	case "storageclasses":
-		result, err2 = client.StorageV1().StorageClasses().List(c.Request.Context(), metav1.ListOptions{})
-	case "priorityclasses":
-		result, err2 = client.SchedulingV1().PriorityClasses().List(c.Request.Context(), metav1.ListOptions{})
-	case "leases":
-		result, err2 = client.CoordinationV1().Leases(namespace).List(c.Request.Context(), metav1.ListOptions{})
-	case "runtimeclasses":
-		result, err2 = client.NodeV1().RuntimeClasses().List(c.Request.Context(), metav1.ListOptions{})
-	case "poddisruptionbudgets":
-		result, err2 = client.PolicyV1().PodDisruptionBudgets(namespace).List(c.Request.Context(), metav1.ListOptions{})
-	case "endpoints":
-		result, err2 = client.CoreV1().Endpoints(namespace).List(c.Request.Context(), metav1.ListOptions{})
-	case "ingresses":
-		result, err2 = client.NetworkingV1().Ingresses(namespace).List(c.Request.Context(), metav1.ListOptions{})
-	case "events":
-		result, err2 = client.CoreV1().Events(namespace).List(c.Request.Context(), metav1.ListOptions{})
-	default:
-		c.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("Resource type %s not supported", resourceType)})
-		return
-	}
-
-	if err2 != nil {
-		h.logger.WithError(err2).WithField("resource_type", resourceType).Error("Failed to list resource")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err2.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, result)
-}
-
 // GetGenericResourceSSE returns generic resources as Server-Sent Events with real-time updates
 func (h *ResourcesHandler) GetGenericResourceSSE(c *gin.Context) {
 	client, _, err := h.getClientAndConfig(c)
@@ -2586,88 +2477,6 @@ func (h *ResourcesHandler) GetGenericResourceSSE(c *gin.Context) {
 
 	// Send SSE response with periodic updates
 	h.sendSSEResponseWithUpdates(c, initialData, fetchResource)
-}
-
-// GetGenericResourceDetails returns details for a specific resource
-func (h *ResourcesHandler) GetGenericResourceDetails(c *gin.Context) {
-	client, _, err := h.getClientAndConfig(c)
-	if err != nil {
-		h.logger.WithError(err).Error("Failed to get client for generic resource details")
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	resourceType := c.Param("resource")
-	namespace := c.Param("namespace")
-	name := c.Param("name")
-
-	var result interface{}
-	var err2 error
-
-	switch resourceType {
-	case "daemonsets":
-		result, err2 = client.AppsV1().DaemonSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "statefulsets":
-		result, err2 = client.AppsV1().StatefulSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "replicasets":
-		result, err2 = client.AppsV1().ReplicaSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "jobs":
-		result, err2 = client.BatchV1().Jobs(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "cronjobs":
-		result, err2 = client.BatchV1().CronJobs(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "horizontalpodautoscalers":
-		result, err2 = client.AutoscalingV2().HorizontalPodAutoscalers(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "limitranges":
-		result, err2 = client.CoreV1().LimitRanges(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "resourcequotas":
-		result, err2 = client.CoreV1().ResourceQuotas(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "serviceaccounts":
-		result, err2 = client.CoreV1().ServiceAccounts(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "roles":
-		result, err2 = client.RbacV1().Roles(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "rolebindings":
-		result, err2 = client.RbacV1().RoleBindings(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "clusterroles":
-		result, err2 = client.RbacV1().ClusterRoles().Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "clusterrolebindings":
-		result, err2 = client.RbacV1().ClusterRoleBindings().Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "persistentvolumes":
-		result, err2 = client.CoreV1().PersistentVolumes().Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "persistentvolumeclaims":
-		result, err2 = client.CoreV1().PersistentVolumeClaims(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "storageclasses":
-		result, err2 = client.StorageV1().StorageClasses().Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "priorityclasses":
-		result, err2 = client.SchedulingV1().PriorityClasses().Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "leases":
-		result, err2 = client.CoordinationV1().Leases(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "runtimeclasses":
-		result, err2 = client.NodeV1().RuntimeClasses().Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "poddisruptionbudgets":
-		result, err2 = client.PolicyV1().PodDisruptionBudgets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "endpoints":
-		result, err2 = client.CoreV1().Endpoints(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "ingresses":
-		result, err2 = client.NetworkingV1().Ingresses(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	default:
-		c.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("Resource type %s not supported", resourceType)})
-		return
-	}
-
-	if err2 != nil {
-		h.logger.WithError(err2).WithField("resource_type", resourceType).WithField("name", name).Error("Failed to get resource details")
-		c.JSON(http.StatusNotFound, gin.H{"error": err2.Error()})
-		return
-	}
-
-	// Check if this is an SSE request (EventSource expects SSE format)
-	acceptHeader := c.GetHeader("Accept")
-	if acceptHeader == "text/event-stream" {
-		h.sendSSEResponse(c, result)
-		return
-	}
-
-	c.JSON(http.StatusOK, result)
 }
 
 // getResourceEvents is a common function to get events for any resource type
@@ -3174,46 +2983,6 @@ func (h *ResourcesHandler) GetSecretEvents(c *gin.Context) {
 	h.getResourceEvents(c, "Secret", name)
 }
 
-// GetGenericResourceEvents returns events for any generic resource
-func (h *ResourcesHandler) GetGenericResourceEvents(c *gin.Context) {
-	resourceType := c.Param("resource")
-	name := c.Param("name")
-
-	// Map resource type to Kubernetes kind
-	kindMap := map[string]string{
-		"daemonsets":               "DaemonSet",
-		"statefulsets":             "StatefulSet",
-		"replicasets":              "ReplicaSet",
-		"jobs":                     "Job",
-		"cronjobs":                 "CronJob",
-		"horizontalpodautoscalers": "HorizontalPodAutoscaler",
-		"limitranges":              "LimitRange",
-		"resourcequotas":           "ResourceQuota",
-		"serviceaccounts":          "ServiceAccount",
-		"roles":                    "Role",
-		"rolebindings":             "RoleBinding",
-		"clusterroles":             "ClusterRole",
-		"clusterrolebindings":      "ClusterRoleBinding",
-		"persistentvolumes":        "PersistentVolume",
-		"persistentvolumeclaims":   "PersistentVolumeClaim",
-		"storageclasses":           "StorageClass",
-		"priorityclasses":          "PriorityClass",
-		"leases":                   "Lease",
-		"runtimeclasses":           "RuntimeClass",
-		"poddisruptionbudgets":     "PodDisruptionBudget",
-		"endpoints":                "Endpoints",
-		"ingresses":                "Ingress",
-	}
-
-	kind, exists := kindMap[resourceType]
-	if !exists {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Resource type %s not supported for events", resourceType)})
-		return
-	}
-
-	h.getResourceEvents(c, kind, name)
-}
-
 // GetPodLogsByName returns logs for a specific pod by name using namespace from query parameters
 func (h *ResourcesHandler) GetPodLogsByName(c *gin.Context) {
 	client, _, err := h.getClientAndConfig(c)
@@ -3634,178 +3403,6 @@ func (h *ResourcesHandler) transformJobToResponse(job *batchV1.Job) JobListRespo
 	}
 
 	return response
-}
-
-// GetGenericResourceYAML returns the YAML representation of a specific generic resource
-func (h *ResourcesHandler) GetGenericResourceYAML(c *gin.Context) {
-	client, _, err := h.getClientAndConfig(c)
-	if err != nil {
-		h.logger.WithError(err).Error("Failed to get client for generic resource YAML")
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	resourceType := c.Param("resource")
-	namespace := c.Param("namespace")
-	name := c.Param("name")
-
-	var result interface{}
-	var err2 error
-
-	switch resourceType {
-	case "daemonsets":
-		result, err2 = client.AppsV1().DaemonSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "statefulsets":
-		result, err2 = client.AppsV1().StatefulSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "replicasets":
-		result, err2 = client.AppsV1().ReplicaSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "jobs":
-		result, err2 = client.BatchV1().Jobs(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "cronjobs":
-		result, err2 = client.BatchV1().CronJobs(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "horizontalpodautoscalers":
-		result, err2 = client.AutoscalingV2().HorizontalPodAutoscalers(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "limitranges":
-		result, err2 = client.CoreV1().LimitRanges(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "resourcequotas":
-		result, err2 = client.CoreV1().ResourceQuotas(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "serviceaccounts":
-		result, err2 = client.CoreV1().ServiceAccounts(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "roles":
-		result, err2 = client.RbacV1().Roles(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "rolebindings":
-		result, err2 = client.RbacV1().RoleBindings(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "persistentvolumeclaims":
-		result, err2 = client.CoreV1().PersistentVolumeClaims(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "poddisruptionbudgets":
-		result, err2 = client.PolicyV1().PodDisruptionBudgets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "endpoints":
-		result, err2 = client.CoreV1().Endpoints(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "ingresses":
-		result, err2 = client.NetworkingV1().Ingresses(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "leases":
-		result, err2 = client.CoordinationV1().Leases(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	default:
-		h.logger.WithField("resource_type", resourceType).Error("Unsupported resource type for YAML")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Unsupported resource type"})
-		return
-	}
-
-	if err2 != nil {
-		h.logger.WithError(err2).WithField("resource_type", resourceType).WithField("name", name).WithField("namespace", namespace).Error("Failed to get resource for YAML")
-		c.JSON(http.StatusNotFound, gin.H{"error": err2.Error()})
-		return
-	}
-
-	// Convert to YAML
-	yamlData, err := yaml.Marshal(result)
-	if err != nil {
-		h.logger.WithError(err).Error("Failed to marshal resource to YAML")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
-		return
-	}
-
-	// Check if this is an SSE request (EventSource expects SSE format)
-	acceptHeader := c.GetHeader("Accept")
-	if acceptHeader == "text/event-stream" {
-		// For EventSource, send the YAML data as base64 encoded string
-		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
-		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
-		return
-	}
-
-	// Return as base64 encoded string to match frontend expectations
-	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
-	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
-}
-
-// GetGenericResourceYAMLByName returns the YAML representation of a specific generic resource by name using namespace from query parameters
-func (h *ResourcesHandler) GetGenericResourceYAMLByName(c *gin.Context) {
-	client, _, err := h.getClientAndConfig(c)
-	if err != nil {
-		h.logger.WithError(err).Error("Failed to get client for generic resource YAML")
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	resourceType := c.Param("resource")
-	name := c.Param("name")
-	namespace := c.Query("namespace")
-
-	if namespace == "" {
-		h.logger.WithField("resource_type", resourceType).WithField("name", name).Error("Namespace is required for generic resource YAML lookup")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "namespace parameter is required"})
-		return
-	}
-
-	var result interface{}
-	var err2 error
-
-	switch resourceType {
-	case "daemonsets":
-		result, err2 = client.AppsV1().DaemonSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "statefulsets":
-		result, err2 = client.AppsV1().StatefulSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "replicasets":
-		result, err2 = client.AppsV1().ReplicaSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "jobs":
-		result, err2 = client.BatchV1().Jobs(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "cronjobs":
-		result, err2 = client.BatchV1().CronJobs(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "horizontalpodautoscalers":
-		result, err2 = client.AutoscalingV2().HorizontalPodAutoscalers(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "limitranges":
-		result, err2 = client.CoreV1().LimitRanges(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "resourcequotas":
-		result, err2 = client.CoreV1().ResourceQuotas(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "serviceaccounts":
-		result, err2 = client.CoreV1().ServiceAccounts(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "roles":
-		result, err2 = client.RbacV1().Roles(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "rolebindings":
-		result, err2 = client.RbacV1().RoleBindings(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "persistentvolumeclaims":
-		result, err2 = client.CoreV1().PersistentVolumeClaims(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "poddisruptionbudgets":
-		result, err2 = client.PolicyV1().PodDisruptionBudgets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "endpoints":
-		result, err2 = client.CoreV1().Endpoints(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "ingresses":
-		result, err2 = client.NetworkingV1().Ingresses(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	case "leases":
-		result, err2 = client.CoordinationV1().Leases(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
-	default:
-		h.logger.WithField("resource_type", resourceType).Error("Unsupported resource type for YAML")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Unsupported resource type"})
-		return
-	}
-
-	if err2 != nil {
-		h.logger.WithError(err2).WithField("resource_type", resourceType).WithField("name", name).WithField("namespace", namespace).Error("Failed to get resource for YAML")
-		c.JSON(http.StatusNotFound, gin.H{"error": err2.Error()})
-		return
-	}
-
-	// Convert to YAML
-	yamlData, err := yaml.Marshal(result)
-	if err != nil {
-		h.logger.WithError(err).Error("Failed to marshal resource to YAML")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
-		return
-	}
-
-	// Check if this is an SSE request (EventSource expects SSE format)
-	acceptHeader := c.GetHeader("Accept")
-	if acceptHeader == "text/event-stream" {
-		// For EventSource, send the YAML data as base64 encoded string
-		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
-		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
-		return
-	}
-
-	// Return as base64 encoded string to match frontend expectations
-	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
-	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
 }
 
 // GetDaemonSetsSSE returns daemonsets as Server-Sent Events
@@ -4313,4 +3910,247 @@ func (h *ResourcesHandler) GetReplicaSetYAML(c *gin.Context) {
 // GetReplicaSetEvents returns events for a specific replicaset
 func (h *ResourcesHandler) GetReplicaSetEvents(c *gin.Context) {
 	h.getResourceEvents(c, "ReplicaSet", c.Param("name"))
+}
+
+// GetJobsSSE returns jobs as Server-Sent Events with real-time updates
+func (h *ResourcesHandler) GetJobsSSE(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for jobs SSE")
+		h.sendSSEError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	namespace := c.Query("namespace")
+
+	// Function to fetch and transform jobs data
+	fetchJobs := func() (interface{}, error) {
+		jobList, err := client.BatchV1().Jobs(namespace).List(c.Request.Context(), metav1.ListOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		// Transform jobs to frontend-expected format
+		var response []JobListResponse
+		for _, job := range jobList.Items {
+			response = append(response, h.transformJobToResponse(&job))
+		}
+
+		return response, nil
+	}
+
+	// Get initial data
+	initialData, err := fetchJobs()
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to list jobs for SSE")
+		h.sendSSEError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Send SSE response with periodic updates
+	h.sendSSEResponseWithUpdates(c, initialData, fetchJobs)
+}
+
+// GetJob returns a specific job
+func (h *ResourcesHandler) GetJob(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for job")
+		// For EventSource, send error as SSE
+		if c.GetHeader("Accept") == "text/event-stream" {
+			h.sendSSEError(c, http.StatusBadRequest, err.Error())
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+
+	job, err := client.BatchV1().Jobs(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("job", name).WithField("namespace", namespace).Error("Failed to get job")
+		// For EventSource, send error as SSE
+		if c.GetHeader("Accept") == "text/event-stream" {
+			h.sendSSEError(c, http.StatusNotFound, err.Error())
+		} else {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		h.sendSSEResponse(c, job)
+		return
+	}
+
+	c.JSON(http.StatusOK, job)
+}
+
+// GetJobYAML returns the YAML representation of a specific job
+func (h *ResourcesHandler) GetJobYAML(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for job YAML")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+
+	job, err := client.BatchV1().Jobs(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("job", name).WithField("namespace", namespace).Error("Failed to get job for YAML")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Convert to YAML
+	yamlData, err := yaml.Marshal(job)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to marshal job to YAML")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// For EventSource, send the YAML data as base64 encoded string
+		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
+		return
+	}
+
+	// Return as base64 encoded string to match frontend expectations
+	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+}
+
+// GetJobEvents returns events for a specific job
+func (h *ResourcesHandler) GetJobEvents(c *gin.Context) {
+	name := c.Param("name")
+	h.getResourceEvents(c, "Job", name)
+}
+
+// GetCronJobsSSE returns cronjobs as Server-Sent Events with real-time updates
+func (h *ResourcesHandler) GetCronJobsSSE(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for cronjobs SSE")
+		h.sendSSEError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	namespace := c.Query("namespace")
+
+	// Function to fetch cronjobs data
+	fetchCronJobs := func() (interface{}, error) {
+		cronJobList, err := client.BatchV1().CronJobs(namespace).List(c.Request.Context(), metav1.ListOptions{})
+		if err != nil {
+			return nil, err
+		}
+		return cronJobList.Items, nil
+	}
+
+	// Get initial data
+	initialData, err := fetchCronJobs()
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to list cronjobs for SSE")
+		h.sendSSEError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Send SSE response with periodic updates
+	h.sendSSEResponseWithUpdates(c, initialData, fetchCronJobs)
+}
+
+// GetCronJob returns a specific cronjob
+func (h *ResourcesHandler) GetCronJob(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for cronjob")
+		// For EventSource, send error as SSE
+		if c.GetHeader("Accept") == "text/event-stream" {
+			h.sendSSEError(c, http.StatusBadRequest, err.Error())
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+
+	cronJob, err := client.BatchV1().CronJobs(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("cronjob", name).WithField("namespace", namespace).Error("Failed to get cronjob")
+		// For EventSource, send error as SSE
+		if c.GetHeader("Accept") == "text/event-stream" {
+			h.sendSSEError(c, http.StatusNotFound, err.Error())
+		} else {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		h.sendSSEResponse(c, cronJob)
+		return
+	}
+
+	c.JSON(http.StatusOK, cronJob)
+}
+
+// GetCronJobYAML returns the YAML representation of a specific cronjob
+func (h *ResourcesHandler) GetCronJobYAML(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for cronjob YAML")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+
+	cronJob, err := client.BatchV1().CronJobs(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("cronjob", name).WithField("namespace", namespace).Error("Failed to get cronjob for YAML")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Convert to YAML
+	yamlData, err := yaml.Marshal(cronJob)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to marshal cronjob to YAML")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// For EventSource, send the YAML data as base64 encoded string
+		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
+		return
+	}
+
+	// Return as base64 encoded string to match frontend expectations
+	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+}
+
+// GetCronJobEvents returns events for a specific cronjob
+func (h *ResourcesHandler) GetCronJobEvents(c *gin.Context) {
+	name := c.Param("name")
+	h.getResourceEvents(c, "CronJob", name)
 }
