@@ -151,6 +151,22 @@ type StatefulSetListResponse struct {
 	} `json:"status"`
 }
 
+// ReplicaSetListResponse represents the response format expected by the frontend for replicasets
+type ReplicaSetListResponse struct {
+	Age        string `json:"age"`
+	HasUpdated bool   `json:"hasUpdated"`
+	Name       string `json:"name"`
+	Namespace  string `json:"namespace"`
+	UID        string `json:"uid"`
+	Status     struct {
+		Replicas             int32 `json:"replicas"`
+		FullyLabeledReplicas int32 `json:"fullyLabeledReplicas"`
+		ReadyReplicas        int32 `json:"readyReplicas"`
+		AvailableReplicas    int32 `json:"availableReplicas"`
+		ObservedGeneration   int64 `json:"observedGeneration"`
+	} `json:"status"`
+}
+
 // ResourcesHandler handles Kubernetes resource-related API requests
 type ResourcesHandler struct {
 	store         *storage.KubeConfigStore
@@ -747,21 +763,26 @@ func (h *ResourcesHandler) GetPodsSSE(c *gin.Context) {
 		listOptions.FieldSelector = fmt.Sprintf("spec.nodeName=%s", node)
 	}
 
-	// If filtering by owner (deployment, daemonset, etc.), we need to get the owner first
-	if owner != "" && ownerName != "" && namespace != "" {
-		switch owner {
-		case "deployment":
-			deployment, err := client.AppsV1().Deployments(namespace).Get(c.Request.Context(), ownerName, metav1.GetOptions{})
-			if err == nil {
-				listOptions.LabelSelector = metav1.FormatLabelSelector(deployment.Spec.Selector)
-			}
-		case "daemonset":
-			daemonSet, err := client.AppsV1().DaemonSets(namespace).Get(c.Request.Context(), ownerName, metav1.GetOptions{})
-			if err == nil {
-				listOptions.LabelSelector = metav1.FormatLabelSelector(daemonSet.Spec.Selector)
+			// If filtering by owner (deployment, daemonset, etc.), we need to get the owner first
+		if owner != "" && ownerName != "" && namespace != "" {
+			switch owner {
+			case "deployment":
+				deployment, err := client.AppsV1().Deployments(namespace).Get(c.Request.Context(), ownerName, metav1.GetOptions{})
+				if err == nil {
+					listOptions.LabelSelector = metav1.FormatLabelSelector(deployment.Spec.Selector)
+				}
+			case "daemonset":
+				daemonSet, err := client.AppsV1().DaemonSets(namespace).Get(c.Request.Context(), ownerName, metav1.GetOptions{})
+				if err == nil {
+					listOptions.LabelSelector = metav1.FormatLabelSelector(daemonSet.Spec.Selector)
+				}
+			case "replicaset":
+				replicaSet, err := client.AppsV1().ReplicaSets(namespace).Get(c.Request.Context(), ownerName, metav1.GetOptions{})
+				if err == nil {
+					listOptions.LabelSelector = metav1.FormatLabelSelector(replicaSet.Spec.Selector)
+				}
 			}
 		}
-	}
 
 	if namespace != "" {
 		podList, err2 = client.CoreV1().Pods(namespace).List(c.Request.Context(), listOptions)
@@ -2132,7 +2153,18 @@ func (h *ResourcesHandler) GetGenericResource(c *gin.Context) {
 		result = statefulSetList
 		err2 = err2
 	case "replicasets":
-		result, err2 = client.AppsV1().ReplicaSets(namespace).List(c.Request.Context(), metav1.ListOptions{})
+		replicaSetList, err2 := client.AppsV1().ReplicaSets(namespace).List(c.Request.Context(), metav1.ListOptions{})
+		if err2 == nil {
+			// Transform ReplicaSets to frontend-expected format
+			var response []ReplicaSetListResponse
+			for _, replicaSet := range replicaSetList.Items {
+				response = append(response, h.transformReplicaSetToResponse(&replicaSet))
+			}
+			h.sendSSEResponse(c, response)
+			return
+		}
+		result = replicaSetList
+		err2 = err2
 	case "jobs":
 		result, err2 = client.BatchV1().Jobs(namespace).List(c.Request.Context(), metav1.ListOptions{})
 	case "cronjobs":
@@ -2230,7 +2262,18 @@ func (h *ResourcesHandler) GetGenericResourceSSE(c *gin.Context) {
 		result = statefulSetList
 		err2 = err2
 	case "replicasets":
-		result, err2 = client.AppsV1().ReplicaSets(namespace).List(c.Request.Context(), metav1.ListOptions{})
+		replicaSetList, err2 := client.AppsV1().ReplicaSets(namespace).List(c.Request.Context(), metav1.ListOptions{})
+		if err2 == nil {
+			// Transform ReplicaSets to frontend-expected format
+			var response []ReplicaSetListResponse
+			for _, replicaSet := range replicaSetList.Items {
+				response = append(response, h.transformReplicaSetToResponse(&replicaSet))
+			}
+			h.sendSSEResponse(c, response)
+			return
+		}
+		result = replicaSetList
+		err2 = err2
 	case "jobs":
 		result, err2 = client.BatchV1().Jobs(namespace).List(c.Request.Context(), metav1.ListOptions{})
 	case "cronjobs":
@@ -3253,6 +3296,37 @@ func (h *ResourcesHandler) transformStatefulSetToResponse(statefulSet *appsV1.St
 	return response
 }
 
+func (h *ResourcesHandler) transformReplicaSetToResponse(replicaSet *appsV1.ReplicaSet) ReplicaSetListResponse {
+	// Send creation timestamp instead of calculated age
+	age := ""
+	if replicaSet.CreationTimestamp.Time != (time.Time{}) {
+		age = replicaSet.CreationTimestamp.Time.Format(time.RFC3339)
+	}
+
+	response := ReplicaSetListResponse{
+		Age:        age,
+		HasUpdated: false, // This would need to be tracked separately
+		Name:       replicaSet.Name,
+		Namespace:  replicaSet.Namespace,
+		UID:        string(replicaSet.UID),
+		Status: struct {
+			Replicas             int32 `json:"replicas"`
+			FullyLabeledReplicas int32 `json:"fullyLabeledReplicas"`
+			ReadyReplicas        int32 `json:"readyReplicas"`
+			AvailableReplicas    int32 `json:"availableReplicas"`
+			ObservedGeneration   int64 `json:"observedGeneration"`
+		}{
+			Replicas:             replicaSet.Status.Replicas,
+			FullyLabeledReplicas: replicaSet.Status.FullyLabeledReplicas,
+			ReadyReplicas:        replicaSet.Status.ReadyReplicas,
+			AvailableReplicas:    replicaSet.Status.AvailableReplicas,
+			ObservedGeneration:   replicaSet.Status.ObservedGeneration,
+		},
+	}
+
+	return response
+}
+
 // GetGenericResourceYAML returns the YAML representation of a specific generic resource
 func (h *ResourcesHandler) GetGenericResourceYAML(c *gin.Context) {
 	client, _, err := h.getClientAndConfig(c)
@@ -3793,4 +3867,127 @@ func (h *ResourcesHandler) GetNamespacePods(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, transformedPods)
+}
+
+// GetReplicaSetPods returns pods for a specific replicaset
+func (h *ResourcesHandler) GetReplicaSetPods(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for replicaset pods")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+
+	// Get the replicaset to find its labels
+	replicaSet, err := client.AppsV1().ReplicaSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("replicaset", name).WithField("namespace", namespace).Error("Failed to get replicaset")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Get pods that match the replicaset's selector
+	podList, err := client.CoreV1().Pods(namespace).List(c.Request.Context(), metav1.ListOptions{
+		LabelSelector: metav1.FormatLabelSelector(replicaSet.Spec.Selector),
+	})
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to list replicaset pods")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Transform pods to the expected format
+	var transformedPods []PodListResponse
+	configID := c.Query("config")
+	cluster := c.Query("cluster")
+	for _, pod := range podList.Items {
+		transformedPods = append(transformedPods, h.transformPodToResponse(&pod, configID, cluster))
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		h.sendSSEResponse(c, transformedPods)
+		return
+	}
+
+	c.JSON(http.StatusOK, transformedPods)
+}
+
+// GetReplicaSet returns details for a specific replicaset
+func (h *ResourcesHandler) GetReplicaSet(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for replicaset details")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+
+	replicaSet, err := client.AppsV1().ReplicaSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("replicaset", name).WithField("namespace", namespace).Error("Failed to get replicaset")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		h.sendSSEResponse(c, replicaSet)
+		return
+	}
+
+	c.JSON(http.StatusOK, replicaSet)
+}
+
+// GetReplicaSetYAML returns the YAML representation of a specific replicaset
+func (h *ResourcesHandler) GetReplicaSetYAML(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for replicaset YAML")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+
+	replicaSet, err := client.AppsV1().ReplicaSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("replicaset", name).WithField("namespace", namespace).Error("Failed to get replicaset for YAML")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Convert to YAML
+	yamlData, err := yaml.Marshal(replicaSet)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to marshal replicaset to YAML")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// For EventSource, send the YAML data as base64 encoded string
+		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
+		return
+	}
+
+	// Return as base64 encoded string to match frontend expectations
+	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+}
+
+// GetReplicaSetEvents returns events for a specific replicaset
+func (h *ResourcesHandler) GetReplicaSetEvents(c *gin.Context) {
+	h.getResourceEvents(c, "ReplicaSet", c.Param("name"))
 }

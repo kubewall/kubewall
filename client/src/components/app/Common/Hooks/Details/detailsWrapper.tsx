@@ -2,6 +2,8 @@ import { CLUSTER_ROLES_ENDPOINT, CLUSTER_ROLE_BINDINGS_ENDPOINT, CONFIG_MAPS_END
 import { ClusterRoleBindingDetailsContainer, ClusterRoleDetailsContainer, ConfigMapDetailsContainer, CustomResourceDetailsContainer, DaemonSetDetailsContainer, DeploymentDetailsContainer, EndpointDetailsContainer, LimitRangeDetailsContainer, NamespaceDetailsContainer, NodeDetailsContainer, PodDetailsContainer, PodDisruptionBudgetDetailsContainer, ResourceQuotaDetailsContainer, RoleBindingDetailsContainer, RoleDetailsContainer, RuntimeClassDetailsContainer, SecretDetailsContainer, ServiceAccountDetailsContainer, ServiceDetailsContainer, StatefulSetDetailsContainer } from "@/components/app/MiscDetailsContainer";
 import { getClusterRoleBindingDetailsConfig, getClusterRoleDetailsConfig, getConfigMapDetailsConfig, getCronJobsDetailsConfig, getCustomResourceDefinitionsDetailsConfig, getCustomResourceDetailsConfig, getDaemonSetDetailsConfig, getDeploymentDetailsConfig, getEndpointDetailsConfig, getHPADetailsConfig, getIngressDetailsConfig, getJobsDetailsConfig, getLeaseDetailsConfig, getLimitRangeDetailsConfig, getNamespaceDetailsConfig, getNodeDetailsConfig, getPersistentVolumeClaimDetailsConfig, getPersistentVolumeDetailsConfig, getPodDetailsConfig, getPodDisruptionBudgetDetailsConfig, getPriorityClassDetailsConfig, getReplicaSetDetailsConfig, getResourceQuotaDetailsConfig, getRoleBindingDetailsConfig, getRoleDetailsConfig, getRuntimeClassDetailsConfig, getSecretDetailsConfig, getServiceAccountDetailsConfig, getServiceDetailsConfig, getStatefulSetDetailsConfig, getStorageClassDetailsConfig } from "@/utils/DetailType/DetailDefinations";
 
+import { ReplicaSetDetailsContainer } from "@/components/app/MiscDetailsContainer/ReplicaSetDetailsContainer";
+
 import { RootState } from "@/redux/store";
 import { useAppSelector } from "@/redux/hooks";
 
@@ -67,7 +69,7 @@ const useDetailsWrapper = ({ loading, resourcekind }: DetailsWapperProps) => {
     return { ...getStatefulSetDetailsConfig(statefulSetDetails, loading), miscComponent: <StatefulSetDetailsContainer/> };
   }
   if (resourcekind === REPLICA_SETS_ENDPOINT) {
-    return { ...getReplicaSetDetailsConfig(replicaSetDetails, loading), miscComponent: <></> };
+    return { ...getReplicaSetDetailsConfig(replicaSetDetails, loading), miscComponent: <ReplicaSetDetailsContainer /> };
   }
   if (resourcekind === JOBS_ENDPOINT) {
     return { ...getJobsDetailsConfig(jobDetails, loading), miscComponent: <></> };

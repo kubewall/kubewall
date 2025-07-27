@@ -56,6 +56,7 @@ import podsSlice from '@/data/Workloads/Pods/PodsSlice';
 import priorityClassDetailsSlice from '@/data/Configurations/PriorityClasses/PriorityClassDetailsSlice';
 import priorityClassesListSlice from '@/data/Configurations/PriorityClasses/PriorityClassesListSlice';
 import replicaSetDetailsSlice from '@/data/Workloads/ReplicaSets/ReplicaSetDetailsSlice';
+import replicaSetPodsSlice from '@/data/Workloads/ReplicaSets/ReplicaSetPodsSlice';
 import replicaSetsSlice from '@/data/Workloads/ReplicaSets/ReplicaSetsSlice';
 import resourceQuotaDetailsSlice from '@/data/Configurations/ResourceQuotas/ResourceQuotaDetailsSlice';
 import resourceQuotasListSlice from '@/data/Configurations/ResourceQuotas/ResourceQuotasListSlice';
@@ -100,6 +101,7 @@ const store = configureStore({
     namespacePods: namespacePodsSlice,
     replicaSets: replicaSetsSlice,
     replicaSetDetails: replicaSetDetailsSlice,
+    replicaSetPods: replicaSetPodsSlice,
     statefulSets: statefulSetsSlice,
     statefulSetDetails: statefulSetDetailsSlice,
     statefulSetPods: statefulSetPodsSlice,
