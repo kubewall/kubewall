@@ -7,7 +7,6 @@ import { ChatMessage, kwAIStoredChatHistory, kwAIStoredModel, kwAIStoredModels }
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { RetryError, streamText } from "ai";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -42,6 +41,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import remarkParse from 'remark-parse';
 import remarkRehype from 'remark-rehype';
+import { streamText } from "ai";
 import { useAppSelector } from "@/redux/hooks";
 import { useSidebarSize } from '@/hooks/use-get-sidebar-size';
 
