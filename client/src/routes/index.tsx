@@ -36,6 +36,10 @@ const kwList = createRoute({
       ...(search.kind ? {kind: String(search.kind)}: {}),
       ...(search.resource ? {resource: String(search.resource)}: {}),
       ...(search.version ? {version: String(search.version)}: {}),
+      ...(search.node ? {node: String(search.node)}: {}),
+      ...(search.namespace ? {namespace: String(search.namespace)}: {}),
+      ...(search.owner ? {owner: String(search.owner)}: {}),
+      ...(search.ownerName ? {ownerName: String(search.ownerName)}: {}),
     };
   }
 });

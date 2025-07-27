@@ -230,7 +230,12 @@ export function KwList() {
     } if (resourcekind === STORAGE_CLASSES_ENDPOINT) {
       return getTableConfig<StorageClassesHeaders>(storageClasses, STORAGE_CLASSES_ENDPOINT, updateStorageClassesList, storageClassesLoading, storageClassesColumnConfig(config, cluster));
     } if (resourcekind === PODS_ENDPOINT) {
-      return getTableConfig<PodsHeaders>(pods, PODS_ENDPOINT, updatePodsList, podsLoading, podsColumnConfig(config, cluster));
+      const node = commonSearchParams.node;
+      const namespace = commonSearchParams.namespace;
+      const owner = commonSearchParams.owner;
+      const ownerName = commonSearchParams.ownerName;
+      const filters = { node, namespace, owner, ownerName };
+      return getTableConfig<PodsHeaders>(pods, PODS_ENDPOINT, updatePodsList, podsLoading, podsColumnConfig(config, cluster, true, filters));
     } if (resourcekind === CRON_JOBS_ENDPOINT) {
       return getTableConfig<CronJobsHeader>(cronJobs, CRON_JOBS_ENDPOINT, updateCronJobs, cronJobsLoading, cronJobsColumnConfig(config, cluster));
     } if (resourcekind === DAEMON_SETS_ENDPOINT) {

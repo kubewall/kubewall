@@ -16,6 +16,7 @@ import customResourcesDetailsSlice from '@/data/CustomResources/CustomResourcesD
 import customResourcesListSlice from '@/data/CustomResources/CustomResourcesListSlice';
 import customResourcesSlice from '@/data/CustomResources/CustomResourcesSlice';
 import daemonSetDetailsSlice from '@/data/Workloads/DaemonSets/DaemonSetDetailsSlice';
+import daemonSetPodsSlice from '@/data/Workloads/DaemonSets/DaemonSetPodsSlice';
 import daemonSetsSlice from '@/data/Workloads/DaemonSets/DaemonSetsSlices';
 import deleteConfigSlice from '@/data/KwClusters/DeleteConfigSlice';
 import deleteResourcesSlice from '@/data/Misc/DeleteResourceSlice';
@@ -38,9 +39,11 @@ import limitRangeListSlice from '@/data/Configurations/LimitRange/LimitRangeList
 import listTableFilterSlice from '@/data/Misc/ListTableFilterSlice';
 import listTableNamesapceSlice from '@/data/Misc/ListTableNamesapceSlice';
 import namespaceDetailsSlice from '@/data/Clusters/Namespaces/NamespaceDetailsSlice';
+import namespacePodsSlice from '@/data/Clusters/Namespaces/NamespacePodsSlice';
 import namespacesSlice from '@/data/Clusters/Namespaces/NamespacesSlice';
 import nodeDetailsSlice from '@/data/Clusters/Nodes/NodeDetailsSlice';
 import nodeListSlice from '@/data/Clusters/Nodes/NodeListSlice';
+import nodePodsSlice from '@/data/Clusters/Nodes/NodePodsSlice';
 import persistentVolumeClaimsDetailsSlice from '@/data/Storages/PersistentVolumeClaims/PersistentVolumeClaimDetailsSlice';
 import persistentVolumeClaimsListSlice from '@/data/Storages/PersistentVolumeClaims/PersistentVolumeClaimsListSlice';
 import persistentVolumeDetailsSlice from '@/data/Storages/PersistentVolumes/PersistentVolumeDetailsSlice';
@@ -82,6 +85,7 @@ const store = configureStore({
     cronJobDetails: cronJobDetailsSlice,
     daemonSets: daemonSetsSlice,
     daemonSetDetails: daemonSetDetailsSlice,
+    daemonSetPods: daemonSetPodsSlice,
     deployments: deploymentSlice,
     deploymentDetails: deploymentDetailsSlice,
     deploymentPods: deploymentPodDetailsSlice,
@@ -92,6 +96,7 @@ const store = configureStore({
     podLogs: podLogsSlice,
     namespaces: namespacesSlice,
     namespaceDetails: namespaceDetailsSlice,
+    namespacePods: namespacePodsSlice,
     replicaSets: replicaSetsSlice,
     replicaSetDetails: replicaSetDetailsSlice,
     statefulSets: statefulSetsSlice,
@@ -147,6 +152,7 @@ const store = configureStore({
     listTableFilter: listTableFilterSlice,
     nodes: nodeListSlice,
     nodeDetails: nodeDetailsSlice,
+    nodePods: nodePodsSlice,
     deleteResources: deleteResourcesSlice,
     listTableNamesapce: listTableNamesapceSlice,
     customResourcesDefinitionDetails: customResourcesDefinitionDetailsSlice,

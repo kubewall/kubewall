@@ -1,11 +1,27 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/app/Table";
+import { HeaderList, Pods } from "@/types";
+import { createEventStreamQueryObject, defaultSkeletonRow, getEventStreamUrl } from "@/utils";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
 import { CopyToClipboard } from "@/components/app/Common/CopyToClipboard";
 import { defaultOrValue } from "@/utils";
 import { memo } from "react";
-import { useAppSelector } from "@/redux/hooks";
+import { useNavigate } from "@tanstack/react-router";
+import { kwDetails } from "@/routes";
+import { podsColumnConfig } from "@/utils/ListType/ListDefinations";
+import { updateNamespacePods } from "@/data/Clusters/Namespaces/NamespacePodsSlice";
+import { useEventSource } from "@/components/app/Common/Hooks/EventSource";
+import useGenerateColumns from "@/components/app/Common/Hooks/TableColumns";
+import { useSidebar } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
+import { NAMESPACES_ENDPOINT, PODS_ENDPOINT } from "@/constants";
 
 const NamespaceDetailsContainer = memo(function () {
+  const { config } = kwDetails.useParams();
+  const { cluster, resourcename } = kwDetails.useSearch();
+  const navigate = useNavigate();
   const {
     namespaceDetails: {
       status: {
@@ -13,6 +29,34 @@ const NamespaceDetailsContainer = memo(function () {
       }
     }
   } = useAppSelector((state) => state.namespaceDetails);
+  const {
+    loading,
+    namespacePodDetails
+  } = useAppSelector((state) => state.namespacePods);
+  const { open } = useSidebar();
+  const dispatch = useAppDispatch();
+
+  const sendMessage = (message: Pods[]) => {
+    dispatch(updateNamespacePods(message));
+  };
+
+  useEventSource({
+    url: getEventStreamUrl(
+      NAMESPACES_ENDPOINT,
+      createEventStreamQueryObject(
+        config,
+        cluster
+      ),
+      `/${resourcename}/pods`
+    ),
+    sendMessage
+  });
+
+  const handleViewPods = () => {
+    navigate({ 
+      to: `/${config}/list?cluster=${encodeURIComponent(cluster)}&resourcekind=${PODS_ENDPOINT}&namespace=${encodeURIComponent(resourcename)}` 
+    });
+  };
 
   return (
     <div className="mt-2">
@@ -110,6 +154,45 @@ const NamespaceDetailsContainer = memo(function () {
           </CardContent>
         </Card>
       }
+
+      <div className="mt-2">
+        <Card className="rounded-lg">
+          <CardHeader className="p-4 flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-medium">Pods</CardTitle>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleViewPods}
+              className="text-xs"
+            >
+              View All Pods
+            </Button>
+          </CardHeader>
+          <CardContent className="pl-4 pr-4">
+            <div className="col-span-7">
+              <div className="h-full">
+                <DataTable
+                  columns={
+                    useGenerateColumns<Pods, HeaderList>({
+                      clusterName: cluster,
+                      configName: config,
+                      loading,
+                      headersList: podsColumnConfig(config, cluster, false).headersList,
+                      instanceType: PODS_ENDPOINT,
+                      count: namespacePodDetails.length,
+                    })
+                  }
+                  data={loading ? defaultSkeletonRow() : namespacePodDetails}
+                  tableWidthCss={cn("border-r border-l", open ? 'deployment-list-table-max-width-expanded' : 'deployment-list-table-max-width-collapsed')}
+                  instanceType={PODS_ENDPOINT}
+                  showToolbar={false}
+                  showNamespaceFilter={false}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
     </div>
   );

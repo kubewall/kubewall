@@ -716,13 +716,41 @@ func (h *ResourcesHandler) GetPodsSSE(c *gin.Context) {
 	}
 
 	namespace := c.Query("namespace")
+	node := c.Query("node")
+	owner := c.Query("owner")
+	ownerName := c.Query("ownerName")
+
 	var podList *v1.PodList
 	var err2 error
 
+	// Build list options with filters
+	listOptions := metav1.ListOptions{}
+
+	// If filtering by node, use field selector
+	if node != "" {
+		listOptions.FieldSelector = fmt.Sprintf("spec.nodeName=%s", node)
+	}
+
+	// If filtering by owner (deployment, daemonset, etc.), we need to get the owner first
+	if owner != "" && ownerName != "" && namespace != "" {
+		switch owner {
+		case "deployment":
+			deployment, err := client.AppsV1().Deployments(namespace).Get(c.Request.Context(), ownerName, metav1.GetOptions{})
+			if err == nil {
+				listOptions.LabelSelector = metav1.FormatLabelSelector(deployment.Spec.Selector)
+			}
+		case "daemonset":
+			daemonSet, err := client.AppsV1().DaemonSets(namespace).Get(c.Request.Context(), ownerName, metav1.GetOptions{})
+			if err == nil {
+				listOptions.LabelSelector = metav1.FormatLabelSelector(daemonSet.Spec.Selector)
+			}
+		}
+	}
+
 	if namespace != "" {
-		podList, err2 = client.CoreV1().Pods(namespace).List(c.Request.Context(), metav1.ListOptions{})
+		podList, err2 = client.CoreV1().Pods(namespace).List(c.Request.Context(), listOptions)
 	} else {
-		podList, err2 = client.CoreV1().Pods("").List(c.Request.Context(), metav1.ListOptions{})
+		podList, err2 = client.CoreV1().Pods("").List(c.Request.Context(), listOptions)
 	}
 
 	if err2 != nil {
@@ -3326,4 +3354,240 @@ func (h *ResourcesHandler) GetGenericResourceYAMLByName(c *gin.Context) {
 	// Return as base64 encoded string to match frontend expectations
 	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
 	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+}
+
+// GetDaemonSetsSSE returns daemonsets as Server-Sent Events
+func (h *ResourcesHandler) GetDaemonSetsSSE(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for daemonsets SSE")
+		h.sendSSEError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	namespace := c.Query("namespace")
+	daemonSetList, err := client.AppsV1().DaemonSets(namespace).List(c.Request.Context(), metav1.ListOptions{})
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to list daemonsets for SSE")
+		h.sendSSEError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Transform daemonsets to frontend-expected format
+	var response []DaemonSetListResponse
+	for _, daemonSet := range daemonSetList.Items {
+		response = append(response, h.transformDaemonSetToResponse(&daemonSet))
+	}
+
+	h.sendSSEResponse(c, response)
+}
+
+// GetDaemonSet returns a specific daemonset
+func (h *ResourcesHandler) GetDaemonSet(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for daemonset")
+		// For EventSource, send error as SSE
+		if c.GetHeader("Accept") == "text/event-stream" {
+			h.sendSSEError(c, http.StatusBadRequest, err.Error())
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+
+	daemonSet, err := client.AppsV1().DaemonSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("daemonset", name).WithField("namespace", namespace).Error("Failed to get daemonset")
+		// For EventSource, send error as SSE
+		if c.GetHeader("Accept") == "text/event-stream" {
+			h.sendSSEError(c, http.StatusNotFound, err.Error())
+		} else {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		h.sendSSEResponse(c, daemonSet)
+		return
+	}
+
+	c.JSON(http.StatusOK, daemonSet)
+}
+
+// GetDaemonSetYAML returns the YAML representation of a specific daemonset
+func (h *ResourcesHandler) GetDaemonSetYAML(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for daemonset YAML")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+
+	daemonSet, err := client.AppsV1().DaemonSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("daemonset", name).WithField("namespace", namespace).Error("Failed to get daemonset for YAML")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Convert to YAML
+	yamlData, err := yaml.Marshal(daemonSet)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to marshal daemonset to YAML")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// For EventSource, send the YAML data as base64 encoded string
+		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
+		return
+	}
+
+	// Return as base64 encoded string to match frontend expectations
+	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+}
+
+// GetDaemonSetEvents returns events for a specific daemonset
+func (h *ResourcesHandler) GetDaemonSetEvents(c *gin.Context) {
+	name := c.Param("name")
+	h.getResourceEvents(c, "DaemonSet", name)
+}
+
+// GetDaemonSetPods returns pods for a specific daemonset
+func (h *ResourcesHandler) GetDaemonSetPods(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for daemonset pods")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+
+	// Get the daemonset to find its labels
+	daemonSet, err := client.AppsV1().DaemonSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("daemonset", name).WithField("namespace", namespace).Error("Failed to get daemonset")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Get pods that match the daemonset's selector
+	podList, err := client.CoreV1().Pods(namespace).List(c.Request.Context(), metav1.ListOptions{
+		LabelSelector: metav1.FormatLabelSelector(daemonSet.Spec.Selector),
+	})
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to list daemonset pods")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Transform pods to the expected format
+	var transformedPods []PodListResponse
+	configID := c.Query("config")
+	cluster := c.Query("cluster")
+	for _, pod := range podList.Items {
+		transformedPods = append(transformedPods, h.transformPodToResponse(&pod, configID, cluster))
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		h.sendSSEResponse(c, transformedPods)
+		return
+	}
+
+	c.JSON(http.StatusOK, transformedPods)
+}
+
+// GetNodePods returns pods running on a specific node
+func (h *ResourcesHandler) GetNodePods(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for node pods")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	nodeName := c.Param("name")
+
+	// Get all pods and filter by node
+	podList, err := client.CoreV1().Pods("").List(c.Request.Context(), metav1.ListOptions{
+		FieldSelector: fmt.Sprintf("spec.nodeName=%s", nodeName),
+	})
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to list node pods")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Transform pods to the expected format
+	var transformedPods []PodListResponse
+	configID := c.Query("config")
+	cluster := c.Query("cluster")
+	for _, pod := range podList.Items {
+		transformedPods = append(transformedPods, h.transformPodToResponse(&pod, configID, cluster))
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		h.sendSSEResponse(c, transformedPods)
+		return
+	}
+
+	c.JSON(http.StatusOK, transformedPods)
+}
+
+// GetNamespacePods returns all pods in a specific namespace
+func (h *ResourcesHandler) GetNamespacePods(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for namespace pods")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	namespaceName := c.Param("name")
+
+	// Get pods in the specific namespace
+	podList, err := client.CoreV1().Pods(namespaceName).List(c.Request.Context(), metav1.ListOptions{})
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to list namespace pods")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Transform pods to the expected format
+	var transformedPods []PodListResponse
+	configID := c.Query("config")
+	cluster := c.Query("cluster")
+	for _, pod := range podList.Items {
+		transformedPods = append(transformedPods, h.transformPodToResponse(&pod, configID, cluster))
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		h.sendSSEResponse(c, transformedPods)
+		return
+	}
+
+	c.JSON(http.StatusOK, transformedPods)
 }
