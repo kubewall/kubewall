@@ -48,7 +48,7 @@ export function DataTableToolbar<TData>({
     <div className="flex items-center justify-between px-2 py-2">
       <div className="flex flex-1 items-center space-x-2">
         <SidebarTrigger />
-        <Separator orientation="vertical" className="mr-2 h-4 ml-1" />
+        <Separator orientation="vertical" className="mr-2 ml-1 data-[orientation=vertical]:h-4" />
         <div className="relative w-full basis-7/12">
           <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           <DebouncedInput
