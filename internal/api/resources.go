@@ -2450,7 +2450,12 @@ func (h *ResourcesHandler) GetGenericResourceSSE(c *gin.Context) {
 			if err != nil {
 				return nil, err
 			}
-			return result.Items, nil
+			// Transform RoleBindings to frontend-expected format
+			var response []RoleBindingListResponse
+			for _, roleBinding := range result.Items {
+				response = append(response, h.transformRoleBindingToResponse(&roleBinding))
+			}
+			return response, nil
 		case "clusterroles":
 			result, err := client.RbacV1().ClusterRoles().List(c.Request.Context(), metav1.ListOptions{})
 			if err != nil {
@@ -5230,6 +5235,45 @@ func (h *ResourcesHandler) transformRoleToResponse(role *rbacV1.Role) RoleListRe
 	}
 }
 
+func (h *ResourcesHandler) transformRoleBindingToResponse(roleBinding *rbacV1.RoleBinding) RoleBindingListResponse {
+	age := ""
+	if !roleBinding.CreationTimestamp.IsZero() {
+		age = roleBinding.CreationTimestamp.Time.Format(time.RFC3339)
+	}
+
+	// Convert subjects to readable strings
+	var subjectStrings []string
+	for _, subject := range roleBinding.Subjects {
+		subjectStr := ""
+		if subject.Kind != "" {
+			subjectStr += subject.Kind + ": "
+		}
+		if subject.Name != "" {
+			subjectStr += subject.Name
+		}
+		if subject.Namespace != "" {
+			subjectStr += " (namespace: " + subject.Namespace + ")"
+		}
+		if subjectStr == "" {
+			subjectStr = "Unknown subject"
+		}
+		subjectStrings = append(subjectStrings, subjectStr)
+	}
+
+	return RoleBindingListResponse{
+		Age:        age,
+		HasUpdated: false,
+		Name:       roleBinding.Name,
+		Namespace:  roleBinding.Namespace,
+		UID:        string(roleBinding.UID),
+		Subjects: struct {
+			Bindings []string `json:"bindings"`
+		}{
+			Bindings: subjectStrings,
+		},
+	}
+}
+
 // GetServiceAccountsSSE returns service accounts as Server-Sent Events with real-time updates
 func (h *ResourcesHandler) GetServiceAccountsSSE(c *gin.Context) {
 	client, _, err := h.getClientAndConfig(c)
@@ -6180,4 +6224,224 @@ func (h *ResourcesHandler) GetRoleEventsByName(c *gin.Context) {
 func (h *ResourcesHandler) GetRoleEvents(c *gin.Context) {
 	name := c.Param("name")
 	h.getResourceEvents(c, "Role", name)
+}
+
+// GetRoleBindingsSSE returns role bindings as Server-Sent Events with real-time updates
+func (h *ResourcesHandler) GetRoleBindingsSSE(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for role bindings SSE")
+		h.sendSSEError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	namespace := c.Query("namespace")
+
+	// Function to fetch and transform role bindings data
+	fetchRoleBindings := func() (interface{}, error) {
+		roleBindingList, err := client.RbacV1().RoleBindings(namespace).List(c.Request.Context(), metav1.ListOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		// Transform role bindings to frontend-expected format
+		var response []RoleBindingListResponse
+		for _, roleBinding := range roleBindingList.Items {
+			response = append(response, h.transformRoleBindingToResponse(&roleBinding))
+		}
+
+		return response, nil
+	}
+
+	// Get initial data
+	initialData, err := fetchRoleBindings()
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to list role bindings for SSE")
+		h.sendSSEError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Send SSE response with periodic updates
+	h.sendSSEResponseWithUpdates(c, initialData, fetchRoleBindings)
+}
+
+// GetRoleBinding returns a specific role binding
+func (h *ResourcesHandler) GetRoleBinding(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for role binding")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+	roleBinding, err := client.RbacV1().RoleBindings(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("roleBinding", name).WithField("namespace", namespace).Error("Failed to get role binding")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		h.sendSSEResponse(c, roleBinding)
+		return
+	}
+
+	c.JSON(http.StatusOK, roleBinding)
+}
+
+// GetRoleBindingByName returns a specific role binding by name using namespace from query parameters
+func (h *ResourcesHandler) GetRoleBindingByName(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for role binding")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	name := c.Param("name")
+	namespace := c.Query("namespace")
+
+	if namespace == "" {
+		h.logger.WithField("roleBinding", name).Error("Namespace is required for role binding lookup")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "namespace parameter is required"})
+		return
+	}
+
+	roleBinding, err := client.RbacV1().RoleBindings(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("roleBinding", name).WithField("namespace", namespace).Error("Failed to get role binding")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		h.sendSSEResponse(c, roleBinding)
+		return
+	}
+
+	c.JSON(http.StatusOK, roleBinding)
+}
+
+// GetRoleBindingYAMLByName returns the YAML representation of a specific role binding by name using namespace from query parameters
+func (h *ResourcesHandler) GetRoleBindingYAMLByName(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for role binding YAML")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	name := c.Param("name")
+	namespace := c.Query("namespace")
+
+	if namespace == "" {
+		h.logger.WithField("roleBinding", name).Error("Namespace is required for role binding YAML lookup")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "namespace parameter is required"})
+		return
+	}
+
+	roleBinding, err := client.RbacV1().RoleBindings(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("roleBinding", name).WithField("namespace", namespace).Error("Failed to get role binding for YAML")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Convert to YAML
+	yamlData, err := yaml.Marshal(roleBinding)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to marshal role binding to YAML")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// For EventSource, send the YAML data as base64 encoded string
+		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
+		return
+	}
+
+	// Return as base64 encoded string to match frontend expectations
+	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+}
+
+// GetRoleBindingYAML returns the YAML representation of a specific role binding
+func (h *ResourcesHandler) GetRoleBindingYAML(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for role binding YAML")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+	roleBinding, err := client.RbacV1().RoleBindings(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("roleBinding", name).WithField("namespace", namespace).Error("Failed to get role binding for YAML")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Convert to YAML
+	yamlData, err := yaml.Marshal(roleBinding)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to marshal role binding to YAML")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// For EventSource, send the YAML data as base64 encoded string
+		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
+		return
+	}
+
+	// Return as base64 encoded string to match frontend expectations
+	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+}
+
+// GetRoleBindingEventsByName returns events for a specific role binding by name using namespace from query parameters
+func (h *ResourcesHandler) GetRoleBindingEventsByName(c *gin.Context) {
+	name := c.Param("name")
+	namespace := c.Query("namespace")
+
+	if namespace == "" {
+		h.logger.WithField("roleBinding", name).Error("Namespace is required for role binding events lookup")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "namespace parameter is required"})
+		return
+	}
+
+	h.getResourceEvents(c, "RoleBinding", name)
+}
+
+// GetRoleBindingEvents returns events for a specific role binding
+func (h *ResourcesHandler) GetRoleBindingEvents(c *gin.Context) {
+	name := c.Param("name")
+	h.getResourceEvents(c, "RoleBinding", name)
+}
+
+type RoleBindingListResponse struct {
+	Age        string `json:"age"`
+	HasUpdated bool   `json:"hasUpdated"`
+	Name       string `json:"name"`
+	Namespace  string `json:"namespace"`
+	UID        string `json:"uid"`
+	Subjects   struct {
+		Bindings []string `json:"bindings"`
+	} `json:"subjects"`
 }
