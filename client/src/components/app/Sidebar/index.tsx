@@ -207,7 +207,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                                               <TooltipTrigger asChild>
                                                 <SidebarMenuSubButton asChild isActive={getActiveNav(routeValue, true)}>
                                                   <a onClick={() => onNavClick(routeValue)}>
-                                                    <span className="text-gray-600 dark:text-gray-400">{name}</span>
+                                                    <span className="text-gray-600 dark:text-gray-300">{name}</span>
                                                   </a>
                                                 </SidebarMenuSubButton>
                                               </TooltipTrigger>
@@ -239,7 +239,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                                           <DropdownMenuItem
                                             key={routeValue}
                                             onClick={() => onNavClick(routeValue)}
-                                            className="gap-2 cursor-pointer text-gray-600 dark:text-gray-400"
+                                            className="gap-2 cursor-pointer text-gray-600 dark:text-gray-300"
                                           >
                                             {name}
                                           </DropdownMenuItem>
@@ -313,7 +313,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                                         <TooltipTrigger asChild>
                                           <SidebarMenuSubButton asChild isActive={getActiveNav(customResource.name)}>
                                             <a onClick={() => onCustomResourcesNavClick(customResource.route, customResource.name)}>
-                                              <span className="text-gray-600 dark:text-gray-400 group-data-[collapsible=icon]:hidden">{customResource.name}</span>
+                                              <span className="text-gray-600 dark:text-gray-300 group-data-[collapsible=icon]:hidden">{customResource.name}</span>
                                             </a>
                                           </SidebarMenuSubButton>
                                         </TooltipTrigger>
@@ -346,7 +346,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                                         <DropdownMenuItem
                                           key={customResource.name}
                                           onClick={() => onCustomResourcesNavClick(customResource.route, customResource.name)}
-                                          className="gap-2 p-2 cursor-pointer text-gray-600 dark:text-gray-400"
+                                          className="gap-2 p-2 cursor-pointer text-gray-600 dark:text-gray-300"
                                         >
                                           {customResource.name}
                                         </DropdownMenuItem>

@@ -16,15 +16,15 @@ function TimeCell({ cellValue }: TimeCellProps) {
     const timeCellId = setInterval(() => {
 
       setCurrentTime((currentTime) => currentTime + 500);
-    },1000);
+    }, 1000);
     setTimerId(timeCellId);
     return () => {
       clearTimeout(timerId);
     };
-  },[]);
+  }, []);
   return (
     <div className="px-3">
-      <span title={cellValue} className="text-sm text-gray-700 dark:text-gray-400">
+      <span title={cellValue} className="text-sm text-gray-700 dark:text-gray-100">
         {getDisplayTime(Number(currentTime))}
       </span>
     </div>
