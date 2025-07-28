@@ -174,6 +174,8 @@ func (s *Server) setupRoutes() {
 		api.GET("/service/:name", s.resourcesHandler.GetServiceByName)
 		api.GET("/service/:name/yaml", s.resourcesHandler.GetServiceYAMLByName)
 		api.GET("/service/:name/events", s.resourcesHandler.GetServiceEventsByName)
+		api.GET("/ingresses", s.resourcesHandler.GetIngressesSSE)
+		api.GET("/endpoints", s.resourcesHandler.GetEndpointsSSE)
 		api.GET("/configmaps", s.resourcesHandler.GetConfigMapsSSE)
 		api.GET("/configmaps/:namespace/:name", s.resourcesHandler.GetConfigMap)
 		api.GET("/configmaps/:namespace/:name/yaml", s.resourcesHandler.GetConfigMapYAML)
@@ -196,6 +198,22 @@ func (s *Server) setupRoutes() {
 		api.GET("/horizontalpodautoscaler/:name", s.resourcesHandler.GetHPAByName)
 		api.GET("/horizontalpodautoscaler/:name/yaml", s.resourcesHandler.GetHPAYAMLByName)
 		api.GET("/horizontalpodautoscaler/:name/events", s.resourcesHandler.GetHPAEventsByName)
+
+		// Ingress endpoints
+		api.GET("/ingresses/:namespace/:name", s.resourcesHandler.GetIngress)
+		api.GET("/ingresses/:namespace/:name/yaml", s.resourcesHandler.GetIngressYAML)
+		api.GET("/ingresses/:namespace/:name/events", s.resourcesHandler.GetIngressEvents)
+		api.GET("/ingress/:name", s.resourcesHandler.GetIngressByName)
+		api.GET("/ingress/:name/yaml", s.resourcesHandler.GetIngressYAMLByName)
+		api.GET("/ingress/:name/events", s.resourcesHandler.GetIngressEventsByName)
+
+		// Endpoint endpoints
+		api.GET("/endpoints/:namespace/:name", s.resourcesHandler.GetEndpoint)
+		api.GET("/endpoints/:namespace/:name/yaml", s.resourcesHandler.GetEndpointYAML)
+		api.GET("/endpoints/:namespace/:name/events", s.resourcesHandler.GetEndpointEvents)
+		api.GET("/endpoint/:name", s.resourcesHandler.GetEndpointByName)
+		api.GET("/endpoint/:name/yaml", s.resourcesHandler.GetEndpointYAMLByName)
+		api.GET("/endpoint/:name/events", s.resourcesHandler.GetEndpointEventsByName)
 
 		// PVC endpoints
 		api.GET("/persistentvolumeclaims/:namespace/:name", s.resourcesHandler.GetPVC)

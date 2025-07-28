@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -22,6 +23,7 @@ import (
 	autoscalingV2 "k8s.io/api/autoscaling/v2"
 	batchV1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
+	networkingV1 "k8s.io/api/networking/v1"
 	storageV1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -1479,7 +1481,14 @@ func (h *ResourcesHandler) GetServicesSSE(c *gin.Context) {
 		if err != nil {
 			return nil, err
 		}
-		return serviceList.Items, nil
+
+		// Transform to frontend format
+		responses := make([]ServiceListResponse, len(serviceList.Items))
+		for i, service := range serviceList.Items {
+			responses[i] = h.transformServiceToResponse(&service)
+		}
+
+		return responses, nil
 	}
 
 	// Get initial data
@@ -2490,18 +2499,39 @@ func (h *ResourcesHandler) GetGenericResourceSSE(c *gin.Context) {
 				return nil, err
 			}
 			return result.Items, nil
+		case "services":
+			result, err := client.CoreV1().Services(namespace).List(c.Request.Context(), metav1.ListOptions{})
+			if err != nil {
+				return nil, err
+			}
+			// Transform Services to frontend-expected format
+			var response []ServiceListResponse
+			for _, service := range result.Items {
+				response = append(response, h.transformServiceToResponse(&service))
+			}
+			return response, nil
 		case "endpoints":
 			result, err := client.CoreV1().Endpoints(namespace).List(c.Request.Context(), metav1.ListOptions{})
 			if err != nil {
 				return nil, err
 			}
-			return result.Items, nil
+			// Transform Endpoints to frontend-expected format
+			var response []EndpointListResponse
+			for _, endpoint := range result.Items {
+				response = append(response, h.transformEndpointToResponse(&endpoint))
+			}
+			return response, nil
 		case "ingresses":
 			result, err := client.NetworkingV1().Ingresses(namespace).List(c.Request.Context(), metav1.ListOptions{})
 			if err != nil {
 				return nil, err
 			}
-			return result.Items, nil
+			// Transform Ingresses to frontend-expected format
+			var response []IngressListResponse
+			for _, ingress := range result.Items {
+				response = append(response, h.transformIngressToResponse(&ingress))
+			}
+			return response, nil
 		case "events":
 			result, err := client.CoreV1().Events(namespace).List(c.Request.Context(), metav1.ListOptions{})
 			if err != nil {
@@ -4836,6 +4866,46 @@ type StorageClassListResponse struct {
 	VolumeBindingMode string `json:"volumeBindingMode"`
 }
 
+type ServiceListResponse struct {
+	Age        string `json:"age"`
+	HasUpdated bool   `json:"hasUpdated"`
+	Name       string `json:"name"`
+	Namespace  string `json:"namespace"`
+	UID        string `json:"uid"`
+	Spec       struct {
+		Ports                 string `json:"ports"`
+		ClusterIP             string `json:"clusterIP"`
+		Type                  string `json:"type"`
+		SessionAffinity       string `json:"sessionAffinity"`
+		IPFamilyPolicy        string `json:"ipFamilyPolicy"`
+		InternalTrafficPolicy string `json:"internalTrafficPolicy"`
+		ExternalIPs           string `json:"externalIPs"`
+	} `json:"spec"`
+}
+
+type IngressListResponse struct {
+	Age        string `json:"age"`
+	HasUpdated bool   `json:"hasUpdated"`
+	Name       string `json:"name"`
+	Namespace  string `json:"namespace"`
+	UID        string `json:"uid"`
+	Spec       struct {
+		Rules []string `json:"rules"`
+	} `json:"spec"`
+}
+
+type EndpointListResponse struct {
+	Age        string `json:"age"`
+	HasUpdated bool   `json:"hasUpdated"`
+	Name       string `json:"name"`
+	Namespace  string `json:"namespace"`
+	UID        string `json:"uid"`
+	Subsets    struct {
+		Addresses []string `json:"addresses"`
+		Ports     []string `json:"ports"`
+	} `json:"subsets"`
+}
+
 // Data transformation functions
 func (h *ResourcesHandler) transformPVCToResponse(pvc *v1.PersistentVolumeClaim) PersistentVolumeClaimListResponse {
 	age := ""
@@ -4927,6 +4997,136 @@ func (h *ResourcesHandler) transformStorageClassToResponse(sc *storageV1.Storage
 		Provisioner:       sc.Provisioner,
 		ReclaimPolicy:     string(*sc.ReclaimPolicy),
 		VolumeBindingMode: string(*sc.VolumeBindingMode),
+	}
+}
+
+func (h *ResourcesHandler) transformServiceToResponse(service *v1.Service) ServiceListResponse {
+	age := ""
+	if !service.CreationTimestamp.IsZero() {
+		age = service.CreationTimestamp.Time.Format(time.RFC3339)
+	}
+
+	// Format ports
+	var ports []string
+	for _, port := range service.Spec.Ports {
+		portStr := fmt.Sprintf("%d/%s", port.Port, port.Protocol)
+		if port.NodePort != 0 {
+			portStr = fmt.Sprintf("%s:%d", portStr, port.NodePort)
+		}
+		ports = append(ports, portStr)
+	}
+	portsStr := strings.Join(ports, ",")
+
+	// Format external IPs
+	var externalIPs []string
+	if service.Spec.ExternalIPs != nil {
+		externalIPs = service.Spec.ExternalIPs
+	}
+	externalIPsStr := strings.Join(externalIPs, ",")
+
+	// Get IP family policy
+	ipFamilyPolicy := ""
+	if service.Spec.IPFamilyPolicy != nil {
+		ipFamilyPolicy = string(*service.Spec.IPFamilyPolicy)
+	}
+
+	// Get internal traffic policy
+	internalTrafficPolicy := ""
+	if service.Spec.InternalTrafficPolicy != nil {
+		internalTrafficPolicy = string(*service.Spec.InternalTrafficPolicy)
+	}
+
+	return ServiceListResponse{
+		Age:        age,
+		HasUpdated: false,
+		Name:       service.Name,
+		Namespace:  service.Namespace,
+		UID:        string(service.UID),
+		Spec: struct {
+			Ports                 string `json:"ports"`
+			ClusterIP             string `json:"clusterIP"`
+			Type                  string `json:"type"`
+			SessionAffinity       string `json:"sessionAffinity"`
+			IPFamilyPolicy        string `json:"ipFamilyPolicy"`
+			InternalTrafficPolicy string `json:"internalTrafficPolicy"`
+			ExternalIPs           string `json:"externalIPs"`
+		}{
+			Ports:                 portsStr,
+			ClusterIP:             service.Spec.ClusterIP,
+			Type:                  string(service.Spec.Type),
+			SessionAffinity:       string(service.Spec.SessionAffinity),
+			IPFamilyPolicy:        ipFamilyPolicy,
+			InternalTrafficPolicy: internalTrafficPolicy,
+			ExternalIPs:           externalIPsStr,
+		},
+	}
+}
+
+func (h *ResourcesHandler) transformIngressToResponse(ingress *networkingV1.Ingress) IngressListResponse {
+	age := ""
+	if !ingress.CreationTimestamp.IsZero() {
+		age = ingress.CreationTimestamp.Time.Format(time.RFC3339)
+	}
+
+	// Format rules
+	var rules []string
+	for _, rule := range ingress.Spec.Rules {
+		ruleStr := rule.Host
+		if rule.Host == "" {
+			ruleStr = "*"
+		}
+		rules = append(rules, ruleStr)
+	}
+
+	return IngressListResponse{
+		Age:        age,
+		HasUpdated: false,
+		Name:       ingress.Name,
+		Namespace:  ingress.Namespace,
+		UID:        string(ingress.UID),
+		Spec: struct {
+			Rules []string `json:"rules"`
+		}{
+			Rules: rules,
+		},
+	}
+}
+
+func (h *ResourcesHandler) transformEndpointToResponse(endpoint *v1.Endpoints) EndpointListResponse {
+	age := ""
+	if !endpoint.CreationTimestamp.IsZero() {
+		age = endpoint.CreationTimestamp.Time.Format(time.RFC3339)
+	}
+
+	// Format addresses and ports
+	var addresses []string
+	var ports []string
+
+	for _, subset := range endpoint.Subsets {
+		// Add addresses
+		for _, address := range subset.Addresses {
+			addresses = append(addresses, address.IP)
+		}
+		// Add ports
+		for _, port := range subset.Ports {
+			portStr := fmt.Sprintf("%d/%s", port.Port, port.Protocol)
+			ports = append(ports, portStr)
+		}
+	}
+
+	return EndpointListResponse{
+		Age:        age,
+		HasUpdated: false,
+		Name:       endpoint.Name,
+		Namespace:  endpoint.Namespace,
+		UID:        string(endpoint.UID),
+		Subsets: struct {
+			Addresses []string `json:"addresses"`
+			Ports     []string `json:"ports"`
+		}{
+			Addresses: addresses,
+			Ports:     ports,
+		},
 	}
 }
 
@@ -5044,4 +5244,422 @@ func (h *ResourcesHandler) GetStorageClassesSSE(c *gin.Context) {
 
 	// Send SSE response with periodic updates
 	h.sendSSEResponseWithUpdates(c, initialData, fetchResource)
+}
+
+// GetIngressesSSE returns ingresses as Server-Sent Events with real-time updates
+func (h *ResourcesHandler) GetIngressesSSE(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for ingresses SSE")
+		h.sendSSEError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	namespace := c.Query("namespace")
+
+	// Function to fetch ingresses data
+	fetchIngresses := func() (interface{}, error) {
+		ingressList, err := client.NetworkingV1().Ingresses(namespace).List(c.Request.Context(), metav1.ListOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		// Transform to frontend format
+		responses := make([]IngressListResponse, len(ingressList.Items))
+		for i, ingress := range ingressList.Items {
+			responses[i] = h.transformIngressToResponse(&ingress)
+		}
+
+		return responses, nil
+	}
+
+	// Get initial data
+	initialData, err := fetchIngresses()
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to list ingresses for SSE")
+		h.sendSSEError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Send SSE response with periodic updates
+	h.sendSSEResponseWithUpdates(c, initialData, fetchIngresses)
+}
+
+// GetIngress returns a specific ingress
+func (h *ResourcesHandler) GetIngress(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for ingress")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+	ingress, err := client.NetworkingV1().Ingresses(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("ingress", name).WithField("namespace", namespace).Error("Failed to get ingress")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		h.sendSSEResponse(c, ingress)
+		return
+	}
+
+	c.JSON(http.StatusOK, ingress)
+}
+
+// GetIngressByName returns a specific ingress by name using namespace from query parameters
+func (h *ResourcesHandler) GetIngressByName(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for ingress")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	name := c.Param("name")
+	namespace := c.Query("namespace")
+
+	if namespace == "" {
+		h.logger.WithField("ingress", name).Error("Namespace is required for ingress lookup")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "namespace parameter is required"})
+		return
+	}
+
+	ingress, err := client.NetworkingV1().Ingresses(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("ingress", name).WithField("namespace", namespace).Error("Failed to get ingress")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		h.sendSSEResponse(c, ingress)
+		return
+	}
+
+	c.JSON(http.StatusOK, ingress)
+}
+
+// GetIngressYAMLByName returns the YAML representation of a specific ingress by name using namespace from query parameters
+func (h *ResourcesHandler) GetIngressYAMLByName(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for ingress YAML")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	name := c.Param("name")
+	namespace := c.Query("namespace")
+
+	if namespace == "" {
+		h.logger.WithField("ingress", name).Error("Namespace is required for ingress YAML lookup")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "namespace parameter is required"})
+		return
+	}
+
+	ingress, err := client.NetworkingV1().Ingresses(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("ingress", name).WithField("namespace", namespace).Error("Failed to get ingress for YAML")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Convert to YAML
+	yamlData, err := yaml.Marshal(ingress)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to marshal ingress to YAML")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// For EventSource, send the YAML data as base64 encoded string
+		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
+		return
+	}
+
+	// Return as base64 encoded string to match frontend expectations
+	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+}
+
+// GetIngressYAML returns the YAML representation of a specific ingress
+func (h *ResourcesHandler) GetIngressYAML(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for ingress YAML")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+	ingress, err := client.NetworkingV1().Ingresses(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("ingress", name).WithField("namespace", namespace).Error("Failed to get ingress for YAML")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Convert to YAML
+	yamlData, err := yaml.Marshal(ingress)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to marshal ingress to YAML")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// For EventSource, send the YAML data as base64 encoded string
+		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
+		return
+	}
+
+	// Return as base64 encoded string to match frontend expectations
+	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+}
+
+// GetIngressEventsByName returns events for a specific ingress by name using namespace from query parameters
+func (h *ResourcesHandler) GetIngressEventsByName(c *gin.Context) {
+	name := c.Param("name")
+	namespace := c.Query("namespace")
+
+	if namespace == "" {
+		h.logger.WithField("ingress", name).Error("Namespace is required for ingress events lookup")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "namespace parameter is required"})
+		return
+	}
+
+	h.getResourceEvents(c, "Ingress", name)
+}
+
+// GetIngressEvents returns events for a specific ingress
+func (h *ResourcesHandler) GetIngressEvents(c *gin.Context) {
+	name := c.Param("name")
+	h.getResourceEvents(c, "Ingress", name)
+}
+
+// GetEndpointsSSE returns endpoints as Server-Sent Events with real-time updates
+func (h *ResourcesHandler) GetEndpointsSSE(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for endpoints SSE")
+		h.sendSSEError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	namespace := c.Query("namespace")
+
+	// Function to fetch endpoints data
+	fetchEndpoints := func() (interface{}, error) {
+		endpointList, err := client.CoreV1().Endpoints(namespace).List(c.Request.Context(), metav1.ListOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		// Transform to frontend format
+		responses := make([]EndpointListResponse, len(endpointList.Items))
+		for i, endpoint := range endpointList.Items {
+			responses[i] = h.transformEndpointToResponse(&endpoint)
+		}
+
+		return responses, nil
+	}
+
+	// Get initial data
+	initialData, err := fetchEndpoints()
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to list endpoints for SSE")
+		h.sendSSEError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Send SSE response with periodic updates
+	h.sendSSEResponseWithUpdates(c, initialData, fetchEndpoints)
+}
+
+// GetEndpoint returns a specific endpoint
+func (h *ResourcesHandler) GetEndpoint(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for endpoint")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+	endpoint, err := client.CoreV1().Endpoints(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("endpoint", name).WithField("namespace", namespace).Error("Failed to get endpoint")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		h.sendSSEResponse(c, endpoint)
+		return
+	}
+
+	c.JSON(http.StatusOK, endpoint)
+}
+
+// GetEndpointByName returns a specific endpoint by name using namespace from query parameters
+func (h *ResourcesHandler) GetEndpointByName(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for endpoint")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	name := c.Param("name")
+	namespace := c.Query("namespace")
+
+	if namespace == "" {
+		h.logger.WithField("endpoint", name).Error("Namespace is required for endpoint lookup")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "namespace parameter is required"})
+		return
+	}
+
+	endpoint, err := client.CoreV1().Endpoints(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("endpoint", name).WithField("namespace", namespace).Error("Failed to get endpoint")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		h.sendSSEResponse(c, endpoint)
+		return
+	}
+
+	c.JSON(http.StatusOK, endpoint)
+}
+
+// GetEndpointYAMLByName returns the YAML representation of a specific endpoint by name using namespace from query parameters
+func (h *ResourcesHandler) GetEndpointYAMLByName(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for endpoint YAML")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	name := c.Param("name")
+	namespace := c.Query("namespace")
+
+	if namespace == "" {
+		h.logger.WithField("endpoint", name).Error("Namespace is required for endpoint YAML lookup")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "namespace parameter is required"})
+		return
+	}
+
+	endpoint, err := client.CoreV1().Endpoints(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("endpoint", name).WithField("namespace", namespace).Error("Failed to get endpoint for YAML")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Convert to YAML
+	yamlData, err := yaml.Marshal(endpoint)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to marshal endpoint to YAML")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// For EventSource, send the YAML data as base64 encoded string
+		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
+		return
+	}
+
+	// Return as base64 encoded string to match frontend expectations
+	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+}
+
+// GetEndpointYAML returns the YAML representation of a specific endpoint
+func (h *ResourcesHandler) GetEndpointYAML(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for endpoint YAML")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+	endpoint, err := client.CoreV1().Endpoints(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("endpoint", name).WithField("namespace", namespace).Error("Failed to get endpoint for YAML")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Convert to YAML
+	yamlData, err := yaml.Marshal(endpoint)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to marshal endpoint to YAML")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// For EventSource, send the YAML data as base64 encoded string
+		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
+		return
+	}
+
+	// Return as base64 encoded string to match frontend expectations
+	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+}
+
+// GetEndpointEventsByName returns events for a specific endpoint by name using namespace from query parameters
+func (h *ResourcesHandler) GetEndpointEventsByName(c *gin.Context) {
+	name := c.Param("name")
+	namespace := c.Query("namespace")
+
+	if namespace == "" {
+		h.logger.WithField("endpoint", name).Error("Namespace is required for endpoint events lookup")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "namespace parameter is required"})
+		return
+	}
+
+	h.getResourceEvents(c, "Endpoints", name)
+}
+
+// GetEndpointEvents returns events for a specific endpoint
+func (h *ResourcesHandler) GetEndpointEvents(c *gin.Context) {
+	name := c.Param("name")
+	h.getResourceEvents(c, "Endpoints", name)
 }
