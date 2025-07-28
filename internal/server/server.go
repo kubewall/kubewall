@@ -189,6 +189,37 @@ func (s *Server) setupRoutes() {
 		api.GET("/secret/:name/yaml", s.resourcesHandler.GetSecretYAMLByName)
 		api.GET("/secret/:name/events", s.resourcesHandler.GetSecretEventsByName)
 
+		// HPA endpoints
+		api.GET("/horizontalpodautoscalers/:namespace/:name", s.resourcesHandler.GetHPA)
+		api.GET("/horizontalpodautoscalers/:namespace/:name/yaml", s.resourcesHandler.GetHPAYAML)
+		api.GET("/horizontalpodautoscalers/:namespace/:name/events", s.resourcesHandler.GetHPAEvents)
+		api.GET("/horizontalpodautoscaler/:name", s.resourcesHandler.GetHPAByName)
+		api.GET("/horizontalpodautoscaler/:name/yaml", s.resourcesHandler.GetHPAYAMLByName)
+		api.GET("/horizontalpodautoscaler/:name/events", s.resourcesHandler.GetHPAEventsByName)
+
+		// PVC endpoints
+		api.GET("/persistentvolumeclaims/:namespace/:name", s.resourcesHandler.GetPVC)
+		api.GET("/persistentvolumeclaims/:namespace/:name/yaml", s.resourcesHandler.GetPVCYAML)
+		api.GET("/persistentvolumeclaims/:namespace/:name/events", s.resourcesHandler.GetPVCEvents)
+		api.GET("/persistentvolumeclaim/:name", s.resourcesHandler.GetPVCByName)
+		api.GET("/persistentvolumeclaim/:name/yaml", s.resourcesHandler.GetPVCYAMLByName)
+		api.GET("/persistentvolumeclaim/:name/events", s.resourcesHandler.GetPVCEventsByName)
+
+		// PV endpoints
+		api.GET("/persistentvolumes/:name", s.resourcesHandler.GetPV)
+		api.GET("/persistentvolumes/:name/yaml", s.resourcesHandler.GetPVYAML)
+		api.GET("/persistentvolumes/:name/events", s.resourcesHandler.GetPVEvents)
+
+		// StorageClass endpoints
+		api.GET("/storageclasses/:name", s.resourcesHandler.GetStorageClass)
+		api.GET("/storageclasses/:name/yaml", s.resourcesHandler.GetStorageClassYAML)
+		api.GET("/storageclasses/:name/events", s.resourcesHandler.GetStorageClassEvents)
+
+		// Storage SSE endpoints
+		api.GET("/persistentvolumeclaims", s.resourcesHandler.GetPersistentVolumeClaimsSSE)
+		api.GET("/persistentvolumes", s.resourcesHandler.GetPersistentVolumesSSE)
+		api.GET("/storageclasses", s.resourcesHandler.GetStorageClassesSSE)
+
 		// Generic resource handlers for other Kubernetes resources (SSE)
 		api.GET("/:resource", s.resourcesHandler.GetGenericResourceSSE)
 	}

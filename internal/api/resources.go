@@ -19,8 +19,10 @@ import (
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 	appsV1 "k8s.io/api/apps/v1"
+	autoscalingV2 "k8s.io/api/autoscaling/v2"
 	batchV1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
+	storageV1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
@@ -204,6 +206,19 @@ type CronJobListResponse struct {
 		LastScheduleTime   string `json:"lastScheduleTime"`
 		LastSuccessfulTime string `json:"lastSuccessfulTime"`
 	} `json:"status"`
+}
+
+// HPAListResponse represents the response format expected by the frontend for HPAs
+type HPAListResponse struct {
+	Age        string `json:"age"`
+	HasUpdated bool   `json:"hasUpdated"`
+	Name       string `json:"name"`
+	Namespace  string `json:"namespace"`
+	UID        string `json:"uid"`
+	Spec       struct {
+		MinPods int32 `json:"minPods"`
+		MaxPods int32 `json:"maxPods"`
+	} `json:"spec"`
 }
 
 // ResourcesHandler handles Kubernetes resource-related API requests
@@ -2385,7 +2400,12 @@ func (h *ResourcesHandler) GetGenericResourceSSE(c *gin.Context) {
 			if err != nil {
 				return nil, err
 			}
-			return result.Items, nil
+			// Transform HPAs to frontend-expected format
+			var response []HPAListResponse
+			for _, hpa := range result.Items {
+				response = append(response, h.transformHPAToResponse(&hpa))
+			}
+			return response, nil
 		case "limitranges":
 			result, err := client.CoreV1().LimitRanges(namespace).List(c.Request.Context(), metav1.ListOptions{})
 			if err != nil {
@@ -3503,6 +3523,37 @@ func (h *ResourcesHandler) transformCronJobToResponse(cronJob *batchV1.CronJob) 
 	return response
 }
 
+func (h *ResourcesHandler) transformHPAToResponse(hpa *autoscalingV2.HorizontalPodAutoscaler) HPAListResponse {
+	// Send creation timestamp instead of calculated age
+	age := ""
+	if hpa.CreationTimestamp.Time != (time.Time{}) {
+		age = hpa.CreationTimestamp.Time.Format(time.RFC3339)
+	}
+
+	// Get min replicas, default to 1 if not set
+	minReplicas := int32(1)
+	if hpa.Spec.MinReplicas != nil {
+		minReplicas = *hpa.Spec.MinReplicas
+	}
+
+	response := HPAListResponse{
+		Age:        age,
+		HasUpdated: false, // This would need to be tracked separately
+		Name:       hpa.Name,
+		Namespace:  hpa.Namespace,
+		UID:        string(hpa.UID),
+		Spec: struct {
+			MinPods int32 `json:"minPods"`
+			MaxPods int32 `json:"maxPods"`
+		}{
+			MinPods: minReplicas,
+			MaxPods: hpa.Spec.MaxReplicas,
+		},
+	}
+
+	return response
+}
+
 // GetDaemonSetsSSE returns daemonsets as Server-Sent Events
 // GetDaemonSetsSSE returns daemonsets as Server-Sent Events with real-time updates
 func (h *ResourcesHandler) GetDaemonSetsSSE(c *gin.Context) {
@@ -4256,4 +4307,741 @@ func (h *ResourcesHandler) GetCronJobYAML(c *gin.Context) {
 func (h *ResourcesHandler) GetCronJobEvents(c *gin.Context) {
 	name := c.Param("name")
 	h.getResourceEvents(c, "CronJob", name)
+}
+
+// GetHPA returns a specific HPA
+func (h *ResourcesHandler) GetHPA(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for HPA")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+	hpa, err := client.AutoscalingV2().HorizontalPodAutoscalers(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("hpa", name).WithField("namespace", namespace).Error("Failed to get HPA")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		h.sendSSEResponse(c, hpa)
+		return
+	}
+
+	c.JSON(http.StatusOK, hpa)
+}
+
+// GetHPAByName returns a specific HPA by name using namespace from query parameters
+func (h *ResourcesHandler) GetHPAByName(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for HPA")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	name := c.Param("name")
+	namespace := c.Query("namespace")
+
+	if namespace == "" {
+		h.logger.WithField("hpa", name).Error("Namespace is required for HPA lookup")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "namespace parameter is required"})
+		return
+	}
+
+	hpa, err := client.AutoscalingV2().HorizontalPodAutoscalers(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("hpa", name).WithField("namespace", namespace).Error("Failed to get HPA")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		h.sendSSEResponse(c, hpa)
+		return
+	}
+
+	c.JSON(http.StatusOK, hpa)
+}
+
+// GetHPAYAMLByName returns the YAML representation of a specific HPA by name using namespace from query parameters
+func (h *ResourcesHandler) GetHPAYAMLByName(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for HPA YAML")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	name := c.Param("name")
+	namespace := c.Query("namespace")
+
+	if namespace == "" {
+		h.logger.WithField("hpa", name).Error("Namespace is required for HPA YAML lookup")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "namespace parameter is required"})
+		return
+	}
+
+	hpa, err := client.AutoscalingV2().HorizontalPodAutoscalers(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("hpa", name).WithField("namespace", namespace).Error("Failed to get HPA for YAML")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Convert to YAML
+	yamlData, err := yaml.Marshal(hpa)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to marshal HPA to YAML")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// For EventSource, send the YAML data as base64 encoded string
+		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
+		return
+	}
+
+	// Return as base64 encoded string to match frontend expectations
+	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+}
+
+// GetHPAYAML returns the YAML representation of a specific HPA
+func (h *ResourcesHandler) GetHPAYAML(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for HPA YAML")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+	hpa, err := client.AutoscalingV2().HorizontalPodAutoscalers(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("hpa", name).WithField("namespace", namespace).Error("Failed to get HPA for YAML")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Convert to YAML
+	yamlData, err := yaml.Marshal(hpa)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to marshal HPA to YAML")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// For EventSource, send the YAML data as base64 encoded string
+		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
+		return
+	}
+
+	// Return as base64 encoded string to match frontend expectations
+	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+}
+
+// GetHPAEventsByName returns events for a specific HPA by name using namespace from query parameters
+func (h *ResourcesHandler) GetHPAEventsByName(c *gin.Context) {
+	name := c.Param("name")
+	namespace := c.Query("namespace")
+
+	if namespace == "" {
+		h.logger.WithField("hpa", name).Error("Namespace is required for HPA events lookup")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "namespace parameter is required"})
+		return
+	}
+
+	h.getResourceEvents(c, "HorizontalPodAutoscaler", name)
+}
+
+// GetHPAEvents returns events for a specific HPA
+func (h *ResourcesHandler) GetHPAEvents(c *gin.Context) {
+	name := c.Param("name")
+	h.getResourceEvents(c, "HorizontalPodAutoscaler", name)
+}
+
+// GetPVC returns a specific PVC
+func (h *ResourcesHandler) GetPVC(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for PVC")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+	pvc, err := client.CoreV1().PersistentVolumeClaims(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("pvc", name).WithField("namespace", namespace).Error("Failed to get PVC")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		h.sendSSEResponse(c, pvc)
+		return
+	}
+
+	c.JSON(http.StatusOK, pvc)
+}
+
+// GetPVCByName returns a specific PVC by name using namespace from query parameters
+func (h *ResourcesHandler) GetPVCByName(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for PVC")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	name := c.Param("name")
+	namespace := c.Query("namespace")
+
+	if namespace == "" {
+		h.logger.WithField("pvc", name).Error("Namespace is required for PVC lookup")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "namespace parameter is required"})
+		return
+	}
+
+	pvc, err := client.CoreV1().PersistentVolumeClaims(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("pvc", name).WithField("namespace", namespace).Error("Failed to get PVC")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		h.sendSSEResponse(c, pvc)
+		return
+	}
+
+	c.JSON(http.StatusOK, pvc)
+}
+
+// GetPVCYAMLByName returns the YAML representation of a specific PVC by name using namespace from query parameters
+func (h *ResourcesHandler) GetPVCYAMLByName(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for PVC YAML")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	name := c.Param("name")
+	namespace := c.Query("namespace")
+
+	if namespace == "" {
+		h.logger.WithField("pvc", name).Error("Namespace is required for PVC YAML lookup")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "namespace parameter is required"})
+		return
+	}
+
+	pvc, err := client.CoreV1().PersistentVolumeClaims(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("pvc", name).WithField("namespace", namespace).Error("Failed to get PVC for YAML")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Convert to YAML
+	yamlData, err := yaml.Marshal(pvc)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to marshal PVC to YAML")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// For EventSource, send the YAML data as base64 encoded string
+		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
+		return
+	}
+
+	// Return as base64 encoded string to match frontend expectations
+	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+}
+
+// GetPVCYAML returns the YAML representation of a specific PVC
+func (h *ResourcesHandler) GetPVCYAML(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for PVC YAML")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+	pvc, err := client.CoreV1().PersistentVolumeClaims(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("pvc", name).WithField("namespace", namespace).Error("Failed to get PVC for YAML")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Convert to YAML
+	yamlData, err := yaml.Marshal(pvc)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to marshal PVC to YAML")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// For EventSource, send the YAML data as base64 encoded string
+		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
+		return
+	}
+
+	// Return as base64 encoded string to match frontend expectations
+	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+}
+
+// GetPVCEventsByName returns events for a specific PVC by name using namespace from query parameters
+func (h *ResourcesHandler) GetPVCEventsByName(c *gin.Context) {
+	name := c.Param("name")
+	namespace := c.Query("namespace")
+
+	if namespace == "" {
+		h.logger.WithField("pvc", name).Error("Namespace is required for PVC events lookup")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "namespace parameter is required"})
+		return
+	}
+
+	h.getResourceEvents(c, "PersistentVolumeClaim", name)
+}
+
+// GetPVCEvents returns events for a specific PVC
+func (h *ResourcesHandler) GetPVCEvents(c *gin.Context) {
+	name := c.Param("name")
+	h.getResourceEvents(c, "PersistentVolumeClaim", name)
+}
+
+// GetPV returns a specific PV
+func (h *ResourcesHandler) GetPV(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for PV")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	name := c.Param("name")
+	pv, err := client.CoreV1().PersistentVolumes().Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("pv", name).Error("Failed to get PV")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		h.sendSSEResponse(c, pv)
+		return
+	}
+
+	c.JSON(http.StatusOK, pv)
+}
+
+// GetPVYAML returns the YAML representation of a specific PV
+func (h *ResourcesHandler) GetPVYAML(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for PV YAML")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	name := c.Param("name")
+	pv, err := client.CoreV1().PersistentVolumes().Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("pv", name).Error("Failed to get PV for YAML")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Convert to YAML
+	yamlData, err := yaml.Marshal(pv)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to marshal PV to YAML")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// For EventSource, send the YAML data as base64 encoded string
+		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
+		return
+	}
+
+	// Return as base64 encoded string to match frontend expectations
+	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+}
+
+// GetPVEvents returns events for a specific PV
+func (h *ResourcesHandler) GetPVEvents(c *gin.Context) {
+	name := c.Param("name")
+	h.getResourceEvents(c, "PersistentVolume", name)
+}
+
+// GetStorageClass returns a specific StorageClass
+func (h *ResourcesHandler) GetStorageClass(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for StorageClass")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	name := c.Param("name")
+	storageClass, err := client.StorageV1().StorageClasses().Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("storageclass", name).Error("Failed to get StorageClass")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		h.sendSSEResponse(c, storageClass)
+		return
+	}
+
+	c.JSON(http.StatusOK, storageClass)
+}
+
+// GetStorageClassYAML returns the YAML representation of a specific StorageClass
+func (h *ResourcesHandler) GetStorageClassYAML(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for StorageClass YAML")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	name := c.Param("name")
+	storageClass, err := client.StorageV1().StorageClasses().Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("storageclass", name).Error("Failed to get StorageClass for YAML")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Convert to YAML
+	yamlData, err := yaml.Marshal(storageClass)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to marshal StorageClass to YAML")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// For EventSource, send the YAML data as base64 encoded string
+		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
+		return
+	}
+
+	// Return as base64 encoded string to match frontend expectations
+	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+}
+
+// GetStorageClassEvents returns events for a specific StorageClass
+func (h *ResourcesHandler) GetStorageClassEvents(c *gin.Context) {
+	name := c.Param("name")
+	h.getResourceEvents(c, "StorageClass", name)
+}
+
+// Storage list response types
+type PersistentVolumeClaimListResponse struct {
+	Age        string `json:"age"`
+	HasUpdated bool   `json:"hasUpdated"`
+	Name       string `json:"name"`
+	Namespace  string `json:"namespace"`
+	UID        string `json:"uid"`
+	Spec       struct {
+		VolumeName       string `json:"volumeName"`
+		StorageClassName string `json:"storageClassName"`
+		VolumeMode       string `json:"volumeMode"`
+		Storage          string `json:"storage"`
+	} `json:"spec"`
+	Status struct {
+		Phase string `json:"phase"`
+	} `json:"status"`
+}
+
+type PersistentVolumeListResponse struct {
+	Age        string `json:"age"`
+	HasUpdated bool   `json:"hasUpdated"`
+	Name       string `json:"name"`
+	UID        string `json:"uid"`
+	Spec       struct {
+		StorageClassName string `json:"storageClassName"`
+		VolumeMode       string `json:"volumeMode"`
+		ClaimRef         string `json:"claimRef"`
+	} `json:"spec"`
+	Status struct {
+		Phase string `json:"phase"`
+	} `json:"status"`
+}
+
+type StorageClassListResponse struct {
+	Age               string `json:"age"`
+	HasUpdated        bool   `json:"hasUpdated"`
+	Name              string `json:"name"`
+	UID               string `json:"uid"`
+	Provisioner       string `json:"provisioner"`
+	ReclaimPolicy     string `json:"reclaimPolicy"`
+	VolumeBindingMode string `json:"volumeBindingMode"`
+}
+
+// Data transformation functions
+func (h *ResourcesHandler) transformPVCToResponse(pvc *v1.PersistentVolumeClaim) PersistentVolumeClaimListResponse {
+	age := ""
+	if !pvc.CreationTimestamp.IsZero() {
+		age = pvc.CreationTimestamp.Time.Format(time.RFC3339)
+	}
+
+	storage := ""
+	if pvc.Spec.Resources.Requests != nil {
+		if storageQuantity, exists := pvc.Spec.Resources.Requests[v1.ResourceStorage]; exists {
+			storage = storageQuantity.String()
+		}
+	}
+
+	claimRef := ""
+	if pvc.Spec.VolumeName != "" {
+		claimRef = pvc.Spec.VolumeName
+	}
+
+	return PersistentVolumeClaimListResponse{
+		Age:        age,
+		HasUpdated: false,
+		Name:       pvc.Name,
+		Namespace:  pvc.Namespace,
+		UID:        string(pvc.UID),
+		Spec: struct {
+			VolumeName       string `json:"volumeName"`
+			StorageClassName string `json:"storageClassName"`
+			VolumeMode       string `json:"volumeMode"`
+			Storage          string `json:"storage"`
+		}{
+			VolumeName:       claimRef,
+			StorageClassName: *pvc.Spec.StorageClassName,
+			VolumeMode:       string(*pvc.Spec.VolumeMode),
+			Storage:          storage,
+		},
+		Status: struct {
+			Phase string `json:"phase"`
+		}{
+			Phase: string(pvc.Status.Phase),
+		},
+	}
+}
+
+func (h *ResourcesHandler) transformPVToResponse(pv *v1.PersistentVolume) PersistentVolumeListResponse {
+	age := ""
+	if !pv.CreationTimestamp.IsZero() {
+		age = pv.CreationTimestamp.Time.Format(time.RFC3339)
+	}
+
+	claimRef := ""
+	if pv.Spec.ClaimRef != nil {
+		claimRef = pv.Spec.ClaimRef.Name
+	}
+
+	return PersistentVolumeListResponse{
+		Age:        age,
+		HasUpdated: false,
+		Name:       pv.Name,
+		UID:        string(pv.UID),
+		Spec: struct {
+			StorageClassName string `json:"storageClassName"`
+			VolumeMode       string `json:"volumeMode"`
+			ClaimRef         string `json:"claimRef"`
+		}{
+			StorageClassName: pv.Spec.StorageClassName,
+			VolumeMode:       string(*pv.Spec.VolumeMode),
+			ClaimRef:         claimRef,
+		},
+		Status: struct {
+			Phase string `json:"phase"`
+		}{
+			Phase: string(pv.Status.Phase),
+		},
+	}
+}
+
+func (h *ResourcesHandler) transformStorageClassToResponse(sc *storageV1.StorageClass) StorageClassListResponse {
+	age := ""
+	if !sc.CreationTimestamp.IsZero() {
+		age = sc.CreationTimestamp.Time.Format(time.RFC3339)
+	}
+
+	return StorageClassListResponse{
+		Age:               age,
+		HasUpdated:        false,
+		Name:              sc.Name,
+		UID:               string(sc.UID),
+		Provisioner:       sc.Provisioner,
+		ReclaimPolicy:     string(*sc.ReclaimPolicy),
+		VolumeBindingMode: string(*sc.VolumeBindingMode),
+	}
+}
+
+// SSE endpoints for storage resources
+func (h *ResourcesHandler) GetPersistentVolumeClaimsSSE(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for PVC SSE")
+		h.sendSSEError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	namespace := c.Query("namespace")
+
+	fetchResource := func() (interface{}, error) {
+		var pvcs *v1.PersistentVolumeClaimList
+		var err error
+
+		if namespace != "" {
+			pvcs, err = client.CoreV1().PersistentVolumeClaims(namespace).List(c.Request.Context(), metav1.ListOptions{})
+		} else {
+			pvcs, err = client.CoreV1().PersistentVolumeClaims("").List(c.Request.Context(), metav1.ListOptions{})
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
+		// Transform to frontend format
+		responses := make([]PersistentVolumeClaimListResponse, len(pvcs.Items))
+		for i, pvc := range pvcs.Items {
+			responses[i] = h.transformPVCToResponse(&pvc)
+		}
+
+		return responses, nil
+	}
+
+	// Get initial data
+	initialData, err := fetchResource()
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to list PVCs for SSE")
+		h.sendSSEError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Send SSE response with periodic updates
+	h.sendSSEResponseWithUpdates(c, initialData, fetchResource)
+}
+
+func (h *ResourcesHandler) GetPersistentVolumesSSE(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for PV SSE")
+		h.sendSSEError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	fetchResource := func() (interface{}, error) {
+		pvs, err := client.CoreV1().PersistentVolumes().List(c.Request.Context(), metav1.ListOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		// Transform to frontend format
+		responses := make([]PersistentVolumeListResponse, len(pvs.Items))
+		for i, pv := range pvs.Items {
+			responses[i] = h.transformPVToResponse(&pv)
+		}
+
+		return responses, nil
+	}
+
+	// Get initial data
+	initialData, err := fetchResource()
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to list PVs for SSE")
+		h.sendSSEError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Send SSE response with periodic updates
+	h.sendSSEResponseWithUpdates(c, initialData, fetchResource)
+}
+
+func (h *ResourcesHandler) GetStorageClassesSSE(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for StorageClass SSE")
+		h.sendSSEError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	fetchResource := func() (interface{}, error) {
+		storageClasses, err := client.StorageV1().StorageClasses().List(c.Request.Context(), metav1.ListOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		// Transform to frontend format
+		responses := make([]StorageClassListResponse, len(storageClasses.Items))
+		for i, sc := range storageClasses.Items {
+			responses[i] = h.transformStorageClassToResponse(&sc)
+		}
+
+		return responses, nil
+	}
+
+	// Get initial data
+	initialData, err := fetchResource()
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to list StorageClasses for SSE")
+		h.sendSSEError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Send SSE response with periodic updates
+	h.sendSSEResponseWithUpdates(c, initialData, fetchResource)
 }
