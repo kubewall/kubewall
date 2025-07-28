@@ -2432,7 +2432,12 @@ func (h *ResourcesHandler) GetGenericResourceSSE(c *gin.Context) {
 			if err != nil {
 				return nil, err
 			}
-			return result.Items, nil
+			// Transform ServiceAccounts to frontend-expected format
+			var response []ServiceAccountListResponse
+			for _, serviceAccount := range result.Items {
+				response = append(response, h.transformServiceAccountToResponse(&serviceAccount))
+			}
+			return response, nil
 		case "roles":
 			result, err := client.RbacV1().Roles(namespace).List(c.Request.Context(), metav1.ListOptions{})
 			if err != nil {
@@ -4906,6 +4911,17 @@ type EndpointListResponse struct {
 	} `json:"subsets"`
 }
 
+type ServiceAccountListResponse struct {
+	Age        string `json:"age"`
+	HasUpdated bool   `json:"hasUpdated"`
+	Name       string `json:"name"`
+	Namespace  string `json:"namespace"`
+	UID        string `json:"uid"`
+	Spec       struct {
+		Secrets int `json:"secrets"`
+	} `json:"spec"`
+}
+
 // Data transformation functions
 func (h *ResourcesHandler) transformPVCToResponse(pvc *v1.PersistentVolumeClaim) PersistentVolumeClaimListResponse {
 	age := ""
@@ -5128,6 +5144,235 @@ func (h *ResourcesHandler) transformEndpointToResponse(endpoint *v1.Endpoints) E
 			Ports:     ports,
 		},
 	}
+}
+
+func (h *ResourcesHandler) transformServiceAccountToResponse(serviceAccount *v1.ServiceAccount) ServiceAccountListResponse {
+	age := ""
+	if !serviceAccount.CreationTimestamp.IsZero() {
+		age = serviceAccount.CreationTimestamp.Time.Format(time.RFC3339)
+	}
+
+	return ServiceAccountListResponse{
+		Age:        age,
+		HasUpdated: false,
+		Name:       serviceAccount.Name,
+		Namespace:  serviceAccount.Namespace,
+		UID:        string(serviceAccount.UID),
+		Spec: struct {
+			Secrets int `json:"secrets"`
+		}{
+			Secrets: len(serviceAccount.Secrets),
+		},
+	}
+}
+
+// GetServiceAccountsSSE returns service accounts as Server-Sent Events with real-time updates
+func (h *ResourcesHandler) GetServiceAccountsSSE(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for service accounts SSE")
+		h.sendSSEError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	namespace := c.Query("namespace")
+
+	// Function to fetch and transform service accounts data
+	fetchServiceAccounts := func() (interface{}, error) {
+		serviceAccountList, err := client.CoreV1().ServiceAccounts(namespace).List(c.Request.Context(), metav1.ListOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		// Transform service accounts to frontend-expected format
+		var response []ServiceAccountListResponse
+		for _, serviceAccount := range serviceAccountList.Items {
+			response = append(response, h.transformServiceAccountToResponse(&serviceAccount))
+		}
+
+		return response, nil
+	}
+
+	// Get initial data
+	initialData, err := fetchServiceAccounts()
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to list service accounts for SSE")
+		h.sendSSEError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Send SSE response with periodic updates
+	h.sendSSEResponseWithUpdates(c, initialData, fetchServiceAccounts)
+}
+
+// GetServiceAccount returns a specific service account
+func (h *ResourcesHandler) GetServiceAccount(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for service account")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+	serviceAccount, err := client.CoreV1().ServiceAccounts(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("serviceaccount", name).WithField("namespace", namespace).Error("Failed to get service account")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		h.sendSSEResponse(c, serviceAccount)
+		return
+	}
+
+	c.JSON(http.StatusOK, serviceAccount)
+}
+
+// GetServiceAccountByName returns a specific service account by name using namespace from query parameters
+func (h *ResourcesHandler) GetServiceAccountByName(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for service account")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	name := c.Param("name")
+	namespace := c.Query("namespace")
+
+	if namespace == "" {
+		h.logger.WithField("serviceaccount", name).Error("Namespace is required for service account lookup")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "namespace parameter is required"})
+		return
+	}
+
+	serviceAccount, err := client.CoreV1().ServiceAccounts(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("serviceaccount", name).WithField("namespace", namespace).Error("Failed to get service account")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		h.sendSSEResponse(c, serviceAccount)
+		return
+	}
+
+	c.JSON(http.StatusOK, serviceAccount)
+}
+
+// GetServiceAccountYAMLByName returns the YAML representation of a specific service account by name using namespace from query parameters
+func (h *ResourcesHandler) GetServiceAccountYAMLByName(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for service account YAML")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	name := c.Param("name")
+	namespace := c.Query("namespace")
+
+	if namespace == "" {
+		h.logger.WithField("serviceaccount", name).Error("Namespace is required for service account YAML lookup")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "namespace parameter is required"})
+		return
+	}
+
+	serviceAccount, err := client.CoreV1().ServiceAccounts(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("serviceaccount", name).WithField("namespace", namespace).Error("Failed to get service account for YAML")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Convert to YAML
+	yamlData, err := yaml.Marshal(serviceAccount)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to marshal service account to YAML")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// For EventSource, send the YAML data as base64 encoded string
+		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
+		return
+	}
+
+	// Return as base64 encoded string to match frontend expectations
+	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+}
+
+// GetServiceAccountYAML returns the YAML representation of a specific service account
+func (h *ResourcesHandler) GetServiceAccountYAML(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for service account YAML")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+	serviceAccount, err := client.CoreV1().ServiceAccounts(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("serviceaccount", name).WithField("namespace", namespace).Error("Failed to get service account for YAML")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Convert to YAML
+	yamlData, err := yaml.Marshal(serviceAccount)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to marshal service account to YAML")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// For EventSource, send the YAML data as base64 encoded string
+		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
+		return
+	}
+
+	// Return as base64 encoded string to match frontend expectations
+	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+}
+
+// GetServiceAccountEventsByName returns events for a specific service account by name using namespace from query parameters
+func (h *ResourcesHandler) GetServiceAccountEventsByName(c *gin.Context) {
+	name := c.Param("name")
+	namespace := c.Query("namespace")
+
+	if namespace == "" {
+		h.logger.WithField("serviceaccount", name).Error("Namespace is required for service account events lookup")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "namespace parameter is required"})
+		return
+	}
+
+	h.getResourceEvents(c, "ServiceAccount", name)
+}
+
+// GetServiceAccountEvents returns events for a specific service account
+func (h *ResourcesHandler) GetServiceAccountEvents(c *gin.Context) {
+	name := c.Param("name")
+	h.getResourceEvents(c, "ServiceAccount", name)
 }
 
 // SSE endpoints for storage resources

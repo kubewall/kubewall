@@ -190,6 +190,13 @@ func (s *Server) setupRoutes() {
 		api.GET("/secret/:name", s.resourcesHandler.GetSecretByName)
 		api.GET("/secret/:name/yaml", s.resourcesHandler.GetSecretYAMLByName)
 		api.GET("/secret/:name/events", s.resourcesHandler.GetSecretEventsByName)
+		api.GET("/serviceaccounts", s.resourcesHandler.GetServiceAccountsSSE)
+		api.GET("/serviceaccounts/:namespace/:name", s.resourcesHandler.GetServiceAccount)
+		api.GET("/serviceaccounts/:namespace/:name/yaml", s.resourcesHandler.GetServiceAccountYAML)
+		api.GET("/serviceaccounts/:namespace/:name/events", s.resourcesHandler.GetServiceAccountEvents)
+		api.GET("/serviceaccount/:name", s.resourcesHandler.GetServiceAccountByName)
+		api.GET("/serviceaccount/:name/yaml", s.resourcesHandler.GetServiceAccountYAMLByName)
+		api.GET("/serviceaccount/:name/events", s.resourcesHandler.GetServiceAccountEventsByName)
 
 		// HPA endpoints
 		api.GET("/horizontalpodautoscalers/:namespace/:name", s.resourcesHandler.GetHPA)
