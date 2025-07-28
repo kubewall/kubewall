@@ -30,10 +30,12 @@ Use Cases:
 - Filter {{.kindName}} by namespace, age, status and other fields.
 - Check status of all {{.kindName}}.`
 
-const yamlDetailsTemplate = `Retrieve details and manifest of specific {{.kindName}} in YAML format. 
+const yamlDetailsTemplate = `Retrieve all details and  specific {{.kindName}} in YAML format, including full spec and current status. 
+If namespace is missing, use {{.kindName}}List tool to determine it or leverage other tools based on input.
 Use Cases:
-- Fetch full details of a specific {{.kindName}}.
-- Get all related resources of {{.kindName}}.`
+Fetch full details of a specific {{.kindName}}.
+Determine namespace if not provided.
+Check current status of {{.kindName}}.`
 
 func ListTool(c echo.Context, appContainer container.Container) Toolset {
 	var toolset Toolset
