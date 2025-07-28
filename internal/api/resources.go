@@ -2461,13 +2461,23 @@ func (h *ResourcesHandler) GetGenericResourceSSE(c *gin.Context) {
 			if err != nil {
 				return nil, err
 			}
-			return result.Items, nil
+			// Transform ClusterRoles to frontend-expected format
+			var response []ClusterRoleListResponse
+			for _, clusterRole := range result.Items {
+				response = append(response, h.transformClusterRoleToResponse(&clusterRole))
+			}
+			return response, nil
 		case "clusterrolebindings":
 			result, err := client.RbacV1().ClusterRoleBindings().List(c.Request.Context(), metav1.ListOptions{})
 			if err != nil {
 				return nil, err
 			}
-			return result.Items, nil
+			// Transform ClusterRoleBindings to frontend-expected format
+			var response []ClusterRoleBindingListResponse
+			for _, clusterRoleBinding := range result.Items {
+				response = append(response, h.transformClusterRoleBindingToResponse(&clusterRoleBinding))
+			}
+			return response, nil
 		case "persistentvolumes":
 			result, err := client.CoreV1().PersistentVolumes().List(c.Request.Context(), metav1.ListOptions{})
 			if err != nil {
@@ -5274,6 +5284,73 @@ func (h *ResourcesHandler) transformRoleBindingToResponse(roleBinding *rbacV1.Ro
 	}
 }
 
+func (h *ResourcesHandler) transformClusterRoleToResponse(clusterRole *rbacV1.ClusterRole) ClusterRoleListResponse {
+	age := ""
+	if !clusterRole.CreationTimestamp.IsZero() {
+		age = clusterRole.CreationTimestamp.Time.Format(time.RFC3339)
+	}
+
+	// Convert rules to readable strings
+	var ruleStrings []string
+	for _, rule := range clusterRole.Rules {
+		ruleStr := fmt.Sprintf("%s %s", strings.Join(rule.Verbs, ","), strings.Join(rule.Resources, ","))
+		if len(rule.APIGroups) > 0 {
+			ruleStr = fmt.Sprintf("%s [%s]", ruleStr, strings.Join(rule.APIGroups, ","))
+		}
+		ruleStrings = append(ruleStrings, ruleStr)
+	}
+
+	return ClusterRoleListResponse{
+		Age:        age,
+		HasUpdated: false,
+		Name:       clusterRole.Name,
+		UID:        string(clusterRole.UID),
+		Spec: struct {
+			Rules []string `json:"rules"`
+		}{
+			Rules: ruleStrings,
+		},
+	}
+}
+
+func (h *ResourcesHandler) transformClusterRoleBindingToResponse(clusterRoleBinding *rbacV1.ClusterRoleBinding) ClusterRoleBindingListResponse {
+	age := ""
+	if !clusterRoleBinding.CreationTimestamp.IsZero() {
+		age = clusterRoleBinding.CreationTimestamp.Time.Format(time.RFC3339)
+	}
+
+	// Convert subjects to readable strings
+	var subjectStrings []string
+	for _, subject := range clusterRoleBinding.Subjects {
+		subjectStr := ""
+		if subject.Kind != "" {
+			subjectStr += subject.Kind + ": "
+		}
+		if subject.Name != "" {
+			subjectStr += subject.Name
+		}
+		if subject.Namespace != "" {
+			subjectStr += " (namespace: " + subject.Namespace + ")"
+		}
+		if subjectStr == "" {
+			subjectStr = "Unknown subject"
+		}
+		subjectStrings = append(subjectStrings, subjectStr)
+	}
+
+	return ClusterRoleBindingListResponse{
+		Age:        age,
+		HasUpdated: false,
+		Name:       clusterRoleBinding.Name,
+		UID:        string(clusterRoleBinding.UID),
+		Subjects: struct {
+			Bindings []string `json:"bindings"`
+		}{
+			Bindings: subjectStrings,
+		},
+	}
+}
+
 // GetServiceAccountsSSE returns service accounts as Server-Sent Events with real-time updates
 func (h *ResourcesHandler) GetServiceAccountsSSE(c *gin.Context) {
 	client, _, err := h.getClientAndConfig(c)
@@ -6444,4 +6521,388 @@ type RoleBindingListResponse struct {
 	Subjects   struct {
 		Bindings []string `json:"bindings"`
 	} `json:"subjects"`
+}
+
+// ClusterRoleListResponse represents the response format expected by the frontend for cluster roles
+type ClusterRoleListResponse struct {
+	Age        string `json:"age"`
+	HasUpdated bool   `json:"hasUpdated"`
+	Name       string `json:"name"`
+	UID        string `json:"uid"`
+	Spec       struct {
+		Rules []string `json:"rules"`
+	} `json:"spec"`
+}
+
+// ClusterRoleBindingListResponse represents the response format expected by the frontend for cluster role bindings
+type ClusterRoleBindingListResponse struct {
+	Age        string `json:"age"`
+	HasUpdated bool   `json:"hasUpdated"`
+	Name       string `json:"name"`
+	UID        string `json:"uid"`
+	Subjects   struct {
+		Bindings []string `json:"bindings"`
+	} `json:"subjects"`
+}
+
+// GetClusterRolesSSE returns cluster roles as Server-Sent Events with real-time updates
+func (h *ResourcesHandler) GetClusterRolesSSE(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for cluster roles SSE")
+		h.sendSSEError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Function to fetch and transform cluster roles data
+	fetchClusterRoles := func() (interface{}, error) {
+		clusterRoleList, err := client.RbacV1().ClusterRoles().List(c.Request.Context(), metav1.ListOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		// Transform cluster roles to frontend-expected format
+		var response []ClusterRoleListResponse
+		for _, clusterRole := range clusterRoleList.Items {
+			response = append(response, h.transformClusterRoleToResponse(&clusterRole))
+		}
+
+		return response, nil
+	}
+
+	// Get initial data
+	initialData, err := fetchClusterRoles()
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to list cluster roles for SSE")
+		h.sendSSEError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Send SSE response with periodic updates
+	h.sendSSEResponseWithUpdates(c, initialData, fetchClusterRoles)
+}
+
+// GetClusterRole returns a specific cluster role
+func (h *ResourcesHandler) GetClusterRole(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for cluster role")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	name := c.Param("name")
+	clusterRole, err := client.RbacV1().ClusterRoles().Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("clusterRole", name).Error("Failed to get cluster role")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		h.sendSSEResponse(c, clusterRole)
+		return
+	}
+
+	c.JSON(http.StatusOK, clusterRole)
+}
+
+// GetClusterRoleByName returns a specific cluster role by name
+func (h *ResourcesHandler) GetClusterRoleByName(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for cluster role by name")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	name := c.Param("name")
+	clusterRole, err := client.RbacV1().ClusterRoles().Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("clusterRole", name).Error("Failed to get cluster role by name")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		h.sendSSEResponse(c, clusterRole)
+		return
+	}
+
+	c.JSON(http.StatusOK, clusterRole)
+}
+
+// GetClusterRoleYAMLByName returns YAML representation of a specific cluster role by name
+func (h *ResourcesHandler) GetClusterRoleYAMLByName(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for cluster role YAML by name")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	name := c.Param("name")
+	clusterRole, err := client.RbacV1().ClusterRoles().Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("clusterRole", name).Error("Failed to get cluster role for YAML by name")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Convert to YAML
+	yamlData, err := yaml.Marshal(clusterRole)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to marshal cluster role to YAML")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// For EventSource, send the YAML data as base64 encoded string
+		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
+		return
+	}
+
+	// Return as base64 encoded string to match frontend expectations
+	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+}
+
+// GetClusterRoleYAML returns the YAML representation of a specific cluster role
+func (h *ResourcesHandler) GetClusterRoleYAML(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for cluster role YAML")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	name := c.Param("name")
+	clusterRole, err := client.RbacV1().ClusterRoles().Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("clusterRole", name).Error("Failed to get cluster role for YAML")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Convert to YAML
+	yamlData, err := yaml.Marshal(clusterRole)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to marshal cluster role to YAML")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// For EventSource, send the YAML data as base64 encoded string
+		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
+		return
+	}
+
+	// Return as base64 encoded string to match frontend expectations
+	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+}
+
+// GetClusterRoleEventsByName returns events for a specific cluster role by name
+func (h *ResourcesHandler) GetClusterRoleEventsByName(c *gin.Context) {
+	name := c.Param("name")
+	h.getResourceEvents(c, "ClusterRole", name)
+}
+
+// GetClusterRoleEvents returns events for a specific cluster role
+func (h *ResourcesHandler) GetClusterRoleEvents(c *gin.Context) {
+	name := c.Param("name")
+	h.getResourceEvents(c, "ClusterRole", name)
+}
+
+// GetClusterRoleBindingsSSE returns cluster role bindings as Server-Sent Events with real-time updates
+func (h *ResourcesHandler) GetClusterRoleBindingsSSE(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for cluster role bindings SSE")
+		h.sendSSEError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Function to fetch and transform cluster role bindings data
+	fetchClusterRoleBindings := func() (interface{}, error) {
+		clusterRoleBindingList, err := client.RbacV1().ClusterRoleBindings().List(c.Request.Context(), metav1.ListOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		// Transform cluster role bindings to frontend-expected format
+		var response []ClusterRoleBindingListResponse
+		for _, clusterRoleBinding := range clusterRoleBindingList.Items {
+			response = append(response, h.transformClusterRoleBindingToResponse(&clusterRoleBinding))
+		}
+
+		return response, nil
+	}
+
+	// Get initial data
+	initialData, err := fetchClusterRoleBindings()
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to list cluster role bindings for SSE")
+		h.sendSSEError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Send SSE response with periodic updates
+	h.sendSSEResponseWithUpdates(c, initialData, fetchClusterRoleBindings)
+}
+
+// GetClusterRoleBinding returns a specific cluster role binding
+func (h *ResourcesHandler) GetClusterRoleBinding(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for cluster role binding")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	name := c.Param("name")
+	clusterRoleBinding, err := client.RbacV1().ClusterRoleBindings().Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("clusterRoleBinding", name).Error("Failed to get cluster role binding")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		h.sendSSEResponse(c, clusterRoleBinding)
+		return
+	}
+
+	c.JSON(http.StatusOK, clusterRoleBinding)
+}
+
+// GetClusterRoleBindingByName returns a specific cluster role binding by name
+func (h *ResourcesHandler) GetClusterRoleBindingByName(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for cluster role binding by name")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	name := c.Param("name")
+	clusterRoleBinding, err := client.RbacV1().ClusterRoleBindings().Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("clusterRoleBinding", name).Error("Failed to get cluster role binding by name")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		h.sendSSEResponse(c, clusterRoleBinding)
+		return
+	}
+
+	c.JSON(http.StatusOK, clusterRoleBinding)
+}
+
+// GetClusterRoleBindingYAMLByName returns YAML representation of a specific cluster role binding by name
+func (h *ResourcesHandler) GetClusterRoleBindingYAMLByName(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for cluster role binding YAML by name")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	name := c.Param("name")
+	clusterRoleBinding, err := client.RbacV1().ClusterRoleBindings().Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("clusterRoleBinding", name).Error("Failed to get cluster role binding for YAML by name")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Convert to YAML
+	yamlData, err := yaml.Marshal(clusterRoleBinding)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to marshal cluster role binding to YAML")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// For EventSource, send the YAML data as base64 encoded string
+		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
+		return
+	}
+
+	// Return as base64 encoded string to match frontend expectations
+	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+}
+
+// GetClusterRoleBindingYAML returns the YAML representation of a specific cluster role binding
+func (h *ResourcesHandler) GetClusterRoleBindingYAML(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for cluster role binding YAML")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	name := c.Param("name")
+	clusterRoleBinding, err := client.RbacV1().ClusterRoleBindings().Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("clusterRoleBinding", name).Error("Failed to get cluster role binding for YAML")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Convert to YAML
+	yamlData, err := yaml.Marshal(clusterRoleBinding)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to marshal cluster role binding to YAML")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// For EventSource, send the YAML data as base64 encoded string
+		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
+		return
+	}
+
+	// Return as base64 encoded string to match frontend expectations
+	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+}
+
+// GetClusterRoleBindingEventsByName returns events for a specific cluster role binding by name
+func (h *ResourcesHandler) GetClusterRoleBindingEventsByName(c *gin.Context) {
+	name := c.Param("name")
+	h.getResourceEvents(c, "ClusterRoleBinding", name)
+}
+
+// GetClusterRoleBindingEvents returns events for a specific cluster role binding
+func (h *ResourcesHandler) GetClusterRoleBindingEvents(c *gin.Context) {
+	name := c.Param("name")
+	h.getResourceEvents(c, "ClusterRoleBinding", name)
 }

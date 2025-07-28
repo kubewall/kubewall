@@ -216,6 +216,24 @@ func (s *Server) setupRoutes() {
 		api.GET("/rolebinding/:name/yaml", s.resourcesHandler.GetRoleBindingYAMLByName)
 		api.GET("/rolebinding/:name/events", s.resourcesHandler.GetRoleBindingEventsByName)
 
+		// Cluster Role endpoints
+		api.GET("/clusterroles", s.resourcesHandler.GetClusterRolesSSE)
+		api.GET("/clusterroles/:name", s.resourcesHandler.GetClusterRole)
+		api.GET("/clusterroles/:name/yaml", s.resourcesHandler.GetClusterRoleYAML)
+		api.GET("/clusterroles/:name/events", s.resourcesHandler.GetClusterRoleEvents)
+		api.GET("/clusterrole/:name", s.resourcesHandler.GetClusterRoleByName)
+		api.GET("/clusterrole/:name/yaml", s.resourcesHandler.GetClusterRoleYAMLByName)
+		api.GET("/clusterrole/:name/events", s.resourcesHandler.GetClusterRoleEventsByName)
+
+		// Cluster Role Binding endpoints
+		api.GET("/clusterrolebindings", s.resourcesHandler.GetClusterRoleBindingsSSE)
+		api.GET("/clusterrolebindings/:name", s.resourcesHandler.GetClusterRoleBinding)
+		api.GET("/clusterrolebindings/:name/yaml", s.resourcesHandler.GetClusterRoleBindingYAML)
+		api.GET("/clusterrolebindings/:name/events", s.resourcesHandler.GetClusterRoleBindingEvents)
+		api.GET("/clusterrolebinding/:name", s.resourcesHandler.GetClusterRoleBindingByName)
+		api.GET("/clusterrolebinding/:name/yaml", s.resourcesHandler.GetClusterRoleBindingYAMLByName)
+		api.GET("/clusterrolebinding/:name/events", s.resourcesHandler.GetClusterRoleBindingEventsByName)
+
 		// HPA endpoints
 		api.GET("/horizontalpodautoscalers/:namespace/:name", s.resourcesHandler.GetHPA)
 		api.GET("/horizontalpodautoscalers/:namespace/:name/yaml", s.resourcesHandler.GetHPAYAML)
