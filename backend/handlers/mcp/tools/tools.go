@@ -24,20 +24,16 @@ func NewServerTool(tool mcp.Tool, handler server.ToolHandlerFunc) server.ServerT
 
 var readOnlyTools []string
 
-const listTemplate = `Retrieves list of all {{.kindName}}.
-Use this tool when you need to fetch information about all {{.kindName}} in the cluster.
-When to Use:
-- To list all {{.kindName}}.
-- Filter list of {{.kindName}} by namespace, age, status.
-- List status of all the {{.kindName}}.
-Response of this tool is in JSON format.`
+const listTemplate = `List all {{.kindName}} in the cluster, optionally filtered by namespace, age, or status, in JSON format.
+Use Cases:
+- Fetch all {{.kindName}}.
+- Filter {{.kindName}} by namespace, age, status and other fields.
+- Check status of all {{.kindName}}.`
 
-const yamlDetailsTemplate = `Get details and status of a specific {{.kindName}}.
-It includes the full spec and current status of {{.kindName}}.
-If namespace is missing:
-- Call {{.kindName}}List tool to figure out the namespace.
-- Other tools may help based on input.
-Response of this tool is in YAML format.`
+const yamlDetailsTemplate = `Retrieve details and manifest of specific {{.kindName}} in YAML format. 
+Use Cases:
+- Fetch full details of a specific {{.kindName}}.
+- Get all related resources of {{.kindName}}.`
 
 func ListTool(c echo.Context, appContainer container.Container) Toolset {
 	var toolset Toolset
@@ -63,7 +59,9 @@ func NewListTool(c echo.Context, routeName string) server.ServerTool {
 
 	tool := mcp.NewTool(routeName,
 		mcp.WithDescription(description),
-		mcp.WithToolAnnotation(mcp.ToolAnnotation{ReadOnlyHint: mcp.ToBoolPtr(true)}),
+		mcp.WithToolAnnotation(mcp.ToolAnnotation{
+			ReadOnlyHint: mcp.ToBoolPtr(true),
+		}),
 	)
 
 	handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {

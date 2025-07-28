@@ -7,7 +7,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674
 	github.com/labstack/echo/v4 v4.13.4
-	github.com/mark3labs/mcp-go v0.34.0
+	github.com/mark3labs/mcp-go v0.35.0
 	github.com/maruel/natural v1.1.1
 	github.com/maypok86/otter/v2 v2.2.1
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
