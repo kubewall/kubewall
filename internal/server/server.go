@@ -198,6 +198,15 @@ func (s *Server) setupRoutes() {
 		api.GET("/serviceaccount/:name/yaml", s.resourcesHandler.GetServiceAccountYAMLByName)
 		api.GET("/serviceaccount/:name/events", s.resourcesHandler.GetServiceAccountEventsByName)
 
+		// Role endpoints
+		api.GET("/roles", s.resourcesHandler.GetRolesSSE)
+		api.GET("/roles/:namespace/:name", s.resourcesHandler.GetRole)
+		api.GET("/roles/:namespace/:name/yaml", s.resourcesHandler.GetRoleYAML)
+		api.GET("/roles/:namespace/:name/events", s.resourcesHandler.GetRoleEvents)
+		api.GET("/role/:name", s.resourcesHandler.GetRoleByName)
+		api.GET("/role/:name/yaml", s.resourcesHandler.GetRoleYAMLByName)
+		api.GET("/role/:name/events", s.resourcesHandler.GetRoleEventsByName)
+
 		// HPA endpoints
 		api.GET("/horizontalpodautoscalers/:namespace/:name", s.resourcesHandler.GetHPA)
 		api.GET("/horizontalpodautoscalers/:namespace/:name/yaml", s.resourcesHandler.GetHPAYAML)

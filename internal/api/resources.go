@@ -24,6 +24,7 @@ import (
 	batchV1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingV1 "k8s.io/api/networking/v1"
+	rbacV1 "k8s.io/api/rbac/v1"
 	storageV1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -4922,6 +4923,18 @@ type ServiceAccountListResponse struct {
 	} `json:"spec"`
 }
 
+// RoleListResponse represents the response format expected by the frontend for roles
+type RoleListResponse struct {
+	Age        string `json:"age"`
+	HasUpdated bool   `json:"hasUpdated"`
+	Name       string `json:"name"`
+	Namespace  string `json:"namespace"`
+	UID        string `json:"uid"`
+	Spec       struct {
+		Rules []string `json:"rules"`
+	} `json:"spec"`
+}
+
 // Data transformation functions
 func (h *ResourcesHandler) transformPVCToResponse(pvc *v1.PersistentVolumeClaim) PersistentVolumeClaimListResponse {
 	age := ""
@@ -5162,6 +5175,57 @@ func (h *ResourcesHandler) transformServiceAccountToResponse(serviceAccount *v1.
 			Secrets int `json:"secrets"`
 		}{
 			Secrets: len(serviceAccount.Secrets),
+		},
+	}
+}
+
+func (h *ResourcesHandler) transformRoleToResponse(role *rbacV1.Role) RoleListResponse {
+	age := ""
+	if !role.CreationTimestamp.IsZero() {
+		age = role.CreationTimestamp.Time.Format(time.RFC3339)
+	}
+
+	// Convert PolicyRules to readable strings
+	var ruleStrings []string
+	for _, rule := range role.Rules {
+		ruleStr := ""
+		if len(rule.APIGroups) > 0 {
+			ruleStr += "APIGroups: " + strings.Join(rule.APIGroups, ", ")
+		}
+		if len(rule.Resources) > 0 {
+			if ruleStr != "" {
+				ruleStr += "; "
+			}
+			ruleStr += "Resources: " + strings.Join(rule.Resources, ", ")
+		}
+		if len(rule.Verbs) > 0 {
+			if ruleStr != "" {
+				ruleStr += "; "
+			}
+			ruleStr += "Verbs: " + strings.Join(rule.Verbs, ", ")
+		}
+		if len(rule.ResourceNames) > 0 {
+			if ruleStr != "" {
+				ruleStr += "; "
+			}
+			ruleStr += "ResourceNames: " + strings.Join(rule.ResourceNames, ", ")
+		}
+		if ruleStr == "" {
+			ruleStr = "Empty rule"
+		}
+		ruleStrings = append(ruleStrings, ruleStr)
+	}
+
+	return RoleListResponse{
+		Age:        age,
+		HasUpdated: false,
+		Name:       role.Name,
+		Namespace:  role.Namespace,
+		UID:        string(role.UID),
+		Spec: struct {
+			Rules []string `json:"rules"`
+		}{
+			Rules: ruleStrings,
 		},
 	}
 }
@@ -5907,4 +5971,213 @@ func (h *ResourcesHandler) GetEndpointEventsByName(c *gin.Context) {
 func (h *ResourcesHandler) GetEndpointEvents(c *gin.Context) {
 	name := c.Param("name")
 	h.getResourceEvents(c, "Endpoints", name)
+}
+
+// GetRolesSSE returns roles as Server-Sent Events with real-time updates
+func (h *ResourcesHandler) GetRolesSSE(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for roles SSE")
+		h.sendSSEError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	namespace := c.Query("namespace")
+
+	// Function to fetch and transform roles data
+	fetchRoles := func() (interface{}, error) {
+		roleList, err := client.RbacV1().Roles(namespace).List(c.Request.Context(), metav1.ListOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		// Transform roles to frontend-expected format
+		var response []RoleListResponse
+		for _, role := range roleList.Items {
+			response = append(response, h.transformRoleToResponse(&role))
+		}
+
+		return response, nil
+	}
+
+	// Get initial data
+	initialData, err := fetchRoles()
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to list roles for SSE")
+		h.sendSSEError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Send SSE response with periodic updates
+	h.sendSSEResponseWithUpdates(c, initialData, fetchRoles)
+}
+
+// GetRole returns a specific role
+func (h *ResourcesHandler) GetRole(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for role")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+	role, err := client.RbacV1().Roles(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("role", name).WithField("namespace", namespace).Error("Failed to get role")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		h.sendSSEResponse(c, role)
+		return
+	}
+
+	c.JSON(http.StatusOK, role)
+}
+
+// GetRoleByName returns a specific role by name using namespace from query parameters
+func (h *ResourcesHandler) GetRoleByName(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for role")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	name := c.Param("name")
+	namespace := c.Query("namespace")
+
+	if namespace == "" {
+		h.logger.WithField("role", name).Error("Namespace is required for role lookup")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "namespace parameter is required"})
+		return
+	}
+
+	role, err := client.RbacV1().Roles(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("role", name).WithField("namespace", namespace).Error("Failed to get role")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		h.sendSSEResponse(c, role)
+		return
+	}
+
+	c.JSON(http.StatusOK, role)
+}
+
+// GetRoleYAMLByName returns the YAML representation of a specific role by name using namespace from query parameters
+func (h *ResourcesHandler) GetRoleYAMLByName(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for role YAML")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	name := c.Param("name")
+	namespace := c.Query("namespace")
+
+	if namespace == "" {
+		h.logger.WithField("role", name).Error("Namespace is required for role YAML lookup")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "namespace parameter is required"})
+		return
+	}
+
+	role, err := client.RbacV1().Roles(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("role", name).WithField("namespace", namespace).Error("Failed to get role for YAML")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Convert to YAML
+	yamlData, err := yaml.Marshal(role)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to marshal role to YAML")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// For EventSource, send the YAML data as base64 encoded string
+		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
+		return
+	}
+
+	// Return as base64 encoded string to match frontend expectations
+	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+}
+
+// GetRoleYAML returns the YAML representation of a specific role
+func (h *ResourcesHandler) GetRoleYAML(c *gin.Context) {
+	client, _, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for role YAML")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+	role, err := client.RbacV1().Roles(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("role", name).WithField("namespace", namespace).Error("Failed to get role for YAML")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Convert to YAML
+	yamlData, err := yaml.Marshal(role)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to marshal role to YAML")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
+		return
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// For EventSource, send the YAML data as base64 encoded string
+		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
+		return
+	}
+
+	// Return as base64 encoded string to match frontend expectations
+	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
+	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+}
+
+// GetRoleEventsByName returns events for a specific role by name using namespace from query parameters
+func (h *ResourcesHandler) GetRoleEventsByName(c *gin.Context) {
+	name := c.Param("name")
+	namespace := c.Query("namespace")
+
+	if namespace == "" {
+		h.logger.WithField("role", name).Error("Namespace is required for role events lookup")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "namespace parameter is required"})
+		return
+	}
+
+	h.getResourceEvents(c, "Role", name)
+}
+
+// GetRoleEvents returns events for a specific role
+func (h *ResourcesHandler) GetRoleEvents(c *gin.Context) {
+	name := c.Param("name")
+	h.getResourceEvents(c, "Role", name)
 }
