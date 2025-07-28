@@ -130,21 +130,17 @@ const KwDetails = () => {
         {
           resourceInitialData?.loading ? <Loader /> :
             <>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-1">
                 <SidebarTrigger />
-                <Separator orientation="vertical" className="mr-2 h-4 ml-1" />
-                <div className="ml-1">
-                  <h2 className="text-lg font-bold tracking-tight">
-                    {resourceData?.subHeading}
-                  </h2>
-                </div>
+                <Separator orientation="vertical" className="data-[orientation=vertical]:h-4 mr-2" />
+                <h2 className="text-lg font-bold tracking-tight">
+                  {resourceData?.subHeading}
+                </h2>
                 <div className="ml-auto">
-
                   {
                     resourcekind === 'deployments' &&
                     <ScaleDeployments resourcename={resourcename} queryParams={new URLSearchParams(queryParamsObj).toString()} />
                   }
-
                   <TableDelete selectedRows={selectedRows} postDeleteCallback={redirectToListPage} />
                   <ThemeModeSelector />
                   <TooltipProvider>
