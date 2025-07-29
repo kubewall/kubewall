@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 
 	"github.com/charmbracelet/log"
 	"github.com/kubewall/kubewall/backend/config"
@@ -58,14 +59,12 @@ func Serve(cmd *cobra.Command) error {
 		return err
 	}
 	// Backward compatibility: fallback to --port if --listen is not set
-	if listenAddr == "" {
-		port, err := cmd.Flags().GetString("port")
-		if err != nil {
-			return err
-		}
-		if port != "" {
-			log.Warn("Flag --port is deprecated, use --listen instead. This will be removed in a future release.")
-		}
+	port, err := cmd.Flags().GetString("port")
+	if err != nil {
+		return err
+	}
+	if port != ":7080" {
+		log.Warn("Flag --port is deprecated, use --listen instead. This will be removed in a future release.")
 		switch {
 		case port == "":
 			listenAddr = "localhost:7080" // default
@@ -100,6 +99,10 @@ func Serve(cmd *cobra.Command) error {
 
 	if !noOpen {
 		openDefaultBrowser(c.Config().IsSecure, c.Config().ListenAddr)
+	}
+
+	if !isSecure && !strings.Contains(c.Config().ListenAddr, "localhost") {
+		log.Warn("SSE may not work properly without TLS. Use --certFile and --keyFile for HTTPS, or bind to localhost with --listen localhost:7080 to avoid issues.")
 	}
 
 	if c.Config().IsSecure {
