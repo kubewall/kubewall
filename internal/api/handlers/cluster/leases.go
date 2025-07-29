@@ -4,14 +4,13 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
-	"time"
 
+	"kubewall-backend/internal/api/utils"
 	"kubewall-backend/internal/k8s"
 	"kubewall-backend/internal/storage"
 	"kubewall-backend/pkg/logger"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -22,6 +21,8 @@ type LeasesHandler struct {
 	store         *storage.KubeConfigStore
 	clientFactory *k8s.ClientFactory
 	logger        *logger.Logger
+	sseHandler    *utils.SSEHandler
+	eventsHandler *utils.EventsHandler
 }
 
 // NewLeasesHandler creates a new LeasesHandler instance
@@ -30,6 +31,8 @@ func NewLeasesHandler(store *storage.KubeConfigStore, clientFactory *k8s.ClientF
 		store:         store,
 		clientFactory: clientFactory,
 		logger:        log,
+		sseHandler:    utils.NewSSEHandler(log),
+		eventsHandler: utils.NewEventsHandler(log),
 	}
 }
 
@@ -53,59 +56,6 @@ func (h *LeasesHandler) getClientAndConfig(c *gin.Context) (*kubernetes.Clientse
 	}
 
 	return client, nil
-}
-
-// sendSSEResponse sends a Server-Sent Events response
-func (h *LeasesHandler) sendSSEResponse(c *gin.Context, data interface{}) {
-	c.Header("Content-Type", "text/event-stream")
-	c.Header("Cache-Control", "no-cache")
-	c.Header("Connection", "keep-alive")
-	c.Header("Access-Control-Allow-Origin", "*")
-	c.Header("Access-Control-Allow-Headers", "Cache-Control")
-
-	// Send the data as a JSON event
-	c.SSEvent("message", data)
-}
-
-// sendSSEResponseWithUpdates sends SSE response with periodic updates
-func (h *LeasesHandler) sendSSEResponseWithUpdates(c *gin.Context, data interface{}, updateFunc func() (interface{}, error)) {
-	c.Header("Content-Type", "text/event-stream")
-	c.Header("Cache-Control", "no-cache")
-	c.Header("Connection", "keep-alive")
-	c.Header("Access-Control-Allow-Origin", "*")
-	c.Header("Access-Control-Allow-Headers", "Cache-Control")
-
-	// Send initial data
-	c.SSEvent("message", data)
-
-	// Set up periodic updates
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-c.Request.Context().Done():
-			return
-		case <-ticker.C:
-			updatedData, err := updateFunc()
-			if err != nil {
-				h.logger.WithError(err).Error("Failed to get updated data")
-				continue
-			}
-			c.SSEvent("message", updatedData)
-		}
-	}
-}
-
-// sendSSEError sends an SSE error response
-func (h *LeasesHandler) sendSSEError(c *gin.Context, statusCode int, message string) {
-	c.Header("Content-Type", "text/event-stream")
-	c.Header("Cache-Control", "no-cache")
-	c.Header("Connection", "keep-alive")
-	c.Header("Access-Control-Allow-Origin", "*")
-	c.Header("Access-Control-Allow-Headers", "Cache-Control")
-
-	c.SSEvent("error", gin.H{"error": message})
 }
 
 // GetLeases returns all leases in a namespace
@@ -133,7 +83,7 @@ func (h *LeasesHandler) GetLeasesSSE(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for leases SSE")
-		h.sendSSEError(c, http.StatusBadRequest, err.Error())
+		h.sseHandler.SendSSEError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -152,7 +102,7 @@ func (h *LeasesHandler) GetLeasesSSE(c *gin.Context) {
 	initialData, err := fetchLeases()
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to list leases for SSE")
-		h.sendSSEError(c, http.StatusInternalServerError, err.Error())
+		h.sseHandler.SendSSEError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -160,7 +110,7 @@ func (h *LeasesHandler) GetLeasesSSE(c *gin.Context) {
 	acceptHeader := c.GetHeader("Accept")
 	if acceptHeader == "text/event-stream" {
 		// Send SSE response with periodic updates
-		h.sendSSEResponseWithUpdates(c, initialData, fetchLeases)
+		h.sseHandler.SendSSEResponseWithUpdates(c, initialData, fetchLeases)
 		return
 	}
 
@@ -177,7 +127,7 @@ func (h *LeasesHandler) GetLease(c *gin.Context) {
 		return
 	}
 
-	namespace := c.Query("namespace")
+	namespace := c.Param("namespace")
 	name := c.Param("name")
 	lease, err := client.CoordinationV1().Leases(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
 	if err != nil {
@@ -189,7 +139,7 @@ func (h *LeasesHandler) GetLease(c *gin.Context) {
 	// Check if this is an SSE request (EventSource expects SSE format)
 	acceptHeader := c.GetHeader("Accept")
 	if acceptHeader == "text/event-stream" {
-		h.sendSSEResponse(c, lease)
+		h.sseHandler.SendSSEResponse(c, lease)
 		return
 	}
 
@@ -227,7 +177,7 @@ func (h *LeasesHandler) GetLeaseYAML(c *gin.Context) {
 	if acceptHeader == "text/event-stream" {
 		// For EventSource, send the YAML data as base64 encoded string
 		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
-		h.sendSSEResponse(c, gin.H{"data": encodedYAML})
+		h.sseHandler.SendSSEResponse(c, gin.H{"data": encodedYAML})
 		return
 	}
 
@@ -238,40 +188,13 @@ func (h *LeasesHandler) GetLeaseYAML(c *gin.Context) {
 
 // GetLeaseEvents returns events for a specific lease
 func (h *LeasesHandler) GetLeaseEvents(c *gin.Context) {
-	name := c.Param("name")
-	h.getResourceEvents(c, "Lease", name)
-}
-
-// getResourceEvents is a common function to get events for any resource type
-func (h *LeasesHandler) getResourceEvents(c *gin.Context, resourceKind, resourceName string) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
-		h.logger.WithError(err).Error("Failed to get client for resource events")
+		h.logger.WithError(err).Error("Failed to get client for lease events")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	namespace := c.Query("namespace")
-
-	// Get events for the specific resource
-	events, err := client.CoreV1().Events(namespace).List(c.Request.Context(), metav1.ListOptions{
-		FieldSelector: "involvedObject.kind=" + resourceKind + ",involvedObject.name=" + resourceName,
-	})
-	if err != nil {
-		h.logger.WithError(err).WithFields(logrus.Fields{
-			"resource_kind": resourceKind,
-			"resource_name": resourceName,
-		}).Error("Failed to get resource events")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	// Check if this is an SSE request (EventSource expects SSE format)
-	acceptHeader := c.GetHeader("Accept")
-	if acceptHeader == "text/event-stream" {
-		h.sendSSEResponse(c, events.Items)
-		return
-	}
-
-	c.JSON(http.StatusOK, events.Items)
+	name := c.Param("name")
+	h.eventsHandler.GetResourceEvents(c, client, "Lease", name, h.sseHandler.SendSSEResponse)
 }
