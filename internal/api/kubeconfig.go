@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 
 	"kubewall-backend/internal/k8s"
@@ -599,94 +600,129 @@ func (h *KubeConfigHandler) ValidateAllKubeconfigs(c *gin.Context) {
 	allConfigs := h.store.ListKubeConfigs()
 
 	validationResults := make(map[string]interface{})
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+
+	// Use a semaphore to limit concurrent validations
+	semaphore := make(chan struct{}, 5) // Limit to 5 concurrent validations
 
 	for configID, metadata := range allConfigs {
-		config, err := h.store.GetKubeConfig(configID)
-		if err != nil {
-			h.logger.WithError(err).WithField("config_id", configID).Error("Failed to get kubeconfig for validation")
+		wg.Add(1)
+		go func(configID string, metadata *storage.KubeConfig) {
+			defer wg.Done()
+			semaphore <- struct{}{}        // Acquire semaphore
+			defer func() { <-semaphore }() // Release semaphore
+
+			config, err := h.store.GetKubeConfig(configID)
+			if err != nil {
+				h.logger.WithError(err).WithField("config_id", configID).Error("Failed to get kubeconfig for validation")
+				mu.Lock()
+				validationResults[configID] = map[string]interface{}{
+					"name":     metadata.Name,
+					"valid":    false,
+					"error":    "Failed to retrieve kubeconfig",
+					"clusters": map[string]interface{}{},
+				}
+				mu.Unlock()
+				return
+			}
+
+			// Test connectivity for each cluster in this config
+			clusterStatus := make(map[string]map[string]interface{})
+			var clusterWg sync.WaitGroup
+			var clusterMu sync.Mutex
+
+			for contextName, kubeContext := range config.Contexts {
+				clusterWg.Add(1)
+				go func(contextName string, kubeContext *api.Context) {
+					defer clusterWg.Done()
+
+					clusterName := kubeContext.Cluster
+
+					// Create a copy of the config and set the context
+					configCopy := config.DeepCopy()
+					configCopy.CurrentContext = contextName
+
+					// Create client config
+					clientConfig := clientcmd.NewDefaultClientConfig(*configCopy, &clientcmd.ConfigOverrides{})
+					restConfig, err := clientConfig.ClientConfig()
+					if err != nil {
+						clusterMu.Lock()
+						clusterStatus[contextName] = map[string]interface{}{
+							"name":      contextName,
+							"cluster":   clusterName,
+							"reachable": false,
+							"error":     "Failed to create client config: " + err.Error(),
+						}
+						clusterMu.Unlock()
+						return
+					}
+
+					// Create Kubernetes client
+					client, err := kubernetes.NewForConfig(restConfig)
+					if err != nil {
+						clusterMu.Lock()
+						clusterStatus[contextName] = map[string]interface{}{
+							"name":      contextName,
+							"cluster":   clusterName,
+							"reachable": false,
+							"error":     "Failed to create Kubernetes client: " + err.Error(),
+						}
+						clusterMu.Unlock()
+						return
+					}
+
+					// Test connectivity with a shorter timeout
+					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+					defer cancel()
+
+					_, err = client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{Limit: 1})
+					if err != nil {
+						clusterMu.Lock()
+						clusterStatus[contextName] = map[string]interface{}{
+							"name":      contextName,
+							"cluster":   clusterName,
+							"reachable": false,
+							"error":     "Cluster not reachable: " + err.Error(),
+						}
+						clusterMu.Unlock()
+					} else {
+						clusterMu.Lock()
+						clusterStatus[contextName] = map[string]interface{}{
+							"name":      contextName,
+							"cluster":   clusterName,
+							"reachable": true,
+							"error":     nil,
+						}
+						clusterMu.Unlock()
+					}
+				}(contextName, kubeContext)
+			}
+
+			clusterWg.Wait()
+
+			// Check if any clusters are reachable
+			hasReachableClusters := false
+			for _, status := range clusterStatus {
+				if status["reachable"].(bool) {
+					hasReachableClusters = true
+					break
+				}
+			}
+
+			mu.Lock()
 			validationResults[configID] = map[string]interface{}{
-				"name":     metadata.Name,
-				"valid":    false,
-				"error":    "Failed to retrieve kubeconfig",
-				"clusters": map[string]interface{}{},
+				"name":                 metadata.Name,
+				"valid":                true,
+				"clusterStatus":        clusterStatus,
+				"hasReachableClusters": hasReachableClusters,
+				"totalClusters":        len(clusterStatus),
 			}
-			continue
-		}
-
-		// Test connectivity for each cluster in this config
-		clusterStatus := make(map[string]map[string]interface{})
-
-		for contextName, kubeContext := range config.Contexts {
-			clusterName := kubeContext.Cluster
-
-			// Create a copy of the config and set the context
-			configCopy := config.DeepCopy()
-			configCopy.CurrentContext = contextName
-
-			// Create client config
-			clientConfig := clientcmd.NewDefaultClientConfig(*configCopy, &clientcmd.ConfigOverrides{})
-			restConfig, err := clientConfig.ClientConfig()
-			if err != nil {
-				clusterStatus[contextName] = map[string]interface{}{
-					"name":      contextName,
-					"cluster":   clusterName,
-					"reachable": false,
-					"error":     "Failed to create client config: " + err.Error(),
-				}
-				continue
-			}
-
-			// Create Kubernetes client
-			client, err := kubernetes.NewForConfig(restConfig)
-			if err != nil {
-				clusterStatus[contextName] = map[string]interface{}{
-					"name":      contextName,
-					"cluster":   clusterName,
-					"reachable": false,
-					"error":     "Failed to create Kubernetes client: " + err.Error(),
-				}
-				continue
-			}
-
-			// Test connectivity with a timeout
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
-
-			_, err = client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{Limit: 1})
-			if err != nil {
-				clusterStatus[contextName] = map[string]interface{}{
-					"name":      contextName,
-					"cluster":   clusterName,
-					"reachable": false,
-					"error":     "Cluster not reachable: " + err.Error(),
-				}
-			} else {
-				clusterStatus[contextName] = map[string]interface{}{
-					"name":      contextName,
-					"cluster":   clusterName,
-					"reachable": true,
-					"error":     nil,
-				}
-			}
-		}
-
-		// Check if any clusters are reachable
-		hasReachableClusters := false
-		for _, status := range clusterStatus {
-			if status["reachable"].(bool) {
-				hasReachableClusters = true
-				break
-			}
-		}
-
-		validationResults[configID] = map[string]interface{}{
-			"name":                 metadata.Name,
-			"valid":                true,
-			"clusterStatus":        clusterStatus,
-			"hasReachableClusters": hasReachableClusters,
-			"totalClusters":        len(clusterStatus),
-		}
+			mu.Unlock()
+		}(configID, metadata)
 	}
+
+	wg.Wait()
 
 	c.JSON(http.StatusOK, gin.H{
 		"validationResults": validationResults,

@@ -17,6 +17,7 @@ import useGenerateColumns from "@/components/app/Common/Hooks/TableColumns";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { NODES_ENDPOINT, PODS_ENDPOINT } from "@/constants";
+import { toast } from "sonner";
 
 const NodeDetailsContainer = memo(function () {
   const { config } = appRoute.useParams();
@@ -41,6 +42,13 @@ const NodeDetailsContainer = memo(function () {
     dispatch(updateNodePods(message));
   };
 
+  const handleConfigError = () => {
+    toast.error("Configuration Error", {
+      description: "The configuration you were viewing has been deleted or is no longer available. Redirecting to configuration page.",
+    });
+    navigate({ to: '/config' });
+  };
+
   useEventSource({
     url: getEventStreamUrl(
       NODES_ENDPOINT,
@@ -50,7 +58,8 @@ const NodeDetailsContainer = memo(function () {
       ),
       `/${resourcename}/pods`
     ),
-    sendMessage
+    sendMessage,
+    onConfigError: handleConfigError,
   });
 
   const handleViewPods = () => {

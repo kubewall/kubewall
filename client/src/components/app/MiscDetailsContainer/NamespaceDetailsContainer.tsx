@@ -17,6 +17,7 @@ import useGenerateColumns from "@/components/app/Common/Hooks/TableColumns";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { NAMESPACES_ENDPOINT, PODS_ENDPOINT } from "@/constants";
+import { toast } from "sonner";
 
 const NamespaceDetailsContainer = memo(function () {
   const { config } = appRoute.useParams();
@@ -40,6 +41,13 @@ const NamespaceDetailsContainer = memo(function () {
     dispatch(updateNamespacePods(message));
   };
 
+  const handleConfigError = () => {
+    toast.error("Configuration Error", {
+      description: "The configuration you were viewing has been deleted or is no longer available. Redirecting to configuration page.",
+    });
+    navigate({ to: '/config' });
+  };
+
   useEventSource({
     url: getEventStreamUrl(
       NAMESPACES_ENDPOINT,
@@ -49,7 +57,8 @@ const NamespaceDetailsContainer = memo(function () {
       ),
       `/${resourcename}/pods`
     ),
-    sendMessage
+    sendMessage,
+    onConfigError: handleConfigError,
   });
 
   const handleViewPods = () => {

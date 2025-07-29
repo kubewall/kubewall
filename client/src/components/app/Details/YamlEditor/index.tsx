@@ -10,6 +10,7 @@ import { SaveIcon } from "lucide-react";
 import { toast } from "sonner";
 import { updateYamlDetails } from '@/data/Yaml/YamlSlice';
 import { useEventSource } from '../../Common/Hooks/EventSource';
+import { useNavigate } from '@tanstack/react-router';
 
 type EditorProps = {
   name: string;
@@ -28,6 +29,7 @@ const YamlEditor = memo(function ({ instanceType, name, namespace, clusterName, 
   } = useAppSelector((state) => state.updateYaml);
 
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const [yamlUpdated, setYamlUpdated] = useState<boolean>(false);
   const {
     loading,
@@ -72,10 +74,15 @@ const YamlEditor = memo(function ({ instanceType, name, namespace, clusterName, 
     }
   }, [yamlUpdateResponse, error]);
 
-
-
   const sendMessage = (message: Event[]) => {
     dispatch(updateYamlDetails(message));
+  };
+
+  const handleConfigError = () => {
+    toast.error("Configuration Error", {
+      description: "The configuration you were viewing has been deleted or is no longer available. Redirecting to configuration page.",
+    });
+    navigate({ to: '/config' });
   };
 
   useEventSource({
@@ -91,9 +98,9 @@ const YamlEditor = memo(function ({ instanceType, name, namespace, clusterName, 
       (instanceType === 'deployments' || instanceType === 'daemonsets' || instanceType === 'statefulsets' || instanceType === 'replicasets' || instanceType === 'jobs' || instanceType === 'cronjobs' || instanceType === 'services' || instanceType === 'configmaps' || instanceType === 'secrets' || instanceType === 'horizontalpodautoscalers' || instanceType === 'limitranges' || instanceType === 'resourcequotas' || instanceType === 'serviceaccounts' || instanceType === 'roles' || instanceType === 'rolebindings' || instanceType === 'persistentvolumeclaims' || instanceType === 'poddisruptionbudgets' || instanceType === 'endpoints' || instanceType === 'ingresses' || instanceType === 'leases') ? `/${namespace}/${name}/yaml` : `/${name}/yaml`,
       extraQuery
     ),
-    sendMessage
+    sendMessage,
+    onConfigError: handleConfigError,
   });
-
 
   return (
     <>

@@ -1,27 +1,30 @@
 import { MutableRefObject, useRef } from "react";
-import { PodDetailsSpec, PodSocketResponse } from "@/types";
-import { getColorForContainerName, getEventStreamUrl } from "@/utils";
-
-import { SearchAddon } from "@xterm/addon-search";
-import { Terminal } from "@xterm/xterm";
-import XtermTerminal from "../Xtrem";
 import { useEventSource } from "@/components/app/Common/Hooks/EventSource";
+import { getEventStreamUrl } from "@/utils";
+import { PodSocketResponse } from "@/types";
+import XtermTerminal from "../Xtrem";
+import { getColorForContainerName } from "@/utils/Workloads/PodUtils";
+import { Terminal } from "@xterm/xterm";
+import { SearchAddon } from "@xterm/addon-search";
+import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 
 type SocketLogsProps = {
   pod: string;
+  containerName?: string;
   namespace: string;
-  containerName: string;
   configName: string;
   clusterName: string;
-  podDetailsSpec: PodDetailsSpec;
-  updateLogs: (currentLog: PodSocketResponse) => void;
+  podDetailsSpec: any;
   searchAddonRef: MutableRefObject<SearchAddon | null>;
+  updateLogs: (log: PodSocketResponse) => void;
 }
 
 export function SocketLogs({ pod, containerName, namespace, configName, clusterName, podDetailsSpec, searchAddonRef,updateLogs }: SocketLogsProps) {
   const logContainerRef = useRef<HTMLDivElement>(null);
   const lineCount = useRef<number>(1);
   const xterm = useRef<Terminal | null>(null);
+  const navigate = useNavigate();
   
   const printLogLine = (message: PodSocketResponse) => {
     if (xterm.current) {
@@ -44,6 +47,14 @@ export function SocketLogs({ pod, containerName, namespace, configName, clusterN
       }
     }
   };
+
+  const handleConfigError = () => {
+    toast.error("Configuration Error", {
+      description: "The configuration you were viewing has been deleted or is no longer available. Redirecting to configuration page.",
+    });
+    navigate({ to: '/config' });
+  };
+
   useEventSource({
     url: getEventStreamUrl(`pod/${pod}/logs`, {
       namespace,
@@ -54,12 +65,13 @@ export function SocketLogs({ pod, containerName, namespace, configName, clusterN
       )
     }),
     sendMessage,
+    onConfigError: handleConfigError,
   });
 
   return (
     <div ref={logContainerRef} className="m-2">
       <XtermTerminal
-        containerNameProp={containerName}
+        containerNameProp={containerName || ''}
         xterm={xterm}
         searchAddonRef={searchAddonRef}
         updateLogs={updateLogs}

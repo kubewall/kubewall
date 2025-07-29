@@ -15,6 +15,7 @@ import useGenerateColumns from "@/components/app/Common/Hooks/TableColumns";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { STATEFUL_SETS_ENDPOINT, PODS_ENDPOINT } from "@/constants";
+import { toast } from "sonner";
 
 const StatefulSetDetailsContainer = memo(function () {
   const { config } = appRoute.useParams();
@@ -31,6 +32,13 @@ const StatefulSetDetailsContainer = memo(function () {
     dispatch(updateStatefulSetPods(message));
   };
 
+  const handleConfigError = () => {
+    toast.error("Configuration Error", {
+      description: "The configuration you were viewing has been deleted or is no longer available. Redirecting to configuration page.",
+    });
+    navigate({ to: '/config' });
+  };
+
   useEventSource({
     url: getEventStreamUrl(
       STATEFUL_SETS_ENDPOINT,
@@ -41,7 +49,8 @@ const StatefulSetDetailsContainer = memo(function () {
       ),
       `/${namespace}/${resourcename}/pods`
     ),
-    sendMessage
+    sendMessage,
+    onConfigError: handleConfigError,
   });
 
   const handleViewPods = () => {

@@ -10,6 +10,7 @@ import { createEventStreamQueryObject, getEventStreamUrl, getSystemTheme } from 
 import { memo, useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
+import { toast } from "sonner";
 
 import { CustomResources } from "@/types";
 import { SidebarNavigator } from "./Navigator";
@@ -106,6 +107,13 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
     dispatch(updateCustomResources(message));
   };
 
+  const handleConfigError = () => {
+    toast.error("Configuration Error", {
+      description: "The configuration you were viewing has been deleted or is no longer available. Redirecting to configuration page.",
+    });
+    navigate({ to: '/config' });
+  };
+
   useEventSource({
     url: getEventStreamUrl(
       CUSTOM_RESOURCES_ENDPOINT,
@@ -113,7 +121,8 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
         configName,
         clusterName
       )),
-    sendMessage
+    sendMessage,
+    onConfigError: handleConfigError,
   });
 
   const getResourceIcon = (resourceType: string) => {

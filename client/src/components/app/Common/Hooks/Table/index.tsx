@@ -9,6 +9,8 @@ import { useEventSource } from "../EventSource";
 import useGenerateColumns from "../TableColumns";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 
 type CreateTableProps<T, C extends HeaderList> = {
   clusterName: string;
@@ -40,16 +42,25 @@ const CreateTable = <T extends ClusterDetails, C extends HeaderList>({
 }: CreateTableProps<T, C>) => {
 
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'reconnecting' | 'error'>('connecting');
   
   const sendMessage = (message: object[]) => {
     dispatch(dispatchMethod(message));
   };
 
+  const handleConfigError = () => {
+    toast.error("Configuration Error", {
+      description: "The configuration you were viewing has been deleted or is no longer available. Redirecting to configuration page.",
+    });
+    navigate({ to: '/config' });
+  };
+
   useEventSource({
     url: getEventStreamUrl(endpoint, queryParmObject),
     sendMessage,
     onConnectionStatusChange: setConnectionStatus,
+    onConfigError: handleConfigError,
   });
 
   const { open, isMobile } = useSidebar();

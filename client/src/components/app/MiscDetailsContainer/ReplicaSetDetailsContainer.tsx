@@ -15,6 +15,7 @@ import useGenerateColumns from "@/components/app/Common/Hooks/TableColumns";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { REPLICA_SETS_ENDPOINT, PODS_ENDPOINT } from "@/constants";
+import { toast } from "sonner";
 
 const ReplicaSetDetailsContainer = memo(function () {
   const { config } = appRoute.useParams();
@@ -28,7 +29,14 @@ const ReplicaSetDetailsContainer = memo(function () {
   const dispatch = useAppDispatch();
 
   const sendMessage = (message: Pods[]) => {
-    dispatch(updateReplicaSetPods(message || []));
+    dispatch(updateReplicaSetPods(message));
+  };
+
+  const handleConfigError = () => {
+    toast.error("Configuration Error", {
+      description: "The configuration you were viewing has been deleted or is no longer available. Redirecting to configuration page.",
+    });
+    navigate({ to: '/config' });
   };
 
   useEventSource({
@@ -41,7 +49,8 @@ const ReplicaSetDetailsContainer = memo(function () {
       ),
       `/${namespace}/${resourcename}/pods`
     ),
-    sendMessage
+    sendMessage,
+    onConfigError: handleConfigError,
   });
 
   const handleViewPods = () => {

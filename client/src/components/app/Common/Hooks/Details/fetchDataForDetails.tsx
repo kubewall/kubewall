@@ -36,6 +36,8 @@ import { updateServiceDetails } from "@/data/Networks/Services/ServiceDetailSlic
 import { updateStatefulSetDetails } from "@/data/Workloads/StatefulSets/StatefulSetDetailsSlice";
 import { updateStorageClassDetails } from "@/data/Storages/StorageClasses/StorageClassDetailsSlice";
 import { useEventSource } from "../EventSource";
+import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 
 type FetchDataForDetailsProps = {
   config: string;
@@ -91,6 +93,7 @@ const useFetchDataForDetails = ({
   const { loading: customResourceDetailsLoading } = useAppSelector((state: RootState) => state.customResourceDetails);
   const { loading: customResourcesDefintionsDetailsLoading } = useAppSelector((state: RootState) => state.customResourcesDefinitionDetails);
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
 
   type DataType = {
     label: string;
@@ -188,6 +191,13 @@ const useFetchDataForDetails = ({
     }
   };
 
+  const handleConfigError = () => {
+    toast.error("Configuration Error", {
+      description: "The configuration you were viewing has been deleted or is no longer available. Redirecting to configuration page.",
+    });
+    navigate({ to: '/config' });
+  };
+
   // For pods, deployments, and other namespace-scoped resources, we need to use the namespace/name pattern in the URL
   let eventSourceUrl: string;
   if ((resourcekind === PODS_ENDPOINT || resourcekind === DEPLOYMENT_ENDPOINT || resourcekind === DAEMON_SETS_ENDPOINT || resourcekind === STATEFUL_SETS_ENDPOINT || resourcekind === REPLICA_SETS_ENDPOINT || resourcekind === JOBS_ENDPOINT || resourcekind === CRON_JOBS_ENDPOINT || resourcekind === SERVICES_ENDPOINT || resourcekind === CONFIG_MAPS_ENDPOINT || resourcekind === SECRETS_ENDPOINT || resourcekind === HPA_ENDPOINT || resourcekind === LIMIT_RANGE_ENDPOINT || resourcekind === RESOURCE_QUOTAS_ENDPOINT || resourcekind === SERVICE_ACCOUNTS_ENDPOINT || resourcekind === ROLES_ENDPOINT || resourcekind === ROLE_BINDINGS_ENDPOINT || resourcekind === PERSISTENT_VOLUME_CLAIMS_ENDPOINT || resourcekind === POD_DISRUPTION_BUDGETS_ENDPOINT || resourcekind === ENDPOINTS_ENDPOINT || resourcekind === INGRESSES_ENDPOINT || resourcekind === LEASES_ENDPOINT) && namespace) {
@@ -201,6 +211,7 @@ const useFetchDataForDetails = ({
   useEventSource({
     url: eventSourceUrl,
     sendMessage,
+    onConfigError: handleConfigError,
   });
 
   if(!data) {

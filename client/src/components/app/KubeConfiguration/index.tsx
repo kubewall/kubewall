@@ -27,6 +27,7 @@ import { useRef } from 'react';
 export function KubeConfiguration() {
   const {
     clusters,
+    loading: clustersLoading,
   } = useAppSelector((state) => state.clusters);
   const {
     deleteConfigResponse,
@@ -54,16 +55,18 @@ export function KubeConfiguration() {
     if (pathSegments.length > 1 && pathSegments[1] !== 'config' && pathSegments[1] !== '') {
       const configId = pathSegments[1];
       
-      // Check if this config still exists in our clusters
-      if (clusters?.kubeConfigs && !clusters.kubeConfigs[configId]) {
-        // Config doesn't exist, redirect to config page
-        if (!hasShownConfigNotFoundToast.current) {
-          toast.info("Configuration not found", {
-            description: "The configuration you were viewing has been deleted. Redirecting to configuration page.",
-          });
-          hasShownConfigNotFoundToast.current = true;
+      // Only check if clusters are loaded and not empty, and not currently loading
+      if (!clustersLoading && clusters?.kubeConfigs && Object.keys(clusters.kubeConfigs).length > 0) {
+        if (!clusters.kubeConfigs[configId]) {
+          // Config doesn't exist, redirect to config page
+          if (!hasShownConfigNotFoundToast.current) {
+            toast.info("Configuration not found", {
+              description: "The configuration you were viewing has been deleted. Redirecting to configuration page.",
+            });
+            hasShownConfigNotFoundToast.current = true;
+          }
+          navigate({ to: '/config' });
         }
-        navigate({ to: '/config' });
       }
     } else {
       // Reset the flag when we're not on a config-specific route

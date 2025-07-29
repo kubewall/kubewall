@@ -6,9 +6,10 @@ type ConnectionStatus = 'connecting' | 'connected' | 'reconnecting' | 'error';
 
 type KwEventSourceWithStatus = KwEventSource & {
   onConnectionStatusChange?: (status: ConnectionStatus) => void;
+  onConfigError?: () => void; // New callback for config errors
 };
 
-const useEventSource = ({url, sendMessage, onConnectionStatusChange} : KwEventSourceWithStatus) => {
+const useEventSource = ({url, sendMessage, onConnectionStatusChange, onConfigError} : KwEventSourceWithStatus) => {
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -87,6 +88,21 @@ const useEventSource = ({url, sendMessage, onConnectionStatusChange} : KwEventSo
         
         // console.log('Received SSE message:', event.data.substring(0, 100) + '...');
         const eventData = JSON.parse(event.data);
+        
+        // Check if this is a config error message
+        if (eventData.error && typeof eventData.error === 'string' && eventData.error.includes('config not found')) {
+          console.error('Config not found error received:', eventData.error);
+          console.log('Calling onConfigError callback...');
+          // Call the config error callback if provided
+          if (onConfigError) {
+            onConfigError();
+          } else {
+            console.warn('onConfigError callback not provided');
+          }
+          // Don't send the error message to the normal sendMessage handler
+          return;
+        }
+        
         sendMessage(eventData);
       } catch (error) {
         console.warn('Failed to parse EventSource message:', error);
@@ -107,6 +123,23 @@ const useEventSource = ({url, sendMessage, onConnectionStatusChange} : KwEventSo
         // console.log('EventSource is connecting...');
       } else if (eventSource.readyState === EventSource.OPEN) {
         // console.log('EventSource is open');
+      }
+      
+      // Check if this error is related to config not found
+      // This can happen when the backend returns an error response
+      if (error && typeof error === 'object' && 'data' in error) {
+        try {
+          const errorData = JSON.parse((error as any).data);
+          if (errorData.error && typeof errorData.error === 'string' && errorData.error.includes('config not found')) {
+            console.error('Config not found error in onerror handler:', errorData.error);
+            if (onConfigError) {
+              onConfigError();
+            }
+            return;
+          }
+        } catch (parseError) {
+          // If we can't parse the error data, continue with normal error handling
+        }
       }
       
       // Don't send empty array immediately on error

@@ -14,6 +14,8 @@ import { updateDeploymentPods } from "@/data/Workloads/Deployments/DeploymentPod
 import { useEventSource } from "@/components/app/Common/Hooks/EventSource";
 import useGenerateColumns from "@/components/app/Common/Hooks/TableColumns";
 import { useSidebar } from "@/components/ui/sidebar";
+import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 
 const DeploymentDetailsContainer = memo(function () {
   const { config } = appRoute.useParams();
@@ -24,9 +26,17 @@ const DeploymentDetailsContainer = memo(function () {
   } = useAppSelector((state: RootState) => state.deploymentPods);
   const { open } = useSidebar();
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
 
   const sendMessage = (message: Pods[]) => {
     dispatch(updateDeploymentPods(message));
+  };
+
+  const handleConfigError = () => {
+    toast.error("Configuration Error", {
+      description: "The configuration you were viewing has been deleted or is no longer available. Redirecting to configuration page.",
+    });
+    navigate({ to: '/config' });
   };
 
   useEventSource({
@@ -39,7 +49,8 @@ const DeploymentDetailsContainer = memo(function () {
       ),
       `/${namespace}/${resourcename}/pods`
     ),
-    sendMessage
+    sendMessage,
+    onConfigError: handleConfigError,
   });
 
   return (

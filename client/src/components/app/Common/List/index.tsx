@@ -181,7 +181,7 @@ export function KwList() {
   const { customResourcesDefinitions ,customResourcesNavigation, loading: customResourcesNavigationLoading  } = useAppSelector((state: RootState) => state.customResources);
   const { clusterEvents, loading: clusterEventsLoading } = useAppSelector((state: RootState) => state.clusterEvents);
   const { customResourcesList, loading: customResourcesListLoading } = useAppSelector((state: RootState) => state.customResourcesList);
-  const { clusters } = useAppSelector((state: RootState) => state.clusters);
+  const { clusters, loading: clustersLoading } = useAppSelector((state: RootState) => state.clusters);
   const navigate = useNavigate();
   const router = useRouterState();
   const hasShownConfigNotFoundToast = useRef(false);
@@ -200,16 +200,18 @@ export function KwList() {
     if (pathSegments.length > 1 && pathSegments[1] !== 'config' && pathSegments[1] !== '') {
       const configId = pathSegments[1];
       
-      // Check if this config still exists in our clusters
-      if (clusters?.kubeConfigs && !clusters.kubeConfigs[configId]) {
-        // Config doesn't exist, redirect to config page
-        if (!hasShownConfigNotFoundToast.current) {
-          toast.info("Configuration not found", {
-            description: "The configuration you were viewing has been deleted. Redirecting to configuration page.",
-          });
-          hasShownConfigNotFoundToast.current = true;
+      // Only check if clusters are loaded and not empty, and not currently loading
+      if (!clustersLoading && clusters?.kubeConfigs && Object.keys(clusters.kubeConfigs).length > 0) {
+        if (!clusters.kubeConfigs[configId]) {
+          // Config doesn't exist, redirect to config page
+          if (!hasShownConfigNotFoundToast.current) {
+            toast.info("Configuration not found", {
+              description: "The configuration you were viewing has been deleted. Redirecting to configuration page.",
+            });
+            hasShownConfigNotFoundToast.current = true;
+          }
+          navigate({ to: '/config' });
         }
-        navigate({ to: '/config' });
       }
     } else {
       // Reset the flag when we're not on a config-specific route
