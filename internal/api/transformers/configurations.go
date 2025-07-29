@@ -106,18 +106,6 @@ func TransformLimitRangeToResponse(limitRange *v1.LimitRange) types.LimitRangeLi
 		age = time.Since(limitRange.CreationTimestamp.Time).String()
 	}
 
-	// Convert limits to string representation
-	limits := make([]string, 0, len(limitRange.Spec.Limits))
-	for _, limit := range limitRange.Spec.Limits {
-		limitStr := string(limit.Type)
-		if limit.Default != nil {
-			for resource, value := range limit.Default {
-				limitStr += " " + string(resource) + "=" + value.String()
-			}
-		}
-		limits = append(limits, limitStr)
-	}
-
 	return types.LimitRangeListResponse{
 		Age:        age,
 		HasUpdated: false,
@@ -125,9 +113,9 @@ func TransformLimitRangeToResponse(limitRange *v1.LimitRange) types.LimitRangeLi
 		Namespace:  limitRange.Namespace,
 		UID:        string(limitRange.UID),
 		Spec: struct {
-			Limits []string `json:"limits"`
+			LimitCount int `json:"limitCount"`
 		}{
-			Limits: limits,
+			LimitCount: len(limitRange.Spec.Limits),
 		},
 	}
 }

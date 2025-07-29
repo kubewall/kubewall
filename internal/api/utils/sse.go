@@ -30,6 +30,11 @@ func (h *SSEHandler) SendSSEResponse(c *gin.Context, data interface{}) {
 	c.Header("Access-Control-Allow-Origin", "*")
 	c.Header("Access-Control-Allow-Headers", "Cache-Control")
 
+	// Ensure we always send a valid array, never null
+	if data == nil {
+		data = []interface{}{}
+	}
+
 	// Send initial data
 	jsonData, err := json.Marshal(data)
 	if err != nil {
@@ -69,6 +74,11 @@ func (h *SSEHandler) SendSSEResponseWithUpdates(c *gin.Context, data interface{}
 	c.Header("Access-Control-Allow-Headers", "Cache-Control")
 	c.Header("X-Accel-Buffering", "no") // Disable nginx buffering if present
 
+	// Ensure we always send a valid array, never null
+	if data == nil {
+		data = []interface{}{}
+	}
+
 	// Send initial data
 	jsonData, err := json.Marshal(data)
 	if err != nil {
@@ -100,6 +110,11 @@ func (h *SSEHandler) SendSSEResponseWithUpdates(c *gin.Context, data interface{}
 					c.Data(http.StatusOK, "text/event-stream", []byte(": keep-alive\n\n"))
 					c.Writer.Flush()
 					continue
+				}
+
+				// Ensure we always send a valid array, never null
+				if freshData == nil {
+					freshData = []interface{}{}
 				}
 
 				jsonData, err := json.Marshal(freshData)

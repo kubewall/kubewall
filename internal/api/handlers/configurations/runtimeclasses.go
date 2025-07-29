@@ -102,10 +102,16 @@ func (h *RuntimeClassesHandler) GetRuntimeClassesSSE(c *gin.Context) {
 			responses = append(responses, response)
 		}
 
+		// Always return a valid array, never nil
+		if responses == nil {
+			responses = []types.RuntimeClassListResponse{}
+		}
+
 		return responses, nil
 	}
 
-	h.sseHandler.SendSSEResponseWithUpdates(c, nil, fetchRuntimeClasses)
+	// Send initial empty array and then fetch data
+	h.sseHandler.SendSSEResponseWithUpdates(c, []types.RuntimeClassListResponse{}, fetchRuntimeClasses)
 }
 
 // GetRuntimeClass returns a specific runtime class
@@ -242,4 +248,4 @@ func (h *RuntimeClassesHandler) GetRuntimeClassEvents(c *gin.Context) {
 	}
 
 	h.eventsHandler.GetResourceEvents(c, client, "RuntimeClass", name, h.sseHandler.SendSSEResponse)
-} 
+}

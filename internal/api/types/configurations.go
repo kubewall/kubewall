@@ -46,7 +46,7 @@ type LimitRangeListResponse struct {
 	Namespace  string `json:"namespace"`
 	UID        string `json:"uid"`
 	Spec       struct {
-		Limits []string `json:"limits"`
+		LimitCount int `json:"limitCount"`
 	} `json:"spec"`
 }
 

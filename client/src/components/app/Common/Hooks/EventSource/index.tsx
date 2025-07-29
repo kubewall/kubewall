@@ -9,7 +9,7 @@ type KwEventSourceWithStatus = KwEventSource & {
   onConfigError?: () => void; // New callback for config errors
 };
 
-const useEventSource = ({url, sendMessage, onConnectionStatusChange, onConfigError} : KwEventSourceWithStatus) => {
+const useEventSource = ({url, sendMessage, onConnectionStatusChange, onConfigError}: KwEventSourceWithStatus) => {
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -17,6 +17,7 @@ const useEventSource = ({url, sendMessage, onConnectionStatusChange, onConfigErr
   const maxReconnectAttempts = 5;
   const baseReconnectDelay = 1000; // 1 second
   const connectionTimeout = 30000; // 30 seconds timeout
+  const isConnectingRef = useRef(false);
 
   let updatedUrl = '';
   if(window.location.protocol === 'http:') {
@@ -30,6 +31,13 @@ const useEventSource = ({url, sendMessage, onConnectionStatusChange, onConfigErr
   }
 
   const connect = () => {
+    // Prevent multiple simultaneous connections
+    if (isConnectingRef.current || eventSourceRef.current?.readyState === EventSource.OPEN) {
+      return;
+    }
+
+    isConnectingRef.current = true;
+
     // Close existing connection if any
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
@@ -48,7 +56,7 @@ const useEventSource = ({url, sendMessage, onConnectionStatusChange, onConfigErr
       onConnectionStatusChange('connecting');
     }
 
-    // // console.log(`Connecting to EventSource: ${updatedUrl}`);
+    // console.log(`Connecting to EventSource: ${updatedUrl}`);
     const eventSource = new EventSource(updatedUrl);
     eventSourceRef.current = eventSource;
 
@@ -56,6 +64,7 @@ const useEventSource = ({url, sendMessage, onConnectionStatusChange, onConfigErr
     connectionTimeoutRef.current = setTimeout(() => {
       console.warn('EventSource connection timeout, closing and reconnecting...');
       eventSource.close();
+      isConnectingRef.current = false;
       if (reconnectAttemptsRef.current < maxReconnectAttempts) {
         reconnectAttemptsRef.current++;
         connect();
@@ -66,6 +75,7 @@ const useEventSource = ({url, sendMessage, onConnectionStatusChange, onConfigErr
     eventSource.onopen = () => {
       // console.log('EventSource connected successfully');
       reconnectAttemptsRef.current = 0; // Reset reconnect attempts on successful connection
+      isConnectingRef.current = false;
       
       // Clear connection timeout since we're now connected
       if (connectionTimeoutRef.current) {
@@ -88,6 +98,13 @@ const useEventSource = ({url, sendMessage, onConnectionStatusChange, onConfigErr
         
         // console.log('Received SSE message:', event.data.substring(0, 100) + '...');
         const eventData = JSON.parse(event.data);
+        
+        // Handle null data properly - don't try to access properties on null
+        if (eventData === null) {
+          // Send empty array for null data instead of trying to access properties
+          sendMessage([]);
+          return;
+        }
         
         // Check if this is a config error message
         if (eventData.error && typeof eventData.error === 'string' && eventData.error.includes('config not found')) {
@@ -119,6 +136,7 @@ const useEventSource = ({url, sendMessage, onConnectionStatusChange, onConfigErr
       // Check if the connection is in a terminal state
       if (eventSource.readyState === EventSource.CLOSED) {
         // console.log('EventSource connection is closed');
+        isConnectingRef.current = false;
       } else if (eventSource.readyState === EventSource.CONNECTING) {
         // console.log('EventSource is connecting...');
       } else if (eventSource.readyState === EventSource.OPEN) {
@@ -177,6 +195,7 @@ const useEventSource = ({url, sendMessage, onConnectionStatusChange, onConfigErr
     
     // Cleanup function
     return () => {
+      isConnectingRef.current = false;
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
         eventSourceRef.current = null;
