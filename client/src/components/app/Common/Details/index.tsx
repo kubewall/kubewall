@@ -22,19 +22,51 @@ import { kwDetails } from "@/routes";
 import { resetYamlDetails } from "@/data/Yaml/YamlSlice";
 import { useAppSelector } from "@/redux/hooks";
 import { useDispatch } from "react-redux";
-import { useEffect } from "react";
+import { useRouterState } from "@tanstack/react-router";
+import { useEffect, useRef } from "react";
+import { toast } from "sonner";
 
 const KwDetails = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const router = useRouterState();
   const { config } = kwDetails.useParams();
   const { cluster, resourcekind, resourcename, group = '', kind = '', resource = '', version = '', namespace } = kwDetails.useSearch();
   const { podDetails } = useAppSelector((state: RootState) => state.podDetails);
+  const { clusters } = useAppSelector((state: RootState) => state.clusters);
   const queryParamsObj: Record<string, string> = { config, cluster, namespace: namespace || '' };
+  const hasShownConfigNotFoundToast = useRef(false);
+  
   useEffect(() => {
     dispatch(resetYamlDetails());
     dispatch(clearLogs());
   }, []);
+
+  // Check if current route's config exists and redirect if it doesn't
+  useEffect(() => {
+    const currentPath = router.location.pathname;
+    const pathSegments = currentPath.split('/');
+    
+    // Check if we're on a config-specific route (not /config or /)
+    if (pathSegments.length > 1 && pathSegments[1] !== 'config' && pathSegments[1] !== '') {
+      const configId = pathSegments[1];
+      
+      // Check if this config still exists in our clusters
+      if (clusters?.kubeConfigs && !clusters.kubeConfigs[configId]) {
+        // Config doesn't exist, redirect to config page
+        if (!hasShownConfigNotFoundToast.current) {
+          toast.info("Configuration not found", {
+            description: "The configuration you were viewing has been deleted. Redirecting to configuration page.",
+          });
+          hasShownConfigNotFoundToast.current = true;
+        }
+        navigate({ to: '/config' });
+      }
+    } else {
+      // Reset the flag when we're not on a config-specific route
+      hasShownConfigNotFoundToast.current = false;
+    }
+  }, [clusters, navigate, router.location.pathname]);
 
   const resourceInitialData = useFetchDataForDetails({ cluster, config, group, kind, namespace, resource, resourcekind, resourcename, version });
   const resourceData = useDetailsWrapper({ loading: !!resourceInitialData?.loading, resourcekind });

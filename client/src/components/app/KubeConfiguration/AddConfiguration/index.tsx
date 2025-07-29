@@ -1,6 +1,6 @@
 import { BearerTokenConfig, CertificateConfig, KubeconfigFileConfig } from "@/types";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { KUBECONFIGS_BEARER_URL, KUBECONFIGS_CERTIFICATE_URL, KUBECONFIGS_URL } from "@/constants";
+import { KUBECONFIGS_BEARER_URL, KUBECONFIGS_CERTIFICATE_URL, KUBECONFIGS_URL, KUBECONFIGS_VALIDATE_BEARER_URL, KUBECONFIGS_VALIDATE_CERTIFICATE_URL } from "@/constants";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { addConfig, resetAddConfig } from "@/data/KwClusters/AddConfigSlice";
 import { validateConfig, resetValidateConfig } from "@/data/KwClusters/ValidateConfigSlice";
@@ -104,16 +104,69 @@ const AddConfig = () => {
     setValidationPerformed(true);
   };
 
+  const validateBearerToken = () => {
+    if (!bearerTokenConfig.apiServer || !bearerTokenConfig.name || !bearerTokenConfig.token) {
+      toast.error("Please fill in all required fields for bearer token validation");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("name", bearerTokenConfig.name);
+    formData.append("serverIP", bearerTokenConfig.apiServer);
+    formData.append("token", bearerTokenConfig.token);
+    
+    dispatch(validateConfig({ formData, url: KUBECONFIGS_VALIDATE_BEARER_URL }));
+    setValidationPerformed(true);
+  };
+
+  const validateCertificate = () => {
+    if (!certificateConfig.apiServer || !certificateConfig.name || !certificateConfig.certificate || !certificateConfig.certificateKey) {
+      toast.error("Please fill in all required fields for certificate validation");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("name", certificateConfig.name);
+    formData.append("serverIP", certificateConfig.apiServer);
+    formData.append("clientCertData", certificateConfig.certificate);
+    formData.append("clientKeyData", certificateConfig.certificateKey);
+    
+    dispatch(validateConfig({ formData, url: KUBECONFIGS_VALIDATE_CERTIFICATE_URL }));
+    setValidationPerformed(true);
+  };
+
   const addNewConfig = () => {
     let route = '';
     let formData: FormData;
     if (activeTab === 'bearerToken') {
+      // For bearer token, check if validation was performed and clusters are reachable
+      if (!validationPerformed) {
+        toast.error("Please validate the bearer token configuration first");
+        return;
+      }
+      
+      if (!validationResponse?.hasReachableClusters) {
+        toast.error("Cannot add bearer token configuration: Cluster not reachable");
+        return;
+      }
+
       formData = new FormData();
       formData.append("serverIP", bearerTokenConfig.apiServer);
       formData.append("name", bearerTokenConfig.name);
       formData.append("token", bearerTokenConfig.token);
       route = KUBECONFIGS_BEARER_URL;
     } else if (activeTab === 'certificate') {
+      // For certificate, check if validation was performed and clusters are reachable
+      if (!validationPerformed) {
+        toast.error("Please validate the certificate configuration first");
+        return;
+      }
+      
+      if (!validationResponse?.hasReachableClusters) {
+        toast.error("Cannot add certificate configuration: Cluster not reachable");
+        return;
+      }
+
       formData = new FormData();
       formData.append("serverIP", certificateConfig.apiServer);
       formData.append("clientCertData", certificateConfig.certificate);
@@ -151,6 +204,12 @@ const AddConfig = () => {
 
   const isAddDisabled = () => {
     if (activeTab === "kubeconfigFile") {
+      return isDisabled() || !validationPerformed || !validationResponse?.hasReachableClusters;
+    }
+    if (activeTab === "bearerToken") {
+      return isDisabled() || !validationPerformed || !validationResponse?.hasReachableClusters;
+    }
+    if (activeTab === "certificate") {
       return isDisabled() || !validationPerformed || !validationResponse?.hasReachableClusters;
     }
     return isDisabled();
@@ -279,6 +338,24 @@ const AddConfig = () => {
                         onChange={(e) => setBearerTokenConfig({ ...bearerTokenConfig, token: e.target.value || '' })}
                       />
                     </div>
+                    <div className="flex justify-end mt-4">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={validateBearerToken}
+                        disabled={!bearerTokenConfig.apiServer || !bearerTokenConfig.name || !bearerTokenConfig.token || checkForValidConfigName(bearerTokenConfig.name)}
+                        className="gap-2"
+                      >
+                        {validationLoading ? (
+                          <ReloadIcon className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <CheckCircledIcon className="h-4 w-4" />
+                        )}
+                        Validate
+                      </Button>
+                    </div>
+                    
+                    {renderClusterStatus()}
                   </TabsContent>
                   <TabsContent value="certificate">
                     <div className="space-y-1">
@@ -324,6 +401,24 @@ const AddConfig = () => {
                         onChange={(e) => setCertificateConfig({ ...certificateConfig, certificateKey: e.target.value || '' })}
                       />
                     </div>
+                    <div className="flex justify-end mt-4">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={validateCertificate}
+                        disabled={!certificateConfig.apiServer || !certificateConfig.name || !certificateConfig.certificate || !certificateConfig.certificateKey || checkForValidConfigName(certificateConfig.name)}
+                        className="gap-2"
+                      >
+                        {validationLoading ? (
+                          <ReloadIcon className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <CheckCircledIcon className="h-4 w-4" />
+                        )}
+                        Validate
+                      </Button>
+                    </div>
+                    
+                    {renderClusterStatus()}
                   </TabsContent>
                   <TabsContent value="kubeconfigFile">
                     <div className="space-y-1">

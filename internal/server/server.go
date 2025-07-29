@@ -262,6 +262,9 @@ func (s *Server) setupRoutes() {
 		api.POST("/app/config/kubeconfigs-bearer", s.kubeHandler.AddBearerKubeconfig)
 		api.POST("/app/config/kubeconfigs-certificate", s.kubeHandler.AddCertificateKubeconfig)
 		api.POST("/app/config/validate", s.kubeHandler.ValidateKubeconfig)
+		api.POST("/app/config/validate-bearer", s.kubeHandler.ValidateBearerToken)
+		api.POST("/app/config/validate-certificate", s.kubeHandler.ValidateCertificate)
+		api.GET("/app/config/validate-all", s.kubeHandler.ValidateAllKubeconfigs)
 		api.DELETE("/app/config/kubeconfigs/:id", s.kubeHandler.DeleteKubeconfig)
 
 		// Kubernetes Resources - Cluster-scoped resources (SSE)

@@ -1,6 +1,7 @@
 import DeploymentScaleSlice from '@/data/Workloads/Deployments/DeploymentScaleSlice';
 import addConfigSlice from '@/data/KwClusters/AddConfigSlice';
 import validateConfigSlice from '@/data/KwClusters/ValidateConfigSlice';
+import validateAllConfigsSlice from '@/data/KwClusters/ValidateAllConfigsSlice';
 import clusterEventsListSlice from '@/data/Clusters/Events/EventsListSlice';
 import clusterRoleBindingDetailsSlice from '@/data/AccessControls/ClusterRoleBindings/ClusterRoleBindingDetailsSlice';
 import clusterRoleBindingsListSlice from '@/data/AccessControls/ClusterRoleBindings/ClusterRoleBindingsListSlice';
@@ -154,6 +155,7 @@ const store = configureStore({
     customResourceDetails: customResourcesDetailsSlice,
     addConfig: addConfigSlice,
     validateConfig: validateConfigSlice,
+    validateAllConfigs: validateAllConfigsSlice,
     deleteConfig: deleteConfigSlice,
     listTableFilter: listTableFilterSlice,
     nodes: nodeListSlice,

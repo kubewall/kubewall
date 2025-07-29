@@ -21,7 +21,7 @@ const rootRoute = createRootRoute({
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-  component: () => <Navigate to="/kwconfig" />
+  component: () => <Navigate to="/config" />
 });
 
 const kwList = createRoute({
@@ -64,7 +64,7 @@ const kwDetails = createRoute({
 
 const kubeConfigurationRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/kwconfig',
+  path: '/config',
   component: KubeConfiguration,
 });
 

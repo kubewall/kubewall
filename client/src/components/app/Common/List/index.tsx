@@ -141,6 +141,9 @@ import { updateServicesList } from "@/data/Networks/Services/ServicesListSlice";
 import { updateStatefulSets } from "@/data/Workloads/StatefulSets/StatefulSetsSlice";
 import { updateStorageClassesList } from "@/data/Storages/StorageClasses/StorageClassesListSlice";
 import { useAppSelector } from "@/redux/hooks";
+import { useNavigate, useRouterState } from '@tanstack/react-router';
+import { useEffect, useRef } from 'react';
+import { toast } from "sonner";
 
 type ArrayElement<ArrayType extends readonly unknown[]> =
   ArrayType extends readonly (infer ElementType)[] ? ElementType : never;
@@ -178,11 +181,41 @@ export function KwList() {
   const { customResourcesDefinitions ,customResourcesNavigation, loading: customResourcesNavigationLoading  } = useAppSelector((state: RootState) => state.customResources);
   const { clusterEvents, loading: clusterEventsLoading } = useAppSelector((state: RootState) => state.clusterEvents);
   const { customResourcesList, loading: customResourcesListLoading } = useAppSelector((state: RootState) => state.customResourcesList);
+  const { clusters } = useAppSelector((state: RootState) => state.clusters);
+  const navigate = useNavigate();
+  const router = useRouterState();
+  const hasShownConfigNotFoundToast = useRef(false);
 
   const { config } = kwList.useParams();
   const { cluster, resourcekind, group, kind, resource, version } = kwList.useSearch();
   const commonSearchParams: CommonSearchParams = kwList.useSearch();
   commonSearchParams.config = config;
+
+  // Check if current route's config exists and redirect if it doesn't
+  useEffect(() => {
+    const currentPath = router.location.pathname;
+    const pathSegments = currentPath.split('/');
+    
+    // Check if we're on a config-specific route (not /config or /)
+    if (pathSegments.length > 1 && pathSegments[1] !== 'config' && pathSegments[1] !== '') {
+      const configId = pathSegments[1];
+      
+      // Check if this config still exists in our clusters
+      if (clusters?.kubeConfigs && !clusters.kubeConfigs[configId]) {
+        // Config doesn't exist, redirect to config page
+        if (!hasShownConfigNotFoundToast.current) {
+          toast.info("Configuration not found", {
+            description: "The configuration you were viewing has been deleted. Redirecting to configuration page.",
+          });
+          hasShownConfigNotFoundToast.current = true;
+        }
+        navigate({ to: '/config' });
+      }
+    } else {
+      // Reset the flag when we're not on a config-specific route
+      hasShownConfigNotFoundToast.current = false;
+    }
+  }, [clusters, navigate, router.location.pathname]);
 
   const getTableData = (resourcekind: string) => {
     if (resourcekind === LEASES_ENDPOINT) {

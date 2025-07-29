@@ -6,10 +6,11 @@ import { useAppDispatch } from "@/redux/hooks";
 import { useState } from "react";
 
 type DeleteConfigurationProps = {
-  configId: string
+  configId: string;
+  clusterName?: string;
 };
 
-const DeleteConfiguration = ({configId}: DeleteConfigurationProps) => {
+const DeleteConfiguration = ({configId, clusterName}: DeleteConfigurationProps) => {
   const [modalOpen, setModalOpen] = useState(false);
   const dispatch = useAppDispatch();
 
@@ -23,7 +24,10 @@ const DeleteConfiguration = ({configId}: DeleteConfigurationProps) => {
     <Dialog open={modalOpen} onOpenChange={(open: boolean) => setModalOpen(open)}>
       <DialogTrigger asChild>
         <svg
-          onClick={() => setModalOpen(true)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setModalOpen(true);
+          }}
           xmlns="http://www.w3.org/2000/svg"
           cursor='pointer'
           width="30"
@@ -44,23 +48,39 @@ const DeleteConfiguration = ({configId}: DeleteConfigurationProps) => {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete Config</DialogTitle>
+          <DialogTitle>Delete Configuration</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete this config ?
+            {clusterName ? (
+              <>
+                Are you sure you want to delete the configuration for <strong>{clusterName}</strong>?
+                <br />
+                This action cannot be undone.
+              </>
+            ) : (
+              <>
+                Are you sure you want to delete this configuration?
+                <br />
+                This action cannot be undone.
+              </>
+            )}
           </DialogDescription>
         </DialogHeader>
 
-        <DialogFooter className="sm:justify-center">
+        <DialogFooter className="sm:justify-center gap-2">
           <Button
-           className="w-2/4"
-            type="submit"
-            onClick={()=>setModalOpen(false)}
-          >No</Button>
+            variant="outline"
+            className="w-2/4"
+            onClick={() => setModalOpen(false)}
+          >
+            Cancel
+          </Button>
           <Button
+            variant="destructive"
             onClick={() => deleteCurrentConfig()}
             className="w-2/4"
-            type="submit"   
-          >Yes</Button>
+          >
+            Delete
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

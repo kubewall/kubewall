@@ -37,12 +37,14 @@ const initialState: InitialState = {
 
 type ValidateConfigProps = {
   formData: FormData;
+  url?: string;
 };
 
-const validateConfig = createAsyncThunk('validateConfig', ({ formData }: ValidateConfigProps, thunkAPI) => {
-  const url = `${API_VERSION}${CONFIG_ENDPOINT}/${KUBECONFIGS_VALIDATE_URL}`;
+const validateConfig = createAsyncThunk('validateConfig', ({ formData, url }: ValidateConfigProps, thunkAPI) => {
+  const validateUrl = url || KUBECONFIGS_VALIDATE_URL;
+  const fullUrl = `${API_VERSION}${CONFIG_ENDPOINT}/${validateUrl}`;
   
-  return kwFetch(url, {
+  return kwFetch(fullUrl, {
     body: formData,
     method: 'POST'
   }).then((res) => {

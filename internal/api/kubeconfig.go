@@ -106,37 +106,42 @@ func (h *KubeConfigHandler) AddKubeconfig(c *gin.Context) {
 
 // AddBearerKubeconfig handles bearer token kubeconfig creation
 func (h *KubeConfigHandler) AddBearerKubeconfig(c *gin.Context) {
-	var req struct {
-		Name    string `json:"name" binding:"required"`
-		URL     string `json:"url" binding:"required"`
-		Token   string `json:"token" binding:"required"`
-		Cluster string `json:"cluster" binding:"required"`
-	}
+	// Get form data
+	name := c.PostForm("name")
+	url := c.PostForm("serverIP") // Frontend sends as serverIP
+	token := c.PostForm("token")
+	cluster := c.PostForm("cluster")
 
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.logger.WithError(err).Error("Invalid request body")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+	// Validate required fields
+	if name == "" || url == "" || token == "" {
+		h.logger.Error("Missing required fields for bearer token kubeconfig")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing required fields: name, serverIP, and token are required"})
 		return
 	}
 
+	// Use name as cluster name if not provided
+	if cluster == "" {
+		cluster = name
+	}
+
 	config := api.NewConfig()
-	cluster := api.NewCluster()
-	cluster.Server = req.URL
-	cluster.InsecureSkipTLSVerify = true
+	clusterConfig := api.NewCluster()
+	clusterConfig.Server = url
+	clusterConfig.InsecureSkipTLSVerify = true
 
 	authInfo := api.NewAuthInfo()
-	authInfo.Token = req.Token
+	authInfo.Token = token
 
-	context := api.NewContext()
-	context.Cluster = req.Cluster
-	context.AuthInfo = req.Cluster
+	kubeContext := api.NewContext()
+	kubeContext.Cluster = cluster
+	kubeContext.AuthInfo = cluster
 
-	config.Clusters[req.Cluster] = cluster
-	config.AuthInfos[req.Cluster] = authInfo
-	config.Contexts[req.Cluster] = context
-	config.CurrentContext = req.Cluster
+	config.Clusters[cluster] = clusterConfig
+	config.AuthInfos[cluster] = authInfo
+	config.Contexts[cluster] = kubeContext
+	config.CurrentContext = cluster
 
-	configID, err := h.store.AddKubeConfig(config, req.Name)
+	configID, err := h.store.AddKubeConfig(config, name)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to add bearer kubeconfig")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -152,45 +157,50 @@ func (h *KubeConfigHandler) AddBearerKubeconfig(c *gin.Context) {
 
 // AddCertificateKubeconfig handles certificate-based kubeconfig creation
 func (h *KubeConfigHandler) AddCertificateKubeconfig(c *gin.Context) {
-	var req struct {
-		Name        string `json:"name" binding:"required"`
-		URL         string `json:"url" binding:"required"`
-		Certificate string `json:"certificate" binding:"required"`
-		Key         string `json:"key" binding:"required"`
-		Cluster     string `json:"cluster" binding:"required"`
-		CA          string `json:"ca"`
-	}
+	// Get form data
+	name := c.PostForm("name")
+	url := c.PostForm("serverIP")               // Frontend sends as serverIP
+	certificate := c.PostForm("clientCertData") // Frontend sends as clientCertData
+	key := c.PostForm("clientKeyData")          // Frontend sends as clientKeyData
+	cluster := c.PostForm("cluster")
+	ca := c.PostForm("ca")
 
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.logger.WithError(err).Error("Invalid request body")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+	// Validate required fields
+	if name == "" || url == "" || certificate == "" || key == "" {
+		h.logger.Error("Missing required fields for certificate kubeconfig")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing required fields: name, serverIP, clientCertData, and clientKeyData are required"})
 		return
 	}
 
-	config := api.NewConfig()
-	cluster := api.NewCluster()
-	cluster.Server = req.URL
+	// Use name as cluster name if not provided
+	if cluster == "" {
+		cluster = name
+	}
 
-	if req.CA != "" {
-		cluster.CertificateAuthorityData = []byte(req.CA)
+	config := api.NewConfig()
+	clusterConfig := api.NewCluster()
+	clusterConfig.Server = url
+
+	if ca != "" {
+		clusterConfig.CertificateAuthorityData = []byte(ca)
 	} else {
-		cluster.InsecureSkipTLSVerify = true
+		clusterConfig.InsecureSkipTLSVerify = true
 	}
 
 	authInfo := api.NewAuthInfo()
-	authInfo.ClientCertificateData = []byte(req.Certificate)
-	authInfo.ClientKeyData = []byte(req.Key)
+	authInfo.ClientCertificateData = []byte(certificate)
+	authInfo.ClientKeyData = []byte(key)
 
-	context := api.NewContext()
-	context.Cluster = req.Cluster
-	context.AuthInfo = req.Cluster
+	kubeContext := api.NewContext()
+	kubeContext.Cluster = cluster
+	kubeContext.AuthInfo = cluster
 
-	config.Clusters[req.Cluster] = cluster
-	config.AuthInfos[req.Cluster] = authInfo
-	config.Contexts[req.Cluster] = context
-	config.CurrentContext = req.Cluster
+	config.Clusters[cluster] = clusterConfig
+	config.AuthInfos[cluster] = authInfo
+	config.Contexts[cluster] = kubeContext
+	config.CurrentContext = cluster
 
-	configID, err := h.store.AddKubeConfig(config, req.Name)
+	configID, err := h.store.AddKubeConfig(config, name)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to add certificate kubeconfig")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -348,5 +358,338 @@ func (h *KubeConfigHandler) ValidateKubeconfig(c *gin.Context) {
 		"clusterStatus":        clusterStatus,
 		"hasReachableClusters": hasReachableClusters,
 		"totalClusters":        len(clusterStatus),
+	})
+}
+
+// ValidateBearerToken handles bearer token validation and connectivity testing
+func (h *KubeConfigHandler) ValidateBearerToken(c *gin.Context) {
+	// Get form data
+	name := c.PostForm("name")
+	url := c.PostForm("serverIP")
+	token := c.PostForm("token")
+	cluster := c.PostForm("cluster")
+
+	// Validate required fields
+	if name == "" || url == "" || token == "" {
+		h.logger.Error("Missing required fields for bearer token validation")
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Missing required fields",
+			"details": "name, serverIP, and token are required",
+		})
+		return
+	}
+
+	// Use name as cluster name if not provided
+	if cluster == "" {
+		cluster = name
+	}
+
+	// Create temporary config for validation
+	config := api.NewConfig()
+	clusterConfig := api.NewCluster()
+	clusterConfig.Server = url
+	clusterConfig.InsecureSkipTLSVerify = true
+
+	authInfo := api.NewAuthInfo()
+	authInfo.Token = token
+
+	kubeContext := api.NewContext()
+	kubeContext.Cluster = cluster
+	kubeContext.AuthInfo = cluster
+
+	config.Clusters[cluster] = clusterConfig
+	config.AuthInfos[cluster] = authInfo
+	config.Contexts[cluster] = kubeContext
+	config.CurrentContext = cluster
+
+	// Test connectivity
+	clusterStatus := make(map[string]map[string]interface{})
+
+	// Create client config
+	clientConfig := clientcmd.NewDefaultClientConfig(*config, &clientcmd.ConfigOverrides{})
+	restConfig, err := clientConfig.ClientConfig()
+	if err != nil {
+		clusterStatus[cluster] = map[string]interface{}{
+			"name":      cluster,
+			"cluster":   cluster,
+			"reachable": false,
+			"error":     "Failed to create client config: " + err.Error(),
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"valid":                false,
+			"clusterStatus":        clusterStatus,
+			"hasReachableClusters": false,
+			"totalClusters":        1,
+		})
+		return
+	}
+
+	// Create Kubernetes client
+	client, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		clusterStatus[cluster] = map[string]interface{}{
+			"name":      cluster,
+			"cluster":   cluster,
+			"reachable": false,
+			"error":     "Failed to create Kubernetes client: " + err.Error(),
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"valid":                false,
+			"clusterStatus":        clusterStatus,
+			"hasReachableClusters": false,
+			"totalClusters":        1,
+		})
+		return
+	}
+
+	// Test connectivity with a timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	_, err = client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{Limit: 1})
+	if err != nil {
+		clusterStatus[cluster] = map[string]interface{}{
+			"name":      cluster,
+			"cluster":   cluster,
+			"reachable": false,
+			"error":     "Cluster not reachable: " + err.Error(),
+		}
+	} else {
+		clusterStatus[cluster] = map[string]interface{}{
+			"name":      cluster,
+			"cluster":   cluster,
+			"reachable": true,
+			"error":     nil,
+		}
+	}
+
+	hasReachableClusters := clusterStatus[cluster]["reachable"].(bool)
+
+	c.JSON(http.StatusOK, gin.H{
+		"valid":                true,
+		"clusterStatus":        clusterStatus,
+		"hasReachableClusters": hasReachableClusters,
+		"totalClusters":        1,
+	})
+}
+
+// ValidateCertificate handles certificate validation and connectivity testing
+func (h *KubeConfigHandler) ValidateCertificate(c *gin.Context) {
+	// Get form data
+	name := c.PostForm("name")
+	url := c.PostForm("serverIP")
+	certificate := c.PostForm("clientCertData")
+	key := c.PostForm("clientKeyData")
+	cluster := c.PostForm("cluster")
+	ca := c.PostForm("ca")
+
+	// Validate required fields
+	if name == "" || url == "" || certificate == "" || key == "" {
+		h.logger.Error("Missing required fields for certificate validation")
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Missing required fields",
+			"details": "name, serverIP, clientCertData, and clientKeyData are required",
+		})
+		return
+	}
+
+	// Use name as cluster name if not provided
+	if cluster == "" {
+		cluster = name
+	}
+
+	// Create temporary config for validation
+	config := api.NewConfig()
+	clusterConfig := api.NewCluster()
+	clusterConfig.Server = url
+
+	if ca != "" {
+		clusterConfig.CertificateAuthorityData = []byte(ca)
+	} else {
+		clusterConfig.InsecureSkipTLSVerify = true
+	}
+
+	authInfo := api.NewAuthInfo()
+	authInfo.ClientCertificateData = []byte(certificate)
+	authInfo.ClientKeyData = []byte(key)
+
+	kubeContext := api.NewContext()
+	kubeContext.Cluster = cluster
+	kubeContext.AuthInfo = cluster
+
+	config.Clusters[cluster] = clusterConfig
+	config.AuthInfos[cluster] = authInfo
+	config.Contexts[cluster] = kubeContext
+	config.CurrentContext = cluster
+
+	// Test connectivity
+	clusterStatus := make(map[string]map[string]interface{})
+
+	// Create client config
+	clientConfig := clientcmd.NewDefaultClientConfig(*config, &clientcmd.ConfigOverrides{})
+	restConfig, err := clientConfig.ClientConfig()
+	if err != nil {
+		clusterStatus[cluster] = map[string]interface{}{
+			"name":      cluster,
+			"cluster":   cluster,
+			"reachable": false,
+			"error":     "Failed to create client config: " + err.Error(),
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"valid":                false,
+			"clusterStatus":        clusterStatus,
+			"hasReachableClusters": false,
+			"totalClusters":        1,
+		})
+		return
+	}
+
+	// Create Kubernetes client
+	client, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		clusterStatus[cluster] = map[string]interface{}{
+			"name":      cluster,
+			"cluster":   cluster,
+			"reachable": false,
+			"error":     "Failed to create Kubernetes client: " + err.Error(),
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"valid":                false,
+			"clusterStatus":        clusterStatus,
+			"hasReachableClusters": false,
+			"totalClusters":        1,
+		})
+		return
+	}
+
+	// Test connectivity with a timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	_, err = client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{Limit: 1})
+	if err != nil {
+		clusterStatus[cluster] = map[string]interface{}{
+			"name":      cluster,
+			"cluster":   cluster,
+			"reachable": false,
+			"error":     "Cluster not reachable: " + err.Error(),
+		}
+	} else {
+		clusterStatus[cluster] = map[string]interface{}{
+			"name":      cluster,
+			"cluster":   cluster,
+			"reachable": true,
+			"error":     nil,
+		}
+	}
+
+	hasReachableClusters := clusterStatus[cluster]["reachable"].(bool)
+
+	c.JSON(http.StatusOK, gin.H{
+		"valid":                true,
+		"clusterStatus":        clusterStatus,
+		"hasReachableClusters": hasReachableClusters,
+		"totalClusters":        1,
+	})
+}
+
+// ValidateAllKubeconfigs validates all existing kubeconfigs and returns their current status
+func (h *KubeConfigHandler) ValidateAllKubeconfigs(c *gin.Context) {
+	// Get all existing kubeconfigs
+	allConfigs := h.store.ListKubeConfigs()
+
+	validationResults := make(map[string]interface{})
+
+	for configID, metadata := range allConfigs {
+		config, err := h.store.GetKubeConfig(configID)
+		if err != nil {
+			h.logger.WithError(err).WithField("config_id", configID).Error("Failed to get kubeconfig for validation")
+			validationResults[configID] = map[string]interface{}{
+				"name":     metadata.Name,
+				"valid":    false,
+				"error":    "Failed to retrieve kubeconfig",
+				"clusters": map[string]interface{}{},
+			}
+			continue
+		}
+
+		// Test connectivity for each cluster in this config
+		clusterStatus := make(map[string]map[string]interface{})
+
+		for contextName, kubeContext := range config.Contexts {
+			clusterName := kubeContext.Cluster
+
+			// Create a copy of the config and set the context
+			configCopy := config.DeepCopy()
+			configCopy.CurrentContext = contextName
+
+			// Create client config
+			clientConfig := clientcmd.NewDefaultClientConfig(*configCopy, &clientcmd.ConfigOverrides{})
+			restConfig, err := clientConfig.ClientConfig()
+			if err != nil {
+				clusterStatus[contextName] = map[string]interface{}{
+					"name":      contextName,
+					"cluster":   clusterName,
+					"reachable": false,
+					"error":     "Failed to create client config: " + err.Error(),
+				}
+				continue
+			}
+
+			// Create Kubernetes client
+			client, err := kubernetes.NewForConfig(restConfig)
+			if err != nil {
+				clusterStatus[contextName] = map[string]interface{}{
+					"name":      contextName,
+					"cluster":   clusterName,
+					"reachable": false,
+					"error":     "Failed to create Kubernetes client: " + err.Error(),
+				}
+				continue
+			}
+
+			// Test connectivity with a timeout
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+
+			_, err = client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{Limit: 1})
+			if err != nil {
+				clusterStatus[contextName] = map[string]interface{}{
+					"name":      contextName,
+					"cluster":   clusterName,
+					"reachable": false,
+					"error":     "Cluster not reachable: " + err.Error(),
+				}
+			} else {
+				clusterStatus[contextName] = map[string]interface{}{
+					"name":      contextName,
+					"cluster":   clusterName,
+					"reachable": true,
+					"error":     nil,
+				}
+			}
+		}
+
+		// Check if any clusters are reachable
+		hasReachableClusters := false
+		for _, status := range clusterStatus {
+			if status["reachable"].(bool) {
+				hasReachableClusters = true
+				break
+			}
+		}
+
+		validationResults[configID] = map[string]interface{}{
+			"name":                 metadata.Name,
+			"valid":                true,
+			"clusterStatus":        clusterStatus,
+			"hasReachableClusters": hasReachableClusters,
+			"totalClusters":        len(clusterStatus),
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"validationResults": validationResults,
+		"totalConfigs":      len(validationResults),
 	})
 }

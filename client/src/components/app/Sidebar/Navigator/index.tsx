@@ -19,7 +19,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { RootState } from "@/redux/store";
 import { SearchIcon } from "lucide-react";
 import { Kbd } from "@/components/ui/kbd";
-import { useIsMac } from "@/hooks/use-is-mac"
+import { useIsMac } from "@/hooks/use-is-mac";
 
 type SidebarNavigatorProps = {
   setOpenMenus: (value: React.SetStateAction<Record<string, boolean>>) => void;
@@ -36,7 +36,7 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
   const queryParams = new URLSearchParams(router.location.search);
   const clusterName = queryParams.get("cluster") || "";
   const { open: isSidebarOpen, openMobile } = useSidebar();
-  const isMac = useIsMac()
+  const isMac = useIsMac();
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
