@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"kubewall-backend/internal/api/transformers"
+	"kubewall-backend/internal/api/types"
 	"kubewall-backend/internal/api/utils"
 	"kubewall-backend/internal/k8s"
 	"kubewall-backend/internal/storage"
@@ -70,14 +72,20 @@ func (h *ConfigMapsHandler) GetConfigMaps(c *gin.Context) {
 	}
 
 	namespace := c.Query("namespace")
-	configMaps, err := client.CoreV1().ConfigMaps(namespace).List(c.Request.Context(), metav1.ListOptions{})
+	configMapList, err := client.CoreV1().ConfigMaps(namespace).List(c.Request.Context(), metav1.ListOptions{})
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to list configmaps")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, configMaps)
+	// Transform configmaps to the expected format
+	var transformedConfigMaps []types.ConfigMapListResponse
+	for _, configMap := range configMapList.Items {
+		transformedConfigMaps = append(transformedConfigMaps, transformers.TransformConfigMapToResponse(&configMap))
+	}
+
+	c.JSON(http.StatusOK, transformedConfigMaps)
 }
 
 // GetConfigMapsSSE returns configmaps as Server-Sent Events with real-time updates
@@ -91,13 +99,20 @@ func (h *ConfigMapsHandler) GetConfigMapsSSE(c *gin.Context) {
 
 	namespace := c.Query("namespace")
 
-	// Function to fetch configmaps data
+	// Function to fetch and transform configmaps data
 	fetchConfigMaps := func() (interface{}, error) {
 		configMapList, err := client.CoreV1().ConfigMaps(namespace).List(c.Request.Context(), metav1.ListOptions{})
 		if err != nil {
 			return nil, err
 		}
-		return configMapList.Items, nil
+
+		// Transform configmaps to the expected format
+		var transformedConfigMaps []types.ConfigMapListResponse
+		for _, configMap := range configMapList.Items {
+			transformedConfigMaps = append(transformedConfigMaps, transformers.TransformConfigMapToResponse(&configMap))
+		}
+
+		return transformedConfigMaps, nil
 	}
 
 	// Get initial data

@@ -298,6 +298,7 @@ func (s *Server) setupRoutes() {
 		api.GET("/secret/:name/events", s.secretsHandler.GetSecretEventsByName)
 
 		// HPA endpoints
+		api.GET("/horizontalpodautoscalers", s.hpasHandler.GetHPAsSSE)
 		api.GET("/horizontalpodautoscalers/:namespace/:name", s.hpasHandler.GetHPA)
 		api.GET("/horizontalpodautoscalers/:namespace/:name/yaml", s.hpasHandler.GetHPAYAML)
 		api.GET("/horizontalpodautoscalers/:namespace/:name/events", s.hpasHandler.GetHPAEvents)

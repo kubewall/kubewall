@@ -266,7 +266,7 @@ export function KwList() {
     return <FourOFourError />;
   }
 
-  document.title = `kubewall - ${tableData.instaceType}`;
+  document.title = `Facets KubeDash - ${tableData.instaceType}`;
   return (
     <CreateTable
       clusterName={cluster}

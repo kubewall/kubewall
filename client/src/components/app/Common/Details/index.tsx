@@ -42,7 +42,7 @@ const KwDetails = () => {
     return <FourOFourError />;
   }
 
-  document.title = `kubewall - ${resourceInitialData.label.toLowerCase()} - ${resourceData?.subHeading}`;
+  document.title = `Facets KubeDash - ${resourceInitialData.label.toLowerCase()} - ${resourceData?.subHeading}`;
 
   const getListPageQueryparams = () => {
     const qp: Record<string, string> = {

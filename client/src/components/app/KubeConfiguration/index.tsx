@@ -14,8 +14,8 @@ import { ReloadIcon } from '@radix-ui/react-icons';
 import { StatusCell } from '../Table/TableCells/statusCell';
 import { fetchClusters } from '@/data/KwClusters/ClustersSlice';
 import { getSystemTheme } from '@/utils';
-import kwLogoDark from '../../../assets/kw-dark-theme.svg';
-import kwLogoLight from '../../../assets/kw-light-theme.svg';
+import kwLogoDark from '../../../assets/facets-dark-theme.svg';
+import kwLogoLight from '../../../assets/facets-light-theme.svg';
 import { resetDeleteConfig } from '@/data/KwClusters/DeleteConfigSlice';
 import { toast } from "sonner";
 import { useNavigate } from '@tanstack/react-router';
@@ -90,7 +90,7 @@ export function KubeConfiguration() {
         <div className="flex flex-col space-y-8 md:flex p-2">
           <div className="flex items-center justify-between">
             <div className="flex items-end">
-              <img className="w-40" src={getSystemTheme() === 'light' ? kwLogoLight : kwLogoDark} alt="kubewall" />
+              <img className="w-12" src={getSystemTheme() === 'light' ? kwLogoLight : kwLogoDark} alt="Facets KubeDash" />
               <span className="ml-2 text-xs">({clusters.version})</span>
             </div>
             <div className="flex space-x-2">

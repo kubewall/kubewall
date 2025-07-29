@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"kubewall-backend/internal/api/transformers"
+	"kubewall-backend/internal/api/types"
 	"kubewall-backend/internal/api/utils"
 	"kubewall-backend/internal/k8s"
 	"kubewall-backend/internal/storage"
@@ -244,4 +246,69 @@ func (h *HPAsHandler) GetHPAEvents(c *gin.Context) {
 	}
 
 	h.eventsHandler.GetResourceEventsWithNamespace(c, client, "HorizontalPodAutoscaler", name, namespace, h.sseHandler.SendSSEResponse)
+}
+
+// GetHPAs returns all HPAs in a namespace
+func (h *HPAsHandler) GetHPAs(c *gin.Context) {
+	client, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for HPAs")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	namespace := c.Query("namespace")
+	hpaList, err := client.AutoscalingV2().HorizontalPodAutoscalers(namespace).List(c.Request.Context(), metav1.ListOptions{})
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to list HPAs")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Transform HPAs to the expected format
+	var transformedHPAs []types.HPAListResponse
+	for _, hpa := range hpaList.Items {
+		transformedHPAs = append(transformedHPAs, transformers.TransformHPAToResponse(&hpa))
+	}
+
+	c.JSON(http.StatusOK, transformedHPAs)
+}
+
+// GetHPAsSSE returns HPAs as Server-Sent Events with real-time updates
+func (h *HPAsHandler) GetHPAsSSE(c *gin.Context) {
+	client, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for HPAs SSE")
+		h.sseHandler.SendSSEError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	namespace := c.Query("namespace")
+
+	// Function to fetch and transform HPAs data
+	fetchHPAs := func() (interface{}, error) {
+		hpaList, err := client.AutoscalingV2().HorizontalPodAutoscalers(namespace).List(c.Request.Context(), metav1.ListOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		// Transform HPAs to the expected format
+		var transformedHPAs []types.HPAListResponse
+		for _, hpa := range hpaList.Items {
+			transformedHPAs = append(transformedHPAs, transformers.TransformHPAToResponse(&hpa))
+		}
+
+		return transformedHPAs, nil
+	}
+
+	// Get initial data
+	initialData, err := fetchHPAs()
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to list HPAs for SSE")
+		h.sseHandler.SendSSEError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Send SSE response with periodic updates
+	h.sseHandler.SendSSEResponseWithUpdates(c, initialData, fetchHPAs)
 }

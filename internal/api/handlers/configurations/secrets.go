@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"kubewall-backend/internal/api/transformers"
+	"kubewall-backend/internal/api/types"
 	"kubewall-backend/internal/api/utils"
 	"kubewall-backend/internal/k8s"
 	"kubewall-backend/internal/storage"
@@ -70,14 +72,20 @@ func (h *SecretsHandler) GetSecrets(c *gin.Context) {
 	}
 
 	namespace := c.Query("namespace")
-	secrets, err := client.CoreV1().Secrets(namespace).List(c.Request.Context(), metav1.ListOptions{})
+	secretList, err := client.CoreV1().Secrets(namespace).List(c.Request.Context(), metav1.ListOptions{})
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to list secrets")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, secrets)
+	// Transform secrets to the expected format
+	var transformedSecrets []types.SecretListResponse
+	for _, secret := range secretList.Items {
+		transformedSecrets = append(transformedSecrets, transformers.TransformSecretToResponse(&secret))
+	}
+
+	c.JSON(http.StatusOK, transformedSecrets)
 }
 
 // GetSecretsSSE returns secrets as Server-Sent Events with real-time updates
@@ -91,13 +99,20 @@ func (h *SecretsHandler) GetSecretsSSE(c *gin.Context) {
 
 	namespace := c.Query("namespace")
 
-	// Function to fetch secrets data
+	// Function to fetch and transform secrets data
 	fetchSecrets := func() (interface{}, error) {
 		secretList, err := client.CoreV1().Secrets(namespace).List(c.Request.Context(), metav1.ListOptions{})
 		if err != nil {
 			return nil, err
 		}
-		return secretList.Items, nil
+
+		// Transform secrets to the expected format
+		var transformedSecrets []types.SecretListResponse
+		for _, secret := range secretList.Items {
+			transformedSecrets = append(transformedSecrets, transformers.TransformSecretToResponse(&secret))
+		}
+
+		return transformedSecrets, nil
 	}
 
 	// Get initial data

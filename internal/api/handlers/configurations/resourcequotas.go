@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"kubewall-backend/internal/api/transformers"
+	"kubewall-backend/internal/api/types"
 	"kubewall-backend/internal/api/utils"
 	"kubewall-backend/internal/k8s"
 	"kubewall-backend/internal/storage"
@@ -70,14 +72,20 @@ func (h *ResourceQuotasHandler) GetResourceQuotas(c *gin.Context) {
 	}
 
 	namespace := c.Query("namespace")
-	resourceQuotas, err := client.CoreV1().ResourceQuotas(namespace).List(c.Request.Context(), metav1.ListOptions{})
+	resourceQuotaList, err := client.CoreV1().ResourceQuotas(namespace).List(c.Request.Context(), metav1.ListOptions{})
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to list resource quotas")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, resourceQuotas)
+	// Transform resource quotas to the expected format
+	var transformedResourceQuotas []types.ResourceQuotaListResponse
+	for _, resourceQuota := range resourceQuotaList.Items {
+		transformedResourceQuotas = append(transformedResourceQuotas, transformers.TransformResourceQuotaToResponse(&resourceQuota))
+	}
+
+	c.JSON(http.StatusOK, transformedResourceQuotas)
 }
 
 // GetResourceQuotasSSE returns resource quotas as Server-Sent Events with real-time updates
@@ -91,13 +99,20 @@ func (h *ResourceQuotasHandler) GetResourceQuotasSSE(c *gin.Context) {
 
 	namespace := c.Query("namespace")
 
-	// Function to fetch resource quotas data
+	// Function to fetch and transform resource quotas data
 	fetchResourceQuotas := func() (interface{}, error) {
 		resourceQuotaList, err := client.CoreV1().ResourceQuotas(namespace).List(c.Request.Context(), metav1.ListOptions{})
 		if err != nil {
 			return nil, err
 		}
-		return resourceQuotaList.Items, nil
+
+		// Transform resource quotas to the expected format
+		var transformedResourceQuotas []types.ResourceQuotaListResponse
+		for _, resourceQuota := range resourceQuotaList.Items {
+			transformedResourceQuotas = append(transformedResourceQuotas, transformers.TransformResourceQuotaToResponse(&resourceQuota))
+		}
+
+		return transformedResourceQuotas, nil
 	}
 
 	// Get initial data

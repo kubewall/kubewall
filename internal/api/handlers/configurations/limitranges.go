@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"kubewall-backend/internal/api/transformers"
+	"kubewall-backend/internal/api/types"
 	"kubewall-backend/internal/api/utils"
 	"kubewall-backend/internal/k8s"
 	"kubewall-backend/internal/storage"
@@ -70,14 +72,20 @@ func (h *LimitRangesHandler) GetLimitRanges(c *gin.Context) {
 	}
 
 	namespace := c.Query("namespace")
-	limitRanges, err := client.CoreV1().LimitRanges(namespace).List(c.Request.Context(), metav1.ListOptions{})
+	limitRangeList, err := client.CoreV1().LimitRanges(namespace).List(c.Request.Context(), metav1.ListOptions{})
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to list limit ranges")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, limitRanges)
+	// Transform limit ranges to the expected format
+	var transformedLimitRanges []types.LimitRangeListResponse
+	for _, limitRange := range limitRangeList.Items {
+		transformedLimitRanges = append(transformedLimitRanges, transformers.TransformLimitRangeToResponse(&limitRange))
+	}
+
+	c.JSON(http.StatusOK, transformedLimitRanges)
 }
 
 // GetLimitRangesSSE returns limit ranges as Server-Sent Events with real-time updates
@@ -91,13 +99,20 @@ func (h *LimitRangesHandler) GetLimitRangesSSE(c *gin.Context) {
 
 	namespace := c.Query("namespace")
 
-	// Function to fetch limit ranges data
+	// Function to fetch and transform limit ranges data
 	fetchLimitRanges := func() (interface{}, error) {
 		limitRangeList, err := client.CoreV1().LimitRanges(namespace).List(c.Request.Context(), metav1.ListOptions{})
 		if err != nil {
 			return nil, err
 		}
-		return limitRangeList.Items, nil
+
+		// Transform limit ranges to the expected format
+		var transformedLimitRanges []types.LimitRangeListResponse
+		for _, limitRange := range limitRangeList.Items {
+			transformedLimitRanges = append(transformedLimitRanges, transformers.TransformLimitRangeToResponse(&limitRange))
+		}
+
+		return transformedLimitRanges, nil
 	}
 
 	// Get initial data

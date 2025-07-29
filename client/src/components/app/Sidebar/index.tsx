@@ -16,10 +16,10 @@ import { SidebarNavigator } from "./Navigator";
 import { SvgRenderer } from '../Common/SvgRenderer';
 import { cn } from "@/lib/utils";
 import { fetchClusters } from "@/data/KwClusters/ClustersSlice";
-import kwLogoDark from '../../../assets/kw-dark-theme.svg';
-import kwLogoDarkIcon from '../../../assets/kubewall-logo-light.svg';
-import kwLogoLight from '../../../assets/kw-light-theme.svg';
-import kwLogoLightIcon from '../../../assets/kubewall-logo-dark.svg';
+import kwLogoDark from '../../../assets/facets-dark-theme.svg';
+import kwLogoDarkIcon from '../../../assets/facets-logo-light.svg';
+import kwLogoLight from '../../../assets/facets-light-theme.svg';
+import kwLogoLightIcon from '../../../assets/facets-logo-dark.svg';
 import { resetCustomResourcesList } from "@/data/CustomResources/CustomResourcesListSlice";
 import { resetListTableFilter } from "@/data/Misc/ListTableFilterSlice";
 import { updateCustomResources } from "@/data/CustomResources/CustomResourcesSlice";
@@ -152,9 +152,9 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                         <div className='flex items-center justify-center'>
                           <a onClick={() => onNavClick('pods')}>
                             <img
-                              className={`transition-all duration-300 ease-in-out ${open || openMobile ? "w-28" : "w-4 max-w-none"}`}
+                              className={`transition-all duration-300 ease-in-out ${open || openMobile ? "w-16" : "w-4 max-w-none"}`}
                               src={getSystemTheme() === 'light' ? (open || openMobile ? kwLogoLight : kwLogoLightIcon) : (open || openMobile ? kwLogoDark : kwLogoDarkIcon)}
-                              alt="kubewall"
+                              alt="Facets KubeDash"
                             />
 
                           </a>

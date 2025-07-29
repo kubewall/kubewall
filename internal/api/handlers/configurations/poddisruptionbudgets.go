@@ -5,15 +5,17 @@ import (
 	"fmt"
 	"net/http"
 
+	"kubewall-backend/internal/api/transformers"
+	"kubewall-backend/internal/api/types"
 	"kubewall-backend/internal/api/utils"
 	"kubewall-backend/internal/k8s"
 	"kubewall-backend/internal/storage"
 	"kubewall-backend/pkg/logger"
 
 	"github.com/gin-gonic/gin"
+	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"gopkg.in/yaml.v3"
 )
 
 // PodDisruptionBudgetsHandler handles PodDisruptionBudget-related API requests
@@ -70,14 +72,20 @@ func (h *PodDisruptionBudgetsHandler) GetPodDisruptionBudgets(c *gin.Context) {
 	}
 
 	namespace := c.Query("namespace")
-	podDisruptionBudgets, err := client.PolicyV1().PodDisruptionBudgets(namespace).List(c.Request.Context(), metav1.ListOptions{})
+	podDisruptionBudgetList, err := client.PolicyV1().PodDisruptionBudgets(namespace).List(c.Request.Context(), metav1.ListOptions{})
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to list pod disruption budgets")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, podDisruptionBudgets)
+	// Transform pod disruption budgets to the expected format
+	var transformedPodDisruptionBudgets []types.PodDisruptionBudgetListResponse
+	for _, pdb := range podDisruptionBudgetList.Items {
+		transformedPodDisruptionBudgets = append(transformedPodDisruptionBudgets, transformers.TransformPodDisruptionBudgetToResponse(&pdb))
+	}
+
+	c.JSON(http.StatusOK, transformedPodDisruptionBudgets)
 }
 
 // GetPodDisruptionBudgetsSSE returns pod disruption budgets as Server-Sent Events with real-time updates
@@ -91,13 +99,20 @@ func (h *PodDisruptionBudgetsHandler) GetPodDisruptionBudgetsSSE(c *gin.Context)
 
 	namespace := c.Query("namespace")
 
-	// Function to fetch pod disruption budgets data
+	// Function to fetch and transform pod disruption budgets data
 	fetchPodDisruptionBudgets := func() (interface{}, error) {
 		podDisruptionBudgetList, err := client.PolicyV1().PodDisruptionBudgets(namespace).List(c.Request.Context(), metav1.ListOptions{})
 		if err != nil {
 			return nil, err
 		}
-		return podDisruptionBudgetList.Items, nil
+
+		// Transform pod disruption budgets to the expected format
+		var transformedPodDisruptionBudgets []types.PodDisruptionBudgetListResponse
+		for _, pdb := range podDisruptionBudgetList.Items {
+			transformedPodDisruptionBudgets = append(transformedPodDisruptionBudgets, transformers.TransformPodDisruptionBudgetToResponse(&pdb))
+		}
+
+		return transformedPodDisruptionBudgets, nil
 	}
 
 	// Get initial data
@@ -287,7 +302,7 @@ func (h *PodDisruptionBudgetsHandler) GetPodDisruptionBudgetEventsByName(c *gin.
 func (h *PodDisruptionBudgetsHandler) GetPodDisruptionBudgetEvents(c *gin.Context) {
 	name := c.Param("name")
 	namespace := c.Param("namespace")
-	
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for pod disruption budget events")
@@ -296,4 +311,4 @@ func (h *PodDisruptionBudgetsHandler) GetPodDisruptionBudgetEvents(c *gin.Contex
 	}
 
 	h.eventsHandler.GetResourceEventsWithNamespace(c, client, "PodDisruptionBudget", name, namespace, h.sseHandler.SendSSEResponse)
-} 
+}

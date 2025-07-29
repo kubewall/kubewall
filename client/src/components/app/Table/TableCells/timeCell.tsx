@@ -9,7 +9,16 @@ type TimeCellProps = {
 
 
 function TimeCell({ cellValue }: TimeCellProps) {
-  const [currentTime, setCurrentTime] = useState((new Date()).getTime() - (new Date(cellValue)).getTime());
+  // Validate the date string before creating Date object
+  const parseDate = (dateString: string) => {
+    if (!dateString || dateString === 'null' || dateString === 'undefined') {
+      return new Date(); // Return current date if invalid
+    }
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? new Date() : date; // Return current date if invalid
+  };
+  
+  const [currentTime, setCurrentTime] = useState((new Date()).getTime() - parseDate(cellValue).getTime());
   const [timerId, setTimerId] = useState<NodeJS.Timeout>();
   const getDisplayTime = (ts: number) => {
     const duration = intervalToDuration({ start: 0, end: ts });

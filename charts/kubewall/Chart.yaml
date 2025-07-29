@@ -2,7 +2,7 @@ apiVersion: v2
 name: kubewall
 description: A single binary kubernetes dashboard to manage your multiple clusters.
 home: https://github.com/kubewall/kubewall.git
-icon: "https://raw.githubusercontent.com/kubewall/kubewall/7d87fe6c59bd3478cb65fa0d3247b5d01294d9ad/media/kubewall-logo-dark.svg"
+icon: "https://raw.githubusercontent.com/facets-io/kube-dash/main/client/src/assets/facets-logo.svg"
 keywords:
   - kubewall
   - management
