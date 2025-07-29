@@ -132,6 +132,12 @@ const NAVIGATION_ROUTE: NavigationRoutes = {
       name: 'Storage Classes',
       route: 'storageclasses'
     }
+  ],
+  'Helm': [
+    {
+      name: 'Releases',
+      route: 'helmreleases'
+    }
   ]
 };
 

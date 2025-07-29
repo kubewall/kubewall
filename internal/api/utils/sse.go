@@ -35,14 +35,14 @@ func (h *SSEHandler) SendSSEResponse(c *gin.Context, data interface{}) {
 		data = []interface{}{}
 	}
 
-	// Send initial data
+	// Send data directly without event wrapper
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to marshal SSE data")
 		return
 	}
 
-	// Send data directly without event wrapper
+	// Send data and close connection immediately
 	c.Data(http.StatusOK, "text/event-stream", []byte("data: "+string(jsonData)+"\n\n"))
 	c.Writer.Flush()
 

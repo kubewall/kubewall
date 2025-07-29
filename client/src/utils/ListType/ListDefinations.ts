@@ -493,6 +493,24 @@ const customResourcesColumnConfig = (additionalPrinterColumns: CustomResourcesPr
   showNamespaceFilter: additionalPrinterColumns.filter(({ name }) => name === 'Namespace').length > 0
 });
 
+// Helm
+
+const helmReleasesColumnConfig = (config: string, cluster: string) => ({
+  headersList: [
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Namespace', accessorKey: 'namespace', enableGlobalFilter: true },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
+    { title: 'Status', accessorKey: 'status', enableGlobalFilter: true },
+    { title: 'Revision', accessorKey: 'revision' },
+    { title: 'Chart', accessorKey: 'chart', enableGlobalFilter: true },
+    { title: 'App Version', accessorKey: 'appVersion' },
+    { title: 'Version', accessorKey: 'version' },
+    { title: 'Updated', accessorKey: 'updated' }
+  ],
+  queryParams: { config, cluster },
+  showNamespaceFilter: true
+});
+
 export {
   getTableConfig,
   leasesColumnConfig,
@@ -526,5 +544,6 @@ export {
   replicaSetsColumnConfig,
   stateSetsColumnConfig,
   customResourceDefinitionsColumnConfig,
-  customResourcesColumnConfig
+  customResourcesColumnConfig,
+  helmReleasesColumnConfig
 };

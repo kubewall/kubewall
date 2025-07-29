@@ -9,6 +9,7 @@ import {
   DAEMON_SETS_ENDPOINT,
   DEPLOYMENT_ENDPOINT,
   ENDPOINTS_ENDPOINT,
+  HELM_RELEASES_ENDPOINT,
   HPA_ENDPOINT,
   INGRESSES_ENDPOINT,
   JOBS_ENDPOINT,
@@ -101,7 +102,8 @@ import {
   serviceAccountsColumnConfig,
   servicesColumnConfig,
   stateSetsColumnConfig,
-  storageClassesColumnConfig
+  storageClassesColumnConfig,
+  helmReleasesColumnConfig
 } from "@/utils/ListType/ListDefinations";
 
 import { CreateTable } from "@/components/app/Common/Hooks/Table";
@@ -140,10 +142,14 @@ import { updateServiceAccountsList } from "@/data/AccessControls/ServiceAccounts
 import { updateServicesList } from "@/data/Networks/Services/ServicesListSlice";
 import { updateStatefulSets } from "@/data/Workloads/StatefulSets/StatefulSetsSlice";
 import { updateStorageClassesList } from "@/data/Storages/StorageClasses/StorageClassesListSlice";
-import { useAppSelector } from "@/redux/hooks";
+import { updateHelmReleases } from "@/data/Helm/HelmReleasesSlice";
+import { useAppSelector, useAppDispatch } from "@/redux/hooks";
 import { useNavigate, useRouterState } from '@tanstack/react-router';
 import { useEffect, useRef } from 'react';
 import { toast } from "sonner";
+import { HelmReleaseResponse } from "@/types";
+import { transformHelmReleaseToResponse } from "@/utils/Helm/HelmReleasesUtils";
+import { setHelmReleasesLoading } from "@/data/Helm/HelmReleasesSlice";
 
 type ArrayElement<ArrayType extends readonly unknown[]> =
   ArrayType extends readonly (infer ElementType)[] ? ElementType : never;
@@ -182,9 +188,12 @@ export function KwList() {
   const { clusterEvents, loading: clusterEventsLoading } = useAppSelector((state: RootState) => state.clusterEvents);
   const { customResourcesList, loading: customResourcesListLoading } = useAppSelector((state: RootState) => state.customResourcesList);
   const { clusters, loading: clustersLoading } = useAppSelector((state: RootState) => state.clusters);
+  const { releases: helmReleases, loading: helmReleasesLoading } = useAppSelector((state: RootState) => state.helmReleases);
+
   const navigate = useNavigate();
   const router = useRouterState();
   const hasShownConfigNotFoundToast = useRef(false);
+  const dispatch = useAppDispatch();
 
   const { config } = appRoute.useParams();
   const { cluster, resourcekind, group, kind, resource, version } = kwList.useSearch();
@@ -290,6 +299,13 @@ export function KwList() {
       return getTableConfig<CustomResourceHeaders>(customResourcesList.list, CUSTOM_RESOURCES_LIST_ENDPOINT, updateCustomResourcesList, customResourcesListLoading, customResourcesColumnConfig(additionalPrinterColumns[0]?.additionalPrinterColumns, config, cluster, customResourcesListLoading, group, kind, resource, version));
     } if (resourcekind === CUSTOM_RESOURCES_ENDPOINT) {
       return getTableConfig<CustomResourcesDefinitionsHeader>(customResourcesDefinitions, CUSTOM_RESOURCES_ENDPOINT, updateCustomResources, customResourcesNavigationLoading, customResourceDefinitionsColumnConfig(config, cluster));
+    } if (resourcekind === HELM_RELEASES_ENDPOINT) {
+      const transformedHelmReleases = helmReleases.map(release => ({
+        ...transformHelmReleaseToResponse(release),
+        configName: config,
+        clusterName: cluster
+      }));
+      return getTableConfig<HelmReleaseResponse>(transformedHelmReleases, HELM_RELEASES_ENDPOINT, updateHelmReleases, helmReleasesLoading, helmReleasesColumnConfig(config, cluster));
     }
     
     return;
@@ -300,6 +316,13 @@ export function KwList() {
   if (!tableData) {
     return <FourOFourError />;
   }
+
+  // Create a setLoading function for Helm releases
+  const setHelmReleasesLoadingState = (loading: boolean) => {
+    if (resourcekind === HELM_RELEASES_ENDPOINT) {
+      dispatch(setHelmReleasesLoading(loading));
+    }
+  };
 
   document.title = `Facets KubeDash - ${tableData.instaceType}`;
   return (
@@ -315,6 +338,7 @@ export function KwList() {
       endpoint={tableData.instaceType}
       dispatchMethod={tableData.dispatchMethod}
       showNamespaceFilter={tableData.showNamespaceFilter}
+      setLoading={setHelmReleasesLoadingState}
     />
   );
 }

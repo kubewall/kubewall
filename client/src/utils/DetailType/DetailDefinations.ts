@@ -1,4 +1,4 @@
-import { ClusterRoleBindingDetails, ClusterRoleDetails, ConfigMapDetails, CronJobDetails, CustomResourceDetails, CustomResourcesDefinitionDetails, DaemonSetDetails, DeploymentDetails, EndpointDetails, HPADetails, IngressDetails, JobDetails, KeyValueNull, LeaseDetails, LimitRangeDetails, NamespaceDetails, NodeDetails, PersistentVolumeClaimDetails, PersistentVolumeDetails, PodDetails, PodDisruptionBudgetDetails, PriorityClassDetails, ReplicaSetDetails, ResourceQuotaDetails, RoleBindingDetails, RoleDetails, RuntimeClassDetails, SecretDetails, ServiceAccountDetails, ServiceDetails, StatefulSetDetails, StorageClassDetails } from "@/types";
+import { ClusterRoleBindingDetails, ClusterRoleDetails, ConfigMapDetails, CronJobDetails, CustomResourceDetails, CustomResourcesDefinitionDetails, DaemonSetDetails, DeploymentDetails, EndpointDetails, HPADetails, HelmReleaseDetails, IngressDetails, JobDetails, KeyValueNull, LeaseDetails, LimitRangeDetails, NamespaceDetails, NodeDetails, PersistentVolumeClaimDetails, PersistentVolumeDetails, PodDetails, PodDisruptionBudgetDetails, PriorityClassDetails, ReplicaSetDetails, ResourceQuotaDetails, RoleBindingDetails, RoleDetails, RuntimeClassDetails, SecretDetails, ServiceAccountDetails, ServiceDetails, StatefulSetDetails, StorageClassDetails } from "@/types";
 import { defaultOrValue, getAnnotationCardDetails, getLabelConditionCardDetails } from "../MiscUtils";
 
 // Cluster
@@ -587,6 +587,26 @@ const getCustomResourceDetailsConfig = (details: CustomResourceDetails, loading:
   ...getCommonCardConfig(details.metadata.annotations, details.metadata.labels)
 });
 
+// Helm
+
+const getHelmReleaseDetailsConfig = (details: HelmReleaseDetails, loading: boolean) => ({
+  subHeading: !details.release ? '' : `${details.release.namespace ? details.release.namespace+'/': ''}${details.release.name}`,
+  detailCard: [
+    {label: 'Name',value: defaultOrValue(details.release.name) },
+    {label: 'Namespace',value: defaultOrValue(details.release.namespace) },
+    {label: 'Status',value: defaultOrValue(details.release.status) },
+    {label: 'Revision',value: defaultOrValue(details.release.revision) },
+    {label: 'Chart',value: defaultOrValue(details.release.chart) },
+    {label: 'App Version',value: defaultOrValue(details.release.appVersion) },
+    {label: 'Version',value: defaultOrValue(details.release.version) },
+    {label: 'Updated',value: defaultOrValue(details.release.updated) },
+    {label: 'Description',value: defaultOrValue(details.release.description) },
+    {label: 'Notes',value: defaultOrValue(details.release.notes) }
+  ],
+  loading,
+  ...getCommonCardConfig(null, null)
+});
+
 const getCommonCardConfig = (
   annotations: null | undefined | KeyValueNull,
   labels: null | undefined | KeyValueNull,
@@ -627,5 +647,6 @@ export {
   getPersistentVolumeDetailsConfig,
   getStorageClassDetailsConfig,
   getCustomResourceDetailsConfig,
-  getCustomResourceDefinitionsDetailsConfig
+  getCustomResourceDefinitionsDetailsConfig,
+  getHelmReleaseDetailsConfig
 };

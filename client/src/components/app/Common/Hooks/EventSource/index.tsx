@@ -1,31 +1,32 @@
-import { KwEventSource } from "@/types";
-import { isIP } from "@/utils";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef } from 'react';
+import { useAppDispatch } from '@/redux/hooks';
+import { setHelmReleasesLoading } from '@/data/Helm';
 
-type ConnectionStatus = 'connecting' | 'connected' | 'reconnecting' | 'error';
-
-type KwEventSourceWithStatus = KwEventSource & {
-  onConnectionStatusChange?: (status: ConnectionStatus) => void;
-  onConfigError?: () => void; // New callback for config errors
+type KwEventSourceWithStatus<T = any> = {
+  url: string;
+  sendMessage: (message: T) => void;
+  onConnectionStatusChange?: (status: 'connecting' | 'connected' | 'reconnecting' | 'error') => void;
+  onConfigError?: () => void;
+  setLoading?: (loading: boolean) => void;
 };
 
-const useEventSource = ({url, sendMessage, onConnectionStatusChange, onConfigError}: KwEventSourceWithStatus) => {
+const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, onConfigError, setLoading}: KwEventSourceWithStatus<T>) => {
   const eventSourceRef = useRef<EventSource | null>(null);
+  const isConnectingRef = useRef(false);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 5;
-  const baseReconnectDelay = 1000; // 1 second
-  const connectionTimeout = 30000; // 30 seconds timeout
-  const isConnectingRef = useRef(false);
+  const baseReconnectDelay = 1000;
+  const connectionTimeout = 10000;
+  const dispatch = useAppDispatch();
 
-  let updatedUrl = '';
-  if(window.location.protocol === 'http:') {
-    if (!isIP(window.location.host.split(':')[0])) {
-      updatedUrl = `http://${new Date().getTime()}.${window.location.host}${url}`;
-    } else {
-      updatedUrl = `http://${window.location.host}${url}`;
-    }
+  // Determine if this is a Helm releases endpoint
+  const isHelmReleases = url.includes('helmreleases');
+
+  let updatedUrl: string;
+  if (url.startsWith('/')) {
+    updatedUrl = `${window.location.origin}${url}`;
   } else {
     updatedUrl = url;
   }
@@ -37,6 +38,13 @@ const useEventSource = ({url, sendMessage, onConnectionStatusChange, onConfigErr
     }
 
     isConnectingRef.current = true;
+
+    // Set loading to true when connection starts
+    if (setLoading) {
+      setLoading(true);
+    } else if (isHelmReleases) {
+      dispatch(setHelmReleasesLoading(true));
+    }
 
     // Close existing connection if any
     if (eventSourceRef.current) {
@@ -102,7 +110,7 @@ const useEventSource = ({url, sendMessage, onConnectionStatusChange, onConfigErr
         // Handle null data properly - don't try to access properties on null
         if (eventData === null) {
           // Send empty array for null data instead of trying to access properties
-          sendMessage([]);
+          sendMessage([] as T);
           return;
         }
         
@@ -131,33 +139,19 @@ const useEventSource = ({url, sendMessage, onConnectionStatusChange, onConfigErr
     // Handle connection errors
     eventSource.onerror = (error) => {
       console.error('EventSource error:', error);
-      // console.log('EventSource readyState:', eventSource.readyState);
       
-      // Check if the connection is in a terminal state
-      if (eventSource.readyState === EventSource.CLOSED) {
-        // console.log('EventSource connection is closed');
-        isConnectingRef.current = false;
-      } else if (eventSource.readyState === EventSource.CONNECTING) {
-        // console.log('EventSource is connecting...');
-      } else if (eventSource.readyState === EventSource.OPEN) {
-        // console.log('EventSource is open');
+      // Clear connection timeout since we're handling the error
+      if (connectionTimeoutRef.current) {
+        clearTimeout(connectionTimeoutRef.current);
       }
       
-      // Check if this error is related to config not found
-      // This can happen when the backend returns an error response
-      if (error && typeof error === 'object' && 'data' in error) {
-        try {
-          const errorData = JSON.parse((error as any).data);
-          if (errorData.error && typeof errorData.error === 'string' && errorData.error.includes('config not found')) {
-            console.error('Config not found error in onerror handler:', errorData.error);
-            if (onConfigError) {
-              onConfigError();
-            }
-            return;
-          }
-        } catch (parseError) {
-          // If we can't parse the error data, continue with normal error handling
-        }
+      isConnectingRef.current = false;
+      
+      // Set loading to false on error
+      if (setLoading) {
+        setLoading(false);
+      } else if (isHelmReleases) {
+        dispatch(setHelmReleasesLoading(false));
       }
       
       // Don't send empty array immediately on error
@@ -185,7 +179,7 @@ const useEventSource = ({url, sendMessage, onConnectionStatusChange, onConfigErr
           onConnectionStatusChange('error');
         }
         // Only send empty array after all reconnection attempts have failed
-        sendMessage([]);
+        sendMessage([] as T);
       }
     };
   };

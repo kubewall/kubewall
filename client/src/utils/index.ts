@@ -6,3 +6,4 @@ export * from './Clusters';
 export * from './Workloads';
 export * from './AccessControls';
 export * from './CustomResources';
+export * from './Helm';

@@ -11,6 +11,7 @@ import (
 	"kubewall-backend/internal/api/handlers/cluster"
 	"kubewall-backend/internal/api/handlers/configurations"
 	custom_resources "kubewall-backend/internal/api/handlers/custom-resources"
+	"kubewall-backend/internal/api/handlers/helm"
 	"kubewall-backend/internal/api/handlers/networking"
 	storage_handlers "kubewall-backend/internal/api/handlers/storage"
 	"kubewall-backend/internal/api/handlers/websocket"
@@ -83,6 +84,9 @@ type Server struct {
 
 	// WebSocket handlers
 	podExecHandler *websocket.PodExecHandler
+
+	// Helm handlers
+	helmHandler *helm.HelmHandler
 }
 
 // New creates a new server instance
@@ -155,6 +159,10 @@ func New(cfg *config.Config) *Server {
 	// Create WebSocket handlers
 	podExecHandler := websocket.NewPodExecHandler(store, clientFactory, log)
 
+	// Create Helm handlers
+	helmFactory := k8s.NewHelmClientFactory()
+	helmHandler := helm.NewHelmHandler(store, clientFactory, helmFactory, log)
+
 	// Create server
 	srv := &Server{
 		config:        cfg,
@@ -213,6 +221,9 @@ func New(cfg *config.Config) *Server {
 
 		// WebSocket handlers
 		podExecHandler: podExecHandler,
+
+		// Helm handlers
+		helmHandler: helmHandler,
 	}
 
 	// Setup middleware
@@ -536,6 +547,11 @@ func (s *Server) setupRoutes() {
 		api.GET("/storageclass/:name", s.storageClassesHandler.GetStorageClassByName)
 		api.GET("/storageclass/:name/yaml", s.storageClassesHandler.GetStorageClassYAMLByName)
 		api.GET("/storageclass/:name/events", s.storageClassesHandler.GetStorageClassEventsByName)
+
+		// Helm endpoints
+		api.GET("/helmreleases", s.helmHandler.GetHelmReleasesSSE)
+		api.GET("/helmreleases/:name", s.helmHandler.GetHelmReleaseDetails)
+		api.GET("/helmreleases/:name/history", s.helmHandler.GetHelmReleaseHistory)
 	}
 
 	// Serve static files from the dist folder

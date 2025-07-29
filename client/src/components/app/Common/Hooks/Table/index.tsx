@@ -25,6 +25,7 @@ type CreateTableProps<T, C extends HeaderList> = {
   // eslint-disable-next-line  @typescript-eslint/no-explicit-any
   dispatchMethod: ActionCreatorWithPayload<any, string>;
   showNamespaceFilter: boolean;
+  setLoading?: (loading: boolean) => void;
 };
 
 const CreateTable = <T extends ClusterDetails, C extends HeaderList>({
@@ -39,13 +40,14 @@ const CreateTable = <T extends ClusterDetails, C extends HeaderList>({
   queryParmObject,
   dispatchMethod,
   showNamespaceFilter,
+  setLoading,
 }: CreateTableProps<T, C>) => {
 
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'reconnecting' | 'error'>('connecting');
   
-  const sendMessage = (message: object[]) => {
+  const sendMessage = (message: any[]) => {
     dispatch(dispatchMethod(message));
   };
 
@@ -56,11 +58,12 @@ const CreateTable = <T extends ClusterDetails, C extends HeaderList>({
     navigate({ to: '/config' });
   };
 
-  useEventSource({
+  useEventSource<any[]>({
     url: getEventStreamUrl(endpoint, queryParmObject),
     sendMessage,
     onConnectionStatusChange: setConnectionStatus,
     onConfigError: handleConfigError,
+    setLoading,
   });
 
   const { open, isMobile } = useSidebar();
