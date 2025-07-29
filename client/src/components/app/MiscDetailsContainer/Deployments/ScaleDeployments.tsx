@@ -96,7 +96,7 @@ const ScaleDeployments = ({ resourcename, queryParams }: ScaleDeploymentsProps) 
                 disabled={loading}
                 variant='ghost'
                 size='icon'
-                className='right-0 mt-1 rounded z-10 border w-20 mr-1'
+                className='z-10 border w-20 mr-1 h-8'
                 onClick={() => setModalOpen(true)}
               >
                 {
@@ -104,7 +104,7 @@ const ScaleDeployments = ({ resourcename, queryParams }: ScaleDeploymentsProps) 
                     <Loader className='w-4 h-4 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600' /> :
                     <ScaleIcon className='h-4 w-4' />
                 }
-                <span className='text-xs'></span>
+                <span className='text-xs'>Scale</span>
               </Button>
             </DialogTrigger>
           </TooltipTrigger>
@@ -123,7 +123,7 @@ const ScaleDeployments = ({ resourcename, queryParams }: ScaleDeploymentsProps) 
         <div className="mt-3 space-y-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <span className="font-medium text-foreground">Current Replicas:</span>
-            <span className="px-2 py-1 rounded bg-muted text-black">
+            <span className="px-2 py-1 rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
               {deploymentDetails.status.replicas}
             </span>
           </div>

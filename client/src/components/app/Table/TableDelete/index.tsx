@@ -117,9 +117,8 @@ const TableDelete = ({ selectedRows, toggleAllRowsSelected, postDeleteCallback }
               <Button
                 variant={isListPage ? 'destructive' : 'ghost'}
                 size="icon"
-                className={`right-0 mt-1 z-10 border w-8 h-8 ${isListPage && 'absolute mr-10 bottom-12 w-20'}`}
+                className={`right-0 z-10 border w-8 h-8 ${isListPage && 'absolute mr-10 bottom-12 w-20'}`}
                 onClick={() => setModalOpen(true)}
-
               > {
                   loading ?
                     <Loader className='w-5 h-5 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600' /> :
