@@ -107,7 +107,7 @@ import {
 import { CreateTable } from "@/components/app/Common/Hooks/Table";
 import FourOFourError from "@/components/app/Errors/404Error";
 import { RootState } from "@/redux/store";
-import { kwList } from "@/routes";
+import { kwList, appRoute } from "@/routes";
 import { updateClusterEventsList } from "@/data/Clusters/Events/EventsListSlice";
 import { updateClusterRoleBindingList } from "@/data/AccessControls/ClusterRoleBindings/ClusterRoleBindingsListSlice";
 import { updateClusterRolesList } from "@/data/AccessControls/ClusterRoles/ClusterRolesListSlice";
@@ -186,7 +186,7 @@ export function KwList() {
   const router = useRouterState();
   const hasShownConfigNotFoundToast = useRef(false);
 
-  const { config } = kwList.useParams();
+  const { config } = appRoute.useParams();
   const { cluster, resourcekind, group, kind, resource, version } = kwList.useSearch();
   const commonSearchParams: CommonSearchParams = kwList.useSearch();
   commonSearchParams.config = config;

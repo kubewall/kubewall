@@ -7,7 +7,7 @@ import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { DataTable } from "@/components/app/Table";
 import { RootState } from "@/redux/store";
 import { cn } from "@/lib/utils";
-import { kwDetails } from "@/routes";
+import { kwDetails, appRoute } from "@/routes";
 import { memo } from "react";
 import { podsColumnConfig } from "@/utils/ListType/ListDefinations";
 import { updateDeploymentPods } from "@/data/Workloads/Deployments/DeploymentPodsSlice";
@@ -16,7 +16,7 @@ import useGenerateColumns from "@/components/app/Common/Hooks/TableColumns";
 import { useSidebar } from "@/components/ui/sidebar";
 
 const DeploymentDetailsContainer = memo(function () {
-  const { config } = kwDetails.useParams();
+  const { config } = appRoute.useParams();
   const { cluster, resourcename, namespace } = kwDetails.useSearch();
   const {
     loading,

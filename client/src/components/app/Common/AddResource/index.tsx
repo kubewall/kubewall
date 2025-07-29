@@ -12,13 +12,13 @@ import { FilePlusIcon } from "@radix-ui/react-icons";
 import { Loader } from '../../Loader';
 import { SaveIcon } from "lucide-react";
 import { getSystemTheme } from "@/utils";
-import { kwList } from '@/routes';
+import { kwList, appRoute } from '@/routes';
 import { toast } from 'sonner';
 
 const AddResource = () => {
   const dispatch = useAppDispatch();
   const [value, setValue] = useState('');
-  const { config } = kwList.useParams();
+  const { config } = appRoute.useParams();
   const { cluster } = kwList.useSearch();
 
   const queryParams = new URLSearchParams({

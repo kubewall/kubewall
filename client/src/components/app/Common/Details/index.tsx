@@ -18,7 +18,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { TableDelete } from "../../Table/TableDelete";
 import { YamlEditor } from "../../Details/YamlEditor";
 import { clearLogs } from "@/data/Workloads/Pods/PodLogsSlice";
-import { kwDetails } from "@/routes";
+import { kwDetails, appRoute } from "@/routes";
 import { resetYamlDetails } from "@/data/Yaml/YamlSlice";
 import { useAppSelector } from "@/redux/hooks";
 import { useDispatch } from "react-redux";
@@ -30,7 +30,7 @@ const KwDetails = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const router = useRouterState();
-  const { config } = kwDetails.useParams();
+  const { config } = appRoute.useParams();
   const { cluster, resourcekind, resourcename, group = '', kind = '', resource = '', version = '', namespace } = kwDetails.useSearch();
   const { podDetails } = useAppSelector((state: RootState) => state.podDetails);
   const { clusters } = useAppSelector((state: RootState) => state.clusters);

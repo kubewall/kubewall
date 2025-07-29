@@ -7,7 +7,7 @@ import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
 import { memo } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { kwDetails } from "@/routes";
+import { kwDetails, appRoute } from "@/routes";
 import { podsColumnConfig } from "@/utils/ListType/ListDefinations";
 import { updateReplicaSetPods } from "@/data/Workloads/ReplicaSets/ReplicaSetPodsSlice";
 import { useEventSource } from "@/components/app/Common/Hooks/EventSource";
@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { REPLICA_SETS_ENDPOINT, PODS_ENDPOINT } from "@/constants";
 
 const ReplicaSetDetailsContainer = memo(function () {
-  const { config } = kwDetails.useParams();
+  const { config } = appRoute.useParams();
   const { cluster, resourcename, namespace } = kwDetails.useSearch();
   const navigate = useNavigate();
   const {

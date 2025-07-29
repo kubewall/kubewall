@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { deleteResources, resetDeleteResource } from "@/data/Misc/DeleteResourceSlice";
-import { kwDetails, kwList } from "@/routes";
+import { kwDetails, kwList, appRoute } from "@/routes";
 import { kwDetailsSearch, kwListSearch } from "@/types";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { useEffect, useState } from "react";
@@ -26,11 +26,11 @@ const TableDelete = ({ selectedRows, toggleAllRowsSelected, postDeleteCallback }
   let config = '';
   let isListPage = true;
   if (window.location.pathname.split('/')[2].toLowerCase() === 'list') {
-    config = kwList.useParams().config;
+    config = appRoute.useParams().config;
     paramList = kwList.useSearch();
   } else {
     isListPage = false;
-    config = kwDetails.useParams().config;
+    config = appRoute.useParams().config;
     paramList = kwDetails.useSearch();
   }
 

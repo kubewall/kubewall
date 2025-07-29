@@ -3,16 +3,13 @@ import { kwDetailsSearch, kwListSearch } from '@/types';
 
 import FourOFourError from "@/components/app/Errors/404Error";
 import GenericError from "@/components/app/Errors/GenericError";
+import { App } from '@/app';
 import { KubeConfiguration } from '@/components/app/KubeConfiguration';
 import { KubeWall } from '@/KubeWall';
 import { KwDetails } from '@/components/app/Common/Details';
 import { KwList } from '@/components/app/Common/List';
 
-const AppWrapper = ({ component }: { component: JSX.Element }) => {
-  return (
-    component
-  );
-};
+
 
 const rootRoute = createRootRoute({
   component: () => <KubeWall />
@@ -24,10 +21,16 @@ const indexRoute = createRoute({
   component: () => <Navigate to="/config" />
 });
 
-const kwList = createRoute({
+const appRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/$config/list',
-  component: () => <AppWrapper component={<KwList />} />,
+  path: '/$config',
+  component: App,
+});
+
+const kwList = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/list',
+  component: KwList,
   validateSearch: (search: Record<string, unknown>): kwListSearch => {
     return {
       cluster: String(search.cluster) || '',
@@ -45,9 +48,9 @@ const kwList = createRoute({
 });
 
 const kwDetails = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/$config/details',
-  component: () => <AppWrapper component={<KwDetails />} />,
+  getParentRoute: () => appRoute,
+  path: '/details',
+  component: KwDetails,
   validateSearch: (search: Record<string, unknown>): kwDetailsSearch => ({
     cluster: String(search.cluster) || '',
     resourcekind: String(search.resourcekind) || '',
@@ -71,8 +74,10 @@ const kubeConfigurationRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   indexRoute,
   kubeConfigurationRoute,
-  kwList,
-  kwDetails
+  appRoute.addChildren([
+    kwList,
+    kwDetails
+  ])
 ]);
 
 const router = createRouter({
@@ -93,5 +98,6 @@ declare module '@tanstack/react-router' {
 export {
   router,
   kwList,
-  kwDetails
+  kwDetails,
+  appRoute
 };

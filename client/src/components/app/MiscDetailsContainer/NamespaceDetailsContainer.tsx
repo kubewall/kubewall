@@ -9,7 +9,7 @@ import { CopyToClipboard } from "@/components/app/Common/CopyToClipboard";
 import { defaultOrValue } from "@/utils";
 import { memo } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { kwDetails } from "@/routes";
+import { kwDetails, appRoute } from "@/routes";
 import { podsColumnConfig } from "@/utils/ListType/ListDefinations";
 import { updateNamespacePods } from "@/data/Clusters/Namespaces/NamespacePodsSlice";
 import { useEventSource } from "@/components/app/Common/Hooks/EventSource";
@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 import { NAMESPACES_ENDPOINT, PODS_ENDPOINT } from "@/constants";
 
 const NamespaceDetailsContainer = memo(function () {
-  const { config } = kwDetails.useParams();
+  const { config } = appRoute.useParams();
   const { cluster, resourcename } = kwDetails.useSearch();
   const navigate = useNavigate();
   const {

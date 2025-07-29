@@ -7,7 +7,7 @@ import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
 import { memo } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { kwDetails } from "@/routes";
+import { kwDetails, appRoute } from "@/routes";
 import { podsColumnConfig } from "@/utils/ListType/ListDefinations";
 import { updateStatefulSetPods } from "@/data/Workloads/StatefulSets/StatefulSetPodsSlice";
 import { useEventSource } from "@/components/app/Common/Hooks/EventSource";
@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { STATEFUL_SETS_ENDPOINT, PODS_ENDPOINT } from "@/constants";
 
 const StatefulSetDetailsContainer = memo(function () {
-  const { config } = kwDetails.useParams();
+  const { config } = appRoute.useParams();
   const { cluster, resourcename, namespace } = kwDetails.useSearch();
   const navigate = useNavigate();
   const {
