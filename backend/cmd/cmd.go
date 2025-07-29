@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 
+	"github.com/charmbracelet/log"
 	"github.com/kubewall/kubewall/backend/config"
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/routes"
@@ -62,11 +63,15 @@ func Serve(cmd *cobra.Command) error {
 		if err != nil {
 			return err
 		}
-		if port == "" {
+		if port != "" {
+			log.Warn("Flag --port is deprecated, use --listen instead. This will be removed in a future release.")
+		}
+		switch {
+		case port == "":
 			listenAddr = "localhost:7080" // default
-		} else if port[0] == ':' {
+		case port[0] == ':':
 			listenAddr = "localhost" + port
-		} else {
+		default:
 			listenAddr = "localhost:" + port
 		}
 	}
