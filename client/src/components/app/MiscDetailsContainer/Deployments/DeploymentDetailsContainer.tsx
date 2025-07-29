@@ -43,10 +43,9 @@ const DeploymentDetailsContainer = memo(function () {
   });
 
   return (
-
     <div className="mt-2">
       <Card className="rounded-lg">
-        <CardHeader className="p-4 ">
+        <CardHeader className="p-4">
           <CardTitle className="text-sm font-medium">Pods</CardTitle>
         </CardHeader>
         <CardContent className="pl-4 pr-4">
@@ -64,7 +63,7 @@ const DeploymentDetailsContainer = memo(function () {
                   })
                 }
                 data={loading ? defaultSkeletonRow() : deploymentPodDetails}
-                tableWidthCss={cn("border-r border-l", open ? 'deployment-list-table-max-width-expanded' : 'deployment-list-table-max-width-collapsed')}
+                tableWidthCss={cn("rounded-md border-r rounded-md border-l", open ? 'deployment-list-table-max-width-expanded' : 'deployment-list-table-max-width-collapsed')}
                 instanceType={PODS_ENDPOINT}
                 showToolbar={false}
                 showNamespaceFilter={false}
