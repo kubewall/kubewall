@@ -40,11 +40,11 @@ type PersistentVolumeListResponse struct {
 
 // StorageClassListResponse represents a storage class in the list view
 type StorageClassListResponse struct {
-	Age        string `json:"age"`
-	HasUpdated bool   `json:"hasUpdated"`
-	Name       string `json:"name"`
-	UID        string `json:"uid"`
-	Spec       struct {
-		Provisioner string `json:"provisioner"`
-	} `json:"spec"`
+	Age               string `json:"age"`
+	HasUpdated        bool   `json:"hasUpdated"`
+	Name              string `json:"name"`
+	UID               string `json:"uid"`
+	Provisioner       string `json:"provisioner"`
+	ReclaimPolicy     string `json:"reclaimPolicy"`
+	VolumeBindingMode string `json:"VolumeBindingMode"`
 }

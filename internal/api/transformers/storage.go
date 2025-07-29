@@ -135,15 +135,25 @@ func TransformPVToResponse(pv *v1.PersistentVolume) types.PersistentVolumeListRe
 func TransformStorageClassToResponse(sc *storageV1.StorageClass) types.StorageClassListResponse {
 	age := types.TimeFormat(sc.CreationTimestamp.Time)
 
+	// Get reclaim policy
+	reclaimPolicy := ""
+	if sc.ReclaimPolicy != nil {
+		reclaimPolicy = string(*sc.ReclaimPolicy)
+	}
+
+	// Get volume binding mode
+	volumeBindingMode := ""
+	if sc.VolumeBindingMode != nil {
+		volumeBindingMode = string(*sc.VolumeBindingMode)
+	}
+
 	return types.StorageClassListResponse{
-		Age:        age,
-		HasUpdated: false, // This would be set based on resource version comparison
-		Name:       sc.Name,
-		UID:        string(sc.UID),
-		Spec: struct {
-			Provisioner string `json:"provisioner"`
-		}{
-			Provisioner: sc.Provisioner,
-		},
+		Age:               age,
+		HasUpdated:        false, // This would be set based on resource version comparison
+		Name:              sc.Name,
+		UID:               string(sc.UID),
+		Provisioner:       sc.Provisioner,
+		ReclaimPolicy:     reclaimPolicy,
+		VolumeBindingMode: volumeBindingMode,
 	}
 }
