@@ -136,6 +136,29 @@ const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, on
       }
     };
 
+    // Handle "error" event type (SSE errors from server)
+    eventSource.addEventListener('error', (event) => {
+      try {
+        const messageEvent = event as MessageEvent;
+        if (messageEvent.data) {
+          const errorData = JSON.parse(messageEvent.data);
+          if (errorData.error && typeof errorData.error === 'string' && errorData.error.includes('config not found')) {
+            console.error('Config not found error received via error event:', errorData.error);
+            console.log('Calling onConfigError callback...');
+            // Call the config error callback if provided
+            if (onConfigError) {
+              onConfigError();
+            } else {
+              console.warn('onConfigError callback not provided');
+            }
+            return;
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to parse error event data:', error);
+      }
+    });
+
     // Handle connection errors
     eventSource.onerror = (error) => {
       console.error('EventSource error:', error);
