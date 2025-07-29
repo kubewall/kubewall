@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDetailsWrapper, useFetchDataForDetails } from "../Hooks/Details";
 
 import { CaretLeftIcon } from "@radix-ui/react-icons";
+import helmLogo from '../../../../assets/helm-logo.png';
 import { Events } from "../../Details/Events";
 import FourOFourError from "../../Errors/404Error";
 import { Loader } from "../../Loader";
@@ -112,6 +113,9 @@ const KwDetails = () => {
         <span className="text-xs text-blue-600 dark:text-blue-500 hover:underline flex items-center">
           <Link to={`/${config}/list?${getListPageQueryparams()}`} className="flex items-center">
             <CaretLeftIcon className="h-3.5 w-3.5 mr-1" />
+            {resourcekind === 'helmreleases' ? (
+              <img src={helmLogo} alt="Helm" className="h-3.5 w-3.5 mr-1" />
+            ) : null}
             {resourceInitialData.label}
           </Link>
         </span>

@@ -21,6 +21,7 @@ import kwLogoDark from '../../../assets/facets-dark-theme.svg';
 import kwLogoDarkIcon from '../../../assets/facets-logo-light.svg';
 import kwLogoLight from '../../../assets/facets-light-theme.svg';
 import kwLogoLightIcon from '../../../assets/facets-logo-dark.svg';
+import helmLogo from '../../../assets/helm-logo.png';
 import { resetCustomResourcesList } from "@/data/CustomResources/CustomResourcesListSlice";
 import { resetListTableFilter } from "@/data/Misc/ListTableFilterSlice";
 import { updateCustomResources } from "@/data/CustomResources/CustomResourcesSlice";
@@ -139,6 +140,8 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
         return <NetworkIcon width={16} />;
       case 'storage':
         return <DatabaseIcon width={16} />;
+      case 'helm':
+        return <img src={helmLogo} alt="Helm" width={16} height={16} />;
       default:
         return <LayersIcon width={16} />;
     }
