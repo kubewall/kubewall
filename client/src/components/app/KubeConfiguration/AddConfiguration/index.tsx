@@ -3,17 +3,19 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { KUBECONFIGS_BEARER_URL, KUBECONFIGS_CERTIFICATE_URL, KUBECONFIGS_URL } from "@/constants";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { addConfig, resetAddConfig } from "@/data/KwClusters/AddConfigSlice";
+import { validateConfig, resetValidateConfig } from "@/data/KwClusters/ValidateConfigSlice";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PlusCircledIcon } from "@radix-ui/react-icons";
+import { PlusCircledIcon, CheckCircledIcon, CrossCircledIcon, ReloadIcon } from "@radix-ui/react-icons";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { fetchClusters } from "@/data/KwClusters/ClustersSlice";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 
 const AddConfig = () => {
 
@@ -23,11 +25,19 @@ const AddConfig = () => {
   const [certificateConfig, setCertificateConfig] = useState<CertificateConfig>({} as CertificateConfig);
   const [kubeconfigFileConfig, setKubeconfigFileConfig] = useState<KubeconfigFileConfig>({} as KubeconfigFileConfig);
   const [activeTab, setActiveTab] = useState("bearerToken");
+  const [validationPerformed, setValidationPerformed] = useState(false);
   const dispatch = useAppDispatch();
+  
   const {
     addConfigResponse,
     error
   } = useAppSelector((state) => state.addConfig);
+
+  const {
+    validationResponse,
+    error: validationError,
+    loading: validationLoading
+  } = useAppSelector((state) => state.validateConfig);
 
   useEffect(() => {
     if (error) {
@@ -47,6 +57,15 @@ const AddConfig = () => {
     }
   }, [addConfigResponse, error, dispatch]);
 
+  useEffect(() => {
+    if (validationError) {
+      toast.error("Validation Failed", {
+        description: validationError.error,
+      });
+      dispatch(resetValidateConfig());
+    }
+  }, [validationError, dispatch]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -56,6 +75,7 @@ const AddConfig = () => {
         const file = e?.target?.result;
         setTextValue(file?.toString() || '');
         setKubeconfigFileConfig({ ...kubeconfigFileConfig, config: file?.toString() || '' });
+        setValidationPerformed(false);
       };
       reader.readAsText(file);
     }
@@ -66,7 +86,22 @@ const AddConfig = () => {
     setCertificateConfig({} as CertificateConfig);
     setKubeconfigFileConfig({} as KubeconfigFileConfig);
     setTextValue('');
+    setValidationPerformed(false);
     setModalOpen(open);
+    dispatch(resetValidateConfig());
+  };
+
+  const validateKubeconfig = () => {
+    if (!kubeconfigFileConfig.config) {
+      toast.error("No kubeconfig content to validate");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", kubeconfigFileConfig.config);
+    
+    dispatch(validateConfig({ formData }));
+    setValidationPerformed(true);
   };
 
   const addNewConfig = () => {
@@ -86,6 +121,17 @@ const AddConfig = () => {
       formData.append("name", certificateConfig.name);
       route = KUBECONFIGS_CERTIFICATE_URL;
     } else {
+      // For kubeconfig file, check if validation was performed and clusters are reachable
+      if (!validationPerformed) {
+        toast.error("Please validate the kubeconfig first");
+        return;
+      }
+      
+      if (!validationResponse?.hasReachableClusters) {
+        toast.error("Cannot add kubeconfig: No reachable clusters found");
+        return;
+      }
+
       formData = new FormData();
       formData.append("file", kubeconfigFileConfig.config);
       route = KUBECONFIGS_URL;
@@ -103,9 +149,74 @@ const AddConfig = () => {
     return !kubeconfigFileConfig.config;
   };
 
+  const isAddDisabled = () => {
+    if (activeTab === "kubeconfigFile") {
+      return isDisabled() || !validationPerformed || !validationResponse?.hasReachableClusters;
+    }
+    return isDisabled();
+  };
+
   const checkForValidConfigName = (name: string) => {
     const regex = /^[a-zA-Z0-9-]+$/;
     return (!regex.test(name));
+  };
+
+  const renderClusterStatus = () => {
+    if (!validationResponse || !validationPerformed) return null;
+
+    return (
+      <div className="space-y-2 mt-4">
+        <div className="flex items-center justify-between">
+          <h4 className="text-sm font-medium">Cluster Status</h4>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">
+              {validationResponse.totalClusters} cluster(s)
+            </span>
+            {validationResponse.hasReachableClusters ? (
+              <Badge variant="default" className="bg-green-100 text-green-800">
+                <CheckCircledIcon className="w-3 h-3 mr-1" />
+                Reachable
+              </Badge>
+            ) : (
+              <Badge variant="destructive">
+                <CrossCircledIcon className="w-3 h-3 mr-1" />
+                Not Reachable
+              </Badge>
+            )}
+          </div>
+        </div>
+        
+        <div className="space-y-2 max-h-32 overflow-y-auto">
+          {Object.entries(validationResponse.clusterStatus).map(([contextName, status]) => (
+            <div key={contextName} className="flex items-center justify-between p-2 border rounded">
+              <div className="flex-1">
+                <div className="text-sm font-medium">{contextName}</div>
+                <div className="text-xs text-muted-foreground">{status.cluster}</div>
+              </div>
+              <div className="flex items-center gap-2">
+                {status.reachable ? (
+                  <Badge variant="default" className="bg-green-100 text-green-800 text-xs">
+                    <CheckCircledIcon className="w-3 h-3 mr-1" />
+                    Active
+                  </Badge>
+                ) : (
+                  <Badge variant="destructive" className="text-xs">
+                    <CrossCircledIcon className="w-3 h-3 mr-1" />
+                    Not Reachable
+                  </Badge>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        {!validationResponse.hasReachableClusters && (
+          <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
+            ⚠️ No reachable clusters found. Please check your kubeconfig and network connectivity.
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -118,7 +229,7 @@ const AddConfig = () => {
               Add Config
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add Config</DialogTitle>
               <DialogDescription>
@@ -176,11 +287,11 @@ const AddConfig = () => {
                         id="certificateName"
                         placeholder="Config name"
                         value={certificateConfig.name}
-                        className={cn('shadow-none', bearerTokenConfig.name && checkForValidConfigName(certificateConfig.name) && 'border-red-500 focus-visible:ring-red-500')}
+                        className={cn('shadow-none', certificateConfig.name && checkForValidConfigName(certificateConfig.name) && 'border-red-500 focus-visible:ring-red-500')}
                         onChange={(e) => setCertificateConfig({ ...certificateConfig, name: e.target.value || '' })}
                       />
                       {
-                        bearerTokenConfig.name && checkForValidConfigName(certificateConfig.name) &&
+                        certificateConfig.name && checkForValidConfigName(certificateConfig.name) &&
                         <p className="text-red-500 text-sm">Name must be alphanumeric and can include hyphens (-).</p>
                       }
                     </div>
@@ -226,16 +337,48 @@ const AddConfig = () => {
                     </div>
                     <div className="space-y-1 mt-1">
                       <Textarea id="kubeconfig"
-                        rows={11}
+                        rows={8}
                         className="shadow-none"
                         placeholder="Select the config file or directly paste your config here"
                         value={textValue}
                         onChange={(e) => {
                           setTextValue(e.target.value || '');
                           setKubeconfigFileConfig({ ...kubeconfigFileConfig, config: e.target.value || '' });
+                          setValidationPerformed(false);
                         }}
                       />
                     </div>
+                    
+                    {kubeconfigFileConfig.config && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={validateKubeconfig}
+                          disabled={validationLoading}
+                        >
+                          {validationLoading ? (
+                            <>
+                              <ReloadIcon className="w-3 h-3 mr-1 animate-spin" />
+                              Validating...
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircledIcon className="w-3 h-3 mr-1" />
+                              Validate Kubeconfig
+                            </>
+                          )}
+                        </Button>
+                        {validationPerformed && validationResponse && (
+                          <span className="text-xs text-muted-foreground">
+                            {validationResponse.hasReachableClusters ? '✓ Valid' : '✗ Invalid'}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    
+                    {renderClusterStatus()}
                   </TabsContent>
                 </Tabs>
               </div>
@@ -244,7 +387,7 @@ const AddConfig = () => {
               <Button
                 type="submit"
                 onClick={addNewConfig}
-                disabled={isDisabled()}
+                disabled={isAddDisabled()}
               >Save</Button>
             </DialogFooter>
           </DialogContent>

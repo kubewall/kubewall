@@ -1,14 +1,18 @@
 package api
 
 import (
+	"context"
 	"io"
 	"net/http"
+	"time"
 
 	"kubewall-backend/internal/k8s"
 	"kubewall-backend/internal/storage"
 	"kubewall-backend/pkg/logger"
 
 	"github.com/gin-gonic/gin"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
 )
@@ -215,4 +219,134 @@ func (h *KubeConfigHandler) DeleteKubeconfig(c *gin.Context) {
 
 	h.logger.WithField("config_id", configID).Info("Kubeconfig deleted successfully")
 	c.JSON(http.StatusOK, gin.H{"message": "Kubeconfig deleted successfully"})
+}
+
+// ValidateKubeconfig handles kubeconfig validation and connectivity testing
+func (h *KubeConfigHandler) ValidateKubeconfig(c *gin.Context) {
+	var content []byte
+	var filename string
+
+	// First, try to get the file content as text from FormData
+	if fileContent := c.PostForm("file"); fileContent != "" {
+		// Frontend sent the file content as text
+		content = []byte(fileContent)
+		// Try to get the filename from form data
+		if formFilename := c.PostForm("filename"); formFilename != "" {
+			filename = formFilename
+		} else {
+			filename = "kubeconfig.yaml" // Default filename
+		}
+	} else {
+		// Try to get actual file upload
+		file, err := c.FormFile("kubeconfig")
+		if err != nil {
+			file, err = c.FormFile("file")
+			if err != nil {
+				h.logger.WithError(err).Error("Failed to get kubeconfig file")
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get kubeconfig file"})
+				return
+			}
+		}
+
+		fileContent, err := file.Open()
+		if err != nil {
+			h.logger.WithError(err).Error("Failed to read file")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read file"})
+			return
+		}
+		defer fileContent.Close()
+
+		content, err = io.ReadAll(fileContent)
+		if err != nil {
+			h.logger.WithError(err).Error("Failed to read file content")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read file content"})
+			return
+		}
+		filename = file.Filename
+	}
+
+	// Validate kubeconfig format
+	config, err := clientcmd.Load(content)
+	if err != nil {
+		h.logger.WithError(err).Error("Invalid kubeconfig format")
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Invalid kubeconfig format",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	// Test connectivity for each cluster
+	clusterStatus := make(map[string]map[string]interface{})
+
+	for contextName, kubeContext := range config.Contexts {
+		clusterName := kubeContext.Cluster
+
+		// Create a copy of the config and set the context
+		configCopy := config.DeepCopy()
+		configCopy.CurrentContext = contextName
+
+		// Create client config
+		clientConfig := clientcmd.NewDefaultClientConfig(*configCopy, &clientcmd.ConfigOverrides{})
+		restConfig, err := clientConfig.ClientConfig()
+		if err != nil {
+			clusterStatus[contextName] = map[string]interface{}{
+				"name":      contextName,
+				"cluster":   clusterName,
+				"reachable": false,
+				"error":     "Failed to create client config: " + err.Error(),
+			}
+			continue
+		}
+
+		// Create Kubernetes client
+		client, err := kubernetes.NewForConfig(restConfig)
+		if err != nil {
+			clusterStatus[contextName] = map[string]interface{}{
+				"name":      contextName,
+				"cluster":   clusterName,
+				"reachable": false,
+				"error":     "Failed to create Kubernetes client: " + err.Error(),
+			}
+			continue
+		}
+
+		// Test connectivity with a timeout
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		_, err = client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{Limit: 1})
+		if err != nil {
+			clusterStatus[contextName] = map[string]interface{}{
+				"name":      contextName,
+				"cluster":   clusterName,
+				"reachable": false,
+				"error":     "Cluster not reachable: " + err.Error(),
+			}
+		} else {
+			clusterStatus[contextName] = map[string]interface{}{
+				"name":      contextName,
+				"cluster":   clusterName,
+				"reachable": true,
+				"error":     nil,
+			}
+		}
+	}
+
+	// Check if any clusters are reachable
+	hasReachableClusters := false
+	for _, status := range clusterStatus {
+		if status["reachable"].(bool) {
+			hasReachableClusters = true
+			break
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"valid":                true,
+		"filename":             filename,
+		"clusterStatus":        clusterStatus,
+		"hasReachableClusters": hasReachableClusters,
+		"totalClusters":        len(clusterStatus),
+	})
 }

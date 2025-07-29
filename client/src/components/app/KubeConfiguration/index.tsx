@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { resetAllStates, useAppDispatch, useAppSelector } from '@/redux/hooks';
+import { cn } from '@/lib/utils';
 
 import { AddConfig } from './AddConfiguration';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,7 @@ import { Clusters } from '@/types';
 import { DeleteConfiguration } from './DeleteConfiguration';
 import { Input } from '@/components/ui/input';
 import { ReloadIcon } from '@radix-ui/react-icons';
-import { StatusCell } from '../Table/TableCells/statusCell';
+import { ClusterStatusCell } from './ClusterStatusCell';
 import { fetchClusters } from '@/data/KwClusters/ClustersSlice';
 import { getSystemTheme } from '@/utils';
 import kwLogoDark from '../../../assets/facets-dark-theme.svg';
@@ -80,7 +81,11 @@ export function KubeConfiguration() {
     }
   }, [deleteConfigResponse, error, dispatch]);
 
-  const navigateTo = (config: string, name: string) => {
+  const navigateTo = (config: string, name: string, reachable?: boolean) => {
+    if (reachable === false) {
+      toast.error("Cannot navigate to unreachable cluster");
+      return;
+    }
     navigate({ to: `/${config}/list?cluster=${encodeURIComponent(name)}&resourcekind=pods` });
   };
 
@@ -137,12 +142,19 @@ export function KubeConfiguration() {
                         const {
                           name,
                           namespace,
-                          connected
+                          connected,
+                          reachable
                         } = filteredClusters.kubeConfigs[config].clusters[key];
+                        
+                        const isReachable = reachable !== undefined ? reachable : connected;
+                        
                         return (
                           <TableRow
-                            className="group/item hover:cursor-pointer"
-                            onClick={() => navigateTo(config, name)}
+                            className={cn(
+                              "group/item",
+                              isReachable ? "hover:cursor-pointer" : "hover:cursor-not-allowed opacity-60"
+                            )}
+                            onClick={() => navigateTo(config, name, reachable)}
                             key={`${config}-${name}`}
                           >
                             <TableCell className="flex items-center space-x-3">
@@ -154,9 +166,10 @@ export function KubeConfiguration() {
                             </TableCell>
                             <TableCell className="flex items-center justify-between">
                               <span>
-                                {
-                                  connected ? <StatusCell cellValue='Active' /> : <StatusCell cellValue='InActive' />
-                                }
+                                <ClusterStatusCell 
+                                  connected={connected} 
+                                  reachable={reachable}
+                                />
                               </span>
                               <DeleteConfiguration configId={config} />
                             </TableCell>

@@ -18,6 +18,15 @@ type KubeConfig struct {
 	Updated  time.Time         `json:"updated"`
 }
 
+// ClusterStatus represents the status of a cluster
+type ClusterStatus struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	AuthInfo  string `json:"authInfo"`
+	Reachable bool   `json:"reachable"`
+	Error     string `json:"error,omitempty"`
+}
+
 // KubeConfigStore provides thread-safe storage for kubeconfigs
 type KubeConfigStore struct {
 	mu       sync.RWMutex
@@ -210,11 +219,13 @@ func (s *KubeConfigStore) GetClustersResponse() map[string]interface{} {
 				namespace = context.Namespace
 			}
 
+			// For now, we'll set connected to true and let the frontend handle reachability
+			// In a future enhancement, we could store and return actual connectivity status
 			clusters[contextName] = map[string]interface{}{
 				"name":      contextName,
 				"namespace": namespace,
 				"authInfo":  authInfoName,
-				"connected": true, // TODO: Implement actual connection testing
+				"connected": true, // This will be updated by frontend validation
 			}
 		}
 
