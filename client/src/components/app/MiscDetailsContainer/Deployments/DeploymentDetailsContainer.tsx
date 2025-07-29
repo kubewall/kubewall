@@ -46,7 +46,7 @@ const DeploymentDetailsContainer = memo(function () {
     <div className="mt-2">
       <Card className="rounded-lg">
         <CardHeader className="p-4">
-          <CardTitle className="text-sm font-medium">Pods</CardTitle>
+          <CardTitle className="text-sm font-medium">Pods <span className="text-xs">({deploymentPodDetails.length})</span></CardTitle>
         </CardHeader>
         <CardContent className="pl-4 pr-4">
           <div className="col-span-7">
