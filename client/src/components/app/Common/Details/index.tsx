@@ -8,7 +8,7 @@ import { Events } from "../../Details/Events";
 import FourOFourError from "../../Errors/404Error";
 import { Loader } from "../../Loader";
 import { Overview } from "../../Details/Overview";
-import { PODS_ENDPOINT } from "@/constants";
+import { PODS_ENDPOINT, HELM_RELEASES_ENDPOINT } from "@/constants";
 import { PodLogs } from "../../MiscDetailsContainer";
 import { PodExec } from "../../MiscDetailsContainer/PodExec";
 import { RootState } from "@/redux/store";
@@ -21,8 +21,8 @@ import { YamlEditor } from "../../Details/YamlEditor";
 import { clearLogs } from "@/data/Workloads/Pods/PodLogsSlice";
 import { kwDetails, appRoute } from "@/routes";
 import { resetYamlDetails } from "@/data/Yaml/YamlSlice";
-import { useAppSelector } from "@/redux/hooks";
-import { useDispatch } from "react-redux";
+import { fetchHelmReleaseResources } from "@/data/Helm/HelmReleaseResourcesSlice";
+import { useAppSelector, useAppDispatch } from "@/redux/hooks";
 import { useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
@@ -31,7 +31,7 @@ import { HelmReleaseValues } from "../../Details/HelmReleaseValues";
 import { HelmReleaseResources } from "../../Details/HelmReleaseResources";
 
 const KwDetails = () => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const router = useRouterState();
   const { config } = appRoute.useParams();
@@ -45,6 +45,18 @@ const KwDetails = () => {
     dispatch(resetYamlDetails());
     dispatch(clearLogs());
   }, []);
+
+  // Fetch Helm release resources when component mounts for Helm releases
+  useEffect(() => {
+    if (resourcekind === HELM_RELEASES_ENDPOINT) {
+      dispatch(fetchHelmReleaseResources({
+        config: config,
+        cluster: cluster,
+        releaseName: resourcename,
+        namespace: namespace || ''
+      }));
+    }
+  }, [dispatch, config, cluster, resourcename, namespace, resourcekind]);
 
   // Check if current route's config exists and redirect if it doesn't
   useEffect(() => {
@@ -124,7 +136,7 @@ const KwDetails = () => {
         </span>
       </div>
 
-      <div className="h-screen flex-1 flex-col space-y-2 pt-0 p-2 md:flex">
+      <div className="min-h-screen flex-1 flex-col space-y-2 pt-0 p-2 md:flex">
         {
           resourceInitialData?.loading ? <Loader /> :
             <>
@@ -177,7 +189,7 @@ const KwDetails = () => {
                   
                   {resourcekind === 'helmreleases' ? (
                     <>
-                      <TabsContent value='history'>
+                      <TabsContent value='history' className="h-full">
                         <HelmReleaseHistory
                           name={resourcename}
                           configName={config}
@@ -185,7 +197,7 @@ const KwDetails = () => {
                           namespace={namespace || ''}
                         />
                       </TabsContent>
-                      <TabsContent value='values'>
+                      <TabsContent value='values' className="h-full">
                         <HelmReleaseValues
                           name={resourcename}
                           configName={config}

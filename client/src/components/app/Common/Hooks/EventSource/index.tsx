@@ -17,15 +17,15 @@ const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, on
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
-  const maxReconnectAttempts = 5;
-  const baseReconnectDelay = 1000;
+  const maxReconnectAttempts = 3; // Reduced from 5 to 3 for better UX
+  const baseReconnectDelay = 2000; // Increased from 1000 to 2000ms
   
   // Determine if this is a Helm releases endpoint
   const isHelmReleases = url.includes('helmreleases');
   const isHelmReleaseDetails = url.includes('helmreleases') && !url.includes('history');
   
-  // Increase timeout for Helm operations which can be slow
-  const connectionTimeout = isHelmReleases ? 60000 : 10000; // 60 seconds for Helm, 10 seconds for others
+  // Optimized timeouts based on Phase 2 server improvements
+  const connectionTimeout = isHelmReleases ? 90000 : 15000; // 90 seconds for Helm, 15 seconds for others
   const hasConfigErrorRef = useRef(false);
   const dispatch = useAppDispatch();
 
@@ -80,14 +80,20 @@ const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, on
     const eventSource = new EventSource(updatedUrl);
     eventSourceRef.current = eventSource;
 
-    // Set up connection timeout
+    // Set up connection timeout with improved handling
     connectionTimeoutRef.current = setTimeout(() => {
-      console.warn('EventSource connection timeout, closing and reconnecting...');
+      console.warn('EventSource connection timeout, closing and reconnecting...', 'timeout', connectionTimeout);
       eventSource.close();
       isConnectingRef.current = false;
       if (reconnectAttemptsRef.current < maxReconnectAttempts && !hasConfigErrorRef.current) {
         reconnectAttemptsRef.current++;
         connect();
+      } else {
+        // Max attempts reached, show error
+        if (onConnectionStatusChange) {
+          onConnectionStatusChange('error');
+        }
+        sendMessage([] as T);
       }
     }, connectionTimeout);
 
@@ -107,7 +113,7 @@ const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, on
       }
     };
 
-    // Handle incoming messages
+    // Handle incoming messages with improved error handling
     eventSource.onmessage = (event) => {
       try {
         // Skip empty messages (keep-alive comments)
@@ -185,7 +191,7 @@ const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, on
       }
     });
 
-    // Handle connection errors
+    // Handle connection errors with improved retry logic
     eventSource.onerror = (error) => {
       console.error('EventSource error:', error);
       
@@ -243,6 +249,7 @@ const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, on
   useEffect(() => {
     // Reset config error flag when URL changes
     hasConfigErrorRef.current = false;
+    reconnectAttemptsRef.current = 0; // Reset reconnect attempts on URL change
     connect();
     
     // Cleanup function

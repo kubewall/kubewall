@@ -58,4 +58,27 @@ export interface HelmReleaseHistoryResponse {
   appVersion: string;
   description: string;
   isLatest: boolean;
+}
+
+export interface HelmReleaseResource {
+  name: string;
+  kind: string;
+  namespace: string;
+  status: string;
+  age: string;
+  created: string;
+  labels?: Record<string, string>;
+  apiVersion?: string;
+}
+
+export interface ResourceSummary {
+  byType: Record<string, number>;
+  byStatus: Record<string, number>;
+  total: number;
+}
+
+export interface HelmReleaseResourcesResponse {
+  resources: HelmReleaseResource[];
+  total: number;
+  summary: ResourceSummary;
 } 

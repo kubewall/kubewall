@@ -124,7 +124,7 @@ export function KubeWall() {
               </TooltipProvider>
             </div>
             <div className="sticky bottom-0 w-full flex justify-center p-2 bg-muted/50">
-              <GitHubLogoIcon className="w-6 h-6 cursor-pointer" onClick={() => window.open('https://github.com/kubewall/kubewall')} />
+              <GitHubLogoIcon className="w-6 h-6 cursor-pointer" onClick={() => window.open('https://github.com/Facets-cloud/kube-dash')} />
             </div>
           </div>
           <div className="flex-1 flex overflow-hidden">

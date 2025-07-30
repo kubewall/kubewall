@@ -68,3 +68,29 @@ type HelmReleaseHistoryResponse struct {
 	Description string `json:"description"`
 	IsLatest    bool   `json:"isLatest"`
 }
+
+// HelmReleaseResource represents a Kubernetes resource created by a Helm release
+type HelmReleaseResource struct {
+	Name       string            `json:"name"`
+	Kind       string            `json:"kind"`
+	Namespace  string            `json:"namespace"`
+	Status     string            `json:"status"`
+	Age        string            `json:"age"`
+	Created    string            `json:"created"`
+	Labels     map[string]string `json:"labels,omitempty"`
+	APIVersion string            `json:"apiVersion,omitempty"`
+}
+
+// HelmReleaseResourcesResponse represents the API response for Helm release resources
+type HelmReleaseResourcesResponse struct {
+	Resources []HelmReleaseResource `json:"resources"`
+	Total     int                   `json:"total"`
+	Summary   ResourceSummary       `json:"summary"`
+}
+
+// ResourceSummary provides a summary of resources by type and status
+type ResourceSummary struct {
+	ByType   map[string]int `json:"byType"`
+	ByStatus map[string]int `json:"byStatus"`
+	Total    int            `json:"total"`
+}

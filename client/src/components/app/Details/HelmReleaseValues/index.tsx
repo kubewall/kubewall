@@ -72,7 +72,7 @@ export function HelmReleaseValues({ name }: HelmReleaseValuesProps) {
     try {
       const formatted = formatValues(values);
       return (
-        <div className="h-[600px] w-full border rounded-lg overflow-hidden">
+        <div className="w-full border rounded-lg overflow-hidden" style={{ height: 'calc(100vh - 300px)', minHeight: '500px' }}>
           <Editor
             value={formatted}
             language="yaml"
@@ -80,14 +80,32 @@ export function HelmReleaseValues({ name }: HelmReleaseValuesProps) {
             options={{
               readOnly: true,
               minimap: { enabled: false },
-              scrollBeyondLastLine: false,
+              scrollBeyondLastLine: true,
               fontSize: 14,
               lineNumbers: 'on',
               wordWrap: 'on',
               folding: true,
               automaticLayout: true,
+              scrollbar: {
+                vertical: 'visible',
+                horizontal: 'visible',
+                verticalScrollbarSize: 14,
+                horizontalScrollbarSize: 14,
+              },
+              overviewRulerBorder: false,
+              overviewRulerLanes: 0,
             }}
             height="100%"
+            onMount={(editor) => {
+              // Force layout update after mount
+              setTimeout(() => {
+                editor.layout();
+                // Ensure scrolling is enabled
+                editor.updateOptions({
+                  scrollBeyondLastLine: true,
+                });
+              }, 100);
+            }}
           />
         </div>
       );
@@ -112,25 +130,43 @@ export function HelmReleaseValues({ name }: HelmReleaseValuesProps) {
       );
     }
 
-    return (
-      <div className="h-[600px] w-full border rounded-lg overflow-hidden">
+        return (
+      <div className="w-full border rounded-lg overflow-hidden" style={{ height: 'calc(100vh - 300px)', minHeight: '500px' }}>
         <Editor
-          value={values}
-          language="yaml"
-          theme={getSystemTheme()}
-          options={{
-            readOnly: true,
-            minimap: { enabled: false },
-            scrollBeyondLastLine: false,
-            fontSize: 14,
-            lineNumbers: 'on',
-            wordWrap: 'on',
-            folding: true,
-            automaticLayout: true,
-          }}
-          height="100%"
-        />
-      </div>
+            value={values}
+            language="yaml"
+            theme={getSystemTheme()}
+            options={{
+              readOnly: true,
+              minimap: { enabled: false },
+              scrollBeyondLastLine: true,
+              fontSize: 14,
+              lineNumbers: 'on',
+              wordWrap: 'on',
+              folding: true,
+              automaticLayout: true,
+              scrollbar: {
+                vertical: 'visible',
+                horizontal: 'visible',
+                verticalScrollbarSize: 14,
+                horizontalScrollbarSize: 14,
+              },
+              overviewRulerBorder: false,
+              overviewRulerLanes: 0,
+            }}
+            height="100%"
+            onMount={(editor) => {
+              // Force layout update after mount
+              setTimeout(() => {
+                editor.layout();
+                // Ensure scrolling is enabled
+                editor.updateOptions({
+                  scrollBeyondLastLine: true,
+                });
+              }, 100);
+            }}
+          />
+        </div>
     );
   };
 

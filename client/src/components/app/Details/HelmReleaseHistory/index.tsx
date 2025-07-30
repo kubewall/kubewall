@@ -69,17 +69,17 @@ export function HelmReleaseHistory({ name }: HelmReleaseHistoryProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
         {/* Timeline */}
-        <div className="lg:col-span-2">
-          <Card>
+        <div className="lg:col-span-2 h-full">
+          <Card className="h-full">
             <CardHeader>
               <CardTitle>Revision Timeline</CardTitle>
               <CardDescription>History of all releases and their status</CardDescription>
             </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[600px]">
-                <div className="space-y-4">
+            <CardContent className="p-0">
+              <ScrollArea className="w-full" style={{ height: 'calc(100vh - 300px)', minHeight: '500px' }}>
+                <div className="space-y-4 p-6 pb-8">
                   {history.map((revision: HelmReleaseHistoryType, index: number) => (
                     <div key={revision.revision} className="relative">
                       {/* Timeline connector */}
@@ -127,7 +127,7 @@ export function HelmReleaseHistory({ name }: HelmReleaseHistoryProps) {
                             </span>
                           </div>
 
-                          <div className="flex space-x-2 mt-3">
+                          <div className="flex space-x-2 mt-3 mb-2">
                             <Button
                               variant="outline"
                               size="sm"
@@ -157,14 +157,14 @@ export function HelmReleaseHistory({ name }: HelmReleaseHistoryProps) {
 
         {/* Revision Details */}
         <div className="lg:col-span-1">
-          <Card>
+          <Card className="h-full">
             <CardHeader>
               <CardTitle>Revision Details</CardTitle>
               <CardDescription>
                 {selectedRevision ? `Revision ${selectedRevision.revision}` : 'Select a revision to view details'}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1">
               {selectedRevision ? (
                 <div className="space-y-4">
                   <div>

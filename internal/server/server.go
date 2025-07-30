@@ -562,6 +562,7 @@ func (s *Server) setupRoutes() {
 		api.GET("/helmreleases", s.helmHandler.GetHelmReleasesSSE)
 		api.GET("/helmreleases/:name", s.helmHandler.GetHelmReleaseDetails)
 		api.GET("/helmreleases/:name/history", s.helmHandler.GetHelmReleaseHistory)
+		api.GET("/helmreleases/:name/resources", s.helmHandler.GetHelmReleaseResources)
 
 		// Cloud Shell endpoints
 		api.POST("/cloudshell", s.cloudShellHandler.CreateCloudShell)
