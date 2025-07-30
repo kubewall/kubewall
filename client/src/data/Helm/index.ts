@@ -1,2 +1,2 @@
 export { default as helmReleasesReducer, clearHelmReleases, setHelmReleasesError, updateHelmReleases, setHelmReleasesLoading } from './HelmReleasesSlice';
-export { default as helmReleaseDetailsReducer, fetchHelmReleaseDetails, fetchHelmReleaseHistory, clearHelmReleaseDetails, setHelmReleaseDetailsError } from './HelmReleaseDetailsSlice'; 
+export { default as helmReleaseDetailsReducer, clearHelmReleaseDetails, setHelmReleaseDetailsError } from './HelmReleaseDetailsSlice'; 

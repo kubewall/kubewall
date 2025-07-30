@@ -1,10 +1,12 @@
 package k8s
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
 	"sync"
+	"time"
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
@@ -65,6 +67,12 @@ func (f *HelmClientFactory) GetHelmClientForConfig(config *api.Config, clusterNa
 	restConfig, err := clientConfig.ClientConfig()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create client config: %w", err)
+	}
+
+	// Set reasonable timeouts for the REST config
+	restConfig.Timeout = 30 * time.Second
+	if restConfig.RateLimiter == nil {
+		restConfig.RateLimiter = &noRateLimiter{}
 	}
 
 	// Create Helm settings
@@ -148,6 +156,16 @@ func (r *CustomRESTClientGetter) ToRawKubeConfigLoader() clientcmd.ClientConfig 
 	// Return a minimal client config
 	return &minimalClientConfig{}
 }
+
+// noRateLimiter implements a no-op rate limiter
+type noRateLimiter struct{}
+
+func (n *noRateLimiter) TryAccept() bool                { return true }
+func (n *noRateLimiter) Accept()                        {}
+func (n *noRateLimiter) Stop()                          {}
+func (n *noRateLimiter) QPS() float32                   { return 0 }
+func (n *noRateLimiter) Burst() int                     { return 0 }
+func (n *noRateLimiter) Wait(ctx context.Context) error { return nil }
 
 // minimalClientConfig implements clientcmd.ClientConfig
 type minimalClientConfig struct{}

@@ -101,34 +101,58 @@ func (h *SSEHandler) SendSSEResponseWithUpdates(c *gin.Context, data interface{}
 			h.logger.Info("SSE connection closed by client")
 			return
 		case <-ticker.C:
-			// Fetch fresh data and send update
+			// Fetch fresh data and send update with timeout
 			if updateFunc != nil {
-				freshData, err := updateFunc()
-				if err != nil {
-					h.logger.WithError(err).Error("Failed to fetch fresh data for SSE update")
+				// Create a channel for the update result
+				resultChan := make(chan struct {
+					data interface{}
+					err  error
+				}, 1)
+
+				// Run the update function in a goroutine with timeout
+				go func() {
+					freshData, err := updateFunc()
+					resultChan <- struct {
+						data interface{}
+						err  error
+					}{freshData, err}
+				}()
+
+				// Wait for result with timeout
+				select {
+				case result := <-resultChan:
+					if result.err != nil {
+						h.logger.WithError(result.err).Error("Failed to fetch fresh data for SSE update")
+						// Send keep-alive
+						c.Data(http.StatusOK, "text/event-stream", []byte(": keep-alive\n\n"))
+						c.Writer.Flush()
+						continue
+					}
+
+					// Ensure we always send a valid array, never null
+					if result.data == nil {
+						result.data = []interface{}{}
+					}
+
+					jsonData, err := json.Marshal(result.data)
+					if err != nil {
+						h.logger.WithError(err).Error("Failed to marshal fresh SSE data")
+						// Send keep-alive
+						c.Data(http.StatusOK, "text/event-stream", []byte(": keep-alive\n\n"))
+						c.Writer.Flush()
+						continue
+					}
+
+					// Send data directly without event wrapper
+					c.Data(http.StatusOK, "text/event-stream", []byte("data: "+string(jsonData)+"\n\n"))
+					c.Writer.Flush()
+
+				case <-time.After(5 * time.Second): // 5 second timeout for update function
+					h.logger.Warn("Update function timed out, sending keep-alive")
 					// Send keep-alive
 					c.Data(http.StatusOK, "text/event-stream", []byte(": keep-alive\n\n"))
 					c.Writer.Flush()
-					continue
 				}
-
-				// Ensure we always send a valid array, never null
-				if freshData == nil {
-					freshData = []interface{}{}
-				}
-
-				jsonData, err := json.Marshal(freshData)
-				if err != nil {
-					h.logger.WithError(err).Error("Failed to marshal fresh SSE data")
-					// Send keep-alive
-					c.Data(http.StatusOK, "text/event-stream", []byte(": keep-alive\n\n"))
-					c.Writer.Flush()
-					continue
-				}
-
-				// Send data directly without event wrapper
-				c.Data(http.StatusOK, "text/event-stream", []byte("data: "+string(jsonData)+"\n\n"))
-				c.Writer.Flush()
 			} else {
 				// Send a keep-alive
 				c.Data(http.StatusOK, "text/event-stream", []byte(": keep-alive\n\n"))

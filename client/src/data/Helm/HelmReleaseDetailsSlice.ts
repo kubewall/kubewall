@@ -1,10 +1,9 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { HelmReleaseDetails, HelmReleaseHistoryResponse } from '@/types';
-import kwFetch from '../kwFetch';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { HelmReleaseDetails } from '@/types';
 
 interface HelmReleaseDetailsState {
   details: HelmReleaseDetails | null;
-  history: HelmReleaseHistoryResponse[];
+  history: any[];
   loading: boolean;
   error: string | null;
   lastUpdated: number | null;
@@ -17,44 +16,6 @@ const initialState: HelmReleaseDetailsState = {
   error: null,
   lastUpdated: null,
 };
-
-export const fetchHelmReleaseDetails = createAsyncThunk(
-  'helmReleaseDetails/fetchHelmReleaseDetails',
-  async (params: { config: string; cluster: string; name: string; namespace?: string }) => {
-    const queryParams = new URLSearchParams({
-      config: params.config,
-      cluster: params.cluster,
-      ...(params.namespace && { namespace: params.namespace }),
-    });
-
-    const response = await kwFetch(`/api/v1/helmreleases/${params.name}?${queryParams}`);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch Helm release details: ${response.statusText}`);
-    }
-
-    const data: HelmReleaseDetails = await response.json();
-    return data;
-  }
-);
-
-export const fetchHelmReleaseHistory = createAsyncThunk(
-  'helmReleaseDetails/fetchHelmReleaseHistory',
-  async (params: { config: string; cluster: string; name: string; namespace?: string }) => {
-    const queryParams = new URLSearchParams({
-      config: params.config,
-      cluster: params.cluster,
-      ...(params.namespace && { namespace: params.namespace }),
-    });
-
-    const response = await kwFetch(`/api/v1/helmreleases/${params.name}/history?${queryParams}`);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch Helm release history: ${response.statusText}`);
-    }
-
-    const data: HelmReleaseHistoryResponse[] = await response.json();
-    return data;
-  }
-);
 
 const helmReleaseDetailsSlice = createSlice({
   name: 'helmReleaseDetails',
@@ -70,39 +31,17 @@ const helmReleaseDetailsSlice = createSlice({
       state.error = action.payload;
       state.loading = false;
     },
-  },
-  extraReducers: (builder) => {
-    builder
-      .addCase(fetchHelmReleaseDetails.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(fetchHelmReleaseDetails.fulfilled, (state, action) => {
-        state.loading = false;
-        state.details = action.payload;
-        state.lastUpdated = Date.now();
-        state.error = null;
-      })
-      .addCase(fetchHelmReleaseDetails.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message || 'Failed to fetch Helm release details';
-      })
-      .addCase(fetchHelmReleaseHistory.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(fetchHelmReleaseHistory.fulfilled, (state, action) => {
-        state.loading = false;
-        state.history = action.payload;
-        state.lastUpdated = Date.now();
-        state.error = null;
-      })
-      .addCase(fetchHelmReleaseHistory.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message || 'Failed to fetch Helm release history';
-      });
+    updateHelmReleaseDetails: (state, action: PayloadAction<HelmReleaseDetails>) => {
+      state.details = action.payload;
+      state.loading = false;
+      state.error = null;
+      state.lastUpdated = Date.now();
+    },
+    setHelmReleaseDetailsLoading: (state, action: PayloadAction<boolean>) => {
+      state.loading = action.payload;
+    },
   },
 });
 
-export const { clearHelmReleaseDetails, setHelmReleaseDetailsError } = helmReleaseDetailsSlice.actions;
+export const { clearHelmReleaseDetails, setHelmReleaseDetailsError, updateHelmReleaseDetails, setHelmReleaseDetailsLoading } = helmReleaseDetailsSlice.actions;
 export default helmReleaseDetailsSlice.reducer; 

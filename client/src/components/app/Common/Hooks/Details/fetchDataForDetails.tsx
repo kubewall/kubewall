@@ -17,6 +17,7 @@ import { updateHPADetails } from "@/data/Configurations/HPAs/HPADetailsSlice";
 import { updateIngressDetails } from "@/data/Networks/Ingresses/IngressDetailsSlice";
 import { updateJobDetails } from "@/data/Workloads/Jobs/JobDetailsSlice";
 import { updateLeaseDetails } from "@/data/Clusters/Leases/LeaseDetailsSlice";
+import { updateHelmReleaseDetails } from "@/data/Helm/HelmReleaseDetailsSlice";
 import { updateLimitRangeDetails } from "@/data/Configurations/LimitRange/LimitRangeDetailsSlice";
 import { updateNamespaceDetails } from "@/data/Clusters/Namespaces/NamespaceDetailsSlice";
 import { updateNodeDetails } from "@/data/Clusters/Nodes/NodeDetailsSlice";
@@ -38,8 +39,7 @@ import { updateStorageClassDetails } from "@/data/Storages/StorageClasses/Storag
 import { useEventSource } from "../EventSource";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { useEffect } from "react";
-import { fetchHelmReleaseDetails, fetchHelmReleaseHistory } from "@/data/Helm";
+
 
 type FetchDataForDetailsProps = {
   config: string;
@@ -169,8 +169,8 @@ const useFetchDataForDetails = ({
   } else if (resourcekind === CUSTOM_RESOURCES_ENDPOINT) {
     data = { label: 'Custom Resources Definitions', dispatchMethod: updateCustomResourcesDefinitionDetails, loading: customResourcesDefintionsDetailsLoading, endpoint: `${CUSTOM_RESOURCES_ENDPOINT}${namespace ? `/${namespace}`: ''}` };
   } else if (resourcekind === HELM_RELEASES_ENDPOINT) {
-    // For Helm releases, we don't use the event source pattern, but we still need to return data
-    data = { label: 'Helm Releases', dispatchMethod: null, loading: helmReleaseDetailsLoading, endpoint: HELM_RELEASES_ENDPOINT };
+    // For Helm releases, we use EventSource for real-time updates
+    data = { label: 'Helm Releases', dispatchMethod: updateHelmReleaseDetails, loading: helmReleaseDetailsLoading, endpoint: HELM_RELEASES_ENDPOINT };
   } else {
     data = null;
   }
@@ -206,9 +206,12 @@ const useFetchDataForDetails = ({
 
   // For pods, deployments, and other namespace-scoped resources, we need to use the namespace/name pattern in the URL
   let eventSourceUrl: string;
-  if ((resourcekind === PODS_ENDPOINT || resourcekind === DEPLOYMENT_ENDPOINT || resourcekind === DAEMON_SETS_ENDPOINT || resourcekind === STATEFUL_SETS_ENDPOINT || resourcekind === REPLICA_SETS_ENDPOINT || resourcekind === JOBS_ENDPOINT || resourcekind === CRON_JOBS_ENDPOINT || resourcekind === SERVICES_ENDPOINT || resourcekind === CONFIG_MAPS_ENDPOINT || resourcekind === SECRETS_ENDPOINT || resourcekind === HPA_ENDPOINT || resourcekind === LIMIT_RANGE_ENDPOINT || resourcekind === RESOURCE_QUOTAS_ENDPOINT || resourcekind === SERVICE_ACCOUNTS_ENDPOINT || resourcekind === ROLES_ENDPOINT || resourcekind === ROLE_BINDINGS_ENDPOINT || resourcekind === PERSISTENT_VOLUME_CLAIMS_ENDPOINT || resourcekind === POD_DISRUPTION_BUDGETS_ENDPOINT || resourcekind === ENDPOINTS_ENDPOINT || resourcekind === INGRESSES_ENDPOINT || resourcekind === LEASES_ENDPOINT || resourcekind === HELM_RELEASES_ENDPOINT) && namespace) {
+  if ((resourcekind === PODS_ENDPOINT || resourcekind === DEPLOYMENT_ENDPOINT || resourcekind === DAEMON_SETS_ENDPOINT || resourcekind === STATEFUL_SETS_ENDPOINT || resourcekind === REPLICA_SETS_ENDPOINT || resourcekind === JOBS_ENDPOINT || resourcekind === CRON_JOBS_ENDPOINT || resourcekind === SERVICES_ENDPOINT || resourcekind === CONFIG_MAPS_ENDPOINT || resourcekind === SECRETS_ENDPOINT || resourcekind === HPA_ENDPOINT || resourcekind === LIMIT_RANGE_ENDPOINT || resourcekind === RESOURCE_QUOTAS_ENDPOINT || resourcekind === SERVICE_ACCOUNTS_ENDPOINT || resourcekind === ROLES_ENDPOINT || resourcekind === ROLE_BINDINGS_ENDPOINT || resourcekind === PERSISTENT_VOLUME_CLAIMS_ENDPOINT || resourcekind === POD_DISRUPTION_BUDGETS_ENDPOINT || resourcekind === ENDPOINTS_ENDPOINT || resourcekind === INGRESSES_ENDPOINT || resourcekind === LEASES_ENDPOINT) && namespace) {
     // Use the pattern /{resource}/{namespace}/{name} for namespace-scoped resources
     eventSourceUrl = getEventStreamUrl(data?.endpoint, queryParamObject, `/${namespace}/${resourcename}`);
+  } else if (resourcekind === HELM_RELEASES_ENDPOINT) {
+    // For Helm releases, use the pattern /{resource}/{name} with namespace as query param
+    eventSourceUrl = getEventStreamUrl(data?.endpoint, queryParamObject, `/${resourcename}`);
   } else {
     // Use the default pattern for cluster-scoped resources
     eventSourceUrl = getEventStreamUrl(data?.endpoint, queryParamObject, `/${resourcename}`);
@@ -223,23 +226,8 @@ const useFetchDataForDetails = ({
     });
   }
 
-  // Special handling for Helm releases - fetch details using async thunks
-  useEffect(() => {
-    if (resourcekind === HELM_RELEASES_ENDPOINT && config && cluster && resourcename) {
-      dispatch(fetchHelmReleaseDetails({
-        config: config,
-        cluster: cluster,
-        name: resourcename,
-        namespace: namespace
-      }));
-      dispatch(fetchHelmReleaseHistory({
-        config: config,
-        cluster: cluster,
-        name: resourcename,
-        namespace: namespace
-      }));
-    }
-  }, [dispatch, resourcekind, config, cluster, resourcename, namespace]);
+  // Note: Helm releases are handled separately in HelmReleaseDetailsContainer
+  // to avoid duplicate API calls
 
   if(!data) {
     return null;

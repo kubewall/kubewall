@@ -15,8 +15,11 @@ type Config struct {
 
 // ServerConfig holds server-specific configuration
 type ServerConfig struct {
-	Port string
-	Host string
+	Port         string
+	Host         string
+	ReadTimeout  int // in seconds
+	WriteTimeout int // in seconds
+	IdleTimeout  int // in seconds
 }
 
 // LoggingConfig holds logging-specific configuration
@@ -38,8 +41,11 @@ type StaticFilesConfig struct {
 func Load() *Config {
 	return &Config{
 		Server: ServerConfig{
-			Port: getEnv("PORT", "7080"),
-			Host: getEnv("HOST", "0.0.0.0"),
+			Port:         getEnv("PORT", "7080"),
+			Host:         getEnv("HOST", "0.0.0.0"),
+			ReadTimeout:  getEnvAsInt("SERVER_READ_TIMEOUT", 60),
+			WriteTimeout: getEnvAsInt("SERVER_WRITE_TIMEOUT", 60),
+			IdleTimeout:  getEnvAsInt("SERVER_IDLE_TIMEOUT", 120),
 		},
 		Logging: LoggingConfig{
 			Level: getEnv("LOG_LEVEL", "info"),

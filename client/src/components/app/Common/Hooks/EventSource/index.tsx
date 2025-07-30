@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useAppDispatch } from '@/redux/hooks';
-import { setHelmReleasesLoading } from '@/data/Helm';
+import { setHelmReleasesLoading } from '@/data/Helm/HelmReleasesSlice';
+import { setHelmReleaseDetailsLoading } from '@/data/Helm/HelmReleaseDetailsSlice';
 
 type KwEventSourceWithStatus<T = any> = {
   url: string;
@@ -24,6 +25,7 @@ const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, on
 
   // Determine if this is a Helm releases endpoint
   const isHelmReleases = url.includes('helmreleases');
+  const isHelmReleaseDetails = url.includes('helmreleases') && !url.includes('history');
 
   let updatedUrl: string;
   if (url.startsWith('/')) {
@@ -48,8 +50,10 @@ const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, on
     // Set loading to true when connection starts
     if (setLoading) {
       setLoading(true);
-    } else if (isHelmReleases) {
+    } else if (isHelmReleases && !isHelmReleaseDetails) {
       dispatch(setHelmReleasesLoading(true));
+    } else if (isHelmReleaseDetails) {
+      dispatch(setHelmReleaseDetailsLoading(true));
     }
 
     // Close existing connection if any
@@ -193,8 +197,10 @@ const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, on
       // Set loading to false on error
       if (setLoading) {
         setLoading(false);
-      } else if (isHelmReleases) {
+      } else if (isHelmReleases && !isHelmReleaseDetails) {
         dispatch(setHelmReleasesLoading(false));
+      } else if (isHelmReleaseDetails) {
+        dispatch(setHelmReleaseDetailsLoading(false));
       }
       
       // Don't send empty array immediately on error
