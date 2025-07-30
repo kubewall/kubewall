@@ -125,9 +125,9 @@ const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, on
         // console.log('Received SSE message:', event.data.substring(0, 100) + '...');
         const eventData = JSON.parse(event.data);
         
-        // Handle null data properly - don't try to access properties on null
-        if (eventData === null) {
-          // Send empty array for null data instead of trying to access properties
+        // Handle null or undefined data properly
+        if (eventData === null || eventData === undefined) {
+          // Send empty array for null/undefined data
           sendMessage([] as T);
           return;
         }
@@ -153,11 +153,17 @@ const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, on
           return;
         }
         
-        sendMessage(eventData);
+        // Ensure we're sending valid data
+        if (Array.isArray(eventData) || typeof eventData === 'object') {
+          sendMessage(eventData);
+        } else {
+          console.warn('Received invalid data format from EventSource:', eventData);
+          sendMessage([] as T);
+        }
       } catch (error) {
         console.warn('Failed to parse EventSource message:', error);
-        // Don't send empty array on parse error, just log the warning
-        // This prevents "No results" from showing during temporary issues
+        // Send empty array on parse error to prevent UI issues
+        sendMessage([] as T);
       }
     };
 

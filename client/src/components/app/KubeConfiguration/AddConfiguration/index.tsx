@@ -300,7 +300,7 @@ const AddConfig = () => {
                   <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="bearerToken">Bearer Token</TabsTrigger>
                     <TabsTrigger value="certificate">Certificate</TabsTrigger>
-                    <TabsTrigger value="kubeconfigFile">kubeconfig file</TabsTrigger>
+                    <TabsTrigger value="kubeconfigFile">Kubeconfig File</TabsTrigger>
                   </TabsList>
                   <TabsContent value="bearerToken">
                     <div className="space-y-1">

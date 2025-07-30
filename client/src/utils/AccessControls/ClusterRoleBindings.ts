@@ -4,7 +4,7 @@ const formatClusterRoleBindingsResponse = (serviceAccounts: ClusterRoleBindingsR
   return serviceAccounts.map(({age, name, namespace, subjects, hasUpdated, uid}) => ({
     name: name,
     namespace: namespace ? namespace: '',
-    bindings: subjects.bindings === null ? '—' : subjects.bindings.toString().replace(',', ', '),
+    bindings: subjects.bindings === null ? '—' : subjects.bindings.join(', '),
     age: age,
     hasUpdated: hasUpdated,
     uid: uid

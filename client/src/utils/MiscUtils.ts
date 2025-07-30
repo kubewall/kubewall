@@ -8,7 +8,8 @@ const defaultOrValue = (value?: string | number | boolean | null) => value || '�
 
 const defaultOrValueObject = (value: object | Array<string | null> | string | unknown) => {
   if (Array.isArray(value)) {
-    return value.filter((secretValue) => !!secretValue).toString() || '—';
+    const filteredArray = value.filter((secretValue) => !!secretValue);
+    return filteredArray.length > 0 ? filteredArray.join(', ') : '—';
   }
   if (typeof value === 'string') {
     return value;

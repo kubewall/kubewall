@@ -2,27 +2,23 @@ package types
 
 // ConfigMapListResponse represents the response format expected by the frontend for configmaps
 type ConfigMapListResponse struct {
-	Age        string `json:"age"`
-	HasUpdated bool   `json:"hasUpdated"`
-	Name       string `json:"name"`
-	Namespace  string `json:"namespace"`
-	UID        string `json:"uid"`
-	Data       struct {
-		Keys []string `json:"keys"`
-	} `json:"data"`
+	Age        string   `json:"age"`
+	HasUpdated bool     `json:"hasUpdated"`
+	Name       string   `json:"name"`
+	Namespace  string   `json:"namespace"`
+	UID        string   `json:"uid"`
+	Keys       []string `json:"keys"`
 }
 
 // SecretListResponse represents the response format expected by the frontend for secrets
 type SecretListResponse struct {
-	Age        string `json:"age"`
-	HasUpdated bool   `json:"hasUpdated"`
-	Name       string `json:"name"`
-	Namespace  string `json:"namespace"`
-	UID        string `json:"uid"`
-	Type       string `json:"type"`
-	Data       struct {
-		Keys []string `json:"keys"`
-	} `json:"data"`
+	Age        string   `json:"age"`
+	HasUpdated bool     `json:"hasUpdated"`
+	Name       string   `json:"name"`
+	Namespace  string   `json:"namespace"`
+	UID        string   `json:"uid"`
+	Type       string   `json:"type"`
+	Keys       []string `json:"keys"`
 }
 
 // HPAListResponse represents the response format expected by the frontend for HPAs

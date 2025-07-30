@@ -31,11 +31,7 @@ func TransformConfigMapToResponse(configMap *v1.ConfigMap) types.ConfigMapListRe
 		Name:       configMap.Name,
 		Namespace:  configMap.Namespace,
 		UID:        string(configMap.UID),
-		Data: struct {
-			Keys []string `json:"keys"`
-		}{
-			Keys: keys,
-		},
+		Keys:       keys,
 	}
 }
 
@@ -59,11 +55,7 @@ func TransformSecretToResponse(secret *v1.Secret) types.SecretListResponse {
 		Namespace:  secret.Namespace,
 		UID:        string(secret.UID),
 		Type:       string(secret.Type),
-		Data: struct {
-			Keys []string `json:"keys"`
-		}{
-			Keys: keys,
-		},
+		Keys:       keys,
 	}
 }
 
