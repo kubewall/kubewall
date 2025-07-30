@@ -1,8 +1,8 @@
-# KubeWall Makefile
-# A comprehensive build system for the KubeWall project
+# Facets Kubedash Makefile
+# A comprehensive build system for the Facets Kubedash project
 
 # Variables
-BINARY_NAME=kubewall-server
+BINARY_NAME=Facets-Kubedash-server
 BUILD_DIR=.
 CLIENT_DIR=client
 SERVER_DIR=cmd/server
@@ -39,7 +39,7 @@ NC=\033[0m # No Color
 # Help target
 .PHONY: help
 help: ## Show this help message
-	@echo "$(CYAN)KubeWall - Kubernetes Dashboard$(NC)"
+	@echo "$(CYAN)Facets Kubedash - Kubernetes Dashboard$(NC)"
 	@echo "$(CYAN)================================$(NC)"
 	@echo ""
 	@echo "$(YELLOW)Available targets:$(NC)"
@@ -108,7 +108,7 @@ build-frontend: ## Build the React frontend
 .PHONY: build-backend
 build-backend: ## Build the Go backend
 	@echo "$(BLUE)Building backend...$(NC)"
-	cd $(SERVER_DIR) && $(GO) build $(LDFLAGS) -o ../../$(BINARY_NAME)
+	cd $(SERVER_DIR) && $(GO) build $(LDFLAGS) -o ../../bin/$(BINARY_NAME)
 	@echo "$(GREEN)✓$(NC) Backend built successfully"
 
 # Build everything
@@ -139,10 +139,10 @@ build-darwin: ## Build for macOS
 # Run the application
 .PHONY: run
 run: ## Run the server
-	@echo "$(BLUE)Starting KubeWall server...$(NC)"
+	@echo "$(BLUE)Starting Facets Kubedash server...$(NC)"
 	@echo "$(YELLOW)The application will be available at: http://localhost:7080$(NC)"
 	@echo "$(YELLOW)Press Ctrl+C to stop the server$(NC)"
-	./$(BINARY_NAME)
+	./bin/$(BINARY_NAME)
 
 # Run in development mode
 .PHONY: dev
@@ -155,10 +155,10 @@ dev: ## Run in development mode (builds if needed)
 		echo "$(YELLOW)Frontend not built. Building first...$(NC)"; \
 		$(MAKE) build-frontend; \
 	fi
-	@echo "$(BLUE)Starting KubeWall in development mode...$(NC)"
+	@echo "$(BLUE)Starting Facets Kubedash in development mode...$(NC)"
 	@echo "$(YELLOW)The application will be available at: http://localhost:7080$(NC)"
 	@echo "$(YELLOW)Press Ctrl+C to stop the server$(NC)"
-	./$(BINARY_NAME)
+	./bin/$(BINARY_NAME)
 
 # Test targets
 .PHONY: test
@@ -239,13 +239,13 @@ clean-all: clean clean-frontend clean-deps ## Clean everything
 .PHONY: docker-build
 docker-build: ## Build Docker image
 	@echo "$(BLUE)Building Docker image...$(NC)"
-	docker build -t kubewall:latest .
+	docker build -t Facets Kubedash:latest .
 	@echo "$(GREEN)✓$(NC) Docker image built"
 
 .PHONY: docker-run
 docker-run: ## Run Docker container
 	@echo "$(BLUE)Running Docker container...$(NC)"
-	docker run -p 7080:7080 kubewall:latest
+	docker run -p 7080:7080 Facets Kubedash:latest
 
 # Release targets
 .PHONY: release
@@ -291,7 +291,7 @@ ci: check build ## Run CI pipeline (check + build)
 # Utility targets
 .PHONY: version
 version: ## Show version information
-	@echo "$(CYAN)KubeWall Version Information$(NC)"
+	@echo "$(CYAN)Facets Kubedash Version Information$(NC)"
 	@echo "Version: $(VERSION)"
 	@echo "Build Time: $(BUILD_TIME)"
 	@echo "Git Commit: $(GIT_COMMIT)"

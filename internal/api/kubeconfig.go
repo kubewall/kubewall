@@ -326,7 +326,7 @@ func (h *KubeConfigHandler) ValidateKubeconfig(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		_, err = client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{Limit: 1})
+		_, err = client.CoreV1().Pods("default").List(ctx, metav1.ListOptions{Limit: 1})
 		if err != nil {
 			clusterStatus[contextName] = map[string]interface{}{
 				"name":      contextName,
@@ -676,7 +676,7 @@ func (h *KubeConfigHandler) ValidateAllKubeconfigs(c *gin.Context) {
 					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 					defer cancel()
 
-					_, err = client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{Limit: 1})
+					_, err = client.CoreV1().Pods("default").List(ctx, metav1.ListOptions{Limit: 1})
 					if err != nil {
 						clusterMu.Lock()
 						clusterStatus[contextName] = map[string]interface{}{

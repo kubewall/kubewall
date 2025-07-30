@@ -8,6 +8,8 @@ interface CloudShellState {
   loading: boolean;
   error: string | null;
   lastUpdated: number | null;
+  sessionLimit: number;
+  currentSessionCount: number;
 }
 
 const initialState: CloudShellState = {
@@ -16,6 +18,8 @@ const initialState: CloudShellState = {
   loading: false,
   error: null,
   lastUpdated: null,
+  sessionLimit: 2,
+  currentSessionCount: 0,
 };
 
 // Async thunks
@@ -39,9 +43,13 @@ export const createCloudShell = createAsyncThunk(
       } else {
         throw new Error('Invalid response format from server');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Cloud shell creation error:', error);
-      if (error instanceof Error) {
+      if (error.status === 429) {
+        // Handle session limit error
+        const errorData = error.data || {};
+        throw new Error(errorData.error || `Maximum number of active sessions (${errorData.limit || 2}) reached. Please terminate an existing session before creating a new one.`);
+      } else if (error instanceof Error) {
         throw new Error(`Failed to create cloud shell: ${error.message}`);
       } else {
         throw new Error('Failed to create cloud shell: Unknown error');
@@ -146,6 +154,8 @@ const cloudShellSlice = createSlice({
       .addCase(listCloudShellSessions.fulfilled, (state, action) => {
         state.loading = false;
         state.sessions = action.payload.sessions;
+        state.sessionLimit = action.payload.limit;
+        state.currentSessionCount = action.payload.current;
         state.lastUpdated = Date.now();
       })
       .addCase(listCloudShellSessions.rejected, (state, action) => {

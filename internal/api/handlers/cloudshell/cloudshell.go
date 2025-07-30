@@ -1,6 +1,7 @@
 package cloudshell
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -20,6 +21,10 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
+)
+
+const (
+	MaxCloudShellSessions = 2
 )
 
 // CloudShellHandler handles cloud shell operations
@@ -56,6 +61,42 @@ func NewCloudShellHandler(store *storage.KubeConfigStore, clientFactory *k8s.Cli
 			},
 		},
 	}
+}
+
+// getActiveSessions gets the count of active cloud shell sessions for the given config, cluster, and namespace
+func (h *CloudShellHandler) getActiveSessions(client *kubernetes.Clientset, configID, cluster, namespace string) ([]*CloudShellSession, error) {
+	// List pods with cloudshell label
+	pods, err := client.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{
+		LabelSelector: "app=cloudshell",
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var activeSessions []*CloudShellSession
+	for _, pod := range pods.Items {
+		// Only include pods for the specified config and cluster
+		if pod.Labels["config-id"] == configID && pod.Labels["cluster"] == cluster {
+			// Check if pod is active (not being terminated and not in terminal states)
+			if pod.DeletionTimestamp == nil && 
+			   pod.Status.Phase != v1.PodSucceeded && 
+			   pod.Status.Phase != v1.PodFailed {
+				session := &CloudShellSession{
+					ID:           pod.Name,
+					ConfigID:     configID,
+					Cluster:      cluster,
+					Namespace:    pod.Namespace,
+					PodName:      pod.Name,
+					CreatedAt:    pod.CreationTimestamp.Time,
+					LastActivity: pod.CreationTimestamp.Time,
+					Status:       string(pod.Status.Phase),
+				}
+				activeSessions = append(activeSessions, session)
+			}
+		}
+	}
+
+	return activeSessions, nil
 }
 
 // getClientAndConfig gets the Kubernetes client and config for the given config ID and cluster
@@ -119,6 +160,30 @@ func (h *CloudShellHandler) CreateCloudShell(c *gin.Context) {
 	client, _, err := h.getClientAndConfig(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check for active sessions limit
+	activeSessions, err := h.getActiveSessions(client, configID, cluster, namespace)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get active sessions for limit check")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to check session limit: %v", err)})
+		return
+	}
+
+	if len(activeSessions) >= MaxCloudShellSessions {
+		h.logger.WithFields(map[string]interface{}{
+			"config_id": configID,
+			"cluster":   cluster,
+			"namespace": namespace,
+			"current":   len(activeSessions),
+			"max":       MaxCloudShellSessions,
+		}).Warn("Cloud shell session limit reached")
+		c.JSON(http.StatusTooManyRequests, gin.H{
+			"error": fmt.Sprintf("Maximum number of active sessions (%d) reached. Please terminate an existing session before creating a new one.", MaxCloudShellSessions),
+			"limit": MaxCloudShellSessions,
+			"current": len(activeSessions),
+		})
 		return
 	}
 
@@ -461,6 +526,8 @@ func (h *CloudShellHandler) ListCloudShellSessions(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"sessions": sessions,
+		"limit":    MaxCloudShellSessions,
+		"current":  len(sessions),
 	})
 }
 

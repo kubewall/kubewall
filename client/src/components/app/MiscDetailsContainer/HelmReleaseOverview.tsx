@@ -4,14 +4,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Link } from '@tanstack/react-router';
 import { 
   ClockIcon, 
   CheckCircledIcon, 
   CrossCircledIcon, 
   ExclamationTriangleIcon,
-  CubeIcon,
-  ExternalLinkIcon
+  CubeIcon
 } from '@radix-ui/react-icons';
 
 export function HelmReleaseOverview() {
@@ -21,7 +19,6 @@ export function HelmReleaseOverview() {
 
   const { release, history } = details;
   const recentHistory = history?.slice(0, 5) || [];
-  const deployments = release?.deployments || [];
 
   const getStatusIcon = (status: string) => {
     switch (status.toLowerCase()) {
@@ -53,9 +50,7 @@ export function HelmReleaseOverview() {
     return new Date(dateString).toLocaleDateString();
   };
 
-  const getDeploymentUrl = (deploymentName: string) => {
-    return `/${details.release.namespace}/details?cluster=${details.release.namespace}&resourcekind=deployments&resourcename=${deploymentName}&namespace=${details.release.namespace}`;
-  };
+
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
@@ -106,46 +101,6 @@ export function HelmReleaseOverview() {
         </CardContent>
       </Card>
 
-      {/* Deployments */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Deployments</CardTitle>
-          <CardDescription>Kubernetes deployments managed by this release</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-[300px]">
-            <div className="space-y-3">
-              {deployments.length === 0 ? (
-                <div className="text-center py-4 text-muted-foreground">
-                  <CubeIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No deployments found</p>
-                </div>
-              ) : (
-                deployments.map((deployment: string) => (
-                  <div key={deployment} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <CubeIcon className="h-4 w-4 text-blue-500" />
-                      <div>
-                        <span className="font-medium">{deployment}</span>
-                        <p className="text-sm text-muted-foreground">
-                          Deployment
-                        </p>
-                      </div>
-                    </div>
-                    <Link to={getDeploymentUrl(deployment)}>
-                      <Button variant="outline" size="sm">
-                        <ExternalLinkIcon className="h-4 w-4 mr-2" />
-                        View
-                      </Button>
-                    </Link>
-                  </div>
-                ))
-              )}
-            </div>
-          </ScrollArea>
-        </CardContent>
-      </Card>
-
       {/* Release Statistics */}
       <Card>
         <CardHeader>
@@ -154,19 +109,11 @@ export function HelmReleaseOverview() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center p-3 border rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">
-                  {history?.length || 0}
-                </div>
-                <div className="text-sm text-muted-foreground">Total Revisions</div>
+            <div className="text-center p-3 border rounded-lg">
+              <div className="text-2xl font-bold text-blue-600">
+                {history?.length || 0}
               </div>
-              <div className="text-center p-3 border rounded-lg">
-                <div className="text-2xl font-bold text-green-600">
-                  {deployments.length}
-                </div>
-                <div className="text-sm text-muted-foreground">Deployments</div>
-              </div>
+              <div className="text-sm text-muted-foreground">Total Revisions</div>
             </div>
             
             <Separator />

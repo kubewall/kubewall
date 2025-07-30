@@ -251,10 +251,8 @@ export function PodExec({ pod, namespace, configName, clusterName, podDetailsSpe
       
       <div ref={execContainerRef} className="m-2">
         <XtermTerminal
-          containerNameProp={selectedContainer}
           xterm={xterm}
           searchAddonRef={searchAddonRef}
-          updateLogs={() => {}} // Not used for exec
           onInput={handleTerminalInput}
         />
       </div>

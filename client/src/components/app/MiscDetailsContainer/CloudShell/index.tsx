@@ -49,7 +49,7 @@ type CloudShellProps = {
 
 export function CloudShell({ configName, clusterName, namespace = "default" }: CloudShellProps) {
   const dispatch = useDispatch<AppDispatch>();
-  const { sessions, currentSession, loading, error } = useSelector((state: RootState) => state.cloudShell);
+  const { sessions, currentSession, loading, error, sessionLimit, currentSessionCount } = useSelector((state: RootState) => state.cloudShell);
   
   const xterm = useRef<Terminal | null>(null);
   const searchAddonRef = useRef<SearchAddon | null>(null);
@@ -394,7 +394,12 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <h3 className="text-lg font-semibold">Sessions ({sessions.length})</h3>
+                <h3 className="text-lg font-semibold">Sessions ({currentSessionCount}/{sessionLimit})</h3>
+                {currentSessionCount >= sessionLimit && (
+                  <Badge variant="destructive" className="text-xs">
+                    Limit Reached
+                  </Badge>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"
@@ -417,8 +422,9 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
                 </Button>
                 <Button 
                   onClick={handleCreateShell} 
-                  disabled={loading || creatingSession}
+                  disabled={loading || creatingSession || currentSessionCount >= sessionLimit}
                   className="flex items-center gap-2"
+                  title={currentSessionCount >= sessionLimit ? `Maximum ${sessionLimit} sessions reached` : undefined}
                 >
                   {loading || creatingSession ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
                   {creatingSession ? 'Creating...' : 'New Shell'}
@@ -428,6 +434,13 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
 
             {!isSessionsCollapsed && (
               <>
+                {currentSessionCount >= sessionLimit && (
+                  <Alert className="mb-3">
+                    <AlertDescription>
+                      Maximum number of active sessions ({sessionLimit}) reached. Please terminate an existing session before creating a new one.
+                    </AlertDescription>
+                  </Alert>
+                )}
                 {sessions.length === 0 ? (
                   <p className="text-muted-foreground">No active sessions</p>
                 ) : (

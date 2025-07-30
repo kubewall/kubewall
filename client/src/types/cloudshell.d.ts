@@ -22,6 +22,8 @@ export interface CloudShellCreateResponse {
 
 export interface CloudShellListResponse {
   sessions: CloudShellSession[];
+  limit: number;
+  current: number;
 }
 
 export interface CloudShellDeleteResponse {

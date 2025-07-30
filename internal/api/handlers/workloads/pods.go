@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 	"time"
 
 	"kubewall-backend/internal/api/transformers"
@@ -347,6 +348,49 @@ func (h *PodsHandler) GetPodLogs(c *gin.Context) {
 	c.Header("Access-Control-Allow-Origin", "*")
 	c.Header("Access-Control-Allow-Headers", "Cache-Control")
 
+	// Helper function to extract timestamp from log line
+	extractTimestamp := func(logLine string) string {
+		// Common timestamp patterns in logs
+		patterns := []string{
+			`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})`, // ISO 8601
+			`^\d{4}/\d{2}/\d{2}\s+\d{2}:\d{2}:\d{2}`,                          // YYYY/MM/DD HH:MM:SS
+			`^\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2}:\d{2}`,                          // MM/DD/YYYY HH:MM:SS
+			`^\d{2}-\d{2}-\d{4}\s+\d{2}:\d{2}:\d{2}`,                          // MM-DD-YYYY HH:MM:SS
+			`^\d{2}:\d{2}:\d{2}`,                                              // HH:MM:SS
+		}
+
+		for _, pattern := range patterns {
+			re := regexp.MustCompile(pattern)
+			if match := re.FindString(logLine); match != "" {
+				// Try to parse and format as RFC3339
+				if t, err := time.Parse(time.RFC3339, match); err == nil {
+					return t.Format(time.RFC3339)
+				}
+				// Try other common formats
+				if t, err := time.Parse("2006-01-02T15:04:05.000Z", match); err == nil {
+					return t.Format(time.RFC3339)
+				}
+				if t, err := time.Parse("2006/01/02 15:04:05", match); err == nil {
+					return t.Format(time.RFC3339)
+				}
+				if t, err := time.Parse("01/02/2006 15:04:05", match); err == nil {
+					return t.Format(time.RFC3339)
+				}
+				if t, err := time.Parse("01-02-2006 15:04:05", match); err == nil {
+					return t.Format(time.RFC3339)
+				}
+				if t, err := time.Parse("15:04:05", match); err == nil {
+					// For time-only, use today's date
+					now := time.Now()
+					today := time.Date(now.Year(), now.Month(), now.Day(), t.Hour(), t.Minute(), t.Second(), 0, now.Location())
+					return today.Format(time.RFC3339)
+				}
+			}
+		}
+		// Fall back to current time
+		return time.Now().Format(time.RFC3339)
+	}
+
 	// Function to stream logs for a specific container
 	streamContainerLogs := func(containerName string) {
 		req := client.CoreV1().Pods(namespace).GetLogs(name, &v1.PodLogOptions{
@@ -366,10 +410,13 @@ func (h *PodsHandler) GetPodLogs(c *gin.Context) {
 		for scanner.Scan() {
 			logLine := scanner.Text()
 
+			// Extract timestamp from log line or use current time
+			timestamp := extractTimestamp(logLine)
+
 			// Create log response
 			logResponse := map[string]interface{}{
 				"containerName": containerName,
-				"timestamp":     time.Now().Format(time.RFC3339),
+				"timestamp":     timestamp,
 				"log":           logLine,
 			}
 
