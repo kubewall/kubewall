@@ -8,7 +8,29 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Terminal as TerminalIcon, Trash2, Play, Square, RefreshCw } from "lucide-react";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { 
+  Loader2, 
+  Terminal as TerminalIcon, 
+  Trash2, 
+  Play, 
+  Square, 
+  RefreshCw, 
+  Maximize2, 
+  Minimize2,
+  ChevronDown,
+  ChevronUp
+} from "lucide-react";
 
 import { AppDispatch, RootState } from "@/redux/store";
 import { 
@@ -38,6 +60,8 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
   const [isConnected, setIsConnected] = useState(false);
   const [creatingSession, setCreatingSession] = useState(false);
   const [sessionMessage, setSessionMessage] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isSessionsCollapsed, setIsSessionsCollapsed] = useState(false);
 
   // Initialize terminal
   useEffect(() => {
@@ -295,10 +319,10 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
   };
 
   // Delete shell session
-  const handleDeleteShell = async (sessionId: string) => {
+  const handleDeleteShell = async (session: CloudShellSession) => {
     try {
       await dispatch(deleteCloudShell({ 
-        name: sessionId, 
+        name: session.id, 
         config: configName, 
         cluster: clusterName, 
         namespace 
@@ -318,11 +342,27 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
         return <Badge variant="default" className="bg-green-500">Ready</Badge>;
       case 'creating':
         return <Badge variant="secondary">Creating</Badge>;
+      case 'terminating':
+        return <Badge variant="destructive">Terminating</Badge>;
       case 'terminated':
         return <Badge variant="destructive">Terminated</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
+  };
+
+  // Handle terminal resize
+  const handleTerminalResize = () => {
+    if (fitAddonRef.current) {
+      fitAddonRef.current.fit();
+    }
+  };
+
+  // Toggle terminal expansion
+  const toggleExpansion = () => {
+    setIsExpanded(!isExpanded);
+    // Resize terminal after state change
+    setTimeout(handleTerminalResize, 100);
   };
 
   return (
@@ -353,7 +393,17 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
           {/* Session Management */}
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-lg font-semibold">Sessions</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-semibold">Sessions ({sessions.length})</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsSessionsCollapsed(!isSessionsCollapsed)}
+                  className="h-6 w-6 p-0"
+                >
+                  {isSessionsCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+                </Button>
+              </div>
               <div className="flex items-center gap-2">
                 <Button 
                   variant="outline"
@@ -376,50 +426,74 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
               </div>
             </div>
 
-            {sessions.length === 0 ? (
-              <p className="text-muted-foreground">No active sessions</p>
-            ) : (
-              <div className="space-y-2">
-                {sessions.map((session) => (
-                  <div key={session.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <p className="font-medium">{session.podName}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Created: {new Date(session.createdAt).toLocaleString()}
-                        </p>
-                        {session.status === 'creating' && (
-                          <p className="text-sm text-blue-600 flex items-center gap-1">
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                            Initializing...
-                          </p>
-                        )}
+            {!isSessionsCollapsed && (
+              <>
+                {sessions.length === 0 ? (
+                  <p className="text-muted-foreground">No active sessions</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                    {sessions.map((session) => (
+                      <div key={session.id} className="flex items-center justify-between p-2 border rounded-lg bg-gray-50">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-sm truncate">{session.podName}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(session.createdAt).toLocaleTimeString()}
+                            </p>
+                          </div>
+                          {getStatusBadge(session.status)}
+                        </div>
+                                                 <div className="flex items-center gap-1 ml-2">
+                           {(session.status === 'ready' || session.status === 'creating') && (
+                             <Button
+                               variant="outline"
+                               size="sm"
+                               onClick={() => connectToShell(session)}
+                               disabled={isConnected && currentSession?.id === session.id || session.status === 'creating'}
+                               className="h-7 px-2"
+                             >
+                               {isConnected && currentSession?.id === session.id ? 'Connected' : 
+                                session.status === 'creating' ? 'Creating...' : 'Connect'}
+                             </Button>
+                           )}
+                                                     <AlertDialog>
+                             <AlertDialogTrigger asChild>
+                               <Button
+                                 variant="outline"
+                                 size="sm"
+                                 disabled={loading}
+                                 className="h-7 w-7 p-0"
+                               >
+                                 <Trash2 className="h-3 w-3" />
+                               </Button>
+                             </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Session</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete the session "{session.podName}"? 
+                                  This action cannot be undone and will terminate the cloud shell.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                                               <AlertDialogCancel>
+                                 Cancel
+                               </AlertDialogCancel>
+                                <AlertDialogAction 
+                                  onClick={() => handleDeleteShell(session)}
+                                  className="bg-red-600 hover:bg-red-700"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                       </div>
-                      {getStatusBadge(session.status)}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {session.status === 'ready' && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => connectToShell(session)}
-                          disabled={isConnected && currentSession?.id === session.id}
-                        >
-                          {isConnected && currentSession?.id === session.id ? 'Connected' : 'Connect'}
-                        </Button>
-                      )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDeleteShell(session.id)}
-                        disabled={loading}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                )}
+              </>
             )}
           </div>
 
@@ -429,24 +503,38 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
               <span className="text-white text-sm">
                 {isConnected ? 'Connected' : 'Disconnected'} - {clusterName}
               </span>
-              {isConnected && (
+              <div className="flex items-center gap-2">
+                {isConnected && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (wsRef.current) {
+                        wsRef.current.close();
+                      }
+                    }}
+                    className="h-7 px-2"
+                  >
+                    <Square className="h-4 w-4" />
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => {
-                    if (wsRef.current) {
-                      wsRef.current.close();
-                    }
-                  }}
+                  onClick={toggleExpansion}
+                  className="h-7 px-2"
                 >
-                  <Square className="h-4 w-4" />
+                  {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                 </Button>
-              )}
+              </div>
             </div>
             <div 
               ref={terminalRef} 
-              className="bg-black h-96"
-              style={{ minHeight: '400px' }}
+              className="bg-black transition-all duration-300"
+              style={{ 
+                height: isExpanded ? '600px' : '400px',
+                minHeight: isExpanded ? '600px' : '400px'
+              }}
             />
           </div>
         </CardContent>

@@ -307,6 +307,12 @@ func (h *CloudShellHandler) HandleCloudShellWebSocket(c *gin.Context) {
 		return
 	}
 
+	// Check if pod is being terminated
+	if pod.DeletionTimestamp != nil {
+		h.sendWebSocketError(conn, "Pod is being terminated and cannot accept new connections")
+		return
+	}
+
 	// Check if pod is running
 	if pod.Status.Phase != v1.PodRunning {
 		h.sendWebSocketError(conn, fmt.Sprintf("Pod is not running. Current phase: %s", pod.Status.Phase))
@@ -389,33 +395,38 @@ func (h *CloudShellHandler) ListCloudShellSessions(c *gin.Context) {
 		if pod.Labels["config-id"] == configID && pod.Labels["cluster"] == cluster {
 			status := "terminated"
 
-			// Determine status based on pod phase and conditions
-			switch pod.Status.Phase {
-			case v1.PodRunning:
-				// Check if all containers are ready
-				allReady := true
-				for _, containerStatus := range pod.Status.ContainerStatuses {
-					if !containerStatus.Ready {
-						allReady = false
+			// Check if pod is being terminated (has deletion timestamp)
+			if pod.DeletionTimestamp != nil {
+				status = "terminating"
+			} else {
+				// Determine status based on pod phase and conditions
+				switch pod.Status.Phase {
+				case v1.PodRunning:
+					// Check if all containers are ready
+					allReady := true
+					for _, containerStatus := range pod.Status.ContainerStatuses {
+						if !containerStatus.Ready {
+							allReady = false
+							break
+						}
+					}
+					if allReady {
+						status = "ready"
+					} else {
+						status = "creating"
+					}
+				case v1.PodPending:
+					status = "creating"
+				case v1.PodSucceeded, v1.PodFailed:
+					status = "terminated"
+				}
+
+				// Check for specific error conditions
+				for _, condition := range pod.Status.Conditions {
+					if condition.Type == v1.PodScheduled && condition.Status == v1.ConditionFalse {
+						status = "terminated"
 						break
 					}
-				}
-				if allReady {
-					status = "ready"
-				} else {
-					status = "creating"
-				}
-			case v1.PodPending:
-				status = "creating"
-			case v1.PodSucceeded, v1.PodFailed:
-				status = "terminated"
-			}
-
-			// Check for specific error conditions
-			for _, condition := range pod.Status.Conditions {
-				if condition.Type == v1.PodScheduled && condition.Status == v1.ConditionFalse {
-					status = "terminated"
-					break
 				}
 			}
 
@@ -432,10 +443,11 @@ func (h *CloudShellHandler) ListCloudShellSessions(c *gin.Context) {
 			sessions = append(sessions, session)
 
 			h.logger.WithFields(map[string]interface{}{
-				"pod_name":  pod.Name,
-				"namespace": pod.Namespace,
-				"phase":     pod.Status.Phase,
-				"status":    status,
+				"pod_name":           pod.Name,
+				"namespace":          pod.Namespace,
+				"phase":              pod.Status.Phase,
+				"status":             status,
+				"deletion_timestamp": pod.DeletionTimestamp,
 			}).Debug("Cloud shell session status")
 		}
 	}

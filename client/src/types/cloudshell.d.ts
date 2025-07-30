@@ -6,7 +6,7 @@ export interface CloudShellSession {
   podName: string;
   createdAt: string;
   lastActivity: string;
-  status: 'creating' | 'ready' | 'terminated';
+  status: 'creating' | 'ready' | 'terminating' | 'terminated';
 }
 
 export interface CloudShellCreateRequest {
