@@ -12,6 +12,7 @@ import {
   CommandShortcut,
 } from "@/components/ui/command";
 import { CubeIcon, EnterIcon } from "@radix-ui/react-icons";
+import { Terminal } from "lucide-react";
 import helmLogo from '../../../../assets/helm-logo.png';
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { NAVIGATION_ROUTE } from "@/constants";
@@ -118,6 +119,8 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
                 >
                   {routeValue === 'helmreleases' ? (
                     <img src={helmLogo} alt="Helm" className="mr-2 h-4 w-4" />
+                  ) : routeValue === 'cloudshell' ? (
+                    <Terminal className="mr-2 h-4 w-4" />
                   ) : (
                     <CubeIcon className="mr-2 h-4 w-4" />
                   )}

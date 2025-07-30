@@ -8,6 +8,7 @@ import { KubeConfiguration } from '@/components/app/KubeConfiguration';
 import { KubeWall } from '@/KubeWall';
 import { KwDetails } from '@/components/app/Common/Details';
 import { KwList } from '@/components/app/Common/List';
+import { CloudShellDetailsContainer } from '@/components/app/MiscDetailsContainer/CloudShellDetailsContainer';
 
 
 
@@ -63,6 +64,16 @@ const kwDetails = createRoute({
   })
 });
 
+const cloudShellRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/cloudshell',
+  component: CloudShellDetailsContainer,
+  validateSearch: (search: Record<string, unknown>) => ({
+    cluster: String(search.cluster) || '',
+    namespace: search.namespace ? String(search.namespace) : 'default',
+  })
+});
+
 
 
 const kubeConfigurationRoute = createRoute({
@@ -76,7 +87,8 @@ const routeTree = rootRoute.addChildren([
   kubeConfigurationRoute,
   appRoute.addChildren([
     kwList,
-    kwDetails
+    kwDetails,
+    cloudShellRoute
   ])
 ]);
 
@@ -99,5 +111,6 @@ export {
   router,
   kwList,
   kwDetails,
+  cloudShellRoute,
   appRoute
 };

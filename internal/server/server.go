@@ -8,6 +8,7 @@ import (
 
 	"kubewall-backend/internal/api"
 	access_control "kubewall-backend/internal/api/handlers/access-control"
+	"kubewall-backend/internal/api/handlers/cloudshell"
 	"kubewall-backend/internal/api/handlers/cluster"
 	"kubewall-backend/internal/api/handlers/configurations"
 	custom_resources "kubewall-backend/internal/api/handlers/custom-resources"
@@ -87,6 +88,9 @@ type Server struct {
 
 	// Helm handlers
 	helmHandler *helm.HelmHandler
+
+	// Cloud Shell handlers
+	cloudShellHandler *cloudshell.CloudShellHandler
 }
 
 // New creates a new server instance
@@ -163,6 +167,9 @@ func New(cfg *config.Config) *Server {
 	helmFactory := k8s.NewHelmClientFactory()
 	helmHandler := helm.NewHelmHandler(store, clientFactory, helmFactory, log)
 
+	// Create Cloud Shell handlers
+	cloudShellHandler := cloudshell.NewCloudShellHandler(store, clientFactory, helmFactory, log)
+
 	// Create server
 	srv := &Server{
 		config:        cfg,
@@ -224,6 +231,9 @@ func New(cfg *config.Config) *Server {
 
 		// Helm handlers
 		helmHandler: helmHandler,
+
+		// Cloud Shell handlers
+		cloudShellHandler: cloudShellHandler,
 	}
 
 	// Setup middleware
@@ -552,6 +562,12 @@ func (s *Server) setupRoutes() {
 		api.GET("/helmreleases", s.helmHandler.GetHelmReleasesSSE)
 		api.GET("/helmreleases/:name", s.helmHandler.GetHelmReleaseDetails)
 		api.GET("/helmreleases/:name/history", s.helmHandler.GetHelmReleaseHistory)
+
+		// Cloud Shell endpoints
+		api.POST("/cloudshell", s.cloudShellHandler.CreateCloudShell)
+		api.GET("/cloudshell", s.cloudShellHandler.ListCloudShellSessions)
+		api.GET("/cloudshell/ws", s.cloudShellHandler.HandleCloudShellWebSocket)
+		api.DELETE("/cloudshell/:name", s.cloudShellHandler.DeleteCloudShell)
 	}
 
 	// Serve static files from the dist folder

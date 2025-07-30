@@ -19,6 +19,7 @@ const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, on
   const maxReconnectAttempts = 5;
   const baseReconnectDelay = 1000;
   const connectionTimeout = 10000;
+  const hasConfigErrorRef = useRef(false);
   const dispatch = useAppDispatch();
 
   // Determine if this is a Helm releases endpoint
@@ -34,6 +35,11 @@ const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, on
   const connect = () => {
     // Prevent multiple simultaneous connections
     if (isConnectingRef.current || eventSourceRef.current?.readyState === EventSource.OPEN) {
+      return;
+    }
+
+    // Don't reconnect if we've already detected a config error
+    if (hasConfigErrorRef.current) {
       return;
     }
 
@@ -73,7 +79,7 @@ const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, on
       console.warn('EventSource connection timeout, closing and reconnecting...');
       eventSource.close();
       isConnectingRef.current = false;
-      if (reconnectAttemptsRef.current < maxReconnectAttempts) {
+      if (reconnectAttemptsRef.current < maxReconnectAttempts && !hasConfigErrorRef.current) {
         reconnectAttemptsRef.current++;
         connect();
       }
@@ -118,6 +124,13 @@ const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, on
         if (eventData.error && typeof eventData.error === 'string' && eventData.error.includes('config not found')) {
           console.error('Config not found error received:', eventData.error);
           console.log('Calling onConfigError callback...');
+          
+          // Mark that we've detected a config error to prevent reconnection
+          hasConfigErrorRef.current = true;
+          
+          // Close the connection immediately
+          eventSource.close();
+          
           // Call the config error callback if provided
           if (onConfigError) {
             onConfigError();
@@ -145,6 +158,13 @@ const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, on
           if (errorData.error && typeof errorData.error === 'string' && errorData.error.includes('config not found')) {
             console.error('Config not found error received via error event:', errorData.error);
             console.log('Calling onConfigError callback...');
+            
+            // Mark that we've detected a config error to prevent reconnection
+            hasConfigErrorRef.current = true;
+            
+            // Close the connection immediately
+            eventSource.close();
+            
             // Call the config error callback if provided
             if (onConfigError) {
               onConfigError();
@@ -180,6 +200,11 @@ const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, on
       // Don't send empty array immediately on error
       // This prevents "No results" from showing during temporary connection issues
       
+      // Don't reconnect if we've detected a config error
+      if (hasConfigErrorRef.current) {
+        return;
+      }
+      
       // Attempt to reconnect if we haven't exceeded max attempts
       if (reconnectAttemptsRef.current < maxReconnectAttempts) {
         const delay = baseReconnectDelay * Math.pow(2, reconnectAttemptsRef.current); // Exponential backoff
@@ -208,11 +233,14 @@ const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, on
   };
 
   useEffect(() => {
+    // Reset config error flag when URL changes
+    hasConfigErrorRef.current = false;
     connect();
     
     // Cleanup function
     return () => {
       isConnectingRef.current = false;
+      hasConfigErrorRef.current = false;
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
         eventSourceRef.current = null;

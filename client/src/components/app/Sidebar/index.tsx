@@ -1,13 +1,13 @@
 import './index.css';
 
 import { CUSTOM_RESOURCES_ENDPOINT, NAVIGATION_ROUTE } from "@/constants";
-import { ChevronRight, DatabaseIcon, LayersIcon, LayoutGridIcon, NetworkIcon, ShieldHalf, SlidersHorizontalIcon, UngroupIcon } from "lucide-react";
+import { ChevronRight, DatabaseIcon, LayersIcon, LayoutGridIcon, NetworkIcon, ShieldHalf, SlidersHorizontalIcon, UngroupIcon, Terminal } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { SidebarContent, SidebarGroup, SidebarGroupLabel, Sidebar as SidebarMainComponent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarRail, useSidebar } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { createEventStreamQueryObject, getEventStreamUrl, getSystemTheme } from "@/utils";
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -48,6 +48,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
   } = useAppSelector((state) => state.customResources);
   const { open, isMobile, openMobile } = useSidebar();
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
+  const hasRedirectedRef = useRef(false);
 
   useEffect(() => {
     const currentRoute = new URL(location.href).searchParams.get('resourcekind') || '';
@@ -82,7 +83,13 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
   const onNavClick = (routeValue: string) => {
     dispatch(resetListTableFilter());
     setActiveTab(routeValue);
-    navigate({ to: `/${configName}/list?cluster=${encodeURIComponent(clusterName)}&resourcekind=${routeValue}` });
+    
+    // Handle cloud shell route differently
+    if (routeValue === 'cloudshell') {
+      navigate({ to: `/${configName}/cloudshell?cluster=${encodeURIComponent(clusterName)}` });
+    } else {
+      navigate({ to: `/${configName}/list?cluster=${encodeURIComponent(clusterName)}&resourcekind=${routeValue}` });
+    }
     routerForce.invalidate();
   };
 
@@ -109,6 +116,12 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
   };
 
   const handleConfigError = () => {
+    // Prevent multiple redirects
+    if (hasRedirectedRef.current) {
+      return;
+    }
+    
+    hasRedirectedRef.current = true;
     toast.error("Configuration Error", {
       description: "The configuration you were viewing has been deleted or is no longer available. Redirecting to configuration page.",
     });
@@ -126,6 +139,11 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
     onConfigError: handleConfigError,
   });
 
+  // Reset the redirect flag when the config changes
+  useEffect(() => {
+    hasRedirectedRef.current = false;
+  }, [configName]);
+
   const getResourceIcon = (resourceType: string) => {
     switch (resourceType) {
       case 'cluster':
@@ -142,6 +160,8 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
         return <DatabaseIcon width={16} />;
       case 'helm':
         return <img src={helmLogo} alt="Helm" width={16} height={16} />;
+      case 'tools':
+        return <Terminal width={16} />;
       default:
         return <LayersIcon width={16} />;
     }

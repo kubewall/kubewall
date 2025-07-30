@@ -82,6 +82,7 @@ import storageClassesListSlice from '@/data/Storages/StorageClasses/StorageClass
 import updateYamlSlice from '@/data/Yaml/YamlUpdateSlice';
 import yamlSlice from '@/data/Yaml/YamlSlice';
 import { helmReleasesReducer, helmReleaseDetailsReducer } from '@/data/Helm';
+import cloudShellSlice from '@/data/CloudShell/CloudShellSlice';
 
 const store = configureStore({
   reducer: {
@@ -166,6 +167,7 @@ const store = configureStore({
     listTableNamesapce: listTableNamesapceSlice,
     customResourcesDefinitionDetails: customResourcesDefinitionDetailsSlice,
     clusterEvents: clusterEventsListSlice,
+    cloudShell: cloudShellSlice,
     deploymentScale: DeploymentScaleSlice,
     helmReleases: helmReleasesReducer,
     helmReleaseDetails: helmReleaseDetailsReducer

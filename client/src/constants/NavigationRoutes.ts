@@ -138,6 +138,12 @@ const NAVIGATION_ROUTE: NavigationRoutes = {
       name: 'Releases',
       route: 'helmreleases'
     }
+  ],
+  'Tools': [
+    {
+      name: 'Cloud Shell',
+      route: 'cloudshell'
+    }
   ]
 };
 
