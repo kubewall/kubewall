@@ -1,6 +1,6 @@
 import './index.css';
 
-import { DownloadIcon, ClockIcon, InfoCircledIcon } from '@radix-ui/react-icons';
+import { DownloadIcon, ClockIcon, InfoCircledIcon, PlayIcon, PauseIcon, RotateCounterClockwiseIcon } from '@radix-ui/react-icons';
 import { useRef, useState, useEffect, useCallback } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 type PodLogsProps = {
   namespace: string;
@@ -35,6 +44,13 @@ type PodLogsProps = {
 const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => {
   const [podLogFilter, setPodLogFilter] = useState('');
   const [timelineFilter, setTimelineFilter] = useState('realtime');
+  const [isLive, setIsLive] = useState(true);
+  const [logLevel, setLogLevel] = useState<string>('all');
+  const [showTimestamps, setShowTimestamps] = useState(true);
+  const [autoScroll, setAutoScroll] = useState(true);
+  const [logBufferSize, setLogBufferSize] = useState(10000);
+  const [isPaused, setIsPaused] = useState(false);
+  
   const podLogFilterRef = useRef(podLogFilter);
   const {
     podDetails
@@ -42,32 +58,85 @@ const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => 
   const [selectedContainer, setSelectedContainer] = useState('');
   const [logs, setLogs] = useState<PodSocketResponse[]>([]);
   const [filteredLogs, setFilteredLogs] = useState<PodSocketResponse[]>([]);
+  const [logStats, setLogStats] = useState({
+    total: 0,
+    error: 0,
+    warn: 0,
+    info: 0,
+    debug: 0
+  });
   const searchAddonRef = useRef<SearchAddon | null>(null);
   
   // Performance optimization: limit logs to prevent memory issues
-  const MAX_LOGS = 10000; // Keep only last 10k logs
+  const MAX_LOGS = logBufferSize;
   const updateQueue = useRef<PodSocketResponse[]>([]);
   const updateTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  const downloadLogs = () => {
+  // Enhanced download logs with multiple formats
+  const downloadLogs = (format: 'txt' | 'json' | 'csv' = 'txt') => {
     const a = document.createElement('a');
-    let logString = '';
-    filteredLogs.forEach((log) => {
-      if (log.containerChange) {
-        logString += `-------------------${log.containerName || 'All Containers'}-------------------\n`;
-      } else {
-        // eslint-disable-next-line no-control-regex
-        logString += `${log.containerName ? `${log.containerName}:` : ''} ${log.log.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '')}\n`;
-      }
-    });
-    a.href = `data:text/plain,${logString}`;
-    a.download = `${podDetails.metadata.name}-filtered-logs.txt`;
+    let content = '';
+    let filename = `${podDetails.metadata.name}-logs.${format}`;
+    
+    if (format === 'json') {
+      content = JSON.stringify(filteredLogs, null, 2);
+    } else if (format === 'csv') {
+      content = 'Timestamp,Container,Level,Message\n';
+      filteredLogs.forEach((log) => {
+        if (log.log) {
+          const level = getLogLevel(log.log);
+          const cleanLog = log.log.replace(/"/g, '""'); // Escape quotes for CSV
+          content += `"${log.timestamp || ''}","${log.containerName || ''}","${level}","${cleanLog}"\n`;
+        }
+      });
+    } else {
+      // TXT format
+      filteredLogs.forEach((log) => {
+        if (log.containerChange) {
+          content += `-------------------${log.containerName || 'All Containers'}-------------------\n`;
+        } else {
+          // eslint-disable-next-line no-control-regex
+          content += `${log.containerName ? `${log.containerName}:` : ''} ${log.log.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '')}\n`;
+        }
+      });
+    }
+    
+    a.href = `data:text/${format === 'json' ? 'json' : 'plain'};charset=utf-8,${encodeURIComponent(content)}`;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
   };
 
-  // Throttled log update function
+  // Enhanced log level detection
+  const getLogLevel = (logLine: string): string => {
+    const lowerLog = logLine.toLowerCase();
+    if (lowerLog.includes('error') || lowerLog.includes('fatal') || lowerLog.includes('panic')) return 'error';
+    if (lowerLog.includes('warn')) return 'warn';
+    if (lowerLog.includes('debug')) return 'debug';
+    if (lowerLog.includes('info')) return 'info';
+    return 'info';
+  };
+
+  // Enhanced log statistics calculation
+  const calculateLogStats = useCallback((logArray: PodSocketResponse[]) => {
+    const stats = { total: 0, error: 0, warn: 0, info: 0, debug: 0 };
+    
+    logArray.forEach(log => {
+      if (log.log) {
+        stats.total++;
+        const level = getLogLevel(log.log);
+        stats[level as keyof typeof stats]++;
+      }
+    });
+    
+    return stats;
+  }, []);
+
+  // Enhanced throttled log update function with pause support
   const updateLogs = useCallback((currentLog: PodSocketResponse) => {
+    if (isPaused) return;
+    
     updateQueue.current.push(currentLog);
     
     // Clear existing timeout
@@ -88,8 +157,8 @@ const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => 
         }
         return updatedLogs;
       });
-    }, 100); // Batch updates every 100ms
-  }, []);
+    }, isLive ? 50 : 200); // Faster updates when live
+  }, [isPaused, isLive, MAX_LOGS]);
 
   // Helper function to safely parse timestamp
   const parseTimestamp = (timestamp: string): Date | null => {
@@ -100,13 +169,19 @@ const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => 
     }
   };
 
-  // Helper function to check if log matches filter (grep-like functionality)
+  // Enhanced filter with log level support
   const matchesFilter = (log: PodSocketResponse, filter: string): boolean => {
     if (!filter.trim()) return true;
     
     const searchText = filter.toLowerCase();
     const logText = log.log.toLowerCase();
     const containerText = log.containerName.toLowerCase();
+    const logLevelText = getLogLevel(log.log);
+    
+    // Check log level filter
+    if (logLevel !== 'all' && logLevelText !== logLevel) {
+      return false;
+    }
     
     // Check if filter contains regex-like patterns
     if (searchText.includes('|') || searchText.includes('.*') || searchText.includes('^') || searchText.includes('$')) {
@@ -130,7 +205,7 @@ const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => 
     return logText.includes(searchText) || containerText.includes(searchText);
   };
 
-  // Filter logs based on search term and timeline
+  // Enhanced filter logs with log level and timeline support
   const filterLogs = useCallback(() => {
     let filtered = logs;
 
@@ -176,7 +251,10 @@ const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => 
     }
 
     setFilteredLogs(filtered);
-  }, [logs, podLogFilter, timelineFilter]);
+    
+    // Update log statistics
+    setLogStats(calculateLogStats(filtered));
+  }, [logs, podLogFilter, timelineFilter, logLevel, calculateLogStats]);
 
   // Update filtered logs when logs, filter, or timeline changes
   useEffect(() => {
@@ -191,6 +269,13 @@ const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => 
       }
     };
   }, []);
+
+  // Clear logs function
+  const clearLogs = () => {
+    setLogs([]);
+    setFilteredLogs([]);
+    setLogStats({ total: 0, error: 0, warn: 0, info: 0, debug: 0 });
+  };
 
   return (
     <div className="logs flex-col md:flex border rounded-lg">
@@ -226,13 +311,29 @@ const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => 
                     </ul>
                     <p className="text-xs text-muted-foreground">
                       <strong>Keyboard shortcuts:</strong><br/>
-                      Ctrl/Cmd + End: Scroll to bottom
+                      Ctrl/Cmd + End: Scroll to bottom<br/>
+                      Ctrl/Cmd + F: Search in terminal
                     </p>
                   </div>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>
+          
+          {/* Log Level Filter */}
+          <Select value={logLevel} onValueChange={setLogLevel}>
+            <SelectTrigger className="h-8 w-20 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="error">Error</SelectItem>
+              <SelectItem value="warn">Warn</SelectItem>
+              <SelectItem value="info">Info</SelectItem>
+              <SelectItem value="debug">Debug</SelectItem>
+            </SelectContent>
+          </Select>
+          
           <div className="flex items-center space-x-1">
             <ClockIcon className="h-3.5 w-3.5 text-muted-foreground" />
             <Select value={timelineFilter} onValueChange={setTimelineFilter}>
@@ -250,24 +351,118 @@ const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => 
             </Select>
           </div>
         </div>
+        
         <div className="ml-auto flex w-full space-x-2 sm:justify-end items-center">
-          <div className="text-xs text-muted-foreground mr-2">
-            {filteredLogs.length} / {logs.length} logs
+          {/* Log Statistics */}
+          <div className="flex items-center space-x-1 mr-2">
+            <Badge variant="outline" className="text-xs">
+              {logStats.total}
+            </Badge>
+            {logStats.error > 0 && (
+              <Badge variant="destructive" className="text-xs">
+                {logStats.error}
+              </Badge>
+            )}
+            {logStats.warn > 0 && (
+              <Badge variant="secondary" className="text-xs">
+                {logStats.warn}
+              </Badge>
+            )}
           </div>
+          
+          {/* Live Mode Toggle */}
+          <div className="flex items-center space-x-2 mr-2">
+            <Switch
+              id="live-mode"
+              checked={isLive}
+              onCheckedChange={setIsLive}
+            />
+            <Label htmlFor="live-mode" className="text-xs">Live</Label>
+          </div>
+          
+          {/* Pause/Resume Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsPaused(!isPaused)}
+            className="h-8 w-8 p-0"
+          >
+            {isPaused ? <PlayIcon className="h-3 w-3" /> : <PauseIcon className="h-3 w-3" />}
+          </Button>
+          
+          {/* Clear Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={clearLogs}
+            className="h-8 w-8 p-0"
+          >
+            <RotateCounterClockwiseIcon className="h-3 w-3" />
+          </Button>
+          
           <CotainerSelector podDetailsSpec={podDetails.spec} selectedContainer={selectedContainer} setSelectedContainer={setSelectedContainer} />
-          <div className="flex justify-end pr-3">
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-label="Containers"
-              className="flex-1 text-xs shadow-none h-8"
-              onClick={downloadLogs}
-            >
-              <DownloadIcon className="h-3.5 w-3.5 cursor-pointer" />
-            </Button>
+          
+          {/* Enhanced Download Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="h-8 w-8 p-0">
+                <DownloadIcon className="h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => downloadLogs('txt')}>
+                Download as TXT
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => downloadLogs('json')}>
+                Download as JSON
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => downloadLogs('csv')}>
+                Download as CSV
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+      
+      {/* Log Buffer Size Control */}
+      <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/30">
+        <div className="flex items-center space-x-2">
+          <Label htmlFor="buffer-size" className="text-xs">Buffer Size:</Label>
+          <Select value={logBufferSize.toString()} onValueChange={(value) => setLogBufferSize(parseInt(value))}>
+            <SelectTrigger className="h-6 w-20 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1000">1K</SelectItem>
+              <SelectItem value="5000">5K</SelectItem>
+              <SelectItem value="10000">10K</SelectItem>
+              <SelectItem value="25000">25K</SelectItem>
+              <SelectItem value="50000">50K</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="show-timestamps"
+              checked={showTimestamps}
+              onCheckedChange={setShowTimestamps}
+            />
+            <Label htmlFor="show-timestamps">Timestamps</Label>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="auto-scroll"
+              checked={autoScroll}
+              onCheckedChange={setAutoScroll}
+            />
+            <Label htmlFor="auto-scroll">Auto-scroll</Label>
           </div>
         </div>
       </div>
+      
       <SocketLogs
         containerName={selectedContainer}
         namespace={namespace}
@@ -278,6 +473,8 @@ const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => 
         updateLogs={updateLogs}
         searchAddonRef={searchAddonRef}
         filteredLogs={filteredLogs}
+        showTimestamps={showTimestamps}
+        autoScroll={autoScroll}
       />
     </div>
   );

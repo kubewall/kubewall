@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strconv"
+	"strings"
 	"time"
 
 	"kubewall-backend/internal/api/transformers"
@@ -331,7 +333,36 @@ func (h *PodsHandler) GetPodLogs(c *gin.Context) {
 	namespace := c.Param("namespace")
 	container := c.Query("container")
 	allContainers := c.Query("all-containers") == "true"
+
+	// Enhanced configuration options
+	tailLinesStr := c.Query("tail-lines")
 	tailLines := int64(100) // Default to 100 lines
+	if tailLinesStr != "" {
+		if parsed, err := strconv.ParseInt(tailLinesStr, 10, 64); err == nil {
+			tailLines = parsed
+		}
+	}
+
+	// Performance tuning options
+	batchSizeStr := c.Query("batch-size")
+	batchSize := 10 // Default batch size for SSE
+	if batchSizeStr != "" {
+		if parsed, err := strconv.Atoi(batchSizeStr); err == nil && parsed > 0 {
+			batchSize = parsed
+		}
+	}
+
+	// Log level filtering
+	logLevel := c.Query("log-level")
+
+	// Timestamp filtering
+	sinceTimeStr := c.Query("since-time")
+	var sinceTime *time.Time
+	if sinceTimeStr != "" {
+		if parsed, err := time.Parse(time.RFC3339, sinceTimeStr); err == nil {
+			sinceTime = &parsed
+		}
+	}
 
 	// Get the pod to check its containers
 	pod, err := client.CoreV1().Pods(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
@@ -347,6 +378,18 @@ func (h *PodsHandler) GetPodLogs(c *gin.Context) {
 	c.Header("Connection", "keep-alive")
 	c.Header("Access-Control-Allow-Origin", "*")
 	c.Header("Access-Control-Allow-Headers", "Cache-Control")
+
+	// Send initial connection message
+	connectionMsg := map[string]interface{}{
+		"type":      "connection",
+		"message":   "Connected to pod logs stream",
+		"pod":       name,
+		"namespace": namespace,
+		"timestamp": time.Now().Format(time.RFC3339),
+	}
+	jsonData, _ := json.Marshal(connectionMsg)
+	c.SSEvent("message", string(jsonData))
+	c.Writer.Flush()
 
 	// Helper function to extract timestamp from log line
 	extractTimestamp := func(logLine string) string {
@@ -391,13 +434,65 @@ func (h *PodsHandler) GetPodLogs(c *gin.Context) {
 		return time.Now().Format(time.RFC3339)
 	}
 
-	// Function to stream logs for a specific container
+	// Helper function to detect log level from log line
+	detectLogLevel := func(logLine string) string {
+		lowerLog := strings.ToLower(logLine)
+		if strings.Contains(lowerLog, "error") || strings.Contains(lowerLog, "fatal") || strings.Contains(lowerLog, "panic") {
+			return "error"
+		}
+		if strings.Contains(lowerLog, "warn") {
+			return "warn"
+		}
+		if strings.Contains(lowerLog, "debug") {
+			return "debug"
+		}
+		if strings.Contains(lowerLog, "info") {
+			return "info"
+		}
+		return "info"
+	}
+
+	// Helper function to check if log line matches specified log level
+	matchesLogLevel := func(logLine, level string) bool {
+		if level == "all" {
+			return true
+		}
+		return detectLogLevel(logLine) == level
+	}
+
+	// Helper function to send log batch as SSE
+	sendLogBatch := func(c *gin.Context, batch []map[string]interface{}) {
+		if len(batch) == 0 {
+			return
+		}
+
+		// Send batch as single SSE event for better performance
+		batchResponse := map[string]interface{}{
+			"type":  "batch",
+			"logs":  batch,
+			"count": len(batch),
+		}
+
+		jsonData, _ := json.Marshal(batchResponse)
+		c.SSEvent("message", string(jsonData))
+		c.Writer.Flush()
+	}
+
+	// Function to stream logs for a specific container with enhanced features
 	streamContainerLogs := func(containerName string) {
-		req := client.CoreV1().Pods(namespace).GetLogs(name, &v1.PodLogOptions{
+		// Build pod log options with enhanced filtering
+		podLogOptions := &v1.PodLogOptions{
 			Container: containerName,
 			Follow:    true,
 			TailLines: &tailLines,
-		})
+		}
+
+		// Add timestamp filtering if specified
+		if sinceTime != nil {
+			podLogOptions.SinceTime = &metav1.Time{Time: *sinceTime}
+		}
+
+		req := client.CoreV1().Pods(namespace).GetLogs(name, podLogOptions)
 
 		stream, err := req.Stream(c.Request.Context())
 		if err != nil {
@@ -407,8 +502,15 @@ func (h *PodsHandler) GetPodLogs(c *gin.Context) {
 		defer stream.Close()
 
 		scanner := bufio.NewScanner(stream)
+		logBatch := make([]map[string]interface{}, 0, batchSize)
+
 		for scanner.Scan() {
 			logLine := scanner.Text()
+
+			// Apply log level filtering if specified
+			if logLevel != "" && !matchesLogLevel(logLine, logLevel) {
+				continue
+			}
 
 			// Extract timestamp from log line or use current time
 			timestamp := extractTimestamp(logLine)
@@ -418,17 +520,27 @@ func (h *PodsHandler) GetPodLogs(c *gin.Context) {
 				"containerName": containerName,
 				"timestamp":     timestamp,
 				"log":           logLine,
+				"level":         detectLogLevel(logLine),
 			}
 
-			// Send as SSE
-			jsonData, _ := json.Marshal(logResponse)
-			c.SSEvent("message", string(jsonData))
-			c.Writer.Flush()
+			// Add to batch
+			logBatch = append(logBatch, logResponse)
+
+			// Send batch when it reaches the batch size
+			if len(logBatch) >= batchSize {
+				sendLogBatch(c, logBatch)
+				logBatch = logBatch[:0] // Reset slice while keeping capacity
+			}
 
 			// Check if client disconnected
 			if c.Request.Context().Err() != nil {
 				break
 			}
+		}
+
+		// Send remaining logs in batch
+		if len(logBatch) > 0 {
+			sendLogBatch(c, logBatch)
 		}
 	}
 

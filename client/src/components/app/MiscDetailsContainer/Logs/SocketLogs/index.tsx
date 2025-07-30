@@ -19,9 +19,11 @@ type SocketLogsProps = {
   searchAddonRef: MutableRefObject<SearchAddon | null>;
   updateLogs: (log: PodSocketResponse) => void;
   filteredLogs: PodSocketResponse[];
+  showTimestamps?: boolean;
+  autoScroll?: boolean;
 }
 
-export function SocketLogs({ pod, containerName, namespace, configName, clusterName, podDetailsSpec, searchAddonRef, updateLogs, filteredLogs }: SocketLogsProps) {
+export function SocketLogs({ pod, containerName, namespace, configName, clusterName, podDetailsSpec, searchAddonRef, updateLogs, filteredLogs, showTimestamps = true, autoScroll = true }: SocketLogsProps) {
   const logContainerRef = useRef<HTMLDivElement>(null);
   const lineCount = useRef<number>(1);
   const xterm = useRef<Terminal | null>(null);
@@ -42,19 +44,40 @@ export function SocketLogs({ pod, containerName, namespace, configName, clusterN
         const smallerText = '\x1b[2m'; // ANSI escape code for dim (which may simulate a smaller font)
         const resetSmallText = '\x1b[22m'; // Reset for dim text
         const lineNumberColor = '\u001b[34m';
-        // Print the message with the background color
-        xterm.current.writeln(`${lineNumberColor}${lineCount.current}:|${resetSmallText}${smallerText} ${message.timestamp}${resetSmallText} ${containerColor}${message.containerName}${resetCode} ${message.log}`);
+        
+        // Build the log line based on settings
+        let logLine = `${lineNumberColor}${lineCount.current}:|${resetCode}`;
+        
+        if (showTimestamps && message.timestamp) {
+          logLine += `${resetSmallText}${smallerText} ${message.timestamp}${resetSmallText} `;
+        }
+        
+        logLine += `${containerColor}${message.containerName}${resetCode} ${message.log}`;
+        
+        // Print the message
+        xterm.current.writeln(logLine);
         lineCount.current++;
       } catch (error) {
         console.warn('Error printing log line:', error);
       }
     }
-  }, [podDetailsSpec]);
+  }, [podDetailsSpec, showTimestamps]);
 
-  const sendMessage = useCallback((lastMessage: PodSocketResponse) => {
-    if(lastMessage.log) {
-      if(!containerName || lastMessage.containerName === containerName){
-        updateLogs(lastMessage);
+  const sendMessage = useCallback((message: any) => {
+    // Handle batch messages from enhanced backend
+    if (message.type === 'batch' && Array.isArray(message.logs)) {
+      message.logs.forEach((log: PodSocketResponse) => {
+        if (log.log && (!containerName || log.containerName === containerName)) {
+          updateLogs(log);
+        }
+      });
+    } else if (message.type === 'connection') {
+      // Handle connection message
+      console.log('Connected to pod logs stream:', message.message);
+    } else if (message.log) {
+      // Handle single log message (backward compatibility)
+      if (!containerName || message.containerName === containerName) {
+        updateLogs(message);
       }
     }
   }, [containerName, updateLogs]);
@@ -142,8 +165,8 @@ export function SocketLogs({ pod, containerName, namespace, configName, clusterN
         setTimeout(() => {
           restoreScrollPosition();
         }, 10);
-      } else {
-        // Auto-scroll to bottom if user was at bottom
+      } else if (autoScroll) {
+        // Auto-scroll to bottom if user was at bottom and auto-scroll is enabled
         setTimeout(() => {
           scrollToBottom();
         }, 10);
@@ -195,10 +218,12 @@ export function SocketLogs({ pod, containerName, namespace, configName, clusterN
               if (currentIndex < filteredLogs.length) {
                 requestAnimationFrame(renderChunk);
               } else {
-                // Always scroll to bottom for filter changes
-                setTimeout(() => {
-                  scrollToBottom();
-                }, 10);
+                // Always scroll to bottom for filter changes if auto-scroll is enabled
+                if (autoScroll) {
+                  setTimeout(() => {
+                    scrollToBottom();
+                  }, 10);
+                }
                 
                 lastRenderedLength.current = filteredLogs.length;
                 previousLogsLength.current = filteredLogs.length;
@@ -223,7 +248,7 @@ export function SocketLogs({ pod, containerName, namespace, configName, clusterN
         isRendering.current = false;
       }
     }, 50);
-  }, [filteredLogs, printLogLine, scrollToBottom, appendNewLogs]);
+  }, [filteredLogs, printLogLine, scrollToBottom, appendNewLogs, autoScroll]);
 
   // Display filtered logs in terminal
   useEffect(() => {
