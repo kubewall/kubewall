@@ -69,8 +69,8 @@ func (f *HelmClientFactory) GetHelmClientForConfig(config *api.Config, clusterNa
 		return nil, fmt.Errorf("failed to create client config: %w", err)
 	}
 
-	// Set reasonable timeouts for the REST config
-	restConfig.Timeout = 30 * time.Second
+	// Set reasonable timeouts for the REST config - increased for Helm operations
+	restConfig.Timeout = 120 * time.Second
 	if restConfig.RateLimiter == nil {
 		restConfig.RateLimiter = &noRateLimiter{}
 	}

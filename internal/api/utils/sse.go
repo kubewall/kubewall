@@ -147,7 +147,7 @@ func (h *SSEHandler) SendSSEResponseWithUpdates(c *gin.Context, data interface{}
 					c.Data(http.StatusOK, "text/event-stream", []byte("data: "+string(jsonData)+"\n\n"))
 					c.Writer.Flush()
 
-				case <-time.After(5 * time.Second): // 5 second timeout for update function
+				case <-time.After(30 * time.Second): // 30 second timeout for update function (increased for Helm operations)
 					h.logger.Warn("Update function timed out, sending keep-alive")
 					// Send keep-alive
 					c.Data(http.StatusOK, "text/event-stream", []byte(": keep-alive\n\n"))

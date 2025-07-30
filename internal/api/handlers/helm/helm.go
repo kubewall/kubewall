@@ -13,6 +13,7 @@ import (
 	"kubewall-backend/pkg/logger"
 
 	"github.com/gin-gonic/gin"
+	"gopkg.in/yaml.v2"
 	"helm.sh/helm/v3/pkg/action"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd/api"
@@ -69,8 +70,8 @@ func (h *HelmHandler) GetHelmReleasesSSE(c *gin.Context) {
 
 	// Function to fetch and transform Helm releases data
 	fetchHelmReleases := func() (interface{}, error) {
-		// Create a context with timeout for Helm operations
-		ctx, cancel := context.WithTimeout(c.Request.Context(), 30*time.Second)
+		// Create a context with timeout for Helm operations - increased for slow Helm operations
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 120*time.Second)
 		defer cancel()
 
 		// Get Helm action configuration
@@ -172,7 +173,7 @@ func (h *HelmHandler) GetHelmReleaseDetails(c *gin.Context) {
 	namespace := c.Query("namespace")
 
 	// Create a context with timeout for Helm operations
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 180*time.Second)
 	defer cancel()
 
 	// Get Helm action configuration
@@ -236,9 +237,18 @@ func (h *HelmHandler) GetHelmReleaseDetails(c *gin.Context) {
 				h.logger.Warn("Failed to get release values", "error", err, "release", releaseName)
 				// Don't fail the entire request, just skip values
 			} else if values != nil {
-				// Convert values to YAML string
-				valuesYAML := fmt.Sprintf("%v", values)
-				response.Values = valuesYAML
+				// Convert values to proper YAML string
+				h.logger.Info("Converting Helm values to YAML", "release", releaseName, "valuesType", fmt.Sprintf("%T", values))
+				valuesYAML, err := yaml.Marshal(values)
+				if err != nil {
+					h.logger.Warn("Failed to marshal values to YAML", "error", err, "release", releaseName)
+					// Fallback to string representation
+					valuesYAML := fmt.Sprintf("%v", values)
+					response.Values = valuesYAML
+				} else {
+					response.Values = string(valuesYAML)
+					h.logger.Info("Successfully converted values to YAML", "release", releaseName, "yamlLength", len(response.Values))
+				}
 			}
 		}
 
@@ -323,6 +333,10 @@ func (h *HelmHandler) GetHelmReleaseHistory(c *gin.Context) {
 	cluster := c.Query("cluster")
 	releaseName := c.Param("name")
 
+	// Create a context with timeout for Helm operations - increased for slow Helm operations
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 120*time.Second)
+	defer cancel()
+
 	// Function to fetch Helm release history
 	fetchHelmReleaseHistory := func() (interface{}, error) {
 		// Get Helm action configuration
@@ -331,45 +345,50 @@ func (h *HelmHandler) GetHelmReleaseHistory(c *gin.Context) {
 			return nil, fmt.Errorf("failed to get Helm client: %v", err)
 		}
 
-		// Get release history
-		historyClient := action.NewHistory(actionConfig)
-		history, err := historyClient.Run(releaseName)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get release history: %v", err)
-		}
-
-		// Get current release info to determine latest revision
-		listClient := action.NewList(actionConfig)
-		listClient.AllNamespaces = true
-		releases, err := listClient.Run()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get release info: %v", err)
-		}
-
-		var currentRevision int
-		for _, rel := range releases {
-			if rel.Name == releaseName {
-				currentRevision = rel.Version
-				break
+		// Get release history with timeout check
+		select {
+		case <-ctx.Done():
+			return nil, fmt.Errorf("operation timed out")
+		default:
+			historyClient := action.NewHistory(actionConfig)
+			history, err := historyClient.Run(releaseName)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get release history: %v", err)
 			}
-		}
 
-		// Convert to response format
-		historyResponse := []types.HelmReleaseHistoryResponse{}
-		for _, hist := range history {
-			historyItem := types.HelmReleaseHistoryResponse{
-				Revision:    hist.Version,
-				Updated:     types.TimeFormat(hist.Info.LastDeployed.Time),
-				Status:      string(hist.Info.Status),
-				Chart:       hist.Chart.Metadata.Name,
-				AppVersion:  hist.Chart.Metadata.AppVersion,
-				Description: hist.Info.Description,
-				IsLatest:    hist.Version == currentRevision,
+			// Get current release info to determine latest revision
+			listClient := action.NewList(actionConfig)
+			listClient.AllNamespaces = true
+			releases, err := listClient.Run()
+			if err != nil {
+				return nil, fmt.Errorf("failed to get release info: %v", err)
 			}
-			historyResponse = append(historyResponse, historyItem)
-		}
 
-		return historyResponse, nil
+			var currentRevision int
+			for _, rel := range releases {
+				if rel.Name == releaseName {
+					currentRevision = rel.Version
+					break
+				}
+			}
+
+			// Convert to response format
+			historyResponse := []types.HelmReleaseHistoryResponse{}
+			for _, hist := range history {
+				historyItem := types.HelmReleaseHistoryResponse{
+					Revision:    hist.Version,
+					Updated:     types.TimeFormat(hist.Info.LastDeployed.Time),
+					Status:      string(hist.Info.Status),
+					Chart:       hist.Chart.Metadata.Name,
+					AppVersion:  hist.Chart.Metadata.AppVersion,
+					Description: hist.Info.Description,
+					IsLatest:    hist.Version == currentRevision,
+				}
+				historyResponse = append(historyResponse, historyItem)
+			}
+
+			return historyResponse, nil
+		}
 	}
 
 	// Get initial data

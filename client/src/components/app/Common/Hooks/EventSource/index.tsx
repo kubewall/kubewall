@@ -19,13 +19,15 @@ const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, on
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 5;
   const baseReconnectDelay = 1000;
-  const connectionTimeout = 10000;
-  const hasConfigErrorRef = useRef(false);
-  const dispatch = useAppDispatch();
-
+  
   // Determine if this is a Helm releases endpoint
   const isHelmReleases = url.includes('helmreleases');
   const isHelmReleaseDetails = url.includes('helmreleases') && !url.includes('history');
+  
+  // Increase timeout for Helm operations which can be slow
+  const connectionTimeout = isHelmReleases ? 60000 : 10000; // 60 seconds for Helm, 10 seconds for others
+  const hasConfigErrorRef = useRef(false);
+  const dispatch = useAppDispatch();
 
   let updatedUrl: string;
   if (url.startsWith('/')) {

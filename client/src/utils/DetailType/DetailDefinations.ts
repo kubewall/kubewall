@@ -601,7 +601,9 @@ const getHelmReleaseDetailsConfig = (details: HelmReleaseDetails, loading: boole
     {label: 'Version',value: defaultOrValue(details.release.version) },
     {label: 'Updated',value: defaultOrValue(details.release.updated) },
     {label: 'Description',value: defaultOrValue(details.release.description) },
-    {label: 'Notes',value: defaultOrValue(details.release.notes) }
+    {label: 'Notes',value: defaultOrValue(details.release.notes) },
+    {label: 'Deployments',value: details.release.deployments && details.release.deployments.length > 0 ? details.release.deployments.join(', ') : 'None' },
+    {label: 'Total Revisions',value: details.history ? details.history.length.toString() : '0' }
   ],
   loading,
   ...getCommonCardConfig(null, null)

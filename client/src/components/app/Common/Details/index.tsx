@@ -26,6 +26,9 @@ import { useDispatch } from "react-redux";
 import { useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
+import { HelmReleaseHistory } from "../../Details/HelmReleaseHistory";
+import { HelmReleaseValues } from "../../Details/HelmReleaseValues";
+import { HelmReleaseResources } from "../../Details/HelmReleaseResources";
 
 const KwDetails = () => {
   const dispatch = useDispatch();
@@ -147,8 +150,18 @@ const KwDetails = () => {
                 <Tabs defaultValue='overview'>
                   <TabsList className="grid w-full grid-cols-6 md:grid-cols-6 sm:grid-cols-4">
                     <TabsTrigger value='overview' autoFocus={true}>Overview</TabsTrigger>
-                    <TabsTrigger value='yaml'>YAML</TabsTrigger>
-                    <TabsTrigger value='events'>Events</TabsTrigger>
+                    {resourcekind === 'helmreleases' ? (
+                      <>
+                        <TabsTrigger value='history'>History</TabsTrigger>
+                        <TabsTrigger value='values'>Values</TabsTrigger>
+                        <TabsTrigger value='resources'>Resources</TabsTrigger>
+                      </>
+                    ) : (
+                      <>
+                        <TabsTrigger value='yaml'>YAML</TabsTrigger>
+                        <TabsTrigger value='events'>Events</TabsTrigger>
+                      </>
+                    )}
                     {resourceInitialData.label.toLowerCase() === PODS_ENDPOINT && <TabsTrigger value='logs'>Logs</TabsTrigger>}
                     {resourceInitialData.label.toLowerCase() === PODS_ENDPOINT && <TabsTrigger value='exec'>Exec</TabsTrigger>}
                   </TabsList>
@@ -161,25 +174,58 @@ const KwDetails = () => {
                       miscComponent={resourceData.miscComponent}
                     />
                   </TabsContent>
-                  <TabsContent value='yaml'>
-                    <YamlEditor
-                      name={resourcename}
-                      configName={config}
-                      clusterName={cluster}
-                      instanceType={`${resourcekind}${resourceInitialData.label === 'Custom Resources' && namespace ? '/' + namespace : ''}`}
-                      namespace={namespace || ''}
-                      extraQuery={resourceInitialData.label === 'Custom Resources' ? '&' + new URLSearchParams({ group, kind, resource, version }).toString() : ''}
-                    />
-                  </TabsContent>
-                  <TabsContent value='events'>
-                    <Events
-                      name={resourcename}
-                      configName={config}
-                      clusterName={cluster}
-                      instanceType={resourcekind === 'pods' ? 'pod' : resourcekind}
-                      namespace={namespace || ''}
-                    />
-                  </TabsContent>
+                  
+                  {resourcekind === 'helmreleases' ? (
+                    <>
+                      <TabsContent value='history'>
+                        <HelmReleaseHistory
+                          name={resourcename}
+                          configName={config}
+                          clusterName={cluster}
+                          namespace={namespace || ''}
+                        />
+                      </TabsContent>
+                      <TabsContent value='values'>
+                        <HelmReleaseValues
+                          name={resourcename}
+                          configName={config}
+                          clusterName={cluster}
+                          namespace={namespace || ''}
+                        />
+                      </TabsContent>
+                      <TabsContent value='resources'>
+                        <HelmReleaseResources
+                          name={resourcename}
+                          configName={config}
+                          clusterName={cluster}
+                          namespace={namespace || ''}
+                        />
+                      </TabsContent>
+                    </>
+                  ) : (
+                    <>
+                      <TabsContent value='yaml'>
+                        <YamlEditor
+                          name={resourcename}
+                          configName={config}
+                          clusterName={cluster}
+                          instanceType={`${resourcekind}${resourceInitialData.label === 'Custom Resources' && namespace ? '/' + namespace : ''}`}
+                          namespace={namespace || ''}
+                          extraQuery={resourceInitialData.label === 'Custom Resources' ? '&' + new URLSearchParams({ group, kind, resource, version }).toString() : ''}
+                        />
+                      </TabsContent>
+                      <TabsContent value='events'>
+                        <Events
+                          name={resourcename}
+                          configName={config}
+                          clusterName={cluster}
+                          instanceType={resourcekind === 'pods' ? 'pod' : resourcekind}
+                          namespace={namespace || ''}
+                        />
+                      </TabsContent>
+                    </>
+                  )}
+                  
                   {
                     resourceInitialData.label.toLowerCase() === PODS_ENDPOINT &&
                     <TabsContent value='logs'>
