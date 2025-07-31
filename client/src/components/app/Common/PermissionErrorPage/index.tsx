@@ -71,7 +71,8 @@ export const PermissionErrorPage: React.FC<PermissionErrorPageProps> = ({
   const handleGoBack = () => {
     // Clear permission error when going back
     dispatch(clearPermissionError());
-    navigate({ to: '..' });
+    // Navigate to the config page instead of relative navigation
+    navigate({ to: '/config' });
   };
 
   return (
