@@ -12,7 +12,7 @@ import {
   CommandShortcut,
 } from "@/components/ui/command";
 import { SvgRenderer } from '../../Common/SvgRenderer';
-import { BoxIcon, CornerDownLeftIcon } from "lucide-react";
+import { BoxIcon, Command, CornerDownLeftIcon } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { NAVIGATION_ROUTE } from "@/constants";
 import { resetListTableFilter } from "@/data/Misc/ListTableFilterSlice";
@@ -117,7 +117,7 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
                   <BoxIcon className="mr-2 h-4 w-4" />
                   <span>{name}</span>
                   <CommandShortcut className="invisible group-aria-[selected=true]:visible">
-                    <CornerDownLeftIcon />
+                    <Kbd square>↵</Kbd>
                   </CommandShortcut>
                 </CommandItem>
               ))}
@@ -135,7 +135,7 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
                   <div className="mr-2 flex h-4 w-4 items-center justify-center">
                     <SvgRenderer
                       name={customResourcesNavigation[customResourceGroup].resources[0].icon}
-                      minWidth={18}
+                      minWidth={16}
                     />
                   </div>
                   <span>
@@ -143,7 +143,7 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
                     <span className="text-xs text-muted-foreground">({customResourceGroup})</span>
                   </span>
                   <CommandShortcut className="invisible group-aria-[selected=true]:visible">
-                    <CornerDownLeftIcon />
+                    <Kbd square>↵</Kbd>
                   </CommandShortcut>
                 </CommandItem>
               ))
@@ -152,7 +152,7 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
 
           <CommandSeparator />
         </CommandList>
-      </CommandDialog>
+      </CommandDialog >
     </>
   );
 });
