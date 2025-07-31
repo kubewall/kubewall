@@ -119,12 +119,26 @@ func (h *SecretsHandler) GetSecretsSSE(c *gin.Context) {
 	initialData, err := fetchSecrets()
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to list secrets for SSE")
-		h.sseHandler.SendSSEError(c, http.StatusInternalServerError, err.Error())
+		
+		// Check if this is a permission error
+		if utils.IsPermissionError(err) {
+			h.sseHandler.SendSSEPermissionError(c, err)
+		} else {
+			h.sseHandler.SendSSEError(c, http.StatusInternalServerError, err.Error())
+		}
 		return
 	}
 
-	// Send SSE response with periodic updates
-	h.sseHandler.SendSSEResponseWithUpdates(c, initialData, fetchSecrets)
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// Send SSE response with periodic updates
+		h.sseHandler.SendSSEResponseWithUpdates(c, initialData, fetchSecrets)
+		return
+	}
+
+	// For non-SSE requests, return JSON
+	c.JSON(http.StatusOK, initialData)
 }
 
 // GetSecret returns a specific secret

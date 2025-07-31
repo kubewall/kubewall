@@ -1,18 +1,16 @@
 import './index.css';
 
-import { CUSTOM_RESOURCES_ENDPOINT, NAVIGATION_ROUTE } from "@/constants";
+import { NAVIGATION_ROUTE } from "@/constants";
 import { ChevronRight, DatabaseIcon, LayersIcon, LayoutGridIcon, NetworkIcon, ShieldHalf, SlidersHorizontalIcon, UngroupIcon, Terminal } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { SidebarContent, SidebarGroup, SidebarGroupLabel, Sidebar as SidebarMainComponent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarRail, useSidebar } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { createEventStreamQueryObject, getEventStreamUrl, getSystemTheme } from "@/utils";
-import { memo, useEffect, useRef, useState } from "react";
+import { getSystemTheme } from "@/utils";
+import { memo, useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
-import { toast } from "sonner";
 
-import { CustomResources } from "@/types";
 import { SidebarNavigator } from "./Navigator";
 import { SvgRenderer } from '../Common/SvgRenderer';
 import { cn } from "@/lib/utils";
@@ -24,8 +22,7 @@ import kwLogoLightIcon from '../../../assets/facets-logo-dark.svg';
 import helmLogo from '../../../assets/helm-logo.png';
 import { resetCustomResourcesList } from "@/data/CustomResources/CustomResourcesListSlice";
 import { resetListTableFilter } from "@/data/Misc/ListTableFilterSlice";
-import { updateCustomResources } from "@/data/CustomResources/CustomResourcesSlice";
-import { useEventSource } from "../Common/Hooks/EventSource";
+import { clearPermissionError } from "@/data/PermissionErrors/PermissionErrorsSlice";
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
 }
@@ -48,7 +45,6 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
   } = useAppSelector((state) => state.customResources);
   const { open, isMobile, openMobile } = useSidebar();
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
-  const hasRedirectedRef = useRef(false);
 
   useEffect(() => {
     const currentRoute = new URL(location.href).searchParams.get('resourcekind') || '';
@@ -82,6 +78,8 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
 
   const onNavClick = (routeValue: string) => {
     dispatch(resetListTableFilter());
+    // Clear any existing permission errors when navigating to a different resource
+    dispatch(clearPermissionError());
     setActiveTab(routeValue);
     
     // Handle cloud shell route differently
@@ -95,6 +93,8 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
 
   const onCustomResourcesNavClick = (route: string, name: string) => {
     dispatch(resetListTableFilter());
+    // Clear any existing permission errors when navigating to a different resource
+    dispatch(clearPermissionError());
     const routeKeys = new URLSearchParams(route);
     setActiveTab((routeKeys.get('kind') || '').toLowerCase());
     if (activeTab.toLowerCase() !== name.toLowerCase()) {
@@ -109,40 +109,6 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
       dispatch(fetchClusters());
     }
   }, [clusters, dispatch]);
-
-
-  const sendMessage = (message: CustomResources[]) => {
-    dispatch(updateCustomResources(message));
-  };
-
-  const handleConfigError = () => {
-    // Prevent multiple redirects
-    if (hasRedirectedRef.current) {
-      return;
-    }
-    
-    hasRedirectedRef.current = true;
-    toast.error("Configuration Error", {
-      description: "The configuration you were viewing has been deleted or is no longer available. Redirecting to configuration page.",
-    });
-    navigate({ to: '/config' });
-  };
-
-  useEventSource({
-    url: getEventStreamUrl(
-      CUSTOM_RESOURCES_ENDPOINT,
-      createEventStreamQueryObject(
-        configName,
-        clusterName
-      )),
-    sendMessage,
-    onConfigError: handleConfigError,
-  });
-
-  // Reset the redirect flag when the config changes
-  useEffect(() => {
-    hasRedirectedRef.current = false;
-  }, [configName]);
 
   const getResourceIcon = (resourceType: string) => {
     switch (resourceType) {

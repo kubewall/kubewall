@@ -99,7 +99,12 @@ func (h *RoleBindingsHandler) GetRoleBindingsSSE(c *gin.Context) {
 	initialData, err := fetchRoleBindings()
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to list role bindings for SSE")
-		h.sseHandler.SendSSEError(c, http.StatusInternalServerError, err.Error())
+		// Check if this is a permission error
+		if utils.IsPermissionError(err) {
+			h.sseHandler.SendSSEPermissionError(c, err)
+		} else {
+			h.sseHandler.SendSSEError(c, http.StatusInternalServerError, err.Error())
+		}
 		return
 	}
 

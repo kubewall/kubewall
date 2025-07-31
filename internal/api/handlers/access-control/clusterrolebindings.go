@@ -89,7 +89,12 @@ func (h *ClusterRoleBindingsHandler) GetClusterRoleBindingsSSE(c *gin.Context) {
 	initialData, err := fetchClusterRoleBindings()
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to list cluster role bindings for SSE")
-		h.sseHandler.SendSSEError(c, http.StatusInternalServerError, err.Error())
+		// Check if this is a permission error
+		if utils.IsPermissionError(err) {
+			h.sseHandler.SendSSEPermissionError(c, err)
+		} else {
+			h.sseHandler.SendSSEError(c, http.StatusInternalServerError, err.Error())
+		}
 		return
 	}
 

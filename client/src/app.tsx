@@ -1,68 +1,71 @@
-import { Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
+import { Outlet, useRouterState } from "@tanstack/react-router";
 import { SidebarInset, SidebarProvider } from "./components/ui/sidebar";
-import { createEventStreamQueryObject, getEventStreamUrl } from "./utils";
 import { useRef, useEffect } from "react";
 
-import { NAMESPACES_ENDPOINT } from "./constants";
-import { NamespacesResponse } from "./types";
 import { Sidebar } from "@/components/app/Sidebar";
-import { updateNamspaces } from "./data/Clusters/Namespaces/NamespacesSlice";
-import { useAppDispatch } from "./redux/hooks";
-import { useEventSource } from "./components/app/Common/Hooks/EventSource";
-import { toast } from "sonner";
+import { useAppDispatch, useAppSelector } from "./redux/hooks";
+import { PermissionErrorPage } from "./components/app/Common/PermissionErrorPage";
+import { RootState } from "./redux/store";
+import { clearPermissionError } from "./data/PermissionErrors/PermissionErrorsSlice";
 
 export function App() {
   const dispatch = useAppDispatch();
-  const navigate = useNavigate();
   const router = useRouterState();
   const pathname = router.location.pathname;
   const configName = pathname.split('/')[1];
   const queryParams = new URLSearchParams(router.location.search);
-  const clusterName = queryParams.get('cluster') || '';
+  const resourceKind = queryParams.get('resourcekind') || '';
   const hasRedirectedRef = useRef(false);
 
-  const sendMessage = (message: NamespacesResponse[]) => {
-    dispatch(updateNamspaces(message));
-  };
+  // Get permission error state
+  const { currentError, isPermissionErrorVisible } = useAppSelector(
+    (state: RootState) => state.permissionErrors
+  );
 
-  const handleConfigError = () => {
-    // Prevent multiple redirects
-    if (hasRedirectedRef.current) {
-      return;
+  // Clear permission error when navigating to a different resource
+  useEffect(() => {
+    if (currentError && isPermissionErrorVisible) {
+      // Check if the current resource kind is different from the error resource
+      const errorResource = currentError.resource?.toLowerCase();
+      const currentResource = resourceKind.toLowerCase();
+      
+      if (errorResource && currentResource && errorResource !== currentResource) {
+        // User navigated to a different resource, clear the permission error
+        dispatch(clearPermissionError());
+      }
     }
-    
-    hasRedirectedRef.current = true;
-    toast.error("Configuration Error", {
-      description: "The configuration you were viewing has been deleted or is no longer available. Redirecting to configuration page.",
-    });
-    navigate({ to: '/config' });
-  };
-
-  useEventSource({
-    url: getEventStreamUrl(
-      NAMESPACES_ENDPOINT,
-      createEventStreamQueryObject(
-        configName,
-        clusterName
-      )),
-    sendMessage,
-    onConfigError: handleConfigError,
-  });
+  }, [resourceKind, currentError, isPermissionErrorVisible, dispatch]);
 
   // Reset the redirect flag when the config changes
   useEffect(() => {
     hasRedirectedRef.current = false;
   }, [configName]);
 
+  // Handle retry for permission errors
+  const handlePermissionErrorRetry = () => {
+    dispatch(clearPermissionError());
+    // Optionally refresh the page or reconnect to the event source
+    window.location.reload();
+  };
+
   return (
     <>
       <SidebarProvider >
         <Sidebar />
         <SidebarInset>
-          <Outlet />
+          {currentError && isPermissionErrorVisible ? (
+            <PermissionErrorPage
+              error={currentError}
+              onRetry={handlePermissionErrorRetry}
+              showBackButton={true}
+              showRetryButton={true}
+            />
+          ) : (
+            <Outlet />
+          )}
         </SidebarInset>
-
       </SidebarProvider>
+      {/* Remove the GlobalPermissionErrorHandler since we're now showing full page errors */}
     </>
   );
 }

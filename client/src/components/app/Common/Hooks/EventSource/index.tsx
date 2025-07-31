@@ -8,10 +8,11 @@ type KwEventSourceWithStatus<T = any> = {
   sendMessage: (message: T) => void;
   onConnectionStatusChange?: (status: 'connecting' | 'connected' | 'reconnecting' | 'error') => void;
   onConfigError?: () => void;
+  onPermissionError?: (error: any) => void;
   setLoading?: (loading: boolean) => void;
 };
 
-const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, onConfigError, setLoading}: KwEventSourceWithStatus<T>) => {
+const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, onConfigError, onPermissionError, setLoading}: KwEventSourceWithStatus<T>) => {
   const eventSourceRef = useRef<EventSource | null>(null);
   const isConnectingRef = useRef(false);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -27,6 +28,7 @@ const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, on
   // Optimized timeouts based on Phase 2 server improvements
   const connectionTimeout = isHelmReleases ? 90000 : 15000; // 90 seconds for Helm, 15 seconds for others
   const hasConfigErrorRef = useRef(false);
+  const hasPermissionErrorRef = useRef(false); // New ref to track permission errors specifically
   const dispatch = useAppDispatch();
 
   let updatedUrl: string;
@@ -42,8 +44,8 @@ const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, on
       return;
     }
 
-    // Don't reconnect if we've already detected a config error
-    if (hasConfigErrorRef.current) {
+    // Don't reconnect if we've already detected a config error or permission error
+    if (hasConfigErrorRef.current || hasPermissionErrorRef.current) {
       return;
     }
 
@@ -85,7 +87,7 @@ const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, on
       console.warn('EventSource connection timeout, closing and reconnecting...', 'timeout', connectionTimeout);
       eventSource.close();
       isConnectingRef.current = false;
-      if (reconnectAttemptsRef.current < maxReconnectAttempts && !hasConfigErrorRef.current) {
+      if (reconnectAttemptsRef.current < maxReconnectAttempts && !hasConfigErrorRef.current && !hasPermissionErrorRef.current) {
         reconnectAttemptsRef.current++;
         connect();
       } else {
@@ -153,6 +155,58 @@ const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, on
           return;
         }
         
+        // Check if this is a permission error message
+        if (eventData.error && eventData.error.type === 'permission_error') {
+          console.error('Permission error received:', eventData.error);
+          
+          // Mark that we've detected a permission error to prevent reconnection
+          hasPermissionErrorRef.current = true;
+          
+          // Close the connection immediately
+          eventSource.close();
+          
+          // Call the permission error callback if provided
+          if (onPermissionError) {
+            onPermissionError(eventData.error);
+          } else {
+            console.warn('onPermissionError callback not provided');
+          }
+          // Don't send the error message to the normal sendMessage handler
+          return;
+        }
+        
+        // Check for permission errors in regular error messages (fallback)
+        if (eventData.error && typeof eventData.error === 'string') {
+          const errorMessage = eventData.error.toLowerCase();
+          if (errorMessage.includes('forbidden') || errorMessage.includes('unauthorized') || errorMessage.includes('permission denied')) {
+            console.error('Permission error detected in error message:', eventData.error);
+            
+            // Mark that we've detected a permission error to prevent reconnection
+            hasPermissionErrorRef.current = true;
+            
+            // Close the connection immediately
+            eventSource.close();
+            
+            // Create a permission error object
+            const permissionError = {
+              type: 'permission_error',
+              message: eventData.error,
+              code: 403,
+              resource: 'unknown',
+              verb: 'access'
+            };
+            
+            // Call the permission error callback if provided
+            if (onPermissionError) {
+              onPermissionError(permissionError);
+            } else {
+              console.warn('onPermissionError callback not provided');
+            }
+            // Don't send the error message to the normal sendMessage handler
+            return;
+          }
+        }
+        
         // Ensure we're sending valid data
         if (Array.isArray(eventData) || typeof eventData === 'object') {
           sendMessage(eventData);
@@ -191,9 +245,85 @@ const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, on
             }
             return;
           }
+          
+          // Check for permission errors in error events
+          if (errorData.error && errorData.error.type === 'permission_error') {
+            console.error('Permission error received via error event:', errorData.error);
+            
+            // Mark that we've detected a permission error to prevent reconnection
+            hasPermissionErrorRef.current = true;
+            
+            // Close the connection immediately
+            eventSource.close();
+            
+            // Call the permission error callback if provided
+            if (onPermissionError) {
+              onPermissionError(errorData.error);
+            } else {
+              console.warn('onPermissionError callback not provided');
+            }
+            return;
+          }
+          
+          // Check for permission errors in error message strings
+          if (errorData.error && typeof errorData.error === 'string') {
+            const errorMessage = errorData.error.toLowerCase();
+            if (errorMessage.includes('forbidden') || errorMessage.includes('unauthorized') || errorMessage.includes('permission denied')) {
+              console.error('Permission error detected in error event message:', errorData.error);
+              
+              // Mark that we've detected a permission error to prevent reconnection
+              hasPermissionErrorRef.current = true;
+              
+              // Close the connection immediately
+              eventSource.close();
+              
+              // Create a permission error object
+              const permissionError = {
+                type: 'permission_error',
+                message: errorData.error,
+                code: 403,
+                resource: 'unknown',
+                verb: 'access'
+              };
+              
+              // Call the permission error callback if provided
+              if (onPermissionError) {
+                onPermissionError(permissionError);
+              } else {
+                console.warn('onPermissionError callback not provided');
+              }
+              return;
+            }
+          }
         }
       } catch (error) {
         console.warn('Failed to parse error event data:', error);
+      }
+    });
+
+    // Handle "permission_error" event type (SSE permission errors from server)
+    eventSource.addEventListener('permission_error', (event) => {
+      try {
+        const messageEvent = event as MessageEvent;
+        if (messageEvent.data) {
+          const errorData = JSON.parse(messageEvent.data);
+          console.error('Permission error received via permission_error event:', errorData);
+          
+          // Mark that we've detected a permission error to prevent reconnection
+          hasPermissionErrorRef.current = true;
+          
+          // Close the connection immediately
+          eventSource.close();
+          
+          // Call the permission error callback if provided
+          if (onPermissionError) {
+            onPermissionError(errorData.error);
+          } else {
+            console.warn('onPermissionError callback not provided');
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to parse permission_error event data:', error);
       }
     });
 
@@ -220,8 +350,8 @@ const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, on
       // Don't send empty array immediately on error
       // This prevents "No results" from showing during temporary connection issues
       
-      // Don't reconnect if we've detected a config error
-      if (hasConfigErrorRef.current) {
+      // Don't reconnect if we've detected a config error or permission error
+      if (hasConfigErrorRef.current || hasPermissionErrorRef.current) {
         return;
       }
       
@@ -255,13 +385,32 @@ const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, on
   useEffect(() => {
     // Reset config error flag when URL changes
     hasConfigErrorRef.current = false;
+    hasPermissionErrorRef.current = false; // Reset permission error flag on URL change
     reconnectAttemptsRef.current = 0; // Reset reconnect attempts on URL change
+    
+    // Close any existing connection before creating a new one
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+    
+    // Clear any existing timeouts
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+    if (connectionTimeoutRef.current) {
+      clearTimeout(connectionTimeoutRef.current);
+      connectionTimeoutRef.current = null;
+    }
+    
     connect();
     
     // Cleanup function
     return () => {
       isConnectingRef.current = false;
       hasConfigErrorRef.current = false;
+      hasPermissionErrorRef.current = false; // Clear permission error flag on cleanup
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
         eventSourceRef.current = null;

@@ -84,6 +84,7 @@ import yamlSlice from '@/data/Yaml/YamlSlice';
 import { helmReleasesReducer, helmReleaseDetailsReducer } from '@/data/Helm';
 import helmReleaseResourcesReducer from '@/data/Helm/HelmReleaseResourcesSlice';
 import cloudShellSlice from '@/data/CloudShell/CloudShellSlice';
+import permissionErrorsSlice from '@/data/PermissionErrors/PermissionErrorsSlice';
 
 const store = configureStore({
   reducer: {
@@ -172,7 +173,8 @@ const store = configureStore({
     deploymentScale: DeploymentScaleSlice,
     helmReleases: helmReleasesReducer,
     helmReleaseDetails: helmReleaseDetailsReducer,
-    helmReleaseResources: helmReleaseResourcesReducer
+    helmReleaseResources: helmReleaseResourcesReducer,
+    permissionErrors: permissionErrorsSlice
   },
 });
 

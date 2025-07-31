@@ -105,7 +105,19 @@ func (h *PriorityClassesHandler) GetPriorityClassesSSE(c *gin.Context) {
 		return responses, nil
 	}
 
-	h.sseHandler.SendSSEResponseWithUpdates(c, nil, fetchPriorityClasses)
+	initialData, err := fetchPriorityClasses()
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to list priority classes for SSE")
+		// Check if this is a permission error
+		if utils.IsPermissionError(err) {
+			h.sseHandler.SendSSEPermissionError(c, err)
+		} else {
+			h.sseHandler.SendSSEError(c, http.StatusInternalServerError, err.Error())
+		}
+		return
+	}
+
+	h.sseHandler.SendSSEResponseWithUpdates(c, initialData, fetchPriorityClasses)
 }
 
 // GetPriorityClass returns a specific priority class

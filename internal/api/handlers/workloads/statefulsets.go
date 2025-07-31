@@ -91,7 +91,12 @@ func (h *StatefulSetsHandler) GetStatefulSetsSSE(c *gin.Context) {
 	initialData, err := fetchStatefulSets()
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to list statefulsets for SSE")
-		h.sseHandler.SendSSEError(c, http.StatusInternalServerError, err.Error())
+		// Check if this is a permission error
+		if utils.IsPermissionError(err) {
+			h.sseHandler.SendSSEPermissionError(c, err)
+		} else {
+			h.sseHandler.SendSSEError(c, http.StatusInternalServerError, err.Error())
+		}
 		return
 	}
 

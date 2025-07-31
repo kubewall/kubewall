@@ -185,7 +185,13 @@ func (h *CustomResourcesHandler) GetCustomResourcesSSE(c *gin.Context) {
 
 	if err2 != nil {
 		h.logger.WithError(err2).Error("Failed to list custom resources for SSE")
-		h.sseHandler.SendSSEError(c, http.StatusInternalServerError, err2.Error())
+		
+		// Check if this is a permission error
+		if utils.IsPermissionError(err2) {
+			h.sseHandler.SendSSEPermissionError(c, err2)
+		} else {
+			h.sseHandler.SendSSEError(c, http.StatusInternalServerError, err2.Error())
+		}
 		return
 	}
 

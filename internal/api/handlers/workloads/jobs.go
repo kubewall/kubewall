@@ -91,7 +91,12 @@ func (h *JobsHandler) GetJobsSSE(c *gin.Context) {
 	initialData, err := fetchJobs()
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to list jobs for SSE")
-		h.sseHandler.SendSSEError(c, http.StatusInternalServerError, err.Error())
+		// Check if this is a permission error
+		if utils.IsPermissionError(err) {
+			h.sseHandler.SendSSEPermissionError(c, err)
+		} else {
+			h.sseHandler.SendSSEError(c, http.StatusInternalServerError, err.Error())
+		}
 		return
 	}
 

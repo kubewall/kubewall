@@ -110,8 +110,20 @@ func (h *RuntimeClassesHandler) GetRuntimeClassesSSE(c *gin.Context) {
 		return responses, nil
 	}
 
+	initialData, err := fetchRuntimeClasses()
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to list runtime classes for SSE")
+		// Check if this is a permission error
+		if utils.IsPermissionError(err) {
+			h.sseHandler.SendSSEPermissionError(c, err)
+		} else {
+			h.sseHandler.SendSSEError(c, http.StatusInternalServerError, err.Error())
+		}
+		return
+	}
+
 	// Send initial empty array and then fetch data
-	h.sseHandler.SendSSEResponseWithUpdates(c, []types.RuntimeClassListResponse{}, fetchRuntimeClasses)
+	h.sseHandler.SendSSEResponseWithUpdates(c, initialData, fetchRuntimeClasses)
 }
 
 // GetRuntimeClass returns a specific runtime class

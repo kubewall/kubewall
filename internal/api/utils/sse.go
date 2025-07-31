@@ -198,7 +198,14 @@ func (h *SSEHandler) SendSSEResponseWithUpdates(c *gin.Context, data interface{}
 				case result := <-resultChan:
 					if result.err != nil {
 						h.logger.WithError(result.err).Error("Failed to fetch fresh data for SSE update")
-						// Send keep-alive instead of failing
+						
+						// Check if this is a permission error
+						if IsPermissionError(result.err) {
+							h.SendSSEPermissionError(c, result.err)
+							return // Close the connection for permission errors
+						}
+						
+						// Send keep-alive instead of failing for other errors
 						c.Data(http.StatusOK, "text/event-stream", []byte(": keep-alive\n\n"))
 						c.Writer.Flush()
 						continue
@@ -252,6 +259,27 @@ func (h *SSEHandler) SendSSEError(c *gin.Context, statusCode int, message string
 		return
 	}
 
+	c.SSEvent("error", string(jsonData))
+	c.Writer.Flush()
+}
+
+// SendSSEPermissionError sends a Server-Sent Events permission error response
+func (h *SSEHandler) SendSSEPermissionError(c *gin.Context, err error) {
+	c.Header("Content-Type", "text/event-stream")
+	c.Header("Cache-Control", "no-cache")
+	c.Header("Connection", "keep-alive")
+	c.Header("Access-Control-Allow-Origin", "*")
+	c.Header("Access-Control-Allow-Headers", "Cache-Control")
+
+	errorData := CreatePermissionErrorResponse(err)
+	jsonData, err := json.Marshal(errorData)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to marshal SSE permission error data")
+		return
+	}
+
+	// Send as both permission_error and error events for compatibility
+	c.SSEvent("permission_error", string(jsonData))
 	c.SSEvent("error", string(jsonData))
 	c.Writer.Flush()
 }

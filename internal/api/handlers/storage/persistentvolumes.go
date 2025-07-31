@@ -89,7 +89,13 @@ func (h *PersistentVolumesHandler) GetPersistentVolumesSSE(c *gin.Context) {
 	initialData, err := fetchPVs()
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to list persistent volumes for SSE")
-		h.sseHandler.SendSSEError(c, http.StatusInternalServerError, err.Error())
+
+		// Check if this is a permission error
+		if utils.IsPermissionError(err) {
+			h.sseHandler.SendSSEPermissionError(c, err)
+		} else {
+			h.sseHandler.SendSSEError(c, http.StatusInternalServerError, err.Error())
+		}
 		return
 	}
 

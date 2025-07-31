@@ -2,6 +2,11 @@ interface RawRequestError {
   message: string;
   code?: number;
   details?: string;
+  type?: string;
+  resource?: string;
+  verb?: string;
+  apiGroup?: string;
+  apiVersion?: string;
 }
 
 class ApiRequestError extends Error implements RawRequestError {
@@ -11,17 +16,37 @@ class ApiRequestError extends Error implements RawRequestError {
 
   details?: string;
 
+  type?: string;
+
+  resource?: string;
+
+  verb?: string;
+
+  apiGroup?: string;
+
+  apiVersion?: string;
+
   constructor(jsonResponse: RawRequestError = {} as RawRequestError) {
     const {
       message = '',
       code = 0,
       details = '',
+      type = '',
+      resource = '',
+      verb = '',
+      apiGroup = '',
+      apiVersion = '',
     } = jsonResponse;
 
     super();
     this.message = message;
     this.code = code;
     this.details = details;
+    this.type = type;
+    this.resource = resource;
+    this.verb = verb;
+    this.apiGroup = apiGroup;
+    this.apiVersion = apiVersion;
   }
 }
 

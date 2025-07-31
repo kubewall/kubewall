@@ -198,7 +198,13 @@ func (h *HelmHandler) GetHelmReleasesSSE(c *gin.Context) {
 	initialData, err := fetchHelmReleases()
 	if err != nil {
 		h.logger.Error("Failed to get initial Helm releases data", "error", err, "cluster", cluster)
-		h.sseHandler.SendSSEError(c, http.StatusInternalServerError, err.Error())
+		
+		// Check if this is a permission error
+		if utils.IsPermissionError(err) {
+			h.sseHandler.SendSSEPermissionError(c, err)
+		} else {
+			h.sseHandler.SendSSEError(c, http.StatusInternalServerError, err.Error())
+		}
 		return
 	}
 
