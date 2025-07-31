@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"kubewall-backend/internal/api/handlers/shared"
 	"kubewall-backend/internal/k8s"
 	"kubewall-backend/internal/storage"
 	"kubewall-backend/pkg/logger"
@@ -170,11 +171,8 @@ func (h *PodExecHandler) HandlePodExec(c *gin.Context) {
 		return
 	}
 
-	// Create terminal session
-	session := &TerminalSession{
-		conn:   conn,
-		logger: h.logger,
-	}
+	// Create terminal session using shared implementation
+	session := shared.NewTerminalSession(conn, h.logger)
 
 	// Start the exec session
 	err = exec.Stream(remotecommand.StreamOptions{
@@ -223,57 +221,4 @@ func (h *PodExecHandler) sendWebSocketError(conn *websocket.Conn, message string
 	}
 	jsonData, _ := json.Marshal(errorMsg)
 	conn.WriteMessage(websocket.TextMessage, jsonData)
-}
-
-// TerminalSession represents a terminal session for pod exec
-type TerminalSession struct {
-	conn   *websocket.Conn
-	logger *logger.Logger
-}
-
-// Read reads from the WebSocket and writes to stdin
-func (t *TerminalSession) Read(p []byte) (int, error) {
-	_, message, err := t.conn.ReadMessage()
-	if err != nil {
-		return 0, err
-	}
-
-	// Parse the message
-	var msg map[string]interface{}
-	if err := json.Unmarshal(message, &msg); err != nil {
-		return 0, err
-	}
-
-	// Extract input data
-	if input, ok := msg["input"].(string); ok {
-		copy(p, []byte(input))
-		return len(input), nil
-	}
-
-	return 0, nil
-}
-
-// Write writes from stdout/stderr to the WebSocket
-func (t *TerminalSession) Write(p []byte) (int, error) {
-	// Send stdout data
-	msg := map[string]interface{}{
-		"type": "stdout",
-		"data": string(p),
-	}
-	jsonData, err := json.Marshal(msg)
-	if err != nil {
-		return 0, err
-	}
-
-	err = t.conn.WriteMessage(websocket.TextMessage, jsonData)
-	if err != nil {
-		return 0, err
-	}
-
-	return len(p), nil
-}
-
-// Close closes the WebSocket connection
-func (t *TerminalSession) Close() error {
-	return t.conn.Close()
 }

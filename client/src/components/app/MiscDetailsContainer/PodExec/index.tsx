@@ -249,7 +249,7 @@ export function PodExec({ pod, namespace, configName, clusterName, podDetailsSpe
         </div>
       </div>
       
-      <div ref={execContainerRef} className="m-2">
+      <div ref={execContainerRef} className="w-full h-full">
         <XtermTerminal
           xterm={xterm}
           searchAddonRef={searchAddonRef}

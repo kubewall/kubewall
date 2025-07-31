@@ -2,7 +2,7 @@ import { useRef, useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Terminal } from "@xterm/xterm";
 import { SearchAddon } from "@xterm/addon-search";
-import { FitAddon } from "@xterm/addon-fit";
+import XtermTerminal from "../Logs/Xtrem";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,9 +54,8 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
   
   const xterm = useRef<Terminal | null>(null);
   const searchAddonRef = useRef<SearchAddon | null>(null);
-  const fitAddonRef = useRef<FitAddon | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
-  const terminalRef = useRef<HTMLDivElement>(null);
+
 
   const [isConnected, setIsConnected] = useState(false);
   const [creatingSession, setCreatingSession] = useState(false);
@@ -74,113 +73,7 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
            errorMessage.toLowerCase().includes('cannot create pods');
   };
 
-  // Initialize terminal
-  useEffect(() => {
-    if (!terminalRef.current) return;
-
-    // Create terminal instance
-    xterm.current = new Terminal({
-      cursorBlink: true,
-      fontSize: 14,
-      fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
-      theme: {
-        background: '#1e1e1e',
-        foreground: '#ffffff',
-        cursor: '#ffffff',
-        black: '#000000',
-        red: '#cd3131',
-        green: '#0dbc79',
-        yellow: '#e5e510',
-        blue: '#2472c8',
-        magenta: '#bc3fbc',
-        cyan: '#11a8cd',
-        white: '#e5e5e5',
-        brightBlack: '#666666',
-        brightRed: '#f14c4c',
-        brightGreen: '#23d18b',
-        brightYellow: '#f5f543',
-        brightBlue: '#3b8eea',
-        brightMagenta: '#d670d6',
-        brightCyan: '#29b8db',
-        brightWhite: '#ffffff',
-      },
-      cols: 120,
-      rows: 30,
-      allowTransparency: true,
-      cursorStyle: 'block',
-      fastScrollModifier: 'alt',
-      fastScrollSensitivity: 1,
-      scrollback: 1000,
-      tabStopWidth: 8,
-      windowsMode: true,
-      macOptionIsMeta: false,
-      macOptionClickForcesSelection: false,
-      rightClickSelectsWord: false,
-      convertEol: true,
-      scrollSensitivity: 1,
-      disableStdin: false,
-      screenReaderMode: false,
-      smoothScrollDuration: 0,
-    });
-
-    // Add addons
-    searchAddonRef.current = new SearchAddon();
-    fitAddonRef.current = new FitAddon();
-    
-    xterm.current.loadAddon(searchAddonRef.current);
-    xterm.current.loadAddon(fitAddonRef.current);
-    
-    // Try to load optional addons
-    try {
-      const { WebLinksAddon } = require("@xterm/addon-web-links");
-      xterm.current.loadAddon(new WebLinksAddon());
-    } catch (e) {
-      // WebLinks not available, continue without it
-    }
-    
-    try {
-      const { WebglAddon } = require("@xterm/addon-webgl");
-      xterm.current.loadAddon(new WebglAddon());
-    } catch (e) {
-      // WebGL not supported, continue without it
-    }
-
-    // Open terminal
-    xterm.current.open(terminalRef.current);
-    fitAddonRef.current.fit();
-
-    // Initialize terminal properly - disable local echo to prevent cursor jumping
-    xterm.current.write('\x1b[?25h'); // Show cursor
-    xterm.current.write('\x1b[?12l'); // Disable local echo
-    xterm.current.write('\x1b[?2004h'); // Enable bracketed paste mode
-
-    // Handle terminal input
-    xterm.current.onData(handleTerminalInput);
-
-
-
-
-
-    // Handle window resize
-    const handleResize = () => {
-      if (fitAddonRef.current) {
-        fitAddonRef.current.fit();
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      if (xterm.current) {
-        // Reset terminal modes before disposing
-        xterm.current.write('\x1b[?25l'); // Hide cursor
-        xterm.current.write('\x1b[?12h'); // Re-enable local echo
-        xterm.current.write('\x1b[?2004l'); // Disable bracketed paste mode
-        xterm.current.dispose();
-      }
-    };
-  }, []);
+  // Terminal initialization is now handled by SharedTerminal component
 
   // Load sessions on mount
   useEffect(() => {
@@ -397,9 +290,7 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
 
   // Handle terminal resize
   const handleTerminalResize = () => {
-    if (fitAddonRef.current) {
-      fitAddonRef.current.fit();
-    }
+    // Terminal resizing is handled by XtermTerminal component
   };
 
   // Toggle terminal expansion
@@ -603,13 +494,18 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
               </div>
             </div>
             <div 
-              ref={terminalRef} 
-              className="bg-black transition-all duration-300"
+              className="bg-black transition-all duration-300 w-full"
               style={{ 
                 height: isExpanded ? '600px' : '400px',
                 minHeight: isExpanded ? '600px' : '400px'
               }}
-            />
+            >
+              <XtermTerminal
+                xterm={xterm}
+                searchAddonRef={searchAddonRef}
+                onInput={handleTerminalInput}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>

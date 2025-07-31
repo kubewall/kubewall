@@ -108,6 +108,15 @@ const XtermTerminal = ({ xterm, searchAddonRef, onInput }: XtermProp) => {
       const handleResize = () => fitAddon.current?.fit();
       window.addEventListener('resize', handleResize);
       
+      // Also handle container resize using ResizeObserver
+      let resizeObserver: ResizeObserver | null = null;
+      if (terminalRef.current) {
+        resizeObserver = new ResizeObserver(() => {
+          fitAddon.current?.fit();
+        });
+        resizeObserver.observe(terminalRef.current);
+      }
+      
       // Add scroll listener
       const xtermContainer = document.querySelector('.xterm-viewport');
       if (xtermContainer) {
@@ -119,6 +128,9 @@ const XtermTerminal = ({ xterm, searchAddonRef, onInput }: XtermProp) => {
       return () => {
         xterm.current?.dispose();
         window.removeEventListener('resize', handleResize);
+        if (resizeObserver) {
+          resizeObserver.disconnect();
+        }
         const xtermContainer = document.querySelector('.xterm-viewport');
         if (xtermContainer) {
           xtermContainer.removeEventListener('scroll', checkScrollPosition);
@@ -142,7 +154,7 @@ const XtermTerminal = ({ xterm, searchAddonRef, onInput }: XtermProp) => {
         </Button>
       )}
 
-      <div ref={terminalRef} />
+      <div ref={terminalRef} className="w-full h-full" />
     </div>
   );
 };

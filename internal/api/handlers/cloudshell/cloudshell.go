@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"kubewall-backend/internal/api/handlers/shared"
 	"kubewall-backend/internal/api/utils"
 	"kubewall-backend/internal/k8s"
 	"kubewall-backend/internal/storage"
@@ -419,10 +420,8 @@ func (h *CloudShellHandler) CreateCloudShell(c *gin.Context) {
 	})
 }
 
-// HandleCloudShellWebSocket handles WebSocket-based cloud shell
+// HandleCloudShellWebSocket handles WebSocket-based cloud shell terminal
 func (h *CloudShellHandler) HandleCloudShellWebSocket(c *gin.Context) {
-	h.logger.Info("Cloud shell WebSocket request received")
-
 	// Upgrade HTTP connection to WebSocket
 	conn, err := h.upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
@@ -493,11 +492,8 @@ func (h *CloudShellHandler) HandleCloudShellWebSocket(c *gin.Context) {
 		return
 	}
 
-	// Create terminal session
-	session := &CloudShellTerminalSession{
-		conn:   conn,
-		logger: h.logger,
-	}
+	// Create terminal session using shared implementation
+	session := shared.NewTerminalSession(conn, h.logger)
 
 	// Start the exec session
 	err = exec.Stream(remotecommand.StreamOptions{
@@ -666,57 +662,4 @@ func (h *CloudShellHandler) sendWebSocketError(conn *websocket.Conn, message str
 	}
 	jsonData, _ := json.Marshal(errorMsg)
 	conn.WriteMessage(websocket.TextMessage, jsonData)
-}
-
-// CloudShellTerminalSession represents a terminal session for cloud shell
-type CloudShellTerminalSession struct {
-	conn   *websocket.Conn
-	logger *logger.Logger
-}
-
-// Read reads from the WebSocket and writes to stdin
-func (t *CloudShellTerminalSession) Read(p []byte) (int, error) {
-	_, message, err := t.conn.ReadMessage()
-	if err != nil {
-		return 0, err
-	}
-
-	// Parse the message
-	var msg map[string]interface{}
-	if err := json.Unmarshal(message, &msg); err != nil {
-		return 0, err
-	}
-
-	// Extract input data
-	if input, ok := msg["input"].(string); ok {
-		copy(p, []byte(input))
-		return len(input), nil
-	}
-
-	return 0, nil
-}
-
-// Write writes from stdout/stderr to the WebSocket
-func (t *CloudShellTerminalSession) Write(p []byte) (int, error) {
-	// Send stdout data
-	msg := map[string]interface{}{
-		"type": "stdout",
-		"data": string(p),
-	}
-	jsonData, err := json.Marshal(msg)
-	if err != nil {
-		return 0, err
-	}
-
-	err = t.conn.WriteMessage(websocket.TextMessage, jsonData)
-	if err != nil {
-		return 0, err
-	}
-
-	return len(p), nil
-}
-
-// Close closes the WebSocket connection
-func (t *CloudShellTerminalSession) Close() error {
-	return t.conn.Close()
 }
