@@ -28,6 +28,10 @@ import (
 
 const (
 	MaxCloudShellSessions = 2
+	// CloudShellCleanupInterval is how often to run the cleanup routine
+	CloudShellCleanupInterval = 1 * time.Hour
+	// CloudShellMaxAge is the maximum age of a cloud shell session before cleanup
+	CloudShellMaxAge = 24 * time.Hour
 )
 
 // CloudShellHandler handles cloud shell operations
@@ -150,50 +154,40 @@ func (h *CloudShellHandler) getClientAndConfig(c *gin.Context) (*kubernetes.Clie
 	return client, restConfig, nil
 }
 
-// checkCloudShellPermissions checks if the user has permissions to create cloud shell resources
+// checkCloudShellPermissions checks if the user has permissions to create, list, and delete cloud shell resources
 func (h *CloudShellHandler) checkCloudShellPermissions(client *kubernetes.Clientset, namespace string) error {
-	// Check permissions for ConfigMaps
-	configMapAccess := &authorizationv1.SelfSubjectAccessReview{
-		Spec: authorizationv1.SelfSubjectAccessReviewSpec{
-			ResourceAttributes: &authorizationv1.ResourceAttributes{
-				Namespace: namespace,
-				Verb:      "create",
-				Group:     "",
-				Version:   "v1",
-				Resource:  "configmaps",
-			},
-		},
+	// Define the permissions we need to check
+	permissions := []struct {
+		resource string
+		verbs    []string
+	}{
+		{"configmaps", []string{"create", "list", "delete"}},
+		{"pods", []string{"create", "list", "delete"}},
 	}
 
-	configMapResult, err := client.AuthorizationV1().SelfSubjectAccessReviews().Create(context.Background(), configMapAccess, metav1.CreateOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to check ConfigMap permissions: %w", err)
-	}
+	for _, perm := range permissions {
+		for _, verb := range perm.verbs {
+			accessReview := &authorizationv1.SelfSubjectAccessReview{
+				Spec: authorizationv1.SelfSubjectAccessReviewSpec{
+					ResourceAttributes: &authorizationv1.ResourceAttributes{
+						Namespace: namespace,
+						Verb:      verb,
+						Group:     "",
+						Version:   "v1",
+						Resource:  perm.resource,
+					},
+				},
+			}
 
-	if !configMapResult.Status.Allowed {
-		return fmt.Errorf("insufficient permissions: cannot create ConfigMaps in namespace %s", namespace)
-	}
+			result, err := client.AuthorizationV1().SelfSubjectAccessReviews().Create(context.Background(), accessReview, metav1.CreateOptions{})
+			if err != nil {
+				return fmt.Errorf("failed to check %s %s permissions: %w", perm.resource, verb, err)
+			}
 
-	// Check permissions for Pods
-	podAccess := &authorizationv1.SelfSubjectAccessReview{
-		Spec: authorizationv1.SelfSubjectAccessReviewSpec{
-			ResourceAttributes: &authorizationv1.ResourceAttributes{
-				Namespace: namespace,
-				Verb:      "create",
-				Group:     "",
-				Version:   "v1",
-				Resource:  "pods",
-			},
-		},
-	}
-
-	podResult, err := client.AuthorizationV1().SelfSubjectAccessReviews().Create(context.Background(), podAccess, metav1.CreateOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to check Pod permissions: %w", err)
-	}
-
-	if !podResult.Status.Allowed {
-		return fmt.Errorf("insufficient permissions: cannot create Pods in namespace %s", namespace)
+			if !result.Status.Allowed {
+				return fmt.Errorf("insufficient permissions: cannot %s %s in namespace %s", verb, perm.resource, namespace)
+			}
+		}
 	}
 
 	return nil
@@ -624,6 +618,8 @@ func (h *CloudShellHandler) ListCloudShellSessions(c *gin.Context) {
 func (h *CloudShellHandler) DeleteCloudShell(c *gin.Context) {
 	podName := c.Param("name")
 	namespace := c.Query("namespace")
+	configID := c.Query("config")
+	cluster := c.Query("cluster")
 
 	if namespace == "" {
 		namespace = "default"
@@ -650,6 +646,28 @@ func (h *CloudShellHandler) DeleteCloudShell(c *gin.Context) {
 		return
 	}
 
+	// Also clean up the associated ConfigMap if configID and cluster are provided
+	if configID != "" && cluster != "" {
+		configMapName := fmt.Sprintf("kubeconfig-%s-%s", configID, cluster)
+		err = client.CoreV1().ConfigMaps(namespace).Delete(c.Request.Context(), configMapName, metav1.DeleteOptions{})
+		if err != nil {
+			// Log but don't fail - ConfigMap might not exist or might be used by other sessions
+			h.logger.WithError(err).WithFields(map[string]interface{}{
+				"config_map_name": configMapName,
+				"namespace":       namespace,
+				"cluster":         cluster,
+				"config_id":       configID,
+			}).Debug("Failed to delete cloud shell ConfigMap (this is usually not critical)")
+		} else {
+			h.logger.WithFields(map[string]interface{}{
+				"config_map_name": configMapName,
+				"namespace":       namespace,
+				"cluster":         cluster,
+				"config_id":       configID,
+			}).Info("Successfully deleted cloud shell ConfigMap")
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Cloud shell deleted successfully",
 	})
@@ -662,4 +680,239 @@ func (h *CloudShellHandler) sendWebSocketError(conn *websocket.Conn, message str
 	}
 	jsonData, _ := json.Marshal(errorMsg)
 	conn.WriteMessage(websocket.TextMessage, jsonData)
+}
+
+// CleanupOldSessions cleans up cloud shell sessions that are older than the maximum age
+func (h *CloudShellHandler) CleanupOldSessions() {
+	h.logger.Info("Starting cloud shell cleanup routine")
+
+	// Get all kubeconfig metadata from the store
+	configMetadata := h.store.ListKubeConfigs()
+
+	cutoffTime := time.Now().Add(-CloudShellMaxAge)
+	cleanedCount := 0
+
+	for configID := range configMetadata {
+		// Get the full kubeconfig for this ID
+		config, err := h.store.GetKubeConfig(configID)
+		if err != nil {
+			h.logger.WithError(err).WithField("config_id", configID).Error("Failed to get kubeconfig for cleanup")
+			continue
+		}
+
+		// For each config, we need to check all clusters
+		for _, ctx := range config.Contexts {
+			clusterName := ctx.Cluster
+
+			// Get client for this config and cluster
+			client, err := h.clientFactory.GetClientForConfig(config, clusterName)
+			if err != nil {
+				h.logger.WithError(err).WithFields(map[string]interface{}{
+					"config_id": configID,
+					"cluster":   clusterName,
+				}).Error("Failed to get client for cleanup")
+				continue
+			}
+
+			// List all namespaces to check for cloud shell pods
+			namespaces, err := client.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
+			if err != nil {
+				h.logger.WithError(err).WithFields(map[string]interface{}{
+					"config_id": configID,
+					"cluster":   clusterName,
+				}).Error("Failed to list namespaces for cleanup")
+				continue
+			}
+
+			for _, namespace := range namespaces.Items {
+				// List pods with cloudshell label in this namespace
+				pods, err := client.CoreV1().Pods(namespace.Name).List(context.Background(), metav1.ListOptions{
+					LabelSelector: "app=cloudshell",
+				})
+				if err != nil {
+					h.logger.WithError(err).WithFields(map[string]interface{}{
+						"config_id": configID,
+						"cluster":   clusterName,
+						"namespace": namespace.Name,
+					}).Error("Failed to list cloud shell pods for cleanup")
+					continue
+				}
+
+				for _, pod := range pods.Items {
+					// Only process pods for this config and cluster
+					if pod.Labels["config-id"] == configID && pod.Labels["cluster"] == clusterName {
+						// Check if pod is older than the cutoff time
+						if pod.CreationTimestamp.Time.Before(cutoffTime) {
+							h.logger.WithFields(map[string]interface{}{
+								"pod_name":  pod.Name,
+								"namespace": pod.Namespace,
+								"cluster":   clusterName,
+								"config_id": configID,
+								"age":       time.Since(pod.CreationTimestamp.Time).String(),
+							}).Info("Cleaning up old cloud shell session")
+
+							// Delete the pod
+							err := client.CoreV1().Pods(pod.Namespace).Delete(context.Background(), pod.Name, metav1.DeleteOptions{})
+							if err != nil {
+								h.logger.WithError(err).WithFields(map[string]interface{}{
+									"pod_name":  pod.Name,
+									"namespace": pod.Namespace,
+									"cluster":   clusterName,
+									"config_id": configID,
+								}).Error("Failed to delete old cloud shell pod")
+							} else {
+								cleanedCount++
+							}
+
+							// Also clean up the associated ConfigMap if it exists
+							configMapName := fmt.Sprintf("kubeconfig-%s-%s", configID, clusterName)
+							err = client.CoreV1().ConfigMaps(pod.Namespace).Delete(context.Background(), configMapName, metav1.DeleteOptions{})
+							if err != nil {
+								// Log but don't fail - ConfigMap might not exist or might be used by other sessions
+								h.logger.WithError(err).WithFields(map[string]interface{}{
+									"config_map_name": configMapName,
+									"namespace":       pod.Namespace,
+									"cluster":         clusterName,
+									"config_id":       configID,
+								}).Debug("Failed to delete cloud shell ConfigMap (this is usually not critical)")
+							} else {
+								h.logger.WithFields(map[string]interface{}{
+									"config_map_name": configMapName,
+									"namespace":       pod.Namespace,
+									"cluster":         clusterName,
+									"config_id":       configID,
+								}).Info("Successfully deleted cloud shell ConfigMap during cleanup")
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	h.logger.WithField("cleaned_count", cleanedCount).Info("Cloud shell cleanup routine completed")
+}
+
+// cleanupOrphanedConfigMaps cleans up ConfigMaps that don't have associated pods
+func (h *CloudShellHandler) cleanupOrphanedConfigMaps() {
+	h.logger.Info("Starting orphaned ConfigMap cleanup routine")
+
+	// Get all kubeconfig metadata from the store
+	configMetadata := h.store.ListKubeConfigs()
+	cleanedCount := 0
+
+	for configID := range configMetadata {
+		// Get the full kubeconfig for this ID
+		config, err := h.store.GetKubeConfig(configID)
+		if err != nil {
+			h.logger.WithError(err).WithField("config_id", configID).Error("Failed to get kubeconfig for orphaned ConfigMap cleanup")
+			continue
+		}
+
+		// For each config, we need to check all clusters
+		for _, ctx := range config.Contexts {
+			clusterName := ctx.Cluster
+
+			// Get client for this config and cluster
+			client, err := h.clientFactory.GetClientForConfig(config, clusterName)
+			if err != nil {
+				h.logger.WithError(err).WithFields(map[string]interface{}{
+					"config_id": configID,
+					"cluster":   clusterName,
+				}).Error("Failed to get client for orphaned ConfigMap cleanup")
+				continue
+			}
+
+			// List all namespaces to check for orphaned ConfigMaps
+			namespaces, err := client.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
+			if err != nil {
+				h.logger.WithError(err).WithFields(map[string]interface{}{
+					"config_id": configID,
+					"cluster":   clusterName,
+				}).Error("Failed to list namespaces for orphaned ConfigMap cleanup")
+				continue
+			}
+
+			for _, namespace := range namespaces.Items {
+				// Check if there are any cloud shell pods for this config and cluster
+				pods, err := client.CoreV1().Pods(namespace.Name).List(context.Background(), metav1.ListOptions{
+					LabelSelector: fmt.Sprintf("app=cloudshell,config-id=%s,cluster=%s", configID, clusterName),
+				})
+				if err != nil {
+					h.logger.WithError(err).WithFields(map[string]interface{}{
+						"config_id": configID,
+						"cluster":   clusterName,
+						"namespace": namespace.Name,
+					}).Error("Failed to list cloud shell pods for orphaned ConfigMap cleanup")
+					continue
+				}
+
+				// If no pods exist, check for and delete the ConfigMap
+				if len(pods.Items) == 0 {
+					configMapName := fmt.Sprintf("kubeconfig-%s-%s", configID, clusterName)
+
+					// Check if the ConfigMap exists
+					_, err := client.CoreV1().ConfigMaps(namespace.Name).Get(context.Background(), configMapName, metav1.GetOptions{})
+					if err == nil {
+						// ConfigMap exists, delete it
+						err = client.CoreV1().ConfigMaps(namespace.Name).Delete(context.Background(), configMapName, metav1.DeleteOptions{})
+						if err != nil {
+							h.logger.WithError(err).WithFields(map[string]interface{}{
+								"config_map_name": configMapName,
+								"namespace":       namespace.Name,
+								"cluster":         clusterName,
+								"config_id":       configID,
+							}).Error("Failed to delete orphaned cloud shell ConfigMap")
+						} else {
+							h.logger.WithFields(map[string]interface{}{
+								"config_map_name": configMapName,
+								"namespace":       namespace.Name,
+								"cluster":         clusterName,
+								"config_id":       configID,
+							}).Info("Successfully deleted orphaned cloud shell ConfigMap")
+							cleanedCount++
+						}
+					}
+				}
+			}
+		}
+	}
+
+	h.logger.WithField("cleaned_count", cleanedCount).Info("Orphaned ConfigMap cleanup routine completed")
+}
+
+// StartCleanupRoutine starts a background goroutine that periodically cleans up old cloud shell sessions
+func (h *CloudShellHandler) StartCleanupRoutine() {
+	go func() {
+		ticker := time.NewTicker(CloudShellCleanupInterval)
+		defer ticker.Stop()
+
+		// Run initial cleanup
+		h.CleanupOldSessions()
+		h.cleanupOrphanedConfigMaps()
+
+		// Run periodic cleanup
+		for range ticker.C {
+			h.CleanupOldSessions()
+			h.cleanupOrphanedConfigMaps()
+		}
+	}()
+
+	h.logger.WithField("interval", CloudShellCleanupInterval).Info("Cloud shell cleanup routine started")
+}
+
+// ManualCleanup allows manual triggering of the cleanup routine
+func (h *CloudShellHandler) ManualCleanup(c *gin.Context) {
+	h.logger.Info("Manual cloud shell cleanup triggered")
+
+	// Run cleanup in a goroutine to avoid blocking the request
+	go func() {
+		h.CleanupOldSessions()
+		h.cleanupOrphanedConfigMaps()
+	}()
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Cloud shell cleanup started",
+		"status":  "initiated",
+	})
 }

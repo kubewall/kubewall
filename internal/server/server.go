@@ -251,6 +251,9 @@ func New(cfg *config.Config) *Server {
 		IdleTimeout:  time.Duration(cfg.Server.IdleTimeout) * time.Second,
 	}
 
+	// Start cloud shell cleanup routine
+	srv.cloudShellHandler.StartCleanupRoutine()
+
 	return srv
 }
 
@@ -569,6 +572,7 @@ func (s *Server) setupRoutes() {
 		api.GET("/cloudshell", s.cloudShellHandler.ListCloudShellSessions)
 		api.GET("/cloudshell/ws", s.cloudShellHandler.HandleCloudShellWebSocket)
 		api.DELETE("/cloudshell/:name", s.cloudShellHandler.DeleteCloudShell)
+		api.POST("/cloudshell/cleanup", s.cloudShellHandler.ManualCleanup)
 	}
 
 	// Serve static files from the dist folder
