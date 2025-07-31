@@ -45,10 +45,13 @@ export const createCloudShell = createAsyncThunk(
       }
     } catch (error: any) {
       console.error('Cloud shell creation error:', error);
-      if (error.status === 429) {
+      
+      // Handle ApiRequestError from kwFetch
+      if (error.type === 'permission_error' || error.code === 403) {
+        throw new Error(`Permission denied: ${error.message || 'Insufficient permissions to create cloud shell'}`);
+      } else if (error.code === 429) {
         // Handle session limit error
-        const errorData = error.data || {};
-        throw new Error(errorData.error || `Maximum number of active sessions (${errorData.limit || 2}) reached. Please terminate an existing session before creating a new one.`);
+        throw new Error(`Maximum number of active sessions (2) reached. Please terminate an existing session before creating a new one.`);
       } else if (error instanceof Error) {
         throw new Error(`Failed to create cloud shell: ${error.message}`);
       } else {
@@ -76,9 +79,13 @@ export const listCloudShellSessions = createAsyncThunk(
       } else {
         throw new Error('Invalid response format from server');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('List cloud shell sessions error:', error);
-      if (error instanceof Error) {
+      
+      // Handle ApiRequestError from kwFetch
+      if (error.type === 'permission_error' || error.code === 403) {
+        throw new Error(`Permission denied: ${error.message || 'Insufficient permissions to list cloud shell sessions'}`);
+      } else if (error instanceof Error) {
         throw new Error(`Failed to list cloud shell sessions: ${error.message}`);
       } else {
         throw new Error('Failed to list cloud shell sessions: Unknown error');
@@ -144,7 +151,12 @@ const cloudShellSlice = createSlice({
       })
       .addCase(createCloudShell.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to create cloud shell';
+        // Ensure error is always a string
+        if (action.error && typeof action.error === 'object' && 'message' in action.error) {
+          state.error = action.error.message || 'Failed to create cloud shell';
+        } else {
+          state.error = 'Failed to create cloud shell';
+        }
       })
       // List Cloud Shell Sessions
       .addCase(listCloudShellSessions.pending, (state) => {
@@ -160,7 +172,12 @@ const cloudShellSlice = createSlice({
       })
       .addCase(listCloudShellSessions.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to list cloud shell sessions';
+        // Ensure error is always a string
+        if (action.error && typeof action.error === 'object' && 'message' in action.error) {
+          state.error = action.error.message || 'Failed to list cloud shell sessions';
+        } else {
+          state.error = 'Failed to list cloud shell sessions';
+        }
       })
       // Delete Cloud Shell
       .addCase(deleteCloudShell.pending, (state) => {
@@ -178,7 +195,12 @@ const cloudShellSlice = createSlice({
       })
       .addCase(deleteCloudShell.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to delete cloud shell';
+        // Ensure error is always a string
+        if (action.error && typeof action.error === 'object' && 'message' in action.error) {
+          state.error = action.error.message || 'Failed to delete cloud shell';
+        } else {
+          state.error = 'Failed to delete cloud shell';
+        }
       });
   },
 });

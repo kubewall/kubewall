@@ -19,7 +19,7 @@ interface PermissionErrorPageProps {
 export const PermissionErrorPage: React.FC<PermissionErrorPageProps> = ({
   error,
   onRetry,
-  showBackButton = true,
+  showBackButton = false,
   showRetryButton = true,
   title,
   description

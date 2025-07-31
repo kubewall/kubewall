@@ -7,12 +7,14 @@ import (
 	"net/http"
 	"time"
 
+	"kubewall-backend/internal/api/utils"
 	"kubewall-backend/internal/k8s"
 	"kubewall-backend/internal/storage"
 	"kubewall-backend/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	authorizationv1 "k8s.io/api/authorization/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -78,9 +80,9 @@ func (h *CloudShellHandler) getActiveSessions(client *kubernetes.Clientset, conf
 		// Only include pods for the specified config and cluster
 		if pod.Labels["config-id"] == configID && pod.Labels["cluster"] == cluster {
 			// Check if pod is active (not being terminated and not in terminal states)
-			if pod.DeletionTimestamp == nil && 
-			   pod.Status.Phase != v1.PodSucceeded && 
-			   pod.Status.Phase != v1.PodFailed {
+			if pod.DeletionTimestamp == nil &&
+				pod.Status.Phase != v1.PodSucceeded &&
+				pod.Status.Phase != v1.PodFailed {
 				session := &CloudShellSession{
 					ID:           pod.Name,
 					ConfigID:     configID,
@@ -147,6 +149,55 @@ func (h *CloudShellHandler) getClientAndConfig(c *gin.Context) (*kubernetes.Clie
 	return client, restConfig, nil
 }
 
+// checkCloudShellPermissions checks if the user has permissions to create cloud shell resources
+func (h *CloudShellHandler) checkCloudShellPermissions(client *kubernetes.Clientset, namespace string) error {
+	// Check permissions for ConfigMaps
+	configMapAccess := &authorizationv1.SelfSubjectAccessReview{
+		Spec: authorizationv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authorizationv1.ResourceAttributes{
+				Namespace: namespace,
+				Verb:      "create",
+				Group:     "",
+				Version:   "v1",
+				Resource:  "configmaps",
+			},
+		},
+	}
+
+	configMapResult, err := client.AuthorizationV1().SelfSubjectAccessReviews().Create(context.Background(), configMapAccess, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to check ConfigMap permissions: %w", err)
+	}
+
+	if !configMapResult.Status.Allowed {
+		return fmt.Errorf("insufficient permissions: cannot create ConfigMaps in namespace %s", namespace)
+	}
+
+	// Check permissions for Pods
+	podAccess := &authorizationv1.SelfSubjectAccessReview{
+		Spec: authorizationv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authorizationv1.ResourceAttributes{
+				Namespace: namespace,
+				Verb:      "create",
+				Group:     "",
+				Version:   "v1",
+				Resource:  "pods",
+			},
+		},
+	}
+
+	podResult, err := client.AuthorizationV1().SelfSubjectAccessReviews().Create(context.Background(), podAccess, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to check Pod permissions: %w", err)
+	}
+
+	if !podResult.Status.Allowed {
+		return fmt.Errorf("insufficient permissions: cannot create Pods in namespace %s", namespace)
+	}
+
+	return nil
+}
+
 // CreateCloudShell creates a new cloud shell pod
 func (h *CloudShellHandler) CreateCloudShell(c *gin.Context) {
 	configID := c.Query("config")
@@ -163,11 +214,32 @@ func (h *CloudShellHandler) CreateCloudShell(c *gin.Context) {
 		return
 	}
 
+	// Check permissions before proceeding
+	if err := h.checkCloudShellPermissions(client, namespace); err != nil {
+		h.logger.WithError(err).Error("Permission check failed for cloud shell creation")
+
+		// Check if this is a permission error and return appropriate response
+		if utils.IsPermissionError(err) {
+			permissionResponse := utils.CreatePermissionErrorResponse(err)
+			c.JSON(http.StatusForbidden, permissionResponse)
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to check permissions: %v", err)})
+		}
+		return
+	}
+
 	// Check for active sessions limit
 	activeSessions, err := h.getActiveSessions(client, configID, cluster, namespace)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get active sessions for limit check")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to check session limit: %v", err)})
+
+		// Check if this is a permission error
+		if utils.IsPermissionError(err) {
+			permissionResponse := utils.CreatePermissionErrorResponse(err)
+			c.JSON(http.StatusForbidden, permissionResponse)
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to check session limit: %v", err)})
+		}
 		return
 	}
 
@@ -180,8 +252,8 @@ func (h *CloudShellHandler) CreateCloudShell(c *gin.Context) {
 			"max":       MaxCloudShellSessions,
 		}).Warn("Cloud shell session limit reached")
 		c.JSON(http.StatusTooManyRequests, gin.H{
-			"error": fmt.Sprintf("Maximum number of active sessions (%d) reached. Please terminate an existing session before creating a new one.", MaxCloudShellSessions),
-			"limit": MaxCloudShellSessions,
+			"error":   fmt.Sprintf("Maximum number of active sessions (%d) reached. Please terminate an existing session before creating a new one.", MaxCloudShellSessions),
+			"limit":   MaxCloudShellSessions,
 			"current": len(activeSessions),
 		})
 		return
@@ -229,7 +301,14 @@ func (h *CloudShellHandler) CreateCloudShell(c *gin.Context) {
 		_, err = client.CoreV1().ConfigMaps(namespace).Update(c.Request.Context(), configMap, metav1.UpdateOptions{})
 		if err != nil {
 			h.logger.WithError(err).Error("Failed to create/update kubeconfig ConfigMap")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to create kubeconfig ConfigMap: %v", err)})
+
+			// Check if this is a permission error
+			if utils.IsPermissionError(err) {
+				permissionResponse := utils.CreatePermissionErrorResponse(err)
+				c.JSON(http.StatusForbidden, permissionResponse)
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to create kubeconfig ConfigMap: %v", err)})
+			}
 			return
 		}
 	}
@@ -302,7 +381,14 @@ func (h *CloudShellHandler) CreateCloudShell(c *gin.Context) {
 	createdPod, err := client.CoreV1().Pods(namespace).Create(c.Request.Context(), pod, metav1.CreateOptions{})
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to create cloud shell pod")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to create cloud shell: %v", err)})
+
+		// Check if this is a permission error
+		if utils.IsPermissionError(err) {
+			permissionResponse := utils.CreatePermissionErrorResponse(err)
+			c.JSON(http.StatusForbidden, permissionResponse)
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to create cloud shell: %v", err)})
+		}
 		return
 	}
 
@@ -450,7 +536,14 @@ func (h *CloudShellHandler) ListCloudShellSessions(c *gin.Context) {
 	})
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to list cloud shell pods")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to list sessions: %v", err)})
+
+		// Check if this is a permission error
+		if utils.IsPermissionError(err) {
+			permissionResponse := utils.CreatePermissionErrorResponse(err)
+			c.JSON(http.StatusForbidden, permissionResponse)
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to list sessions: %v", err)})
+		}
 		return
 	}
 
@@ -550,7 +643,14 @@ func (h *CloudShellHandler) DeleteCloudShell(c *gin.Context) {
 	err = client.CoreV1().Pods(namespace).Delete(c.Request.Context(), podName, metav1.DeleteOptions{})
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to delete cloud shell pod")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to delete cloud shell: %v", err)})
+
+		// Check if this is a permission error
+		if utils.IsPermissionError(err) {
+			permissionResponse := utils.CreatePermissionErrorResponse(err)
+			c.JSON(http.StatusForbidden, permissionResponse)
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to delete cloud shell: %v", err)})
+		}
 		return
 	}
 

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { PermissionErrorBanner } from "@/components/app/Common/PermissionErrorBanner";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -63,6 +64,16 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
   const [isExpanded, setIsExpanded] = useState(false);
   const [isSessionsCollapsed, setIsSessionsCollapsed] = useState(false);
 
+  // Check if error is a permission error
+  const isPermissionError = (errorMessage: string): boolean => {
+    if (!errorMessage) return false;
+    return errorMessage.toLowerCase().includes('permission denied') || 
+           errorMessage.toLowerCase().includes('insufficient permissions') ||
+           errorMessage.toLowerCase().includes('forbidden') ||
+           errorMessage.toLowerCase().includes('cannot create configmaps') ||
+           errorMessage.toLowerCase().includes('cannot create pods');
+  };
+
   // Initialize terminal
   useEffect(() => {
     if (!terminalRef.current) return;
@@ -95,6 +106,21 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
       },
       cols: 120,
       rows: 30,
+      allowTransparency: true,
+      cursorStyle: 'block',
+      fastScrollModifier: 'alt',
+      fastScrollSensitivity: 1,
+      scrollback: 1000,
+      tabStopWidth: 8,
+      windowsMode: true,
+      macOptionIsMeta: false,
+      macOptionClickForcesSelection: false,
+      rightClickSelectsWord: false,
+      convertEol: true,
+      scrollSensitivity: 1,
+      disableStdin: false,
+      screenReaderMode: false,
+      smoothScrollDuration: 0,
     });
 
     // Add addons
@@ -123,8 +149,17 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
     xterm.current.open(terminalRef.current);
     fitAddonRef.current.fit();
 
+    // Initialize terminal properly - disable local echo to prevent cursor jumping
+    xterm.current.write('\x1b[?25h'); // Show cursor
+    xterm.current.write('\x1b[?12l'); // Disable local echo
+    xterm.current.write('\x1b[?2004h'); // Enable bracketed paste mode
+
     // Handle terminal input
     xterm.current.onData(handleTerminalInput);
+
+
+
+
 
     // Handle window resize
     const handleResize = () => {
@@ -138,6 +173,10 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
     return () => {
       window.removeEventListener('resize', handleResize);
       if (xterm.current) {
+        // Reset terminal modes before disposing
+        xterm.current.write('\x1b[?25l'); // Hide cursor
+        xterm.current.write('\x1b[?12h'); // Re-enable local echo
+        xterm.current.write('\x1b[?2004l'); // Disable bracketed paste mode
         xterm.current.dispose();
       }
     };
@@ -173,7 +212,7 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
       return;
     }
 
-    // Send input to WebSocket
+    // Send input to WebSocket - don't render locally, let server handle echo
     const message = JSON.stringify({
       input: data
     });
@@ -238,7 +277,9 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
       }
     } catch (error) {
       console.error('Failed to create cloud shell:', error);
-      setSessionMessage({ type: 'error', message: `Failed to create cloud shell: ${error}` });
+      // Extract the error message properly
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      setSessionMessage({ type: 'error', message: errorMessage });
     } finally {
       setCreatingSession(false);
     }
@@ -282,10 +323,13 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
         const data = JSON.parse(event.data);
         if (xterm.current) {
           if (data.type === 'stdout') {
+            // Write data without interfering with cursor position
             xterm.current.write(data.data);
           } else if (data.type === 'stderr') {
+            // Write stderr with red color
             xterm.current.write(`\x1b[31m${data.data}\x1b[0m`);
           } else if (data.error) {
+            // Write error messages
             xterm.current.writeln(`\r\n\x1b[31mError: ${data.error}\x1b[0m`);
           }
         }
@@ -339,13 +383,13 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'ready':
-        return <Badge variant="default" className="bg-green-500">Ready</Badge>;
+        return <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-white">Ready</Badge>;
       case 'creating':
-        return <Badge variant="secondary">Creating</Badge>;
+        return <Badge variant="secondary" className="bg-blue-500 hover:bg-blue-600 text-white">Creating</Badge>;
       case 'terminating':
-        return <Badge variant="destructive">Terminating</Badge>;
+        return <Badge variant="destructive" className="bg-red-500 hover:bg-red-600 text-white">Terminating</Badge>;
       case 'terminated':
-        return <Badge variant="destructive">Terminated</Badge>;
+        return <Badge variant="destructive" className="bg-red-500 hover:bg-red-600 text-white">Terminated</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -378,23 +422,34 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {error && (
-            <Alert className="mb-4">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
+          {error && isPermissionError(error) && (
+            <div className="mb-4">
+              <PermissionErrorBanner
+                error={{
+                  type: 'permission_error',
+                  message: error,
+                  code: 403,
+                  resource: 'cloudshell',
+                  verb: 'create'
+                }}
+                className="mb-4"
+              />
+            </div>
           )}
 
-          {sessionMessage && (
-            <Alert variant={sessionMessage.type === 'error' ? 'destructive' : 'default'} className="mb-4">
-              <AlertDescription>{sessionMessage.message}</AlertDescription>
-            </Alert>
+          {sessionMessage && !isPermissionError(sessionMessage.message) && (
+            <div className="mb-4">
+              <Alert variant={sessionMessage.type === 'error' ? 'destructive' : 'default'} className="mb-4">
+                <AlertDescription>{sessionMessage.message}</AlertDescription>
+              </Alert>
+            </div>
           )}
 
           {/* Session Management */}
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <h3 className="text-lg font-semibold">Sessions ({currentSessionCount}/{sessionLimit})</h3>
+                <h3 className="text-lg font-semibold text-foreground">Sessions ({currentSessionCount}/{sessionLimit})</h3>
                 {currentSessionCount >= sessionLimit && (
                   <Badge variant="destructive" className="text-xs">
                     Limit Reached
@@ -422,9 +477,15 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
                 </Button>
                 <Button 
                   onClick={handleCreateShell} 
-                  disabled={loading || creatingSession || currentSessionCount >= sessionLimit}
+                  disabled={loading || creatingSession || currentSessionCount >= sessionLimit || (error ? isPermissionError(error) : false)}
                   className="flex items-center gap-2"
-                  title={currentSessionCount >= sessionLimit ? `Maximum ${sessionLimit} sessions reached` : undefined}
+                  title={
+                    currentSessionCount >= sessionLimit 
+                      ? `Maximum ${sessionLimit} sessions reached` 
+                      : (error && isPermissionError(error)) 
+                        ? "Insufficient permissions to create cloud shell" 
+                        : undefined
+                  }
                 >
                   {loading || creatingSession ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
                   {creatingSession ? 'Creating...' : 'New Shell'}
@@ -435,21 +496,21 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
             {!isSessionsCollapsed && (
               <>
                 {currentSessionCount >= sessionLimit && (
-                  <Alert className="mb-3">
-                    <AlertDescription>
+                  <Alert className="mb-3 border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950/20">
+                    <AlertDescription className="text-orange-800 dark:text-orange-200">
                       Maximum number of active sessions ({sessionLimit}) reached. Please terminate an existing session before creating a new one.
                     </AlertDescription>
                   </Alert>
                 )}
                 {sessions.length === 0 ? (
-                  <p className="text-muted-foreground">No active sessions</p>
+                  <p className="text-muted-foreground text-center py-4">No active sessions</p>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                     {sessions.map((session) => (
-                      <div key={session.id} className="flex items-center justify-between p-2 border rounded-lg bg-gray-50">
+                      <div key={session.id} className="flex items-center justify-between p-2 border border-border rounded-lg bg-card hover:bg-accent/50 transition-colors">
                         <div className="flex items-center gap-2 min-w-0 flex-1">
                           <div className="min-w-0 flex-1">
-                            <p className="font-medium text-sm truncate">{session.podName}</p>
+                            <p className="font-medium text-sm truncate text-foreground">{session.podName}</p>
                             <p className="text-xs text-muted-foreground">
                               {new Date(session.createdAt).toLocaleTimeString()}
                             </p>
