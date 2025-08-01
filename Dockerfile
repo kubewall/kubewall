@@ -1,19 +1,24 @@
 # Stage 1: Build the React frontend
-FROM node:18-alpine AS frontend-builder
+FROM node:18-slim AS frontend-builder
 
 WORKDIR /app/client
 
 # Copy package files
 COPY client/package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install dependencies and fix Rollup optional dependencies issue
+RUN npm ci && \
+    if [ "$(uname -m)" = "x86_64" ]; then \
+        npm install @rollup/rollup-linux-x64-gnu; \
+    elif [ "$(uname -m)" = "aarch64" ]; then \
+        npm install @rollup/rollup-linux-arm64-gnu; \
+    fi
 
 # Copy source code
 COPY client/ ./
 
-# Build the frontend
-RUN npm run build
+# Build the frontend with environment variable to disable native binaries
+RUN ROLLUP_SKIP_NATIVE=true npm run build
 
 # Stage 2: Build the Go backend
 FROM golang:1.24-alpine AS backend-builder
@@ -50,7 +55,10 @@ COPY --from=backend-builder /app/kube-dash .
 COPY --from=frontend-builder /app/client/dist ./static
 
 # Expose port
-EXPOSE 8080
+EXPOSE 7080
+
+# Set environment variables
+ENV STATIC_FILES_PATH=./static
 
 # Run the binary
 CMD ["./kube-dash"] 

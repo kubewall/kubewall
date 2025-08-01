@@ -12,11 +12,11 @@ import { PODS_ENDPOINT, HELM_RELEASES_ENDPOINT } from "@/constants";
 import { PodLogs } from "../../MiscDetailsContainer";
 import { PodExec } from "../../MiscDetailsContainer/PodExec";
 import { RootState } from "@/redux/store";
-import { Row } from "@tanstack/react-table";
+
 import { ScaleDeployments } from "../../MiscDetailsContainer/Deployments/ScaleDeployments";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { TableDelete } from "../../Table/TableDelete";
+
 import { YamlEditor } from "../../Details/YamlEditor";
 import { clearLogs } from "@/data/Workloads/Pods/PodLogsSlice";
 import { kwDetails, appRoute } from "@/routes";
@@ -107,20 +107,9 @@ const KwDetails = () => {
     }
     return new URLSearchParams(qp).toString();
   };
-  /* eslint-disable  @typescript-eslint/no-explicit-any */
-  const selectedRows = [
-    {
-      original: {
-        name: resourcename,
-        namespace
-      }
-    }
-  ] as Row<any>[];
-  /* eslint-enable  @typescript-eslint/no-explicit-any */
 
-  const redirectToListPage = () => {
-    navigate({ to: `/${config}/list?${getListPageQueryparams()}` });
-  };
+
+
 
   return (
     <div className="py-2">
@@ -153,8 +142,6 @@ const KwDetails = () => {
                     resourcekind === 'deployments' && 
                     <ScaleDeployments resourcename={resourcename} queryParams={new URLSearchParams(queryParamsObj).toString()}/>
                   }
-                  
-                  <TableDelete selectedRows={selectedRows} postDeleteCallback={redirectToListPage} />
                 </div>
 
               </div>
