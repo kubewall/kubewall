@@ -20,7 +20,7 @@ const deploymentPodDetailsSlice = createSlice({
   initialState,
   reducers: {
     updateDeploymentPods: (state, action) => {
-      state.deploymentPodDetails = action.payload;
+      state.deploymentPodDetails = action.payload || [];
       state.loading = false;
     },
     resetDeploymentPods: () => {

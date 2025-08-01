@@ -14,7 +14,9 @@ type RoleBindingsListHeader = {
   namespace: string,
   name: string,
   bindings: string,
-  age: string
+  age: string,
+  hasUpdated: boolean,
+  uid: string
 };
 
 type RoleBindingDetailsMetadata = {

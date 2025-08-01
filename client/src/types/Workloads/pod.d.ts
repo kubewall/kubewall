@@ -16,7 +16,9 @@ type PodsHeaders = {
 
 type Pods = {
   hasUpdated: boolean;
-} & PodHeaders;
+  configName: string;
+  clusterName: string;
+} & PodsHeaders;
 
 type PodDetailsMetadata = {
   name: string,

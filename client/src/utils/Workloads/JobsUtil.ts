@@ -5,7 +5,7 @@ const formatJobsResponse = (jobs: JobsResponse[]) => {
     name: name,
     namespace: namespace,
     completions: `${status.succeeded}/${spec.completions}`,
-    conditions: status.conditions ? status?.conditions.map(({type}) => type).toString() : '-',
+    conditions: status.conditions ? status.conditions.map(({type}) => type).join(', ') : '—',
     age: age,
     duration: status.startTime,
     hasUpdated: hasUpdated,

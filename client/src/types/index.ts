@@ -11,3 +11,4 @@ export * from './Networks';
 export * from './CustomResources';
 export * from './KubeConfiguration';
 export * from './Cluster';
+export * from './helm';

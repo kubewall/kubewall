@@ -1,4 +1,4 @@
-import { CLUSTER_ROLES_ENDPOINT, CLUSTER_ROLE_BINDINGS_ENDPOINT, CONFIG_MAPS_ENDPOINT, CRON_JOBS_ENDPOINT, CUSTOM_RESOURCES_ENDPOINT, CUSTOM_RESOURCES_LIST_ENDPOINT, DAEMON_SETS_ENDPOINT, DEPLOYMENT_ENDPOINT, ENDPOINTS_ENDPOINT, HPA_ENDPOINT, INGRESSES_ENDPOINT, JOBS_ENDPOINT, LEASES_ENDPOINT, LIMIT_RANGE_ENDPOINT, NAMESPACES_ENDPOINT, NODES_ENDPOINT, PERSISTENT_VOLUMES_ENDPOINT, PERSISTENT_VOLUME_CLAIMS_ENDPOINT, PODS_ENDPOINT, POD_DISRUPTION_BUDGETS_ENDPOINT, PRIORITY_CLASSES_ENDPOINT, REPLICA_SETS_ENDPOINT, RESOURCE_QUOTAS_ENDPOINT, ROLES_ENDPOINT, ROLE_BINDINGS_ENDPOINT, RUNTIME_CLASSES_ENDPOINT, SECRETS_ENDPOINT, SERVICES_ENDPOINT, SERVICE_ACCOUNTS_ENDPOINT, STATEFUL_SETS_ENDPOINT, STORAGE_CLASSES_ENDPOINT } from "@/constants";
+import { CLUSTER_ROLES_ENDPOINT, CLUSTER_ROLE_BINDINGS_ENDPOINT, CONFIG_MAPS_ENDPOINT, CRON_JOBS_ENDPOINT, CUSTOM_RESOURCES_ENDPOINT, CUSTOM_RESOURCES_LIST_ENDPOINT, DAEMON_SETS_ENDPOINT, DEPLOYMENT_ENDPOINT, ENDPOINTS_ENDPOINT, HELM_RELEASES_ENDPOINT, HPA_ENDPOINT, INGRESSES_ENDPOINT, JOBS_ENDPOINT, LEASES_ENDPOINT, LIMIT_RANGE_ENDPOINT, NAMESPACES_ENDPOINT, NODES_ENDPOINT, PERSISTENT_VOLUMES_ENDPOINT, PERSISTENT_VOLUME_CLAIMS_ENDPOINT, PODS_ENDPOINT, POD_DISRUPTION_BUDGETS_ENDPOINT, PRIORITY_CLASSES_ENDPOINT, REPLICA_SETS_ENDPOINT, RESOURCE_QUOTAS_ENDPOINT, ROLES_ENDPOINT, ROLE_BINDINGS_ENDPOINT, RUNTIME_CLASSES_ENDPOINT, SECRETS_ENDPOINT, SERVICES_ENDPOINT, SERVICE_ACCOUNTS_ENDPOINT, STATEFUL_SETS_ENDPOINT, STORAGE_CLASSES_ENDPOINT } from "@/constants";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
 import { ActionCreatorWithPayload } from "@reduxjs/toolkit";
@@ -17,6 +17,7 @@ import { updateHPADetails } from "@/data/Configurations/HPAs/HPADetailsSlice";
 import { updateIngressDetails } from "@/data/Networks/Ingresses/IngressDetailsSlice";
 import { updateJobDetails } from "@/data/Workloads/Jobs/JobDetailsSlice";
 import { updateLeaseDetails } from "@/data/Clusters/Leases/LeaseDetailsSlice";
+import { updateHelmReleaseDetails } from "@/data/Helm/HelmReleaseDetailsSlice";
 import { updateLimitRangeDetails } from "@/data/Configurations/LimitRange/LimitRangeDetailsSlice";
 import { updateNamespaceDetails } from "@/data/Clusters/Namespaces/NamespaceDetailsSlice";
 import { updateNodeDetails } from "@/data/Clusters/Nodes/NodeDetailsSlice";
@@ -36,6 +37,9 @@ import { updateServiceDetails } from "@/data/Networks/Services/ServiceDetailSlic
 import { updateStatefulSetDetails } from "@/data/Workloads/StatefulSets/StatefulSetDetailsSlice";
 import { updateStorageClassDetails } from "@/data/Storages/StorageClasses/StorageClassDetailsSlice";
 import { useEventSource } from "../EventSource";
+import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
+
 
 type FetchDataForDetailsProps = {
   config: string;
@@ -90,12 +94,14 @@ const useFetchDataForDetails = ({
   const { loading: storageClassDetailsLoading } = useAppSelector((state: RootState) => state.storageClassDetails);
   const { loading: customResourceDetailsLoading } = useAppSelector((state: RootState) => state.customResourceDetails);
   const { loading: customResourcesDefintionsDetailsLoading } = useAppSelector((state: RootState) => state.customResourcesDefinitionDetails);
+  const { loading: helmReleaseDetailsLoading } = useAppSelector((state: RootState) => state.helmReleaseDetails);
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
 
   type DataType = {
     label: string;
     // eslint-disable-next-line  @typescript-eslint/no-explicit-any
-    dispatchMethod: ActionCreatorWithPayload<any, string>;
+    dispatchMethod: ActionCreatorWithPayload<any, string> | null;
     loading: boolean;
     endpoint: string;
   }
@@ -162,7 +168,10 @@ const useFetchDataForDetails = ({
     data = { label: 'Custom Resources', dispatchMethod: updateCustomResourceDetails, loading: customResourceDetailsLoading, endpoint: `${CUSTOM_RESOURCES_LIST_ENDPOINT}${namespace ? `/${namespace}`: ''}` };
   } else if (resourcekind === CUSTOM_RESOURCES_ENDPOINT) {
     data = { label: 'Custom Resources Definitions', dispatchMethod: updateCustomResourcesDefinitionDetails, loading: customResourcesDefintionsDetailsLoading, endpoint: `${CUSTOM_RESOURCES_ENDPOINT}${namespace ? `/${namespace}`: ''}` };
-  }  else {
+  } else if (resourcekind === HELM_RELEASES_ENDPOINT) {
+    // For Helm releases, we use EventSource for real-time updates
+    data = { label: 'Helm Releases', dispatchMethod: updateHelmReleaseDetails, loading: helmReleaseDetailsLoading, endpoint: HELM_RELEASES_ENDPOINT };
+  } else {
     data = null;
   }
 
@@ -176,22 +185,49 @@ const useFetchDataForDetails = ({
       resource: resource || '',
       version: version || ''
     };
-  } else if(resourcekind !== NAMESPACES_ENDPOINT) {
+  } else if(resourcekind !== NAMESPACES_ENDPOINT && resourcekind !== HELM_RELEASES_ENDPOINT) {
     queryParamObject = {
       ...queryParamObject,
       namespace
     };
   }
   const sendMessage = (message: object[]) => {
-    if(data) {
+    if(data && data.dispatchMethod) {
       dispatch(data.dispatchMethod(message));
     }
   };
 
-  useEventSource({
-    url: getEventStreamUrl(data?.endpoint, queryParamObject, `/${resourcename}`),
-    sendMessage,
-  });
+  const handleConfigError = () => {
+    toast.error("Configuration Error", {
+      description: "The configuration you were viewing has been deleted or is no longer available. Redirecting to configuration page.",
+    });
+    navigate({ to: '/config' });
+  };
+
+  // For pods, deployments, and other namespace-scoped resources, we need to use the namespace/name pattern in the URL
+  let eventSourceUrl: string;
+  if ((resourcekind === PODS_ENDPOINT || resourcekind === DEPLOYMENT_ENDPOINT || resourcekind === DAEMON_SETS_ENDPOINT || resourcekind === STATEFUL_SETS_ENDPOINT || resourcekind === REPLICA_SETS_ENDPOINT || resourcekind === JOBS_ENDPOINT || resourcekind === CRON_JOBS_ENDPOINT || resourcekind === SERVICES_ENDPOINT || resourcekind === CONFIG_MAPS_ENDPOINT || resourcekind === SECRETS_ENDPOINT || resourcekind === HPA_ENDPOINT || resourcekind === LIMIT_RANGE_ENDPOINT || resourcekind === RESOURCE_QUOTAS_ENDPOINT || resourcekind === SERVICE_ACCOUNTS_ENDPOINT || resourcekind === ROLES_ENDPOINT || resourcekind === ROLE_BINDINGS_ENDPOINT || resourcekind === PERSISTENT_VOLUME_CLAIMS_ENDPOINT || resourcekind === POD_DISRUPTION_BUDGETS_ENDPOINT || resourcekind === ENDPOINTS_ENDPOINT || resourcekind === INGRESSES_ENDPOINT || resourcekind === LEASES_ENDPOINT) && namespace) {
+    // Use the pattern /{resource}/{namespace}/{name} for namespace-scoped resources
+    eventSourceUrl = getEventStreamUrl(data?.endpoint, queryParamObject, `/${namespace}/${resourcename}`);
+  } else if (resourcekind === HELM_RELEASES_ENDPOINT) {
+    // For Helm releases, use the pattern /{resource}/{name} with namespace as query param
+    eventSourceUrl = getEventStreamUrl(data?.endpoint, queryParamObject, `/${resourcename}`);
+  } else {
+    // Use the default pattern for cluster-scoped resources
+    eventSourceUrl = getEventStreamUrl(data?.endpoint, queryParamObject, `/${resourcename}`);
+  }
+
+  // Only use event source for resources that have a dispatchMethod
+  if (data?.dispatchMethod) {
+    useEventSource({
+      url: eventSourceUrl,
+      sendMessage,
+      onConfigError: handleConfigError,
+    });
+  }
+
+  // Note: Helm releases are handled separately in HelmReleaseDetailsContainer
+  // to avoid duplicate API calls
 
   if(!data) {
     return null;

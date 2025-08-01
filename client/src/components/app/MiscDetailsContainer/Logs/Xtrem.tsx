@@ -5,7 +5,7 @@ import { MutableRefObject, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronsDown } from 'lucide-react';
 import { FitAddon } from '@xterm/addon-fit';
-import { PodSocketResponse } from '@/types';
+
 import { SearchAddon } from '@xterm/addon-search';
 import { Terminal } from '@xterm/xterm';
 import { clearLogs } from '@/data/Workloads/Pods/PodLogsSlice';
@@ -13,28 +13,37 @@ import { getSystemTheme } from '@/utils';
 import { useAppDispatch } from '@/redux/hooks';
 
 type XtermProp = {
-  containerNameProp: string;
-  updateLogs: (currentLog: PodSocketResponse) => void;
   xterm: MutableRefObject<Terminal | null>
   searchAddonRef: MutableRefObject<SearchAddon | null>
+  onInput?: (data: string) => void;
 };
 
-const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef,updateLogs }: XtermProp) => {
+const XtermTerminal = ({ xterm, searchAddonRef, onInput }: XtermProp) => {
   const dispatch = useAppDispatch();
   const terminalRef = useRef<HTMLDivElement | null>(null);
 
   const fitAddon = useRef<FitAddon | null>(null);
   const [showScrollDown, setShowScrollDown] = useState(false);
+  const lastScrollCheck = useRef<number>(0);
 
-  useEffect(() => {
-    const newContainer = `-------------------${containerNameProp || 'All Containers'}-------------------`;
-    xterm?.current?.writeln(newContainer);
-    updateLogs({log: newContainer} as PodSocketResponse);
-  },[containerNameProp]);
   const scrollToBottom = () => {
     const xtermContainer = document.querySelector('.xterm-viewport');
     if (xtermContainer) {
       xtermContainer.scrollTop = xtermContainer.scrollHeight;
+    }
+  };
+
+  const checkScrollPosition = () => {
+    const now = Date.now();
+    // Debounce scroll checks to avoid excessive calls
+    if (now - lastScrollCheck.current < 50) return;
+    lastScrollCheck.current = now;
+    
+    const xtermContainer = document.querySelector('.xterm-viewport');
+    if (xtermContainer) {
+      const { scrollTop, scrollHeight, clientHeight } = xtermContainer;
+      const atBottom = scrollTop + clientHeight >= scrollHeight - 10;
+      setShowScrollDown(!atBottom);
     }
   };
 
@@ -56,8 +65,27 @@ const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef,updateLogs }: 
       xterm.current = new Terminal({
         cursorBlink: false,
         theme: getSystemTheme() === 'light' ? lightTheme : darkTheme,
-        scrollback: 9999999,
-        fontSize: 13
+        scrollback: 10000, // Keep reasonable scrollback to prevent memory issues
+        fontSize: 13,
+        // Enable proper terminal behavior
+        allowTransparency: true,
+        // Enable terminal control sequences
+        convertEol: true,
+        // Enable proper handling of control sequences
+        windowsMode: true,
+        // Performance optimizations
+        fastScrollModifier: 'alt',
+        fastScrollSensitivity: 1,
+        // Disable some features for better performance
+        macOptionIsMeta: false,
+        macOptionClickForcesSelection: false,
+        // Optimize for log viewing
+        scrollSensitivity: 1,
+        // Prevent buffer overflow
+        cols: 120,
+        rows: 30,
+        // Disable cursor for better performance
+        cursorStyle: 'block',
       });
 
       fitAddon.current = new FitAddon();
@@ -66,47 +94,67 @@ const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef,updateLogs }: 
       xterm.current.loadAddon(searchAddonRef.current);
       xterm.current.open(terminalRef.current);
 
+      // Add input handler for exec functionality
+      if (onInput) {
+        xterm.current.onData((data) => {
+          onInput(data);
+        });
+      }
+
       // Fit the terminal to the container
       fitAddon.current.fit();
 
       // Resize the terminal on window resize
       const handleResize = () => fitAddon.current?.fit();
       window.addEventListener('resize', handleResize);
+      
+      // Also handle container resize using ResizeObserver
+      let resizeObserver: ResizeObserver | null = null;
+      if (terminalRef.current) {
+        resizeObserver = new ResizeObserver(() => {
+          fitAddon.current?.fit();
+        });
+        resizeObserver.observe(terminalRef.current);
+      }
+      
+      // Add scroll listener
       const xtermContainer = document.querySelector('.xterm-viewport');
+      if (xtermContainer) {
+        xtermContainer.addEventListener('scroll', checkScrollPosition);
+        // Initial check
+        checkScrollPosition();
+      }
 
-      const checkIfBottom = () => {
-        const xtermContainer = document.querySelector('.xterm-viewport');
-        if(xtermContainer && xtermContainer?.clientHeight + xtermContainer?.scrollTop < xtermContainer.scrollHeight) {
-          setShowScrollDown(true);
-        } else {
-          setShowScrollDown(false);
-        }
-      };
-      xtermContainer?.addEventListener('scroll', checkIfBottom);
       return () => {
         xterm.current?.dispose();
         window.removeEventListener('resize', handleResize);
-        xtermContainer?.removeEventListener('scroll', checkIfBottom);
-
+        if (resizeObserver) {
+          resizeObserver.disconnect();
+        }
+        const xtermContainer = document.querySelector('.xterm-viewport');
+        if (xtermContainer) {
+          xtermContainer.removeEventListener('scroll', checkScrollPosition);
+        }
         dispatch(clearLogs());
       };
     }
   }, []);
 
   return (
-    <div className="w-full h-full">
-      {
-        showScrollDown &&
+    <div className="w-full h-full relative">
+      {showScrollDown && (
         <Button
           variant="default"
           size="icon"
-          className='absolute bottom-7 right-0 mt-1 mr-9 rounded z-10 border'
+          className="absolute bottom-4 right-4 z-50 h-10 w-10 rounded-full shadow-lg border-2 border-primary/20 hover:border-primary/40 transition-all duration-200"
           onClick={scrollToBottom}
-        >  <ChevronsDown className="h-4 w-4" />
+          title="Scroll to bottom"
+        >
+          <ChevronsDown className="h-5 w-5" />
         </Button>
-      }
+      )}
 
-      <div ref={terminalRef} />
+      <div ref={terminalRef} className="w-full h-full" />
     </div>
   );
 };

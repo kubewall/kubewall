@@ -342,7 +342,7 @@ const storageClassesColumnConfig = (config: string, cluster: string) => ({
 
 // Workloads
 
-const podsColumnConfig = (config: string, cluster: string, isSelectable=true) => ({
+const podsColumnConfig = (config: string, cluster: string, isSelectable=true, filters?: { node?: string; namespace?: string; owner?: string; ownerName?: string }) => ({
   headersList: [
     { title: 'Select', accessorKey: 'select', enableSorting: false, },
     { title: 'Namespace', accessorKey: 'namespace', enableGlobalFilter: true},
@@ -358,7 +358,14 @@ const podsColumnConfig = (config: string, cluster: string, isSelectable=true) =>
     { title: 'QOS', accessorKey: 'qos', },
     { title: 'Age', accessorKey: 'age'}
   ].filter(({title}) => isSelectable || (!isSelectable && title.toLowerCase() !== 'select')),
-  queryParams: { config, cluster },
+  queryParams: { 
+    config, 
+    cluster,
+    ...(filters?.node && { node: filters.node }),
+    ...(filters?.namespace && { namespace: filters.namespace }),
+    ...(filters?.owner && { owner: filters.owner }),
+    ...(filters?.ownerName && { ownerName: filters.ownerName })
+  },
   showNamespaceFilter: true
 });
 
@@ -486,6 +493,24 @@ const customResourcesColumnConfig = (additionalPrinterColumns: CustomResourcesPr
   showNamespaceFilter: additionalPrinterColumns.filter(({ name }) => name === 'Namespace').length > 0
 });
 
+// Helm
+
+const helmReleasesColumnConfig = (config: string, cluster: string) => ({
+  headersList: [
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Namespace', accessorKey: 'namespace', enableGlobalFilter: true },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
+    { title: 'Status', accessorKey: 'status', enableGlobalFilter: true },
+    { title: 'Revision', accessorKey: 'revision' },
+    { title: 'Chart', accessorKey: 'chart', enableGlobalFilter: true },
+    { title: 'App Version', accessorKey: 'appVersion' },
+    { title: 'Version', accessorKey: 'version' },
+    { title: 'Updated', accessorKey: 'updated' }
+  ],
+  queryParams: { config, cluster },
+  showNamespaceFilter: true
+});
+
 export {
   getTableConfig,
   leasesColumnConfig,
@@ -519,5 +544,6 @@ export {
   replicaSetsColumnConfig,
   stateSetsColumnConfig,
   customResourceDefinitionsColumnConfig,
-  customResourcesColumnConfig
+  customResourcesColumnConfig,
+  helmReleasesColumnConfig
 };

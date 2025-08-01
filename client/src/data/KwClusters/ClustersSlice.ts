@@ -13,13 +13,13 @@ type InitialState = {
 
 const initialState: InitialState = {
   loading: false,
-  clusters: {} as Clusters,
+  clusters: { kubeConfigs: {}, version: '' } as Clusters,
   error: null,
 };
 
 const fetchClusters = createAsyncThunk('config',(_, thunkAPI) => {
   return kwFetch(`${API_VERSION}${CONFIG_ENDPOINT}`)
-  .then((res: Clusters) => res ?? {})
+  .then((res: Clusters) => res ?? { kubeConfigs: {}, version: '' })
   .catch((e: Error) => thunkAPI.rejectWithValue(serializeError(e)));
 });
 
@@ -42,7 +42,7 @@ const clustersSlices = createSlice({
     );
     builder.addCase(fetchClusters.rejected, (state, action) => {
       state.loading = false;
-      state.clusters = {} as Clusters;
+      state.clusters = { kubeConfigs: {}, version: '' } as Clusters;
       state.error = action.payload as RawRequestError;
     });
   },

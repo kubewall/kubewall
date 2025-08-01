@@ -4,8 +4,8 @@ const formatEndpointsResponse = (podDisruptionBudgets: EndpointsResponse[]) => {
   return podDisruptionBudgets.map(({ age, name, namespace, subsets, hasUpdated, uid }) => ({
     name: name,
     namespace: namespace,
-    addresses: subsets.addresses === null ? '—' : subsets.addresses.toString(),
-    ports: subsets.ports === null ? '—' : subsets.ports.toString(),
+    addresses: subsets.addresses === null ? '—' : subsets.addresses.join(', '),
+    ports: subsets.ports === null ? '—' : subsets.ports.join(', '),
     age: age,
     hasUpdated: hasUpdated,
     uid: uid

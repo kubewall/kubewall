@@ -1,6 +1,9 @@
-import { CLUSTER_ROLES_ENDPOINT, CLUSTER_ROLE_BINDINGS_ENDPOINT, CONFIG_MAPS_ENDPOINT, CRON_JOBS_ENDPOINT, CUSTOM_RESOURCES_ENDPOINT, CUSTOM_RESOURCES_LIST_ENDPOINT, DAEMON_SETS_ENDPOINT, DEPLOYMENT_ENDPOINT, ENDPOINTS_ENDPOINT, HPA_ENDPOINT, INGRESSES_ENDPOINT, JOBS_ENDPOINT, LEASES_ENDPOINT, LIMIT_RANGE_ENDPOINT, NAMESPACES_ENDPOINT, NODES_ENDPOINT, PERSISTENT_VOLUMES_ENDPOINT, PERSISTENT_VOLUME_CLAIMS_ENDPOINT, PODS_ENDPOINT, POD_DISRUPTION_BUDGETS_ENDPOINT, PRIORITY_CLASSES_ENDPOINT, REPLICA_SETS_ENDPOINT, RESOURCE_QUOTAS_ENDPOINT, ROLES_ENDPOINT, ROLE_BINDINGS_ENDPOINT, RUNTIME_CLASSES_ENDPOINT, SECRETS_ENDPOINT, SERVICES_ENDPOINT, SERVICE_ACCOUNTS_ENDPOINT, STATEFUL_SETS_ENDPOINT, STORAGE_CLASSES_ENDPOINT } from "@/constants";
-import { ClusterRoleBindingDetailsContainer, ClusterRoleDetailsContainer, ConfigMapDetailsContainer, CustomResourceDetailsContainer, DeploymentDetailsContainer, EndpointDetailsContainer, LimitRangeDetailsContainer, NamespaceDetailsContainer, NodeDetailsContainer, PodDetailsContainer, PodDisruptionBudgetDetailsContainer, ResourceQuotaDetailsContainer, RoleBindingDetailsContainer, RoleDetailsContainer, RuntimeClassDetailsContainer, SecretDetailsContainer, ServiceAccountDetailsContainer, ServiceDetailsContainer } from "@/components/app/MiscDetailsContainer";
-import { getClusterRoleBindingDetailsConfig, getClusterRoleDetailsConfig, getConfigMapDetailsConfig, getCronJobsDetailsConfig, getCustomResourceDefinitionsDetailsConfig, getCustomResourceDetailsConfig, getDaemonSetDetailsConfig, getDeploymentDetailsConfig, getEndpointDetailsConfig, getHPADetailsConfig, getIngressDetailsConfig, getJobsDetailsConfig, getLeaseDetailsConfig, getLimitRangeDetailsConfig, getNamespaceDetailsConfig, getNodeDetailsConfig, getPersistentVolumeClaimDetailsConfig, getPersistentVolumeDetailsConfig, getPodDetailsConfig, getPodDisruptionBudgetDetailsConfig, getPriorityClassDetailsConfig, getReplicaSetDetailsConfig, getResourceQuotaDetailsConfig, getRoleBindingDetailsConfig, getRoleDetailsConfig, getRuntimeClassDetailsConfig, getSecretDetailsConfig, getServiceAccountDetailsConfig, getServiceDetailsConfig, getStatefulSetDetailsConfig, getStorageClassDetailsConfig } from "@/utils/DetailType/DetailDefinations";
+import { CLUSTER_ROLES_ENDPOINT, CLUSTER_ROLE_BINDINGS_ENDPOINT, CONFIG_MAPS_ENDPOINT, CRON_JOBS_ENDPOINT, CUSTOM_RESOURCES_ENDPOINT, CUSTOM_RESOURCES_LIST_ENDPOINT, DAEMON_SETS_ENDPOINT, DEPLOYMENT_ENDPOINT, ENDPOINTS_ENDPOINT, HELM_RELEASES_ENDPOINT, HPA_ENDPOINT, INGRESSES_ENDPOINT, JOBS_ENDPOINT, LEASES_ENDPOINT, LIMIT_RANGE_ENDPOINT, NAMESPACES_ENDPOINT, NODES_ENDPOINT, PERSISTENT_VOLUMES_ENDPOINT, PERSISTENT_VOLUME_CLAIMS_ENDPOINT, PODS_ENDPOINT, POD_DISRUPTION_BUDGETS_ENDPOINT, PRIORITY_CLASSES_ENDPOINT, REPLICA_SETS_ENDPOINT, RESOURCE_QUOTAS_ENDPOINT, ROLES_ENDPOINT, ROLE_BINDINGS_ENDPOINT, RUNTIME_CLASSES_ENDPOINT, SECRETS_ENDPOINT, SERVICES_ENDPOINT, SERVICE_ACCOUNTS_ENDPOINT, STATEFUL_SETS_ENDPOINT, STORAGE_CLASSES_ENDPOINT } from "@/constants";
+import { ClusterRoleBindingDetailsContainer, ClusterRoleDetailsContainer, ConfigMapDetailsContainer, CustomResourceDetailsContainer, DaemonSetDetailsContainer, DeploymentDetailsContainer, EndpointDetailsContainer, LimitRangeDetailsContainer, NamespaceDetailsContainer, NodeDetailsContainer, PodDetailsContainer, PodDisruptionBudgetDetailsContainer, ResourceQuotaDetailsContainer, RoleBindingDetailsContainer, RoleDetailsContainer, RuntimeClassDetailsContainer, SecretDetailsContainer, ServiceAccountDetailsContainer, ServiceDetailsContainer, StatefulSetDetailsContainer } from "@/components/app/MiscDetailsContainer";
+import { getClusterRoleBindingDetailsConfig, getClusterRoleDetailsConfig, getConfigMapDetailsConfig, getCronJobsDetailsConfig, getCustomResourceDefinitionsDetailsConfig, getCustomResourceDetailsConfig, getDaemonSetDetailsConfig, getDeploymentDetailsConfig, getEndpointDetailsConfig, getHelmReleaseDetailsConfig, getHPADetailsConfig, getIngressDetailsConfig, getJobsDetailsConfig, getLeaseDetailsConfig, getLimitRangeDetailsConfig, getNamespaceDetailsConfig, getNodeDetailsConfig, getPersistentVolumeClaimDetailsConfig, getPersistentVolumeDetailsConfig, getPodDetailsConfig, getPodDisruptionBudgetDetailsConfig, getPriorityClassDetailsConfig, getReplicaSetDetailsConfig, getResourceQuotaDetailsConfig, getRoleBindingDetailsConfig, getRoleDetailsConfig, getRuntimeClassDetailsConfig, getSecretDetailsConfig, getServiceAccountDetailsConfig, getServiceDetailsConfig, getStatefulSetDetailsConfig, getStorageClassDetailsConfig } from "@/utils/DetailType/DetailDefinations";
+
+import { ReplicaSetDetailsContainer } from "@/components/app/MiscDetailsContainer/ReplicaSetDetailsContainer";
+import { HelmReleaseOverview } from '@/components/app/MiscDetailsContainer/HelmReleaseOverview';
 
 import { RootState } from "@/redux/store";
 import { useAppSelector } from "@/redux/hooks";
@@ -41,6 +44,7 @@ const useDetailsWrapper = ({ loading, resourcekind }: DetailsWapperProps) => {
   const { storageClassDetails } = useAppSelector((state: RootState) => state.storageClassDetails);
   const { customResourceDetails } = useAppSelector((state: RootState) => state.customResourceDetails);
   const { customResourcesDefinitionDetails } = useAppSelector((state: RootState) => state.customResourcesDefinitionDetails);
+  const { details: helmReleaseDetails } = useAppSelector((state: RootState) => state.helmReleaseDetails);
 
 
   if (loading) return;
@@ -61,13 +65,13 @@ const useDetailsWrapper = ({ loading, resourcekind }: DetailsWapperProps) => {
     return { ...getDeploymentDetailsConfig(deploymentDetails, loading), miscComponent: <DeploymentDetailsContainer/> };
   }
   if (resourcekind === DAEMON_SETS_ENDPOINT) {
-    return { ...getDaemonSetDetailsConfig(daemonSetDetails, loading), miscComponent: <></> };
+    return { ...getDaemonSetDetailsConfig(daemonSetDetails, loading), miscComponent: <DaemonSetDetailsContainer/> };
   }
   if (resourcekind === STATEFUL_SETS_ENDPOINT) {
-    return { ...getStatefulSetDetailsConfig(statefulSetDetails, loading), miscComponent: <></> };
+    return { ...getStatefulSetDetailsConfig(statefulSetDetails, loading), miscComponent: <StatefulSetDetailsContainer/> };
   }
   if (resourcekind === REPLICA_SETS_ENDPOINT) {
-    return { ...getReplicaSetDetailsConfig(replicaSetDetails, loading), miscComponent: <></> };
+    return { ...getReplicaSetDetailsConfig(replicaSetDetails, loading), miscComponent: <ReplicaSetDetailsContainer /> };
   }
   if (resourcekind === JOBS_ENDPOINT) {
     return { ...getJobsDetailsConfig(jobDetails, loading), miscComponent: <></> };
@@ -137,6 +141,9 @@ const useDetailsWrapper = ({ loading, resourcekind }: DetailsWapperProps) => {
   }
   if (resourcekind === CUSTOM_RESOURCES_ENDPOINT) {
     return { ...getCustomResourceDefinitionsDetailsConfig(customResourcesDefinitionDetails, loading), miscComponent: <></>};
+  }
+  if (resourcekind === HELM_RELEASES_ENDPOINT) {
+    return { ...getHelmReleaseDetailsConfig(helmReleaseDetails || { release: {} as any, history: [], values: '', templates: '', manifests: '' }, loading), miscComponent: <HelmReleaseOverview/> };
   }
 };
 

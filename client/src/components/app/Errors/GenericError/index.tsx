@@ -1,4 +1,4 @@
-import { CircleDot, Home, RefreshCcw } from "lucide-react";
+import { Home, RefreshCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -22,10 +22,6 @@ export default function GenericError() {
           <Button variant="outline" className="flex items-center hover:bg-muted-foreground/20" onClick={() => window.location.reload()}>
             <RefreshCcw className="w-5 h-5 mr-2" />
             Retry
-          </Button>
-          <Button onClick={()=> window.open("https://github.com/kubewall/kubewall/issues")} variant="outline" className="flex items-center hover:bg-muted-foreground/20">
-            <CircleDot className="w-5 h-5 mr-2" />
-            Log this issue
           </Button>
         </div>
       </div>

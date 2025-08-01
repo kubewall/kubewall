@@ -58,7 +58,7 @@ export function useSidebarResize({
       isInteractingWithRail.current = true;
 
       if (!enableDrag || isCollapsed) {
-        // console.log("[Rail] Click only mode - collapsed or drag disabled");
+        // // console.log("[Rail] Click only mode - collapsed or drag disabled");
         return;
       }
 
@@ -67,7 +67,7 @@ export function useSidebarResize({
       lastWidth.current = startWidth.current;
       lastLoggedWidth.current = startWidth.current;
 
-      // console.log(`[Rail] Started at ${currentWidth}`);
+      // // console.log(`[Rail] Started at ${currentWidth}`);
       e.preventDefault();
     },
     [enableDrag, isCollapsed, currentWidth]
@@ -80,7 +80,7 @@ export function useSidebarResize({
       const deltaX = Math.abs(e.clientX - startX.current);
       if (!isDragging.current && deltaX > 5) {
         isDragging.current = true;
-        // console.log("[Rail] Started dragging");
+        // // console.log("[Rail] Started dragging");
         setIsDraggingRail(true);
       }
 
@@ -129,7 +129,7 @@ export function useSidebarResize({
               newWidth - lastLoggedWidth.current / (unit === "rem" ? 16 : 1)
             ) >= logThreshold
           ) {
-            // console.log(`[Rail] Width: ${formattedWidth}`);
+            // // console.log(`[Rail] Width: ${formattedWidth}`);
             lastLoggedWidth.current = clampedWidthPx;
           }
         }

@@ -1,6 +1,10 @@
 import { ConfigMapsResponse } from "@/types";
 
-const formatConfigMapsResponse = (configMaps: ConfigMapsResponse[]) => {
+const formatConfigMapsResponse = (configMaps: ConfigMapsResponse[] | undefined | null) => {
+  if (!configMaps || !Array.isArray(configMaps)) {
+    return [];
+  }
+  
   return configMaps.map(({namespace, name, count, age, keys, hasUpdated, uid}) => ({
     namespace:namespace,
     name: name,

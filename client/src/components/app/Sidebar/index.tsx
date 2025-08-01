@@ -1,36 +1,35 @@
 import './index.css';
 
-import { CUSTOM_RESOURCES_ENDPOINT, NAVIGATION_ROUTE } from "@/constants";
-import { ChevronRight, DatabaseIcon, LayersIcon, LayoutGridIcon, NetworkIcon, ShieldHalf, SlidersHorizontalIcon, UngroupIcon } from "lucide-react";
+import { NAVIGATION_ROUTE } from "@/constants";
+import { ChevronRight, DatabaseIcon, LayersIcon, LayoutGridIcon, NetworkIcon, ShieldHalf, SlidersHorizontalIcon, UngroupIcon, Terminal } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { SidebarContent, SidebarGroup, SidebarGroupLabel, Sidebar as SidebarMainComponent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarRail, useSidebar } from "@/components/ui/sidebar";
+import { SidebarContent, SidebarGroup, Sidebar as SidebarMainComponent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarRail, useSidebar } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { createEventStreamQueryObject, getEventStreamUrl, getSystemTheme } from "@/utils";
+import { getSystemTheme } from "@/utils";
 import { memo, useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 
-import { CustomResources } from "@/types";
 import { SidebarNavigator } from "./Navigator";
-import { SvgRenderer } from '../Common/SvgRenderer';
+// import { SvgRenderer } from '../Common/SvgRenderer';
 import { cn } from "@/lib/utils";
 import { fetchClusters } from "@/data/KwClusters/ClustersSlice";
-import kwLogoDark from '../../../assets/kw-dark-theme.svg';
-import kwLogoDarkIcon from '../../../assets/kubewall-logo-light.svg';
-import kwLogoLight from '../../../assets/kw-light-theme.svg';
-import kwLogoLightIcon from '../../../assets/kubewall-logo-dark.svg';
-import { resetCustomResourcesList } from "@/data/CustomResources/CustomResourcesListSlice";
+import kwLogoDark from '../../../assets/facets-dark-theme.svg';
+import kwLogoDarkIcon from '../../../assets/facets-logo-light.svg';
+import kwLogoLight from '../../../assets/facets-light-theme.svg';
+import kwLogoLightIcon from '../../../assets/facets-logo-dark.svg';
+import helmLogo from '../../../assets/helm-logo.png';
+// import { resetCustomResourcesList } from "@/data/CustomResources/CustomResourcesListSlice";
 import { resetListTableFilter } from "@/data/Misc/ListTableFilterSlice";
-import { updateCustomResources } from "@/data/CustomResources/CustomResourcesSlice";
-import { useEventSource } from "../Common/Hooks/EventSource";
+import { clearPermissionError } from "@/data/PermissionErrors/PermissionErrorsSlice";
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 
 const Sidebar = memo(function ({ className }: SidebarProps) {
-  const [activeTab, setActiveTab] = useState('');
+  // const [activeTab, setActiveTab] = useState('');
   const router = useRouterState();
   const navigate = useNavigate();
   const routerForce = useRouter();
@@ -41,9 +40,9 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
   const {
     clusters
   } = useAppSelector((state) => state.clusters);
-  const {
-    customResourcesNavigation
-  } = useAppSelector((state) => state.customResources);
+  // const {
+  //   customResourcesNavigation
+  // } = useAppSelector((state) => state.customResources);
   const { open, isMobile, openMobile } = useSidebar();
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
 
@@ -79,42 +78,37 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
 
   const onNavClick = (routeValue: string) => {
     dispatch(resetListTableFilter());
-    setActiveTab(routeValue);
-    navigate({ to: `/${configName}/list?cluster=${encodeURIComponent(clusterName)}&resourcekind=${routeValue}` });
+    // Clear any existing permission errors when navigating to a different resource
+    dispatch(clearPermissionError());
+    // setActiveTab(routeValue);
+    
+    // Handle cloud shell route differently
+    if (routeValue === 'cloudshell') {
+      navigate({ to: `/${configName}/cloudshell?cluster=${encodeURIComponent(clusterName)}` });
+    } else {
+      navigate({ to: `/${configName}/list?cluster=${encodeURIComponent(clusterName)}&resourcekind=${routeValue}` });
+    }
     routerForce.invalidate();
   };
 
-  const onCustomResourcesNavClick = (route: string, name: string) => {
-    dispatch(resetListTableFilter());
-    const routeKeys = new URLSearchParams(route);
-    setActiveTab((routeKeys.get('kind') || '').toLowerCase());
-    if (activeTab.toLowerCase() !== name.toLowerCase()) {
-      dispatch(resetCustomResourcesList());
-    }
+  // const onCustomResourcesNavClick = (route: string, name: string) => {
+  //   dispatch(resetListTableFilter());
+  //   // Clear any existing permission errors when navigating to a different resource
+  //   dispatch(clearPermissionError());
+  //   const routeKeys = new URLSearchParams(route);
+  //   setActiveTab((routeKeys.get('kind') || '').toLowerCase());
+  //   if (activeTab.toLowerCase() !== name.toLowerCase()) {
+  //     dispatch(resetCustomResourcesList());
+  //   }
 
-    navigate({ to: `/${configName}/list?cluster=${encodeURIComponent(clusterName)}&resourcekind=customresources&${route}` });
-  };
+  //   navigate({ to: `/${configName}/list?cluster=${encodeURIComponent(clusterName)}&resourcekind=customresources&${route}` });
+  // };
 
   useEffect(() => {
     if (!clusters.kubeConfigs) {
       dispatch(fetchClusters());
     }
   }, [clusters, dispatch]);
-
-
-  const sendMessage = (message: CustomResources[]) => {
-    dispatch(updateCustomResources(message));
-  };
-
-  useEventSource({
-    url: getEventStreamUrl(
-      CUSTOM_RESOURCES_ENDPOINT,
-      createEventStreamQueryObject(
-        configName,
-        clusterName
-      )),
-    sendMessage
-  });
 
   const getResourceIcon = (resourceType: string) => {
     switch (resourceType) {
@@ -130,6 +124,10 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
         return <NetworkIcon width={16} />;
       case 'storage':
         return <DatabaseIcon width={16} />;
+      case 'helm':
+        return <img src={helmLogo} alt="Helm" width={16} height={16} />;
+      case 'tools':
+        return <Terminal width={16} />;
       default:
         return <LayersIcon width={16} />;
     }
@@ -152,9 +150,9 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                         <div className='flex items-center justify-center'>
                           <a onClick={() => onNavClick('pods')}>
                             <img
-                              className={`transition-all duration-300 ease-in-out ${open || openMobile ? "w-28" : "w-4 max-w-none"}`}
+                              className={`transition-all duration-300 ease-in-out ${open || openMobile ? "w-16" : "w-4 max-w-none"}`}
                               src={getSystemTheme() === 'light' ? (open || openMobile ? kwLogoLight : kwLogoLightIcon) : (open || openMobile ? kwLogoDark : kwLogoDarkIcon)}
-                              alt="kubewall"
+                              alt="Facets KubeDash"
                             />
 
                           </a>
@@ -244,6 +242,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                   </SidebarMenu>
                 </SidebarGroup>
 
+                {/* Custom Resources section commented out - will revisit when ready
                 <SidebarGroup>
                   <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">Custom Resources</SidebarGroupLabel>
                   <SidebarMenu>
@@ -350,6 +349,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                     }
                   </SidebarMenu>
                 </SidebarGroup>
+                */}
               </SidebarContent>
               <SidebarRail />
             </SidebarMainComponent>

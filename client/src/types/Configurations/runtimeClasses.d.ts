@@ -1,8 +1,9 @@
 type RuntimeClassesHeader = {
-  namespace: string;
   name: string;
   handler: string;
   age: string;
+  hasUpdated: boolean;
+  uid: string;
 };
 
 type RuntimeClassesReponse = {

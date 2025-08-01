@@ -16,5 +16,5 @@ RUN ARCH=$(case $TARGETARCH in \
 # Stage 2: Create the final scratch image with the compiled binaries
 FROM --platform=$BUILDPLATFORM scratch
 COPY --from=builder /app/kubectl /usr/bin/kubectl
-COPY kubewall /usr/bin/kubewall
-ENTRYPOINT ["/usr/bin/kubewall"]
+COPY kube-dash /usr/bin/kube-dash
+ENTRYPOINT ["/usr/bin/kube-dash"]

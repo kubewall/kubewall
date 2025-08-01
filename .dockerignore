@@ -1,5 +1,87 @@
-media/
+# Git
 .git
+.gitignore
+
+# Documentation
+README.md
+docs/
 *.md
-.idea/
+
+# Development files
 .vscode/
+.idea/
+*.swp
+*.swo
+
+# Node.js (will be built in the container)
+client/node_modules/
+client/dist/
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# Dependency directories
+node_modules/
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# GitHub Actions
+.github/
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Makefile
+Makefile
+
+# Scripts
+scripts/
+
+# Media
+media/

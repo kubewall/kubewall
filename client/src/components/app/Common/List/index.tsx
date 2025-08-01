@@ -9,6 +9,7 @@ import {
   DAEMON_SETS_ENDPOINT,
   DEPLOYMENT_ENDPOINT,
   ENDPOINTS_ENDPOINT,
+  HELM_RELEASES_ENDPOINT,
   HPA_ENDPOINT,
   INGRESSES_ENDPOINT,
   JOBS_ENDPOINT,
@@ -101,13 +102,14 @@ import {
   serviceAccountsColumnConfig,
   servicesColumnConfig,
   stateSetsColumnConfig,
-  storageClassesColumnConfig
+  storageClassesColumnConfig,
+  helmReleasesColumnConfig
 } from "@/utils/ListType/ListDefinations";
 
 import { CreateTable } from "@/components/app/Common/Hooks/Table";
 import FourOFourError from "@/components/app/Errors/404Error";
 import { RootState } from "@/redux/store";
-import { kwList } from "@/routes";
+import { kwList, appRoute } from "@/routes";
 import { updateClusterEventsList } from "@/data/Clusters/Events/EventsListSlice";
 import { updateClusterRoleBindingList } from "@/data/AccessControls/ClusterRoleBindings/ClusterRoleBindingsListSlice";
 import { updateClusterRolesList } from "@/data/AccessControls/ClusterRoles/ClusterRolesListSlice";
@@ -140,7 +142,14 @@ import { updateServiceAccountsList } from "@/data/AccessControls/ServiceAccounts
 import { updateServicesList } from "@/data/Networks/Services/ServicesListSlice";
 import { updateStatefulSets } from "@/data/Workloads/StatefulSets/StatefulSetsSlice";
 import { updateStorageClassesList } from "@/data/Storages/StorageClasses/StorageClassesListSlice";
-import { useAppSelector } from "@/redux/hooks";
+import { updateHelmReleases } from "@/data/Helm/HelmReleasesSlice";
+import { useAppSelector, useAppDispatch } from "@/redux/hooks";
+import { useNavigate, useRouterState } from '@tanstack/react-router';
+import { useEffect, useRef } from 'react';
+import { toast } from "sonner";
+import { HelmReleaseResponse } from "@/types";
+import { transformHelmReleaseToResponse } from "@/utils/Helm/HelmReleasesUtils";
+import { setHelmReleasesLoading } from "@/data/Helm/HelmReleasesSlice";
 
 type ArrayElement<ArrayType extends readonly unknown[]> =
   ArrayType extends readonly (infer ElementType)[] ? ElementType : never;
@@ -178,11 +187,46 @@ export function KwList() {
   const { customResourcesDefinitions ,customResourcesNavigation, loading: customResourcesNavigationLoading  } = useAppSelector((state: RootState) => state.customResources);
   const { clusterEvents, loading: clusterEventsLoading } = useAppSelector((state: RootState) => state.clusterEvents);
   const { customResourcesList, loading: customResourcesListLoading } = useAppSelector((state: RootState) => state.customResourcesList);
+  const { clusters, loading: clustersLoading } = useAppSelector((state: RootState) => state.clusters);
+  const { releases: helmReleases, loading: helmReleasesLoading } = useAppSelector((state: RootState) => state.helmReleases);
 
-  const { config } = kwList.useParams();
+  const navigate = useNavigate();
+  const router = useRouterState();
+  const hasShownConfigNotFoundToast = useRef(false);
+  const dispatch = useAppDispatch();
+
+  const { config } = appRoute.useParams();
   const { cluster, resourcekind, group, kind, resource, version } = kwList.useSearch();
   const commonSearchParams: CommonSearchParams = kwList.useSearch();
   commonSearchParams.config = config;
+
+  // Check if current route's config exists and redirect if it doesn't
+  useEffect(() => {
+    const currentPath = router.location.pathname;
+    const pathSegments = currentPath.split('/');
+    
+    // Check if we're on a config-specific route (not /config or /)
+    if (pathSegments.length > 1 && pathSegments[1] !== 'config' && pathSegments[1] !== '') {
+      const configId = pathSegments[1];
+      
+      // Only check if clusters are loaded and not empty, and not currently loading
+      if (!clustersLoading && clusters?.kubeConfigs && Object.keys(clusters.kubeConfigs).length > 0) {
+        if (!clusters.kubeConfigs[configId]) {
+          // Config doesn't exist, redirect to config page
+          if (!hasShownConfigNotFoundToast.current) {
+            toast.info("Configuration not found", {
+              description: "The configuration you were viewing has been deleted. Redirecting to configuration page.",
+            });
+            hasShownConfigNotFoundToast.current = true;
+          }
+          navigate({ to: '/config' });
+        }
+      }
+    } else {
+      // Reset the flag when we're not on a config-specific route
+      hasShownConfigNotFoundToast.current = false;
+    }
+  }, [clusters, navigate, router.location.pathname]);
 
   const getTableData = (resourcekind: string) => {
     if (resourcekind === LEASES_ENDPOINT) {
@@ -230,7 +274,12 @@ export function KwList() {
     } if (resourcekind === STORAGE_CLASSES_ENDPOINT) {
       return getTableConfig<StorageClassesHeaders>(storageClasses, STORAGE_CLASSES_ENDPOINT, updateStorageClassesList, storageClassesLoading, storageClassesColumnConfig(config, cluster));
     } if (resourcekind === PODS_ENDPOINT) {
-      return getTableConfig<PodsHeaders>(pods, PODS_ENDPOINT, updatePodsList, podsLoading, podsColumnConfig(config, cluster));
+      const node = commonSearchParams.node;
+      const namespace = commonSearchParams.namespace;
+      const owner = commonSearchParams.owner;
+      const ownerName = commonSearchParams.ownerName;
+      const filters = { node, namespace, owner, ownerName };
+      return getTableConfig<PodsHeaders>(pods, PODS_ENDPOINT, updatePodsList, podsLoading, podsColumnConfig(config, cluster, true, filters));
     } if (resourcekind === CRON_JOBS_ENDPOINT) {
       return getTableConfig<CronJobsHeader>(cronJobs, CRON_JOBS_ENDPOINT, updateCronJobs, cronJobsLoading, cronJobsColumnConfig(config, cluster));
     } if (resourcekind === DAEMON_SETS_ENDPOINT) {
@@ -250,7 +299,15 @@ export function KwList() {
       return getTableConfig<CustomResourceHeaders>(customResourcesList.list, CUSTOM_RESOURCES_LIST_ENDPOINT, updateCustomResourcesList, customResourcesListLoading, customResourcesColumnConfig(additionalPrinterColumns[0]?.additionalPrinterColumns, config, cluster, customResourcesListLoading, group, kind, resource, version));
     } if (resourcekind === CUSTOM_RESOURCES_ENDPOINT) {
       return getTableConfig<CustomResourcesDefinitionsHeader>(customResourcesDefinitions, CUSTOM_RESOURCES_ENDPOINT, updateCustomResources, customResourcesNavigationLoading, customResourceDefinitionsColumnConfig(config, cluster));
+    } if (resourcekind === HELM_RELEASES_ENDPOINT) {
+      const transformedHelmReleases = helmReleases.map(release => ({
+        ...transformHelmReleaseToResponse(release),
+        configName: config,
+        clusterName: cluster
+      }));
+      return getTableConfig<HelmReleaseResponse>(transformedHelmReleases, HELM_RELEASES_ENDPOINT, updateHelmReleases, helmReleasesLoading, helmReleasesColumnConfig(config, cluster));
     }
+    
     return;
   };
 
@@ -260,7 +317,14 @@ export function KwList() {
     return <FourOFourError />;
   }
 
-  document.title = `kubewall - ${tableData.instaceType}`;
+  // Create a setLoading function for Helm releases
+  const setHelmReleasesLoadingState = (loading: boolean) => {
+    if (resourcekind === HELM_RELEASES_ENDPOINT) {
+      dispatch(setHelmReleasesLoading(loading));
+    }
+  };
+
+  document.title = `Facets KubeDash - ${tableData.instaceType}`;
   return (
     <CreateTable
       clusterName={cluster}
@@ -274,6 +338,7 @@ export function KwList() {
       endpoint={tableData.instaceType}
       dispatchMethod={tableData.dispatchMethod}
       showNamespaceFilter={tableData.showNamespaceFilter}
+      setLoading={setHelmReleasesLoadingState}
     />
   );
 }

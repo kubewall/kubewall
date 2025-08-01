@@ -1,5 +1,5 @@
 import { memo, useEffect, useState } from "react";
-import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { useAppDispatch } from "@/redux/hooks";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   CommandDialog,
@@ -12,14 +12,16 @@ import {
   CommandShortcut,
 } from "@/components/ui/command";
 import { CubeIcon, EnterIcon } from "@radix-ui/react-icons";
+import { Terminal } from "lucide-react";
+import helmLogo from '../../../../assets/helm-logo.png';
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { NAVIGATION_ROUTE } from "@/constants";
 import { resetListTableFilter } from "@/data/Misc/ListTableFilterSlice";
 import { useSidebar } from "@/components/ui/sidebar";
-import { RootState } from "@/redux/store";
+// import { RootState } from "@/redux/store";
 import { SearchIcon } from "lucide-react";
 import { Kbd } from "@/components/ui/kbd";
-import { useIsMac } from "@/hooks/use-is-mac"
+import { useIsMac } from "@/hooks/use-is-mac";
 
 type SidebarNavigatorProps = {
   setOpenMenus: (value: React.SetStateAction<Record<string, boolean>>) => void;
@@ -27,7 +29,7 @@ type SidebarNavigatorProps = {
 
 const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: SidebarNavigatorProps) {
   const dispatch = useAppDispatch();
-  const { customResourcesNavigation } = useAppSelector((state: RootState) => state.customResources);
+  // const { customResourcesNavigation } = useAppSelector((state: RootState) => state.customResources);
 
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
@@ -36,7 +38,7 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
   const queryParams = new URLSearchParams(router.location.search);
   const clusterName = queryParams.get("cluster") || "";
   const { open: isSidebarOpen, openMobile } = useSidebar();
-  const isMac = useIsMac()
+  const isMac = useIsMac();
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -61,17 +63,17 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
     }));
   };
 
-  const onSelectCustomResources = (routeValue: string, route: string) => {
-    dispatch(resetListTableFilter());
-    navigate({
-      to: `/${configName}/list?cluster=${encodeURIComponent(clusterName)}&resourcekind=customresources&${routeValue}`,
-    });
-    setOpen(false);
-    setOpenMenus((prev) => ({
-      ...prev,
-      [route]: true,
-    }));
-  };
+  // const onSelectCustomResources = (routeValue: string, route: string) => {
+  //   dispatch(resetListTableFilter());
+  //   navigate({
+  //     to: `/${configName}/list?cluster=${encodeURIComponent(clusterName)}&resourcekind=customresources&${routeValue}`,
+  //   });
+  //   setOpen(false);
+  //   setOpenMenus((prev) => ({
+  //     ...prev,
+  //     [route]: true,
+  //   }));
+  // };
 
   return (
     <>
@@ -115,7 +117,13 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
                   className="group cursor-pointer"
                   onSelect={() => onSelectResources(routeValue, route)}
                 >
-                  <CubeIcon className="mr-2 h-4 w-4" />
+                  {routeValue === 'helmreleases' ? (
+                    <img src={helmLogo} alt="Helm" className="mr-2 h-4 w-4" />
+                  ) : routeValue === 'cloudshell' ? (
+                    <Terminal className="mr-2 h-4 w-4" />
+                  ) : (
+                    <CubeIcon className="mr-2 h-4 w-4" />
+                  )}
                   <span>{name}</span>
                   <CommandShortcut className="invisible group-aria-[selected=true]:visible">
                     <EnterIcon />
@@ -125,6 +133,7 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
             </CommandGroup>
           ))}
 
+          {/* Custom Resource section commented out - will revisit when ready
           <CommandGroup heading="Custom Resource">
             {Object.keys(customResourcesNavigation).map((customResourceGroup) =>
               customResourcesNavigation[customResourceGroup].resources.map((customResource) => (
@@ -145,6 +154,7 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
               ))
             )}
           </CommandGroup>
+          */}
 
           <CommandSeparator />
         </CommandList>

@@ -1,5 +1,7 @@
 import DeploymentScaleSlice from '@/data/Workloads/Deployments/DeploymentScaleSlice';
 import addConfigSlice from '@/data/KwClusters/AddConfigSlice';
+import validateConfigSlice from '@/data/KwClusters/ValidateConfigSlice';
+import validateAllConfigsSlice from '@/data/KwClusters/ValidateAllConfigsSlice';
 import clusterEventsListSlice from '@/data/Clusters/Events/EventsListSlice';
 import clusterRoleBindingDetailsSlice from '@/data/AccessControls/ClusterRoleBindings/ClusterRoleBindingDetailsSlice';
 import clusterRoleBindingsListSlice from '@/data/AccessControls/ClusterRoleBindings/ClusterRoleBindingsListSlice';
@@ -16,6 +18,7 @@ import customResourcesDetailsSlice from '@/data/CustomResources/CustomResourcesD
 import customResourcesListSlice from '@/data/CustomResources/CustomResourcesListSlice';
 import customResourcesSlice from '@/data/CustomResources/CustomResourcesSlice';
 import daemonSetDetailsSlice from '@/data/Workloads/DaemonSets/DaemonSetDetailsSlice';
+import daemonSetPodsSlice from '@/data/Workloads/DaemonSets/DaemonSetPodsSlice';
 import daemonSetsSlice from '@/data/Workloads/DaemonSets/DaemonSetsSlices';
 import deleteConfigSlice from '@/data/KwClusters/DeleteConfigSlice';
 import deleteResourcesSlice from '@/data/Misc/DeleteResourceSlice';
@@ -38,9 +41,11 @@ import limitRangeListSlice from '@/data/Configurations/LimitRange/LimitRangeList
 import listTableFilterSlice from '@/data/Misc/ListTableFilterSlice';
 import listTableNamesapceSlice from '@/data/Misc/ListTableNamesapceSlice';
 import namespaceDetailsSlice from '@/data/Clusters/Namespaces/NamespaceDetailsSlice';
+import namespacePodsSlice from '@/data/Clusters/Namespaces/NamespacePodsSlice';
 import namespacesSlice from '@/data/Clusters/Namespaces/NamespacesSlice';
 import nodeDetailsSlice from '@/data/Clusters/Nodes/NodeDetailsSlice';
 import nodeListSlice from '@/data/Clusters/Nodes/NodeListSlice';
+import nodePodsSlice from '@/data/Clusters/Nodes/NodePodsSlice';
 import persistentVolumeClaimsDetailsSlice from '@/data/Storages/PersistentVolumeClaims/PersistentVolumeClaimDetailsSlice';
 import persistentVolumeClaimsListSlice from '@/data/Storages/PersistentVolumeClaims/PersistentVolumeClaimsListSlice';
 import persistentVolumeDetailsSlice from '@/data/Storages/PersistentVolumes/PersistentVolumeDetailsSlice';
@@ -53,6 +58,7 @@ import podsSlice from '@/data/Workloads/Pods/PodsSlice';
 import priorityClassDetailsSlice from '@/data/Configurations/PriorityClasses/PriorityClassDetailsSlice';
 import priorityClassesListSlice from '@/data/Configurations/PriorityClasses/PriorityClassesListSlice';
 import replicaSetDetailsSlice from '@/data/Workloads/ReplicaSets/ReplicaSetDetailsSlice';
+import replicaSetPodsSlice from '@/data/Workloads/ReplicaSets/ReplicaSetPodsSlice';
 import replicaSetsSlice from '@/data/Workloads/ReplicaSets/ReplicaSetsSlice';
 import resourceQuotaDetailsSlice from '@/data/Configurations/ResourceQuotas/ResourceQuotaDetailsSlice';
 import resourceQuotasListSlice from '@/data/Configurations/ResourceQuotas/ResourceQuotasListSlice';
@@ -70,10 +76,15 @@ import serviceDetailSlice from '@/data/Networks/Services/ServiceDetailSlice';
 import servicesListSlice from '@/data/Networks/Services/ServicesListSlice';
 import statefulSetDetailsSlice from '@/data/Workloads/StatefulSets/StatefulSetDetailsSlice';
 import statefulSetsSlice from '@/data/Workloads/StatefulSets/StatefulSetsSlice';
+import statefulSetPodsSlice from '@/data/Workloads/StatefulSets/StatefulSetPodsSlice';
 import storageClassDetailsSlice from '@/data/Storages/StorageClasses/StorageClassDetailsSlice';
 import storageClassesListSlice from '@/data/Storages/StorageClasses/StorageClassesListSlice';
 import updateYamlSlice from '@/data/Yaml/YamlUpdateSlice';
 import yamlSlice from '@/data/Yaml/YamlSlice';
+import { helmReleasesReducer, helmReleaseDetailsReducer } from '@/data/Helm';
+import helmReleaseResourcesReducer from '@/data/Helm/HelmReleaseResourcesSlice';
+import cloudShellSlice from '@/data/CloudShell/CloudShellSlice';
+import permissionErrorsSlice from '@/data/PermissionErrors/PermissionErrorsSlice';
 
 const store = configureStore({
   reducer: {
@@ -82,6 +93,7 @@ const store = configureStore({
     cronJobDetails: cronJobDetailsSlice,
     daemonSets: daemonSetsSlice,
     daemonSetDetails: daemonSetDetailsSlice,
+    daemonSetPods: daemonSetPodsSlice,
     deployments: deploymentSlice,
     deploymentDetails: deploymentDetailsSlice,
     deploymentPods: deploymentPodDetailsSlice,
@@ -92,10 +104,13 @@ const store = configureStore({
     podLogs: podLogsSlice,
     namespaces: namespacesSlice,
     namespaceDetails: namespaceDetailsSlice,
+    namespacePods: namespacePodsSlice,
     replicaSets: replicaSetsSlice,
     replicaSetDetails: replicaSetDetailsSlice,
+    replicaSetPods: replicaSetPodsSlice,
     statefulSets: statefulSetsSlice,
     statefulSetDetails: statefulSetDetailsSlice,
+    statefulSetPods: statefulSetPodsSlice,
     configMaps: configMapsSlice,
     yaml: yamlSlice,
     updateYaml: updateYamlSlice,
@@ -143,15 +158,23 @@ const store = configureStore({
     customResourcesList: customResourcesListSlice,
     customResourceDetails: customResourcesDetailsSlice,
     addConfig: addConfigSlice,
+    validateConfig: validateConfigSlice,
+    validateAllConfigs: validateAllConfigsSlice,
     deleteConfig: deleteConfigSlice,
     listTableFilter: listTableFilterSlice,
     nodes: nodeListSlice,
     nodeDetails: nodeDetailsSlice,
+    nodePods: nodePodsSlice,
     deleteResources: deleteResourcesSlice,
     listTableNamesapce: listTableNamesapceSlice,
     customResourcesDefinitionDetails: customResourcesDefinitionDetailsSlice,
     clusterEvents: clusterEventsListSlice,
-    deploymentScale: DeploymentScaleSlice
+    cloudShell: cloudShellSlice,
+    deploymentScale: DeploymentScaleSlice,
+    helmReleases: helmReleasesReducer,
+    helmReleaseDetails: helmReleaseDetailsReducer,
+    helmReleaseResources: helmReleaseResourcesReducer,
+    permissionErrors: permissionErrorsSlice
   },
 });
 

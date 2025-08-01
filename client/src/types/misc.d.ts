@@ -20,6 +20,10 @@ type kwListSearch = {
   kind?: string;
   resource?: string;
   version?: string;
+  node?: string;
+  namespace?: string;
+  owner?: string;
+  ownerName?: string;
 };
 
 type kwDetailsSearch = {

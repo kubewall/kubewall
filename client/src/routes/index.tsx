@@ -3,16 +3,14 @@ import { kwDetailsSearch, kwListSearch } from '@/types';
 
 import FourOFourError from "@/components/app/Errors/404Error";
 import GenericError from "@/components/app/Errors/GenericError";
+import { App } from '@/app';
 import { KubeConfiguration } from '@/components/app/KubeConfiguration';
 import { KubeWall } from '@/KubeWall';
 import { KwDetails } from '@/components/app/Common/Details';
 import { KwList } from '@/components/app/Common/List';
+import { CloudShellDetailsContainer } from '@/components/app/MiscDetailsContainer/CloudShellDetailsContainer';
 
-const AppWrapper = ({ component }: { component: JSX.Element }) => {
-  return (
-    component
-  );
-};
+
 
 const rootRoute = createRootRoute({
   component: () => <KubeWall />
@@ -21,13 +19,19 @@ const rootRoute = createRootRoute({
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-  component: () => <Navigate to="/kwconfig" />
+  component: () => <Navigate to="/config" />
+});
+
+const appRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/$config',
+  component: App,
 });
 
 const kwList = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/$config/list',
-  component: () => <AppWrapper component={<KwList />} />,
+  getParentRoute: () => appRoute,
+  path: '/list',
+  component: KwList,
   validateSearch: (search: Record<string, unknown>): kwListSearch => {
     return {
       cluster: String(search.cluster) || '',
@@ -36,14 +40,18 @@ const kwList = createRoute({
       ...(search.kind ? {kind: String(search.kind)}: {}),
       ...(search.resource ? {resource: String(search.resource)}: {}),
       ...(search.version ? {version: String(search.version)}: {}),
+      ...(search.node ? {node: String(search.node)}: {}),
+      ...(search.namespace ? {namespace: String(search.namespace)}: {}),
+      ...(search.owner ? {owner: String(search.owner)}: {}),
+      ...(search.ownerName ? {ownerName: String(search.ownerName)}: {}),
     };
   }
 });
 
 const kwDetails = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/$config/details',
-  component: () => <AppWrapper component={<KwDetails />} />,
+  getParentRoute: () => appRoute,
+  path: '/details',
+  component: KwDetails,
   validateSearch: (search: Record<string, unknown>): kwDetailsSearch => ({
     cluster: String(search.cluster) || '',
     resourcekind: String(search.resourcekind) || '',
@@ -56,19 +64,32 @@ const kwDetails = createRoute({
   })
 });
 
+const cloudShellRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/cloudshell',
+  component: CloudShellDetailsContainer,
+  validateSearch: (search: Record<string, unknown>) => ({
+    cluster: String(search.cluster) || '',
+    namespace: search.namespace ? String(search.namespace) : 'default',
+  })
+});
+
 
 
 const kubeConfigurationRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/kwconfig',
+  path: '/config',
   component: KubeConfiguration,
 });
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
   kubeConfigurationRoute,
-  kwList,
-  kwDetails
+  appRoute.addChildren([
+    kwList,
+    kwDetails,
+    cloudShellRoute
+  ])
 ]);
 
 const router = createRouter({
@@ -89,5 +110,7 @@ declare module '@tanstack/react-router' {
 export {
   router,
   kwList,
-  kwDetails
+  kwDetails,
+  cloudShellRoute,
+  appRoute
 };

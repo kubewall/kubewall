@@ -7,16 +7,18 @@ import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { DataTable } from "@/components/app/Table";
 import { RootState } from "@/redux/store";
 import { cn } from "@/lib/utils";
-import { kwDetails } from "@/routes";
+import { kwDetails, appRoute } from "@/routes";
 import { memo } from "react";
 import { podsColumnConfig } from "@/utils/ListType/ListDefinations";
 import { updateDeploymentPods } from "@/data/Workloads/Deployments/DeploymentPodsSlice";
 import { useEventSource } from "@/components/app/Common/Hooks/EventSource";
 import useGenerateColumns from "@/components/app/Common/Hooks/TableColumns";
 import { useSidebar } from "@/components/ui/sidebar";
+import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 
 const DeploymentDetailsContainer = memo(function () {
-  const { config } = kwDetails.useParams();
+  const { config } = appRoute.useParams();
   const { cluster, resourcename, namespace } = kwDetails.useSearch();
   const {
     loading,
@@ -24,9 +26,17 @@ const DeploymentDetailsContainer = memo(function () {
   } = useAppSelector((state: RootState) => state.deploymentPods);
   const { open } = useSidebar();
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
 
   const sendMessage = (message: Pods[]) => {
     dispatch(updateDeploymentPods(message));
+  };
+
+  const handleConfigError = () => {
+    toast.error("Configuration Error", {
+      description: "The configuration you were viewing has been deleted or is no longer available. Redirecting to configuration page.",
+    });
+    navigate({ to: '/config' });
   };
 
   useEventSource({
@@ -37,9 +47,10 @@ const DeploymentDetailsContainer = memo(function () {
         cluster,
         namespace
       ),
-      `/${resourcename}/pods`
+      `/${namespace}/${resourcename}/pods`
     ),
-    sendMessage
+    sendMessage,
+    onConfigError: handleConfigError,
   });
 
   return (

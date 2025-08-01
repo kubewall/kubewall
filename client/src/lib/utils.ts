@@ -24,3 +24,30 @@ export function mergeButtonRefs<T extends HTMLButtonElement>(
     }
   };
 }
+
+// Deep clone function to safely clone objects without mutating the original
+export function deepClone<T>(obj: T): T {
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+  
+  if (obj instanceof Date) {
+    return new Date(obj.getTime()) as T;
+  }
+  
+  if (obj instanceof Array) {
+    return obj.map(item => deepClone(item)) as T;
+  }
+  
+  if (typeof obj === 'object') {
+    const clonedObj = {} as T;
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        clonedObj[key] = deepClone(obj[key]);
+      }
+    }
+    return clonedObj;
+  }
+  
+  return obj;
+}

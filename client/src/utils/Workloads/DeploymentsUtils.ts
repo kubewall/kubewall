@@ -10,7 +10,7 @@ const formatDeploymentsResponse = (deployments: DeploymentsResponse[]) => {
     available: status.availableReplicas,
     age: age,
     hasUpdated: hasUpdated,
-    conditions: status.conditions.map(({type}) => type).toString(),
+    conditions: status.conditions ? status.conditions.map(({type}) => type).join(', ') : '—',
     uid: uid
   }));
 };

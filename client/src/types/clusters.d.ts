@@ -8,6 +8,8 @@ type ClustersDetails = {
       namespace: string,
       authInfo: string,
       connected: boolean,
+      reachable?: boolean,
+      error?: string,
     }
   }
 };

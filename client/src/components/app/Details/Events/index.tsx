@@ -1,18 +1,20 @@
 import './index.css';
 
+import { Event } from "@/types";
 import { createEventStreamQueryObject, getEventStreamUrl } from "@/utils";
-import { resetJobDetails, updateEventsDetails } from "@/data/Events/EventsSlice";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-
+import { updateEventsDetails, resetJobDetails } from "@/data/Events/EventsSlice";
+import { useEventSource } from "../../Common/Hooks/EventSource";
 import { DataTable } from "@/components/app/Table";
 import { eventsColumns } from "./columns";
 import { useEffect } from "react";
-import { useEventSource } from "../../Common/Hooks/EventSource";
+import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 
 type EventsProps = {
-  name: string;
   instanceType: string;
-  namespace: string;
+  name: string;
+  namespace?: string;
   configName: string;
   clusterName: string;
   extraQuery?: string;
@@ -20,6 +22,7 @@ type EventsProps = {
 
 export function Events({ instanceType, name, namespace, configName, clusterName, extraQuery }: EventsProps) {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const {
     loading,
     events,
@@ -31,9 +34,15 @@ export function Events({ instanceType, name, namespace, configName, clusterName,
     };
   }, [dispatch]);
 
-
   const sendMessage = (message: Event[]) => {
     dispatch(updateEventsDetails(message));
+  };
+
+  const handleConfigError = () => {
+    toast.error("Configuration Error", {
+      description: "The configuration you were viewing has been deleted or is no longer available. Redirecting to configuration page.",
+    });
+    navigate({ to: '/config' });
   };
 
   useEventSource({
@@ -44,12 +53,13 @@ export function Events({ instanceType, name, namespace, configName, clusterName,
         clusterName,
         namespace
       ),
-      `/${name}/events`,
+      // For namespace-scoped resources, include namespace in path
+      (instanceType === 'deployments' || instanceType === 'daemonsets' || instanceType === 'statefulsets' || instanceType === 'replicasets' || instanceType === 'jobs' || instanceType === 'cronjobs' || instanceType === 'services' || instanceType === 'configmaps' || instanceType === 'secrets' || instanceType === 'horizontalpodautoscalers' || instanceType === 'limitranges' || instanceType === 'resourcequotas' || instanceType === 'serviceaccounts' || instanceType === 'roles' || instanceType === 'rolebindings' || instanceType === 'persistentvolumeclaims' || instanceType === 'poddisruptionbudgets' || instanceType === 'endpoints' || instanceType === 'ingresses' || instanceType === 'leases') ? `/${namespace}/${name}/events` : `/${name}/events`,
       extraQuery
     ),
-    sendMessage
+    sendMessage,
+    onConfigError: handleConfigError,
   });
-
 
   return (
     <DataTable

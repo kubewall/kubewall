@@ -37,6 +37,7 @@ type DataTableProps<TData, TValue> = {
   showToolbar?: boolean;
   loading?: boolean;
   isEventTable?: boolean;
+  connectionStatus?: 'connecting' | 'connected' | 'reconnecting' | 'error';
 }
 
 declare global {
@@ -71,6 +72,7 @@ export function DataTable<TData, TValue>({
   showToolbar = true,
   loading = false,
   isEventTable = false,
+  connectionStatus = 'connected',
 }: DataTableProps<TData, TValue>) {
 
   const {
@@ -133,13 +135,13 @@ export function DataTable<TData, TValue>({
     <>
       {
         showToolbar
-        && <DataTableToolbar loading={loading} table={table} globalFilter={globalFilter} setGlobalFilter={setGlobalFilter} showNamespaceFilter={showNamespaceFilter} />
+        && <DataTableToolbar loading={loading} table={table} globalFilter={globalFilter} setGlobalFilter={setGlobalFilter} showNamespaceFilter={showNamespaceFilter} connectionStatus={connectionStatus} />
       }
       {
          
         window.safari !== undefined && 
         <div className='flex bg-red-500 dark:bg-red-900 items-center justify-between text-xs font-light px-2 py-1'>
-        <span className='text-xs text-white'>We detected you are on Safari browser and are using http. For seemless expereince switch over to chrome/firefox. More details <a className='underline' href='https://github.com/kubewall/kubewall/wiki/FAQ#https' target='blank'>here</a></span>
+        <span className='text-xs text-white'>We detected you are on Safari browser and are using http. For seemless expereince switch over to chrome/firefox. More details <a className='underline' href='https://github.com/Facets-cloud/kube-dash' target='blank'>here</a></span>
       </div>
       }
       

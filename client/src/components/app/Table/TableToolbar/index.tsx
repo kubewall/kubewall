@@ -16,6 +16,7 @@ import { namespacesFilter } from "@/utils";
 import { resetFilterNamespace } from "@/data/Misc/ListTableNamesapceSlice";
 import { updateListTableFilter } from "@/data/Misc/ListTableFilterSlice";
 import { Kbd } from "@/components/ui/kbd";
+import { ConnectionStatusIndicator } from "@/components/app/Common/ConnectionStatus";
 
 type DataTableToolbarProps<TData> = {
   table: Table<TData>;
@@ -23,6 +24,7 @@ type DataTableToolbarProps<TData> = {
   setGlobalFilter: React.Dispatch<React.SetStateAction<string>>;
   showNamespaceFilter: boolean;
   loading?: boolean;
+  connectionStatus?: 'connecting' | 'connected' | 'reconnecting' | 'error';
 }
 
 export function DataTableToolbar<TData>({
@@ -31,6 +33,7 @@ export function DataTableToolbar<TData>({
   setGlobalFilter,
   showNamespaceFilter,
   loading = true,
+  connectionStatus = 'connected',
 }: DataTableToolbarProps<TData>) {
   const {
     namespaces
@@ -88,6 +91,7 @@ export function DataTableToolbar<TData>({
             </Tooltip>
           </TooltipProvider>
         }
+        <ConnectionStatusIndicator status={connectionStatus} />
       </div>
       <DataTableViewOptions table={table} />
       <AddResource />

@@ -5,7 +5,7 @@ const formatNodeList = (nodes: NodeListResponse[]) => {
     age: age,
     resourceVersion: resourceVersion,
     name: name,
-    roles: roles.toString(),
+    roles: roles ? roles.join(', ') : '—',
     conditionStatus: conditionStatus,
     architecture: nodeInfo.architecture,
     bootID: nodeInfo.bootID,
