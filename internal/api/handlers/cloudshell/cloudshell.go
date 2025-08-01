@@ -193,6 +193,57 @@ func (h *CloudShellHandler) checkCloudShellPermissions(client *kubernetes.Client
 	return nil
 }
 
+// checkCloudShellConnectionPermissions checks if the user has permissions to connect to a specific cloud shell pod
+func (h *CloudShellHandler) checkCloudShellConnectionPermissions(client *kubernetes.Clientset, podName, namespace string) error {
+	// Check if user can get the specific pod
+	getAccessReview := &authorizationv1.SelfSubjectAccessReview{
+		Spec: authorizationv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authorizationv1.ResourceAttributes{
+				Namespace: namespace,
+				Verb:      "get",
+				Group:     "",
+				Version:   "v1",
+				Resource:  "pods",
+				Name:      podName,
+			},
+		},
+	}
+
+	result, err := client.AuthorizationV1().SelfSubjectAccessReviews().Create(context.Background(), getAccessReview, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to check pod get permissions: %w", err)
+	}
+
+	if !result.Status.Allowed {
+		return fmt.Errorf("insufficient permissions: cannot get pod %s in namespace %s", podName, namespace)
+	}
+
+	// Check if user can exec into the pod
+	execAccessReview := &authorizationv1.SelfSubjectAccessReview{
+		Spec: authorizationv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authorizationv1.ResourceAttributes{
+				Namespace: namespace,
+				Verb:      "create",
+				Group:     "",
+				Version:   "v1",
+				Resource:  "pods/exec",
+				Name:      podName,
+			},
+		},
+	}
+
+	result, err = client.AuthorizationV1().SelfSubjectAccessReviews().Create(context.Background(), execAccessReview, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to check pod exec permissions: %w", err)
+	}
+
+	if !result.Status.Allowed {
+		return fmt.Errorf("insufficient permissions: cannot exec into pod %s in namespace %s", podName, namespace)
+	}
+
+	return nil
+}
+
 // CreateCloudShell creates a new cloud shell pod
 func (h *CloudShellHandler) CreateCloudShell(c *gin.Context) {
 	configID := c.Query("config")
@@ -415,6 +466,10 @@ func (h *CloudShellHandler) CreateCloudShell(c *gin.Context) {
 }
 
 // HandleCloudShellWebSocket handles WebSocket-based cloud shell terminal
+// This function checks if the user has permissions to connect to the specific cloud shell pod
+// before allowing the WebSocket connection. Users must have:
+// 1. Permission to get the specific pod
+// 2. Permission to exec into the pod
 func (h *CloudShellHandler) HandleCloudShellWebSocket(c *gin.Context) {
 	// Upgrade HTTP connection to WebSocket
 	conn, err := h.upgrader.Upgrade(c.Writer, c.Request, nil)
@@ -440,6 +495,24 @@ func (h *CloudShellHandler) HandleCloudShellWebSocket(c *gin.Context) {
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get Kubernetes client for cloud shell")
 		h.sendWebSocketError(conn, err.Error())
+		return
+	}
+
+	// Check permissions to connect to this specific cloud shell pod
+	if err := h.checkCloudShellConnectionPermissions(client, podName, namespace); err != nil {
+		h.logger.WithError(err).WithFields(map[string]interface{}{
+			"pod":       podName,
+			"namespace": namespace,
+			"config_id": configID,
+			"cluster":   cluster,
+		}).Error("Permission check failed for cloud shell connection")
+
+		// Check if this is a permission error and return appropriate response
+		if utils.IsPermissionError(err) {
+			h.sendWebSocketError(conn, fmt.Sprintf("Permission denied: %v", err))
+		} else {
+			h.sendWebSocketError(conn, fmt.Sprintf("Failed to check permissions: %v", err))
+		}
 		return
 	}
 
@@ -505,6 +578,8 @@ func (h *CloudShellHandler) HandleCloudShellWebSocket(c *gin.Context) {
 }
 
 // ListCloudShellSessions lists all cloud shell sessions
+// This function checks if the user has permissions to list pods in the namespace
+// before returning the session list. Users must have permission to list pods.
 func (h *CloudShellHandler) ListCloudShellSessions(c *gin.Context) {
 	configID := c.Query("config")
 	cluster := c.Query("cluster")
@@ -517,6 +592,20 @@ func (h *CloudShellHandler) ListCloudShellSessions(c *gin.Context) {
 	client, _, err := h.getClientAndConfig(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check permissions to list pods in the namespace
+	if err := h.checkCloudShellPermissions(client, namespace); err != nil {
+		h.logger.WithError(err).Error("Permission check failed for listing cloud shell sessions")
+
+		// Check if this is a permission error and return appropriate response
+		if utils.IsPermissionError(err) {
+			permissionResponse := utils.CreatePermissionErrorResponse(err)
+			c.JSON(http.StatusForbidden, permissionResponse)
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to check permissions: %v", err)})
+		}
 		return
 	}
 
@@ -615,6 +704,8 @@ func (h *CloudShellHandler) ListCloudShellSessions(c *gin.Context) {
 }
 
 // DeleteCloudShell deletes a cloud shell session
+// This function checks if the user has permissions to delete pods in the namespace
+// before allowing the deletion. Users must have permission to delete pods.
 func (h *CloudShellHandler) DeleteCloudShell(c *gin.Context) {
 	podName := c.Param("name")
 	namespace := c.Query("namespace")
@@ -628,6 +719,20 @@ func (h *CloudShellHandler) DeleteCloudShell(c *gin.Context) {
 	client, _, err := h.getClientAndConfig(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check permissions to delete pods in the namespace
+	if err := h.checkCloudShellPermissions(client, namespace); err != nil {
+		h.logger.WithError(err).Error("Permission check failed for deleting cloud shell")
+
+		// Check if this is a permission error and return appropriate response
+		if utils.IsPermissionError(err) {
+			permissionResponse := utils.CreatePermissionErrorResponse(err)
+			c.JSON(http.StatusForbidden, permissionResponse)
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to check permissions: %v", err)})
+		}
 		return
 	}
 

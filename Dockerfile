@@ -8,7 +8,11 @@ COPY client/package*.json ./
 
 # Install dependencies and fix Rollup optional dependencies issue
 RUN npm ci && \
-    npm install @rollup/rollup-linux-x64-gnu
+    if [ "$(uname -m)" = "x86_64" ]; then \
+        npm install @rollup/rollup-linux-x64-gnu; \
+    elif [ "$(uname -m)" = "aarch64" ]; then \
+        npm install @rollup/rollup-linux-arm64-gnu; \
+    fi
 
 # Copy source code
 COPY client/ ./
@@ -51,7 +55,10 @@ COPY --from=backend-builder /app/kube-dash .
 COPY --from=frontend-builder /app/client/dist ./static
 
 # Expose port
-EXPOSE 8080
+EXPOSE 7080
+
+# Set environment variables
+ENV STATIC_FILES_PATH=./static
 
 # Run the binary
 CMD ["./kube-dash"] 

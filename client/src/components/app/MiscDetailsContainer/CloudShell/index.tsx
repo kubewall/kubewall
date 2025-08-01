@@ -38,7 +38,8 @@ import {
   createCloudShell, 
   deleteCloudShell, 
   listCloudShellSessions,
-  setCurrentSession
+  setCurrentSession,
+  clearError
 } from "@/data/CloudShell/CloudShellSlice";
 import { CloudShellSession } from "@/types/cloudshell";
 
@@ -70,7 +71,9 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
            errorMessage.toLowerCase().includes('insufficient permissions') ||
            errorMessage.toLowerCase().includes('forbidden') ||
            errorMessage.toLowerCase().includes('cannot create configmaps') ||
-           errorMessage.toLowerCase().includes('cannot create pods');
+           errorMessage.toLowerCase().includes('cannot create pods') ||
+           errorMessage.toLowerCase().includes('cannot get pod') ||
+           errorMessage.toLowerCase().includes('cannot exec into pod');
   };
 
   // Terminal initialization is now handled by SharedTerminal component
@@ -80,14 +83,18 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
     dispatch(listCloudShellSessions({ config: configName, cluster: clusterName, namespace }));
   }, [dispatch, configName, clusterName, namespace]);
 
-  // Poll for session updates every 5 seconds
+  // Poll for session updates every 5 seconds, but stop if there's a persistent permission error
   useEffect(() => {
     const pollInterval = setInterval(() => {
+      // Don't poll if there's a permission error - these won't resolve themselves
+      if (error && isPermissionError(error)) {
+        return;
+      }
       dispatch(listCloudShellSessions({ config: configName, cluster: clusterName, namespace }));
     }, 5000);
 
     return () => clearInterval(pollInterval);
-  }, [dispatch, configName, clusterName, namespace]);
+  }, [dispatch, configName, clusterName, namespace, error]);
 
   // Clear session messages after 5 seconds
   useEffect(() => {
@@ -98,6 +105,14 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
       return () => clearTimeout(timer);
     }
   }, [sessionMessage]);
+
+  // Handle manual refresh - clears error state to allow polling to resume
+  const handleRefresh = () => {
+    // Clear any existing error to allow polling to resume
+    dispatch(clearError());
+    // Immediately fetch sessions
+    dispatch(listCloudShellSessions({ config: configName, cluster: clusterName, namespace }));
+  };
 
   // Handle terminal input
   const handleTerminalInput = (data: string) => {
@@ -193,6 +208,9 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
       setIsConnected(false);
     }
 
+    // Clear any previous session messages
+    setSessionMessage(null);
+
     // Create WebSocket URL
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/api/v1/cloudshell/ws?pod=${session.podName}&namespace=${session.namespace}&config=${configName}&cluster=${clusterName}`;
@@ -224,6 +242,14 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
           } else if (data.error) {
             // Write error messages
             xterm.current.writeln(`\r\n\x1b[31mError: ${data.error}\x1b[0m`);
+            
+            // Check if this is a permission error and show appropriate message
+            if (isPermissionError(data.error)) {
+              setSessionMessage({ 
+                type: 'error', 
+                message: `Permission denied: You don't have permission to connect to this cloud shell session.` 
+              });
+            }
           }
         }
       } catch (error) {
@@ -286,6 +312,11 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
+  };
+
+  // Check if user can connect to a session (only ready sessions are connectable)
+  const canConnectToSession = (session: CloudShellSession) => {
+    return session.status === 'ready';
   };
 
   // Handle terminal resize
@@ -359,9 +390,10 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
                 <Button 
                   variant="outline"
                   size="sm"
-                  onClick={() => dispatch(listCloudShellSessions({ config: configName, cluster: clusterName, namespace }))}
+                  onClick={handleRefresh}
                   disabled={loading}
                   className="flex items-center gap-2"
+                  title={error && isPermissionError(error) ? "Click to retry - polling stopped due to permission error" : "Refresh sessions"}
                 >
                   <RefreshCw className="h-4 w-4" />
                   Refresh
@@ -409,16 +441,30 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
                           {getStatusBadge(session.status)}
                         </div>
                                                  <div className="flex items-center gap-1 ml-2">
-                           {(session.status === 'ready' || session.status === 'creating') && (
+                           {canConnectToSession(session) && (
                              <Button
                                variant="outline"
                                size="sm"
                                onClick={() => connectToShell(session)}
-                               disabled={isConnected && currentSession?.id === session.id || session.status === 'creating'}
+                               disabled={isConnected && currentSession?.id === session.id}
+                               className="h-7 px-2"
+                               title={
+                                 isConnected && currentSession?.id === session.id 
+                                   ? 'Already connected to this session' 
+                                   : 'Connect to this cloud shell session'
+                               }
+                             >
+                               {isConnected && currentSession?.id === session.id ? 'Connected' : 'Connect'}
+                             </Button>
+                           )}
+                           {session.status === 'creating' && (
+                             <Button
+                               variant="outline"
+                               size="sm"
+                               disabled={true}
                                className="h-7 px-2"
                              >
-                               {isConnected && currentSession?.id === session.id ? 'Connected' : 
-                                session.status === 'creating' ? 'Creating...' : 'Connect'}
+                               Creating...
                              </Button>
                            )}
                                                      <AlertDialog>
