@@ -6,14 +6,15 @@ WORKDIR /app/client
 # Copy package files
 COPY client/package*.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies and fix Rollup optional dependencies issue
+RUN npm ci && \
+    npm install @rollup/rollup-linux-x64-gnu
 
 # Copy source code
 COPY client/ ./
 
-# Build the frontend
-RUN npm run build
+# Build the frontend with environment variable to disable native binaries
+RUN ROLLUP_SKIP_NATIVE=true npm run build
 
 # Stage 2: Build the Go backend
 FROM golang:1.24-alpine AS backend-builder
