@@ -1,7 +1,7 @@
 package transformers
 
 import (
-	"kubewall-backend/internal/api/types"
+	"github.com/Facets-cloud/kube-dash/internal/api/types"
 
 	v1 "k8s.io/api/core/v1"
 	storageV1 "k8s.io/api/storage/v1"

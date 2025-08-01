@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"kubewall-backend/pkg/logger"
+	"github.com/Facets-cloud/kube-dash/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 	v1 "k8s.io/api/core/v1"

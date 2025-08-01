@@ -10,12 +10,12 @@ import (
 	"strings"
 	"time"
 
-	"kubewall-backend/internal/api/transformers"
-	"kubewall-backend/internal/api/types"
-	"kubewall-backend/internal/api/utils"
-	"kubewall-backend/internal/k8s"
-	"kubewall-backend/internal/storage"
-	"kubewall-backend/pkg/logger"
+	"github.com/Facets-cloud/kube-dash/internal/api/transformers"
+	"github.com/Facets-cloud/kube-dash/internal/api/types"
+	"github.com/Facets-cloud/kube-dash/internal/api/utils"
+	"github.com/Facets-cloud/kube-dash/internal/k8s"
+	"github.com/Facets-cloud/kube-dash/internal/storage"
+	"github.com/Facets-cloud/kube-dash/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 	v1 "k8s.io/api/core/v1"
@@ -168,7 +168,7 @@ func (h *PodsHandler) GetPodsSSE(c *gin.Context) {
 	initialData, err := fetchPods()
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to list pods for SSE")
-		
+
 		// Check if this is a permission error
 		if utils.IsPermissionError(err) {
 			h.sseHandler.SendSSEPermissionError(c, err)

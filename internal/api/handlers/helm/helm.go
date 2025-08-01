@@ -7,11 +7,11 @@ import (
 	"sync"
 	"time"
 
-	"kubewall-backend/internal/api/types"
-	"kubewall-backend/internal/api/utils"
-	"kubewall-backend/internal/k8s"
-	"kubewall-backend/internal/storage"
-	"kubewall-backend/pkg/logger"
+	"github.com/Facets-cloud/kube-dash/internal/api/types"
+	"github.com/Facets-cloud/kube-dash/internal/api/utils"
+	"github.com/Facets-cloud/kube-dash/internal/k8s"
+	"github.com/Facets-cloud/kube-dash/internal/storage"
+	"github.com/Facets-cloud/kube-dash/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 	"gopkg.in/yaml.v2"
@@ -198,7 +198,7 @@ func (h *HelmHandler) GetHelmReleasesSSE(c *gin.Context) {
 	initialData, err := fetchHelmReleases()
 	if err != nil {
 		h.logger.Error("Failed to get initial Helm releases data", "error", err, "cluster", cluster)
-		
+
 		// Check if this is a permission error
 		if utils.IsPermissionError(err) {
 			h.sseHandler.SendSSEPermissionError(c, err)

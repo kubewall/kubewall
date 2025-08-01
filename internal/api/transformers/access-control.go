@@ -7,7 +7,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	rbacV1 "k8s.io/api/rbac/v1"
 
-	"kubewall-backend/internal/api/types"
+	"github.com/Facets-cloud/kube-dash/internal/api/types"
 )
 
 // TransformServiceAccountToResponse transforms a ServiceAccount to the frontend-expected format

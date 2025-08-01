@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	"kubewall-backend/internal/k8s"
-	"kubewall-backend/internal/storage"
-	"kubewall-backend/pkg/logger"
+	"github.com/Facets-cloud/kube-dash/internal/k8s"
+	"github.com/Facets-cloud/kube-dash/internal/storage"
+	"github.com/Facets-cloud/kube-dash/pkg/logger"
 )
 
 // HandlerAggregator aggregates all resource handlers into a single interface

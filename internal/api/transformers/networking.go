@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"kubewall-backend/internal/api/types"
+	"github.com/Facets-cloud/kube-dash/internal/api/types"
 
 	v1 "k8s.io/api/core/v1"
 	networkingV1 "k8s.io/api/networking/v1"
@@ -45,11 +45,11 @@ func TransformServiceToResponse(service *v1.Service) types.ServiceListResponse {
 			InternalTrafficPolicy string `json:"internalTrafficPolicy"`
 			ExternalIPs           string `json:"externalIPs"`
 		}{
-			Ports:                 strings.Join(ports, ", "),
-			ClusterIP:             service.Spec.ClusterIP,
-			Type:                  string(service.Spec.Type),
-			SessionAffinity:       string(service.Spec.SessionAffinity),
-			IPFamilyPolicy:        func() string {
+			Ports:           strings.Join(ports, ", "),
+			ClusterIP:       service.Spec.ClusterIP,
+			Type:            string(service.Spec.Type),
+			SessionAffinity: string(service.Spec.SessionAffinity),
+			IPFamilyPolicy: func() string {
 				if service.Spec.IPFamilyPolicy != nil {
 					return string(*service.Spec.IPFamilyPolicy)
 				}
@@ -61,7 +61,7 @@ func TransformServiceToResponse(service *v1.Service) types.ServiceListResponse {
 				}
 				return ""
 			}(),
-			ExternalIPs:           strings.Join(externalIPs, ", "),
+			ExternalIPs: strings.Join(externalIPs, ", "),
 		},
 	}
 }

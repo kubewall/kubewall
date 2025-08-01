@@ -7,9 +7,16 @@ import (
 	"syscall"
 	"time"
 
-	"kubewall-backend/internal/config"
-	"kubewall-backend/internal/server"
-	"kubewall-backend/pkg/logger"
+	"github.com/Facets-cloud/kube-dash/internal/config"
+	"github.com/Facets-cloud/kube-dash/internal/server"
+	"github.com/Facets-cloud/kube-dash/pkg/logger"
+)
+
+// Version information - set by ldflags during build
+var (
+	Version   = "dev"
+	Commit    = "unknown"
+	BuildDate = "unknown"
 )
 
 func main() {
@@ -18,7 +25,7 @@ func main() {
 
 	// Create logger
 	log := logger.New(cfg.Logging.Level)
-	log.Info("Starting KubeWall Backend")
+	log.Info("Starting kube-dash Backend")
 
 	// Create and start server
 	srv := server.New(cfg)

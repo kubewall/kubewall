@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"net/http"
 
-	"kubewall-backend/pkg/logger"
+	"github.com/Facets-cloud/kube-dash/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 	"gopkg.in/yaml.v3"

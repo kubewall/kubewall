@@ -8,12 +8,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
-	"kubewall-backend/internal/api/transformers"
-	"kubewall-backend/internal/api/types"
-	"kubewall-backend/internal/api/utils"
-	"kubewall-backend/internal/k8s"
-	"kubewall-backend/internal/storage"
-	"kubewall-backend/pkg/logger"
+	"github.com/Facets-cloud/kube-dash/internal/api/transformers"
+	"github.com/Facets-cloud/kube-dash/internal/api/types"
+	"github.com/Facets-cloud/kube-dash/internal/api/utils"
+	"github.com/Facets-cloud/kube-dash/internal/k8s"
+	"github.com/Facets-cloud/kube-dash/internal/storage"
+	"github.com/Facets-cloud/kube-dash/pkg/logger"
 )
 
 // ClusterRoleBindingsHandler handles ClusterRoleBinding-related operations

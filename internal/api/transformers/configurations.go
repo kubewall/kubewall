@@ -3,7 +3,7 @@ package transformers
 import (
 	"time"
 
-	"kubewall-backend/internal/api/types"
+	"github.com/Facets-cloud/kube-dash/internal/api/types"
 
 	autoscalingV2 "k8s.io/api/autoscaling/v2"
 	v1 "k8s.io/api/core/v1"

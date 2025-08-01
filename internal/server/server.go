@@ -6,22 +6,22 @@ import (
 	"net/http"
 	"time"
 
-	"kubewall-backend/internal/api"
-	access_control "kubewall-backend/internal/api/handlers/access-control"
-	"kubewall-backend/internal/api/handlers/cloudshell"
-	"kubewall-backend/internal/api/handlers/cluster"
-	"kubewall-backend/internal/api/handlers/configurations"
-	custom_resources "kubewall-backend/internal/api/handlers/custom-resources"
-	"kubewall-backend/internal/api/handlers/helm"
-	"kubewall-backend/internal/api/handlers/networking"
-	storage_handlers "kubewall-backend/internal/api/handlers/storage"
-	"kubewall-backend/internal/api/handlers/websocket"
-	"kubewall-backend/internal/api/handlers/workloads"
-	"kubewall-backend/internal/config"
-	"kubewall-backend/internal/k8s"
-	"kubewall-backend/internal/storage"
-	"kubewall-backend/pkg/logger"
-	"kubewall-backend/pkg/middleware"
+	"github.com/Facets-cloud/kube-dash/internal/api"
+	access_control "github.com/Facets-cloud/kube-dash/internal/api/handlers/access-control"
+	"github.com/Facets-cloud/kube-dash/internal/api/handlers/cloudshell"
+	"github.com/Facets-cloud/kube-dash/internal/api/handlers/cluster"
+	"github.com/Facets-cloud/kube-dash/internal/api/handlers/configurations"
+	custom_resources "github.com/Facets-cloud/kube-dash/internal/api/handlers/custom-resources"
+	"github.com/Facets-cloud/kube-dash/internal/api/handlers/helm"
+	"github.com/Facets-cloud/kube-dash/internal/api/handlers/networking"
+	storage_handlers "github.com/Facets-cloud/kube-dash/internal/api/handlers/storage"
+	"github.com/Facets-cloud/kube-dash/internal/api/handlers/websocket"
+	"github.com/Facets-cloud/kube-dash/internal/api/handlers/workloads"
+	"github.com/Facets-cloud/kube-dash/internal/config"
+	"github.com/Facets-cloud/kube-dash/internal/k8s"
+	"github.com/Facets-cloud/kube-dash/internal/storage"
+	"github.com/Facets-cloud/kube-dash/pkg/logger"
+	"github.com/Facets-cloud/kube-dash/pkg/middleware"
 
 	"github.com/gin-gonic/gin"
 )
@@ -594,7 +594,7 @@ func (s *Server) healthCheck(c *gin.Context) {
 // apiInfo returns API information
 func (s *Server) apiInfo(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
-		"name":        "KubeWall API",
+		"name":        "kube-dash API",
 		"version":     "1.0.0",
 		"description": "Kubernetes Dashboard API",
 		"endpoints":   []string{"/health", "/api/v1/"},

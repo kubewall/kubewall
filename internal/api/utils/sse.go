@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"kubewall-backend/pkg/logger"
+	"github.com/Facets-cloud/kube-dash/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 )
@@ -198,13 +198,13 @@ func (h *SSEHandler) SendSSEResponseWithUpdates(c *gin.Context, data interface{}
 				case result := <-resultChan:
 					if result.err != nil {
 						h.logger.WithError(result.err).Error("Failed to fetch fresh data for SSE update")
-						
+
 						// Check if this is a permission error
 						if IsPermissionError(result.err) {
 							h.SendSSEPermissionError(c, result.err)
 							return // Close the connection for permission errors
 						}
-						
+
 						// Send keep-alive instead of failing for other errors
 						c.Data(http.StatusOK, "text/event-stream", []byte(": keep-alive\n\n"))
 						c.Writer.Flush()

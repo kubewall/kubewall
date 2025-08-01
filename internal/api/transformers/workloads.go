@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"time"
 
-	"kubewall-backend/internal/api/types"
+	"github.com/Facets-cloud/kube-dash/internal/api/types"
 
 	appsV1 "k8s.io/api/apps/v1"
 	batchV1 "k8s.io/api/batch/v1"
@@ -301,7 +301,7 @@ func TransformJobToResponse(job *batchV1.Job) types.JobListResponse {
 			CompletionMode string `json:"completionMode"`
 			Suspend        bool   `json:"suspend"`
 		}{
-			Completions:    getInt32Value(job.Spec.Completions, 1), // Default to 1 if nil
+			Completions:    getInt32Value(job.Spec.Completions, 1),  // Default to 1 if nil
 			BackoffLimit:   getInt32Value(job.Spec.BackoffLimit, 6), // Default to 6 if nil
 			CompletionMode: getCompletionMode(job.Spec.CompletionMode),
 			Suspend:        getBoolValue(job.Spec.Suspend, false), // Default to false if nil
@@ -358,9 +358,9 @@ func TransformCronJobToResponse(cronJob *batchV1.CronJob) types.CronJobListRespo
 		}{
 			Schedule:                   cronJob.Spec.Schedule,
 			ConcurrencyPolicy:          string(cronJob.Spec.ConcurrencyPolicy),
-			Suspend:                    getBoolValue(cronJob.Spec.Suspend, false), // Default to false if nil
+			Suspend:                    getBoolValue(cronJob.Spec.Suspend, false),                 // Default to false if nil
 			SuccessfulJobsHistoryLimit: getInt32Value(cronJob.Spec.SuccessfulJobsHistoryLimit, 3), // Default to 3 if nil
-			FailedJobsHistoryLimit:     getInt32Value(cronJob.Spec.FailedJobsHistoryLimit, 1), // Default to 1 if nil
+			FailedJobsHistoryLimit:     getInt32Value(cronJob.Spec.FailedJobsHistoryLimit, 1),     // Default to 1 if nil
 		},
 		Status: struct {
 			Active             int32  `json:"active"`

@@ -1,4 +1,4 @@
-# KubeWall
+# kube-dash
 
 A Kubernetes dashboard application with a Go backend and React frontend.
 
@@ -55,13 +55,13 @@ The Go backend is located in the `cmd/server` directory and serves both the API 
 
 ```bash
 cd cmd/server
-go build -o ../../kubewall-server
+go build -o ../../kube-dash-server
 ```
 
 ##### Running the Backend
 
 ```bash
-./kubewall-server
+./kube-dash-server
 ```
 
 The server will:
@@ -156,8 +156,8 @@ make release-darwin
 ### Manual Deployment
 
 1. Build the frontend: `cd client && npm run build`
-2. Build the backend: `cd cmd/server && go build -o ../../kubewall-server`
-3. Run the server: `./kubewall-server`
+2. Build the backend: `cd cmd/server && go build -o ../../kube-dash-server`
+3. Run the server: `./kube-dash-server`
 
 The application will be available at `http://localhost:7080` (or your configured host/port).
 

@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"time"
 
-	"kubewall-backend/internal/api/handlers/shared"
-	"kubewall-backend/internal/api/utils"
-	"kubewall-backend/internal/k8s"
-	"kubewall-backend/internal/storage"
-	"kubewall-backend/pkg/logger"
+	"github.com/Facets-cloud/kube-dash/internal/api/handlers/shared"
+	"github.com/Facets-cloud/kube-dash/internal/api/utils"
+	"github.com/Facets-cloud/kube-dash/internal/k8s"
+	"github.com/Facets-cloud/kube-dash/internal/storage"
+	"github.com/Facets-cloud/kube-dash/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -281,7 +281,7 @@ func (h *CloudShellHandler) CreateCloudShell(c *gin.Context) {
 				"app":        "cloudshell",
 				"cluster":    cluster,
 				"config-id":  configID,
-				"created-by": "kubewall",
+				"created-by": "kube-dash",
 			},
 		},
 		Data: map[string]string{

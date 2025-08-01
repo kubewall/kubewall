@@ -1,4 +1,4 @@
-module kubewall-backend
+module github.com/Facets-cloud/kube-dash
 
 go 1.24.0
 

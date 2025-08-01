@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"kubewall-backend/internal/api/utils"
-	"kubewall-backend/internal/k8s"
-	"kubewall-backend/internal/storage"
-	"kubewall-backend/pkg/logger"
+	"github.com/Facets-cloud/kube-dash/internal/api/utils"
+	"github.com/Facets-cloud/kube-dash/internal/k8s"
+	"github.com/Facets-cloud/kube-dash/internal/storage"
+	"github.com/Facets-cloud/kube-dash/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -185,7 +185,7 @@ func (h *CustomResourcesHandler) GetCustomResourcesSSE(c *gin.Context) {
 
 	if err2 != nil {
 		h.logger.WithError(err2).Error("Failed to list custom resources for SSE")
-		
+
 		// Check if this is a permission error
 		if utils.IsPermissionError(err2) {
 			h.sseHandler.SendSSEPermissionError(c, err2)

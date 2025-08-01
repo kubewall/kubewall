@@ -1,4 +1,4 @@
-project_name: "kubewall"
+project_name: "kube-dash"
 version: 2
 
 before:
@@ -8,7 +8,7 @@ before:
 builds:
   - main: main.go
     dir: ./backend
-    binary: kubewall
+    binary: kube-dash
     goos: ["linux", "darwin", "windows", "freebsd"]
     goarch: ["386", "amd64", "arm64"]
     flags:
@@ -43,11 +43,11 @@ sboms:
   - artifacts: archive
 
 nfpms:
-  - id: kubewall
-    vendor: kubewall
-    homepage: "https://github.com/kubewall/kubewall"
+  - id: kube-dash
+    vendor: kube-dash
+    homepage: "https://github.com/kube-dash/kube-dash"
     maintainer: "Abhimanyu Sharma <abhimanyusharma003@gmail.com>"
-    description: "kubewall is a single binary to manage multiple clusters."
+    description: "kube-dash is a single binary to manage multiple clusters."
     license: "Apache License 2.0"
     formats:
       - deb
@@ -59,11 +59,11 @@ nfpms:
 
 brews:
   - repository:
-      owner: kubewall
+      owner: kube-dash
       name: homebrew-tap
-    name: kubewall
-    homepage: "https://github.com/kubewall/kubewall"
-    description: "kubewall is a single binary to manage multiple clusters."
+    name: kube-dash
+    homepage: "https://github.com/kube-dash/kube-dash"
+    description: "kube-dash is a single binary to manage multiple clusters."
     license: "Apache License 2.0"
     skip_upload: auto
     commit_author:
@@ -71,39 +71,39 @@ brews:
       email: abhimanyusharma003@gmail.com
     directory: Formula
     install: |-
-      bin.install "kubewall"
+      bin.install "kube-dash"
     test: |
-      system "#{bin}/kubewall version"
+      system "#{bin}/kube-dash version"
 
 scoops:
   - repository:
-      owner: kubewall
+      owner: kube-dash
       name: scoop-bucket
       token: "{{ .Env.GITHUB_TOKEN }}"
-    name: kubewall
-    homepage: "https://github.com/kubewall/kubewall"
-    description: "kubewall is a single binary to manage multiple clusters."
+    name: kube-dash
+    homepage: "https://github.com/kube-dash/kube-dash"
+    description: "kube-dash is a single binary to manage multiple clusters."
     license: "Apache License 2.0"
 
 aurs:
-  - name: kubewall-bin
-    homepage: "https://github.com/kubewall/kubewall"
-    description: "kubewall is a single binary to manage multiple clusters."
+  - name: kube-dash-bin
+    homepage: "https://github.com/kube-dash/kube-dash"
+    description: "kube-dash is a single binary to manage multiple clusters."
     maintainers:
       - "Abhimanyu Sharma <abhimanyusharma003@gmail.com>"
     license: "Apache License 2.0"
     private_key: "{{ .Env.AUR_KEY }}"
-    git_url: "ssh://aur@aur.archlinux.org/kubewall-bin.git"
+    git_url: "ssh://aur@aur.archlinux.org/kube-dash-bin.git"
     commit_author:
       name: Abhimanyu Sharma
       email: abhimanyusharma003@gmail.com
 
 snapcrafts:
-  - name: kubewall
+  - name: kube-dash
     publish: true
     summary: A single binary Kubernetes Open-Source Dashboard.
     description: |
-      kubewall is single binary Kubernetes Open-Source Dashboard.
+      kube-dash is single binary Kubernetes Open-Source Dashboard.
     grade: stable
     confinement: strict
     license: "Apache-2.0"
@@ -111,7 +111,7 @@ snapcrafts:
     channel_templates:
       - stable
     apps:
-      kubewall:
+      kube-dash:
         plugs: ["home", "network", "network-bind"]
 
 dockers:
@@ -119,8 +119,8 @@ dockers:
     use: buildx
     dockerfile: .goreleaser.Dockerfile
     image_templates:
-      - ghcr.io/kubewall/{{ .ProjectName }}:{{ .Version }}-amd64
-      - docker.io/kubewall/{{ .ProjectName }}:{{ .Version }}-amd64
+      - ghcr.io/kube-dash/{{ .ProjectName }}:{{ .Version }}-amd64
+      - docker.io/kube-dash/{{ .ProjectName }}:{{ .Version }}-amd64
     build_flag_templates:
       - --platform=linux/amd64
       - --label=org.opencontainers.image.version={{ .Version }}
@@ -128,9 +128,9 @@ dockers:
       - --label=org.opencontainers.image.title={{ .ProjectName }}
       - --label=org.opencontainers.image.created={{ .Date }}
       - --label=org.opencontainers.image.description=a single binary to manage multiple clusters
-      - --label=org.opencontainers.image.vendor=kubewall
+      - --label=org.opencontainers.image.vendor=kube-dash
       - --label=org.opencontainers.image.licenses=Apache License 2.0
-      - --label=org.opencontainers.image.source=https://github.com/kubewall/kubewall
+      - --label=org.opencontainers.image.source=https://github.com/kube-dash/kube-dash
       - --label=org.opencontainers.image.authors=Abhimanyu Sharma <abhimanyusharma003@gmail.com>
 
   - skip_push: false
@@ -138,8 +138,8 @@ dockers:
     use: buildx
     dockerfile: .goreleaser.Dockerfile
     image_templates:
-      - ghcr.io/kubewall/{{ .ProjectName }}:{{ .Version }}-arm64
-      - docker.io/kubewall/{{ .ProjectName }}:{{ .Version }}-arm64
+      - ghcr.io/kube-dash/{{ .ProjectName }}:{{ .Version }}-arm64
+      - docker.io/kube-dash/{{ .ProjectName }}:{{ .Version }}-arm64
     build_flag_templates:
       - --platform=linux/arm64
       - --label=org.opencontainers.image.version={{ .Version }}
@@ -147,27 +147,27 @@ dockers:
       - --label=org.opencontainers.image.title={{ .ProjectName }}
       - --label=org.opencontainers.image.created={{ .Date }}
       - --label=org.opencontainers.image.description=a single binary to manage multiple clusters
-      - --label=org.opencontainers.image.vendor=kubewall
+      - --label=org.opencontainers.image.vendor=kube-dash
       - --label=org.opencontainers.image.licenses=Apache License 2.0
-      - --label=org.opencontainers.image.source=https://github.com/kubewall/kubewall
+      - --label=org.opencontainers.image.source=https://github.com/kube-dash/kube-dash
       - --label=org.opencontainers.image.authors=Abhimanyu Sharma <abhimanyusharma003@gmail.com>
 docker_manifests:
-  - name_template: ghcr.io/kubewall/{{ .ProjectName }}:{{ .Version }}
+  - name_template: ghcr.io/kube-dash/{{ .ProjectName }}:{{ .Version }}
     image_templates:
-      - ghcr.io/kubewall/{{ .ProjectName }}:{{ .Version }}-amd64
-      - ghcr.io/kubewall/{{ .ProjectName }}:{{ .Version }}-arm64
-  - name_template: ghcr.io/kubewall/{{ .ProjectName }}:latest
+      - ghcr.io/kube-dash/{{ .ProjectName }}:{{ .Version }}-amd64
+      - ghcr.io/kube-dash/{{ .ProjectName }}:{{ .Version }}-arm64
+  - name_template: ghcr.io/kube-dash/{{ .ProjectName }}:latest
     image_templates:
-      - ghcr.io/kubewall/{{ .ProjectName }}:{{ .Version }}-amd64
-      - ghcr.io/kubewall/{{ .ProjectName }}:{{ .Version }}-arm64
-  - name_template: docker.io/kubewall/{{ .ProjectName }}:{{ .Version }}
+      - ghcr.io/kube-dash/{{ .ProjectName }}:{{ .Version }}-amd64
+      - ghcr.io/kube-dash/{{ .ProjectName }}:{{ .Version }}-arm64
+  - name_template: docker.io/kube-dash/{{ .ProjectName }}:{{ .Version }}
     image_templates:
-      - docker.io/kubewall/{{ .ProjectName }}:{{ .Version }}-amd64
-      - docker.io/kubewall/{{ .ProjectName }}:{{ .Version }}-arm64
-  - name_template: docker.io/kubewall/{{ .ProjectName }}:latest
+      - docker.io/kube-dash/{{ .ProjectName }}:{{ .Version }}-amd64
+      - docker.io/kube-dash/{{ .ProjectName }}:{{ .Version }}-arm64
+  - name_template: docker.io/kube-dash/{{ .ProjectName }}:latest
     image_templates:
-      - docker.io/kubewall/{{ .ProjectName }}:{{ .Version }}-amd64
-      - docker.io/kubewall/{{ .ProjectName }}:{{ .Version }}-arm64
+      - docker.io/kube-dash/{{ .ProjectName }}:{{ .Version }}-amd64
+      - docker.io/kube-dash/{{ .ProjectName }}:{{ .Version }}-arm64
 
 signs:
   - cmd: cosign
@@ -194,19 +194,19 @@ docker_signs:
       - --yes
 
 winget:
-  - name: kubewall
-    publisher: kubewall
-    publisher_url: https://github.com/kubewall/kubewall
+  - name: kube-dash
+    publisher: kube-dash
+    publisher_url: https://github.com/kube-dash/kube-dash
     short_description: A single binary kubernetes dashboard to manage your multiple clusters.
     license: "Apache License 2.0"
     commit_author:
       name: Abhimanyu Sharma
       email: abhimanyusharma003@gmail.com
-    homepage: https://github.com/kubewall/kubewall
-    license_url: https://github.com/kubewall/kubewall/blob/master/LICENSE
-    copyright: Copyright (c) 2024-{{ .Now.Format "2006" }} kubewall
+    homepage: https://github.com/kube-dash/kube-dash
+    license_url: https://github.com/kube-dash/kube-dash/blob/master/LICENSE
+    copyright: Copyright (c) 2024-{{ .Now.Format "2006" }} kube-dash
     release_notes: "{{ .Changelog }}"
-    release_notes_url: https://github.com/kubewall/kubewall/releases/tag/{{ .Tag }}
+    release_notes_url: https://github.com/kube-dash/kube-dash/releases/tag/{{ .Tag }}
     tags:
       - kubernetes
       - kubernetes-dashboard
@@ -215,11 +215,11 @@ winget:
       - devutil
       - productivity
     author: Abhimanyu Sharma
-    publisher_support_url: https://github.com/kubewall/kubewall/issues
+    publisher_support_url: https://github.com/kube-dash/kube-dash/issues
     repository:
-      owner: kubewall
+      owner: kube-dash
       name: winget-pkgs
-      branch: kubewall-{{ .Version }}
+      branch: kube-dash-{{ .Version }}
       token: "{{ .Env.GITHUB_TOKEN }}"
       pull_request:
         enabled: true
@@ -233,23 +233,23 @@ release:
     ## Quick Download Links - {{ .Tag }}
 
     **MacOS**
-    [Binary](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_Darwin_all.tar.gz) ( Multi-Architecture )
+    [Binary](https://github.com/kube-dash/kube-dash/releases/download/{{ .Tag }}/kube-dash_Darwin_all.tar.gz) ( Multi-Architecture )
 
     **Linux (Binaries)**
-    [amd64](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_Linux_x86_64.tar.gz) | [arm64](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_Linux_arm64.tar.gz) | [i386](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_Linux_i386.tar.gz)
+    [amd64](https://github.com/kube-dash/kube-dash/releases/download/{{ .Tag }}/kube-dash_Linux_x86_64.tar.gz) | [arm64](https://github.com/kube-dash/kube-dash/releases/download/{{ .Tag }}/kube-dash_Linux_arm64.tar.gz) | [i386](https://github.com/kube-dash/kube-dash/releases/download/{{ .Tag }}/kube-dash_Linux_i386.tar.gz)
 
     **Windows (Exe)**
-    [amd64](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_Windows_x86_64.zip) | [arm64](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_Windows_arm64.zip) | [i386](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_Windows_i386.zip)
+    [amd64](https://github.com/kube-dash/kube-dash/releases/download/{{ .Tag }}/kube-dash_Windows_x86_64.zip) | [arm64](https://github.com/kube-dash/kube-dash/releases/download/{{ .Tag }}/kube-dash_Windows_arm64.zip) | [i386](https://github.com/kube-dash/kube-dash/releases/download/{{ .Tag }}/kube-dash_Windows_i386.zip)
 
     **FreeBSD (Binaries)**
-    [amd64](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_Freebsd_x86_64.tar.gz) | [arm64](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_Freebsd_arm64.tar.gz) | [i386](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_Freebsd_i386.tar.gz)
+    [amd64](https://github.com/kube-dash/kube-dash/releases/download/{{ .Tag }}/kube-dash_Freebsd_x86_64.tar.gz) | [arm64](https://github.com/kube-dash/kube-dash/releases/download/{{ .Tag }}/kube-dash_Freebsd_arm64.tar.gz) | [i386](https://github.com/kube-dash/kube-dash/releases/download/{{ .Tag }}/kube-dash_Freebsd_i386.tar.gz)
 
     **Packages**
     * **Debian / Ubuntu (.deb):**
-    [amd64](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_{{ replace .Tag "v" "" }}_linux_amd64.deb) | [arm64](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_{{ replace .Tag "v" "" }}_linux_arm64.deb) | [i386](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_{{ replace .Tag "v" "" }}_linux_386.deb)
+    [amd64](https://github.com/kube-dash/kube-dash/releases/download/{{ .Tag }}/kube-dash_{{ replace .Tag "v" "" }}_linux_amd64.deb) | [arm64](https://github.com/kube-dash/kube-dash/releases/download/{{ .Tag }}/kube-dash_{{ replace .Tag "v" "" }}_linux_arm64.deb) | [i386](https://github.com/kube-dash/kube-dash/releases/download/{{ .Tag }}/kube-dash_{{ replace .Tag "v" "" }}_linux_386.deb)
 
     * **Red Hat / CentOS / Fedora (.rpm):**
-    [amd64](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_{{ replace .Tag "v" "" }}_linux_amd64.rpm) | [arm64](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_{{ replace .Tag "v" "" }}_linux_arm64.rpm) | [i386](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_{{ replace .Tag "v" "" }}_linux_386.rpm)
+    [amd64](https://github.com/kube-dash/kube-dash/releases/download/{{ .Tag }}/kube-dash_{{ replace .Tag "v" "" }}_linux_amd64.rpm) | [arm64](https://github.com/kube-dash/kube-dash/releases/download/{{ .Tag }}/kube-dash_{{ replace .Tag "v" "" }}_linux_arm64.rpm) | [i386](https://github.com/kube-dash/kube-dash/releases/download/{{ .Tag }}/kube-dash_{{ replace .Tag "v" "" }}_linux_386.rpm)
 
     * **Arch Linux (.pkg.tar.zst):**
-    [amd64](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_{{ replace .Tag "v" "" }}_linux_amd64.pkg.tar.zst) | [arm64](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_{{ replace .Tag "v" "" }}_linux_arm64.pkg.tar.zst) | [i386](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_{{ replace .Tag "v" "" }}_linux_386.pkg.tar.zst)
+    [amd64](https://github.com/kube-dash/kube-dash/releases/download/{{ .Tag }}/kube-dash_{{ replace .Tag "v" "" }}_linux_amd64.pkg.tar.zst) | [arm64](https://github.com/kube-dash/kube-dash/releases/download/{{ .Tag }}/kube-dash_{{ replace .Tag "v" "" }}_linux_arm64.pkg.tar.zst) | [i386](https://github.com/kube-dash/kube-dash/releases/download/{{ .Tag }}/kube-dash_{{ replace .Tag "v" "" }}_linux_386.pkg.tar.zst)
