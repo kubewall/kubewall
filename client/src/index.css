@@ -67,63 +67,58 @@
   }
 
   .dark {
-    --background: 20 14.3% 4.1%;
-    --foreground: 60 9.1% 97.8%;
-
-    --card: 20 14.3% 4.1%;
-    --card-foreground: 60 9.1% 97.8%;
-
-    --popover: 20 14.3% 4.1%;
-    --popover-foreground: 60 9.1% 97.8%;
-
-    --primary: 60 9.1% 97.8%;
-    --primary-foreground: 24 9.8% 10%;
-
-    --secondary: 12 6.5% 15.1%;
-    --secondary-foreground: 60 9.1% 97.8%;
-
-    --muted: 12 6.5% 15.1%;
-    --muted-foreground: 24 5.4% 63.9%;
-
-    --accent: 12 6.5% 15.1%;
-    --accent-foreground: 60 9.1% 97.8%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 60 9.1% 97.8%;
-
-    --success: 147, 50%, 47%;
-    --success-foreground: 60 9.1% 97.8%;
-
-    --border: 12 6.5% 15.1%;
-    --input: 12 6.5% 15.1%;
-    --ring: 24 5.7% 82.9%;
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9;
-    --sidebar-background: 222.2 84% 4.9%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 210 40% 98%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217.2 32.6% 17.5%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217.2 32.6% 17.5%;
-    --sidebar-ring: 212.7 26.8% 83.9;
+    --background: 0 0% 7.0588%;
+    --foreground: 214.2857 31.8182% 91.3725%;
+    --card: 0 0% 9.0196%;
+    --card-foreground: 214.2857 31.8182% 91.3725%;
+    --popover: 0 0% 14.1176%;
+    --popover-foreground: 0 0% 66.2745%;
+    --primary: 154.8980 100.0000% 19.2157%;
+    --primary-foreground: 152.7273 19.2982% 88.8235%;
+    --secondary: 0 0% 14.1176%;
+    --secondary-foreground: 0 0% 98.0392%;
+    --muted: 0 0% 12.1569%;
+    --muted-foreground: 0 0% 63.5294%;
+    --accent: 0 0% 19.2157%;
+    --accent-foreground: 0 0% 98.0392%;
+    --destructive: 6.6667 60.0000% 20.5882%;
+    --destructive-foreground: 12.0000 12.1951% 91.9608%;
+    --border: 0 0% 16.0784%;
+    --input: 0 0% 14.1176%;
+    --ring: 141.8919 69.1589% 58.0392%;
+    --chart-1: 141.8919 69.1589% 58.0392%;
+    --chart-2: 213.1169 93.9024% 67.8431%;
+    --chart-3: 255.1351 91.7355% 76.2745%;
+    --chart-4: 43.2558 96.4126% 56.2745%;
+    --chart-5: 172.4551 66.0079% 50.3922%;
+    --sidebar: 0 0% 7.0588%;
+    --sidebar-foreground: 0 0% 53.7255%;
+    --sidebar-primary: 154.8980 100.0000% 19.2157%;
+    --sidebar-primary-foreground: 152.7273 19.2982% 88.8235%;
+    --sidebar-accent: 0 0% 19.2157%;
+    --sidebar-accent-foreground: 0 0% 98.0392%;
+    --sidebar-border: 0 0% 16.0784%;
+    --sidebar-ring: 141.8919 69.1589% 58.0392%;
+    --font-sans: Outfit, sans-serif;
+    --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+    --font-mono: monospace;
+    /* --radius: 0.5rem; */
+    --shadow-2xs: 0px 1px 3px 0px hsl(0 0% 0% / 0.09);
+    --shadow-xs: 0px 1px 3px 0px hsl(0 0% 0% / 0.09);
+    --shadow-sm: 0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 1px 2px -1px hsl(0 0% 0% / 0.17);
+    --shadow: 0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 1px 2px -1px hsl(0 0% 0% / 0.17);
+    --shadow-md: 0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 2px 4px -1px hsl(0 0% 0% / 0.17);
+    --shadow-lg: 0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 4px 6px -1px hsl(0 0% 0% / 0.17);
+    --shadow-xl: 0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 8px 10px -1px hsl(0 0% 0% / 0.17);
+    --shadow-2xl: 0px 1px 3px 0px hsl(0 0% 0% / 0.43);
+    --sidebar-background: 0 0% 7.0588%;
+    --sidebar-foreground: 214.2857 31.8182% 91.3725%;
+    --sidebar-primary: 154.8980 100.0000% 19.2157%;
+    --sidebar-primary-foreground: 152.7273 19.2982% 88.8235%;
+    --sidebar-accent: 0 0% 19.2157%;
+    --sidebar-accent-foreground: 0 0% 98.0392%;
+    --sidebar-border: 0 0% 16.0784%;
+    --sidebar-ring: 141.8919 69.1589% 58.0392%;
   }
 }
 
@@ -360,10 +355,13 @@ body {
 
 
 @keyframes pulseBorder {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.4;
     transform: scale(1);
   }
+
   50% {
     opacity: 1;
     transform: scale(1.05);
@@ -371,12 +369,16 @@ body {
 }
 
 @keyframes pulseBackground {
-  0%, 100% {
+
+  0%,
+  100% {
     background: radial-gradient(circle, rgba(0, 255, 255, 0.1) 0%, rgba(0, 255, 255, 0.05) 50%, transparent 100%);
   }
+
   33% {
     background: radial-gradient(circle, rgba(128, 0, 128, 0.1) 0%, rgba(128, 0, 128, 0.05) 50%, transparent 100%);
   }
+
   66% {
     background: radial-gradient(circle, rgba(255, 255, 0, 0.1) 0%, rgba(255, 255, 0, 0.05) 50%, transparent 100%);
   }
@@ -453,57 +455,72 @@ body {
       z-index: 0;
     } */
 
-    /* In your global CSS file, e.g., index.css or App.css */
+/* In your global CSS file, e.g., index.css or App.css */
 
 .mouse-cursor-gradient-tracking {
   position: relative;
   /* Remove the background gradient here as it's now applied to the outer div on hover */
   /* background: radial-gradient(circle closest-side, pink, transparent); */
-  padding: 1rem 2rem; /* Button padding - adjust as needed */
-  border-radius: 0.5rem; /* Button border radius */
-  overflow: hidden; /* Hide overflow to make the border effect appear within the button's bounds */
-  transition: all 0.3s ease; /* Smooth transition for various properties */
+  padding: 1rem 2rem;
+  /* Button padding - adjust as needed */
+  border-radius: 0.5rem;
+  /* Button border radius */
+  overflow: hidden;
+  /* Hide overflow to make the border effect appear within the button's bounds */
+  transition: all 0.3s ease;
+  /* Smooth transition for various properties */
 }
 
 /* This is where the magic happens for the dynamic border gradient */
 .mouse-cursor-gradient-tracking::before {
   content: '';
   position: absolute;
-  top: var(--y); /* Dynamically set by JavaScript */
-  left: var(--x); /* Dynamically set by JavaScript */
-  width: var(--size); /* Dynamically set by JavaScript */
-  height: var(--size); /* Dynamically set by JavaScript */
-  transform: translate(-50%, -50%); /* Center the pseudo-element */
-  background: radial-gradient(
-    circle closest-side,
-    hsl(
-      var(--hue),
-      80%,
-      80%
-    ), /* Dynamic hue for colorful effect */ transparent
-  ); /* Radial gradient for the border */
-  opacity: 0; /* Initially hidden */
-  transition: opacity 0.3s ease, background 0.3s ease; /* Smooth fade-in/out */
-  pointer-events: none; /* Crucial for mouse events to pass through to the button */
-  z-index: 0; /* Ensure this is behind the inner content */
+  top: var(--y);
+  /* Dynamically set by JavaScript */
+  left: var(--x);
+  /* Dynamically set by JavaScript */
+  width: var(--size);
+  /* Dynamically set by JavaScript */
+  height: var(--size);
+  /* Dynamically set by JavaScript */
+  transform: translate(-50%, -50%);
+  /* Center the pseudo-element */
+  background: radial-gradient(circle closest-side,
+      hsl(var(--hue),
+        80%,
+        80%),
+      /* Dynamic hue for colorful effect */
+      transparent);
+  /* Radial gradient for the border */
+  opacity: 0;
+  /* Initially hidden */
+  transition: opacity 0.3s ease, background 0.3s ease;
+  /* Smooth fade-in/out */
+  pointer-events: none;
+  /* Crucial for mouse events to pass through to the button */
+  z-index: 0;
+  /* Ensure this is behind the inner content */
 }
 
 .mouse-cursor-gradient-tracking:hover::before {
-  opacity: 1; /* Show the gradient border on hover */
+  opacity: 1;
+  /* Show the gradient border on hover */
 }
 
 /* The inner button content */
-.mouse-cursor-gradient-tracking > button {
+.mouse-cursor-gradient-tracking>button {
   /* Ensure the inner button is above the pseudo-element */
   z-index: 1;
   /* Example: If outer container is rounded-lg (8px), and p-px (1px padding/border),
      inner button would be rounded-[calc(0.5rem-1px)] or rounded-[7px] */
-  border-radius: calc(0.5rem - 1px); /* Match inner radius to visually create the border */
+  border-radius: calc(0.5rem - 1px);
+  /* Match inner radius to visually create the border */
 }
 
-.mouse-cursor-gradient-tracking > button svg {
+.mouse-cursor-gradient-tracking>button svg {
   position: relative;
-  z-index: 1; /* Ensure Lucide icon is above the gradient border */
+  z-index: 1;
+  /* Ensure Lucide icon is above the gradient border */
   /* Ensure icon color matches your button's content color */
 }
 
