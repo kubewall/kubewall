@@ -1,5 +1,5 @@
 import { memo, useEffect, useState } from "react";
-import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { useAppDispatch } from "@/redux/hooks";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   CommandDialog,
@@ -18,7 +18,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { NAVIGATION_ROUTE } from "@/constants";
 import { resetListTableFilter } from "@/data/Misc/ListTableFilterSlice";
 import { useSidebar } from "@/components/ui/sidebar";
-import { RootState } from "@/redux/store";
+// import { RootState } from "@/redux/store";
 import { SearchIcon } from "lucide-react";
 import { Kbd } from "@/components/ui/kbd";
 import { useIsMac } from "@/hooks/use-is-mac";
@@ -29,7 +29,7 @@ type SidebarNavigatorProps = {
 
 const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: SidebarNavigatorProps) {
   const dispatch = useAppDispatch();
-  const { customResourcesNavigation } = useAppSelector((state: RootState) => state.customResources);
+  // const { customResourcesNavigation } = useAppSelector((state: RootState) => state.customResources);
 
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
@@ -63,17 +63,17 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
     }));
   };
 
-  const onSelectCustomResources = (routeValue: string, route: string) => {
-    dispatch(resetListTableFilter());
-    navigate({
-      to: `/${configName}/list?cluster=${encodeURIComponent(clusterName)}&resourcekind=customresources&${routeValue}`,
-    });
-    setOpen(false);
-    setOpenMenus((prev) => ({
-      ...prev,
-      [route]: true,
-    }));
-  };
+  // const onSelectCustomResources = (routeValue: string, route: string) => {
+  //   dispatch(resetListTableFilter());
+  //   navigate({
+  //     to: `/${configName}/list?cluster=${encodeURIComponent(clusterName)}&resourcekind=customresources&${routeValue}`,
+  //   });
+  //   setOpen(false);
+  //   setOpenMenus((prev) => ({
+  //     ...prev,
+  //     [route]: true,
+  //   }));
+  // };
 
   return (
     <>
@@ -133,6 +133,7 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
             </CommandGroup>
           ))}
 
+          {/* Custom Resource section commented out - will revisit when ready
           <CommandGroup heading="Custom Resource">
             {Object.keys(customResourcesNavigation).map((customResourceGroup) =>
               customResourcesNavigation[customResourceGroup].resources.map((customResource) => (
@@ -153,6 +154,7 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
               ))
             )}
           </CommandGroup>
+          */}
 
           <CommandSeparator />
         </CommandList>
