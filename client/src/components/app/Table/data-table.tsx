@@ -25,7 +25,7 @@ import { useEffect, useState } from "react";
 
 import { DataTableToolbar } from "@/components/app/Table/TableToolbar";
 import { RootState } from "@/redux/store";
-import { TableDelete } from './TableDelete';
+
 import { useAppSelector } from "@/redux/hooks";
 
 type DataTableProps<TData, TValue> = {
@@ -146,10 +146,6 @@ export function DataTable<TData, TValue>({
       }
       
       <div className={`border border-x-0 overflow-auto ${tableWidthCss} `}>
-        {
-          Object.keys(rowSelection).length > 0 &&
-          <TableDelete selectedRows={table.getSelectedRowModel().rows} toggleAllRowsSelected={table.resetRowSelection}/>
-        }
 
         <Table>
           <TableHeader className="bg-muted/50">
