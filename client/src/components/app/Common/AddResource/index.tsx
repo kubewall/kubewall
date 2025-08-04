@@ -114,7 +114,7 @@ const AddResource = () => {
         <DialogHeader>
           <DialogTitle>YAML/Manifest</DialogTitle>
           <DialogDescription>
-            Add the yaml/manifest file of the new resource you want to create and click Apply.
+            Add your resource’s YAML or manifest, then hit Apply to create it.
           </DialogDescription>
         </DialogHeader>
         <div ref={editorContainerRef} className="flex-grow border-b rounded-b-sm" style={{ overflow: "hidden" }}>
