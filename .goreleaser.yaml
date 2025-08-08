@@ -73,6 +73,30 @@ homebrew_casks:
           if system_command("/usr/bin/xattr", args: ["-h"]).exit_status == 0
             system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/kubewall"]
           end
+    custom_block: |
+      def caveats
+        <<~EOS
+          \e[1mTo run kubewall cli:\e[0m
+            \e[32mkubewall\e[0m
+
+          \e[1mTo run kubewall as a background service:\e[0m
+            \e[32mbrew services start kubewall\e[0m
+
+          \e[1mTo manage the background service:\e[0m
+            \e[33mbrew services stop kubewall\e[0m
+            \e[33mbrew services restart kubewall\e[0m
+
+          \e[1mLog files are available at:\e[0m
+            \e[34m/opt/homebrew/var/log/kubewall.log\e[0m
+        EOS
+      end
+      service do
+        run [opt_bin/"dagu", "start-all"]
+        keep_alive true
+        error_log_path var/"log/dagu.log"
+        log_path var/"log/dagu.log"
+        working_dir var
+      end
 
 scoops:
   - repository:
