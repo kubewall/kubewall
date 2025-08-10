@@ -100,7 +100,7 @@ const ListConfigurations = ({ setSelectedUUId, setKwAIStoredModelsCollection, is
       </div>
       :
       <div className="overflow-auto p-2 pt-0">
-        <Table>
+        <Table className="border">
           <TableHeader className="sticky top-0 z-10 bg-muted">
             <TableRow>
               <TableHead>Alias</TableHead>
