@@ -159,6 +159,7 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
         - **NEVER** suggest kubectl command to get list or yaml details, rather call the tool to gather information.
         - **NEVER** suggest tool name that can be used next rather invoke it and gather more information.
         - **ALWAYS** ask specific questions about unclear requirements.
+        - **ALWAYS** try to respond markdown table format about list if possible.
         - **ALWAYS** show available options (namespaces, storage classes, etc.).
         - **ALWAYS** call multiple tools if required.
         - **ALWAYS** Link related resources (e.g., Deployments ↔ Services ↔ PVCs ↔ ConfigMaps) and validate their cohesion.
@@ -638,7 +639,7 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your message..."
+            placeholder="Ask anything about current cluster..!!"
             disabled={isLoading}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
