@@ -105,7 +105,10 @@ export function AiChat({ isFullscreen = false, onToggleFullscreen, customHeight,
               }
             </TabsList>
           </div>
-          <span>kwAI</span>
+          <span className="font-semibold">
+            kwAI
+            <span className="text-xs align-text-bottom text-gray-500"> (beta)</span>
+          </span>
           <div className="flex items-center gap-1">
             <TooltipProvider>
               <Tooltip delayDuration={0}>
@@ -175,15 +178,15 @@ export function AiChat({ isFullscreen = false, onToggleFullscreen, customHeight,
         <TabsContent value='chat' className={cn(isDetailsPage ? 'chatbot-details-inner-container' : 'chatbot-list-inner-container')}>
           {
             kwAIStoredModelsCollection.providerCollection && Object.keys(kwAIStoredModelsCollection.providerCollection)?.length > 0 ?
-              <ChatWindow currentChatKey={currentChatKey || ''} cluster={cluster} config={config} isDetailsPage={isDetailsPage} kwAIStoredModels={kwAIStoredModelsCollection} />
+              <ChatWindow currentChatKey={currentChatKey || ''} cluster={cluster} config={config} isDetailsPage={isDetailsPage} kwAIStoredModels={kwAIStoredModelsCollection} resetChat={resetChat}/>
               :
               <div className={cn("flex items-center justify-center", isDetailsPage ? 'chatbot-details-inner-container' : 'chatbot-list-inner-container')}>
                 <p className="w-3/4 p-4 rounded text-center text-muted-foreground">
-                  <span>You haven't set up any providers yet. </span>
+                  <span>You haven't set up any providers yet.</span>
                   <br />
                   <span>Click
-                    <span className="text-blue-600/100 dark:text-sky-400/100 cursor-pointer" onClick={() => setActiveView('configuration')}> here </span>
-                    to go to Configuration and add one now.</span>
+                    <span className="text-blue-600/100 dark:text-sky-400/100 cursor-pointer" onClick={() => setActiveView('configuration')}> here</span>
+                    , to go to Configuration and add one now.</span>
                 </p>
               </div>
           }
@@ -191,10 +194,10 @@ export function AiChat({ isFullscreen = false, onToggleFullscreen, customHeight,
 
         </TabsContent>
         <TabsContent value="history" className={cn(isDetailsPage ? 'chatbot-details-inner-container' : 'chatbot-list-inner-container')}>
-          <ChatHistory resumeChat={resumeChat} cluster={cluster} config={config} />
+          <ChatHistory resumeChat={resumeChat} cluster={cluster} config={config} isDetailsPage={isDetailsPage}/>
         </TabsContent>
         <TabsContent value="configuration" className={cn(isDetailsPage ? 'chatbot-details-inner-container' : 'chatbot-list-inner-container')}>
-          <Configuration cluster={cluster} config={config} setKwAIStoredModelsCollection={setKwAIStoredModelsCollection}/>
+          <Configuration cluster={cluster} config={config} setKwAIStoredModelsCollection={setKwAIStoredModelsCollection} isDetailsPage={isDetailsPage}/>
         </TabsContent>
       </Tabs>
     </div>

@@ -1,7 +1,7 @@
 import './index.css';
 
 import { API_VERSION, MCP_SERVER_ENDPOINT } from '@/constants';
-import { ArrowUp, ChartNoAxesCombined, CheckIcon, ChevronRight, ChevronsUpDown, Download, Lightbulb, OctagonX, ShieldAlert, Upload } from "lucide-react";
+import { ArrowUp, ChartNoAxesCombined, CheckIcon, ChevronRight, ChevronsUpDown, Download, Lightbulb, OctagonX, ShieldAlert, SquarePen, Upload } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChatMessage, kwAIStoredChatHistory, kwAIStoredModel, kwAIStoredModels } from "@/types/kwAI/addConfiguration";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -49,10 +49,11 @@ type ChatWindowProps = {
   cluster: string;
   config: string;
   isDetailsPage: boolean;
-  kwAIStoredModels: kwAIStoredModels
+  kwAIStoredModels: kwAIStoredModels;
+  resetChat: () => void
 }
 
-const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStoredModels }: ChatWindowProps) => {
+const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStoredModels, resetChat }: ChatWindowProps) => {
   const clusterConfigKey = `cluster=${cluster}&config=${config}`;
   const abortControllerRef = useRef<AbortController | null>(null);
   const kwAIStoredChatHistory = JSON.parse(localStorage.getItem('kwAIStoredChatHistory') || '{}') as kwAIStoredChatHistory;
@@ -137,7 +138,7 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
     setIsLoading(() => true);
     if (!input.trim() || !currentProvider) return;
 
-    const systemMessage =`You are "kubewall-ai", an intelligent Kubernetes assistant capable of operating, analyzing, and performing actions against Kubernetes clusters using tools on behalf of the user. Your job is to help with Kubernetes-related queries, analysis manifests, related manifests with one another, find issues, and ensure configurations are accurate and complete.
+    const systemMessage = `You are "kubewall-ai", an intelligent Kubernetes assistant capable of operating, analyzing, and performing actions against Kubernetes clusters using tools on behalf of the user. Your job is to help with Kubernetes-related queries, analysis manifests, related manifests with one another, find issues, and ensure configurations are accurate and complete.
         You reason like a seasoned DevOps engineer, act with the precision of a policy-enforcing agent, and think like a systems architect.
 
         ## Instructions:
@@ -175,7 +176,7 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
         - Provide clear, concise, and accurate responses.
         - Feel free to respond with emojis where appropriate.
         - Provide a final answer in MARKDOWN FORMAT.`
-;
+      ;
 
     const userMessage: ChatMessage[] = [{
       id: Date.now().toString(),
@@ -476,7 +477,7 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
       }
     }, [isReasoning]);
     return (
-      <Collapsible open={copen} onOpenChange={setCOpen} className='w-[95%]'>
+      <Collapsible open={copen} onOpenChange={setCOpen}>
         <CollapsibleTrigger asChild>
           <Card className={cn("rounded-none cursor-pointer shadow-none transition-all duration-200", copen ? "border-b-0 rounded-tl-lg rounded-tr-lg" : "rounded-md")}>
             <CardHeader className="p-3">
@@ -696,6 +697,10 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
                   </Command>
                 </PopoverContent>
               </Popover>
+              <Button variant="outline" size="default" onClick={resetChat}>
+                <SquarePen className="h-4 w-4" />
+                <span className='text-xs'>New Chat</span>
+              </Button>
             </div>
             {isLoading ? (
               <Button

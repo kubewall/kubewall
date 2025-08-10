@@ -11,8 +11,9 @@ type ConfigurationProps = {
   cluster: string;
   config: string;
   setKwAIStoredModelsCollection: Dispatch<SetStateAction<kwAIStoredModels>>;
+  isDetailsPage?: boolean;
 }
-const Configuration = ({ cluster, config, setKwAIStoredModelsCollection }: ConfigurationProps) => {
+const Configuration = ({ cluster, config, setKwAIStoredModelsCollection, isDetailsPage }: ConfigurationProps) => {
   const [showAddConfiguration, setShowAddConfiguration] = useState(false);
   const [selectedUUID, setSelectedUUId] = useState('');
   const addNewConfiguration = (uuid: string) => {
@@ -48,7 +49,7 @@ const Configuration = ({ cluster, config, setKwAIStoredModelsCollection }: Confi
       {
         showAddConfiguration ?
           <AddConfiguration cluster={cluster} config={config} uuid={selectedUUID} setShowAddConfiguration={setShowAddConfiguration} setKwAIStoredModelsCollection={setKwAIStoredModelsCollection} /> :
-          <ListConfigurations setSelectedUUId={addNewConfiguration} setKwAIStoredModelsCollection={setKwAIStoredModelsCollection} />
+          <ListConfigurations setSelectedUUId={addNewConfiguration} setKwAIStoredModelsCollection={setKwAIStoredModelsCollection} setShowAddConfiguration={setShowAddConfiguration} isDetailsPage={isDetailsPage}/>
       }
 
 
