@@ -1,6 +1,3 @@
-import { memo, useEffect, useState } from "react";
-import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   CommandDialog,
   CommandEmpty,
@@ -11,16 +8,20 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "@/components/ui/command";
-import { SvgRenderer } from '../../Common/SvgRenderer';
-import { BoxIcon, Command, CornerDownLeftIcon } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { memo, useEffect, useState } from "react";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
+
+import { BoxIcon } from "lucide-react";
+import { Kbd } from "@/components/ui/kbd";
 import { NAVIGATION_ROUTE } from "@/constants";
-import { resetListTableFilter } from "@/data/Misc/ListTableFilterSlice";
-import { useSidebar } from "@/components/ui/sidebar";
 import { RootState } from "@/redux/store";
 import { SearchIcon } from "lucide-react";
-import { Kbd } from "@/components/ui/kbd";
+import { SvgRenderer } from '../../Common/SvgRenderer';
+import { resetListTableFilter } from "@/data/Misc/ListTableFilterSlice";
 import { useIsMac } from "@/hooks/use-is-mac";
+import { useSidebar } from "@/components/ui/sidebar";
 
 type SidebarNavigatorProps = {
   setOpenMenus: (value: React.SetStateAction<Record<string, boolean>>) => void;

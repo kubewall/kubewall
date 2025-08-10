@@ -1,4 +1,4 @@
-import { CirclePlus, Copy, CopyCheck, Import, List } from "lucide-react";
+import { CirclePlus, List } from "lucide-react";
 import { Dispatch, SetStateAction, useState } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -10,25 +10,16 @@ import { kwAIStoredModels } from "@/types/kwAI/addConfiguration";
 type ConfigurationProps = {
   cluster: string;
   config: string;
-  kwAIStoredModelsCollection: kwAIStoredModels;
   setKwAIStoredModelsCollection: Dispatch<SetStateAction<kwAIStoredModels>>;
 }
-const Configuration = ({ cluster, config, kwAIStoredModelsCollection, setKwAIStoredModelsCollection }: ConfigurationProps) => {
+const Configuration = ({ cluster, config, setKwAIStoredModelsCollection }: ConfigurationProps) => {
   const [showAddConfiguration, setShowAddConfiguration] = useState(false);
-  const [showCopyCheck, setShowCopyCheck] = useState(false);
   const [selectedUUID, setSelectedUUId] = useState('');
   const addNewConfiguration = (uuid: string) => {
     setSelectedUUId(uuid);
     setShowAddConfiguration(!showAddConfiguration);
   };
 
-  const copyKwAIStoredModelsCollection = () => {
-    navigator.clipboard.writeText(JSON.stringify(kwAIStoredModelsCollection));
-    setShowCopyCheck(true);
-    setTimeout(() => {
-      setShowCopyCheck(false);
-    }, 2000);
-  };
   return (
     <div className="flex flex-col h-full">
       <div className="p-4">
@@ -47,30 +38,6 @@ const Configuration = ({ cluster, config, kwAIStoredModelsCollection, setKwAISto
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            {/* <TooltipProvider>
-              <Tooltip delayDuration={0}>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="icon" className="h-8 w-8 shadow-none" onClick={copyKwAIStoredModelsCollection}>
-                    {showCopyCheck ? <CopyCheck className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="px-1.5">
-                  Copy Provider config
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <TooltipProvider>
-              <Tooltip delayDuration={0}>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="icon" className="h-8 w-8 shadow-none" onClick={() => addNewConfiguration('')}>
-                    <Import className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="px-1.5">
-                  Import Copied config
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider> */}
           </div>
         </div>
 

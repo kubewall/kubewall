@@ -60,6 +60,7 @@ const kwAiToolsSlice = createSlice({
     });
     builder.addCase(fetchKwAiTools.fulfilled, (state, action) => {
       state.loading = false;
+      // TODO: fix this type error
       state.tools = action.payload;
       state.error = null;
     });

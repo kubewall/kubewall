@@ -194,7 +194,7 @@ export function AiChat({ isFullscreen = false, onToggleFullscreen, customHeight,
           <ChatHistory resumeChat={resumeChat} cluster={cluster} config={config} />
         </TabsContent>
         <TabsContent value="configuration" className={cn(isDetailsPage ? 'chatbot-details-inner-container' : 'chatbot-list-inner-container')}>
-          <Configuration cluster={cluster} config={config} kwAIStoredModelsCollection={kwAIStoredModelsCollection} setKwAIStoredModelsCollection={setKwAIStoredModelsCollection}/>
+          <Configuration cluster={cluster} config={config} setKwAIStoredModelsCollection={setKwAIStoredModelsCollection}/>
         </TabsContent>
       </Tabs>
     </div>

@@ -7,6 +7,7 @@ import { ChatMessage, kwAIStoredChatHistory, kwAIStoredModel, kwAIStoredModels }
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { stepCountIs, streamText } from "ai";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,6 @@ import { createDeepSeek } from '@ai-sdk/deepseek';
 import { createFireworks } from '@ai-sdk/fireworks';
 import { createGroq } from '@ai-sdk/groq';
 import { createMistral } from '@ai-sdk/mistral';
-import { createOllama } from 'ollama-ai-provider';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
@@ -41,7 +41,6 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import remarkParse from 'remark-parse';
 import remarkRehype from 'remark-rehype';
-import { streamText } from "ai";
 import { useAppSelector } from "@/redux/hooks";
 import { useSidebarSize } from '@/hooks/use-get-sidebar-size';
 
@@ -98,9 +97,10 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
       case "cerebras":
         return createCerebras({ apiKey: providerData.apiKey, baseURL: providerData.url });
       case "ollama":
-        return createOllama({
+        return createOpenAICompatible({
+          name: 'ollama',
           baseURL: `${providerData.url}/`, fetch: (url, options) => {
-            const newUrl = `${API_VERSION}${MCP_SERVER_ENDPOINT}/${url.toString().replace('v1', 'api')}?${clusterConfigKey}`;
+            const newUrl = `${API_VERSION}${MCP_SERVER_ENDPOINT}/${url.toString()}?${clusterConfigKey}`;
             return fetch(newUrl, options);
           }
         });
@@ -137,9 +137,7 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
     setIsLoading(() => true);
     if (!input.trim() || !currentProvider) return;
 
-    const systemMessage: ChatMessage[] = [{
-      id: Date.now().toString(),
-      content: `You are "kubewall-ai", an intelligent Kubernetes assistant capable of operating, analyzing, and performing actions against Kubernetes clusters using tools on behalf of the user. Your job is to help with Kubernetes-related queries, analysis manifests, related manifests with one another, find issues, and ensure configurations are accurate and complete.
+    const systemMessage =`You are "kubewall-ai", an intelligent Kubernetes assistant capable of operating, analyzing, and performing actions against Kubernetes clusters using tools on behalf of the user. Your job is to help with Kubernetes-related queries, analysis manifests, related manifests with one another, find issues, and ensure configurations are accurate and complete.
         You reason like a seasoned DevOps engineer, act with the precision of a policy-enforcing agent, and think like a systems architect.
 
         ## Instructions:
@@ -176,10 +174,8 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
         - Provide a final answer only when you're confident you have sufficient information.
         - Provide clear, concise, and accurate responses.
         - Feel free to respond with emojis where appropriate.
-        - Provide a final answer in MARKDOWN FORMAT.`,
-      role: "system",
-      timestamp: new Date(),
-    }];
+        - Provide a final answer in MARKDOWN FORMAT.`
+;
 
     const userMessage: ChatMessage[] = [{
       id: Date.now().toString(),
@@ -198,22 +194,17 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
         isNotVisible: true
       });
     }
-    setMessages((prev) => [...systemMessage, ...prev, ...userMessage]);
+    setMessages((prev) => [...prev, ...userMessage]);
     setInput('');
     setMessageLoading(true);
     try {
       const { fullStream, usage } = streamText({
         model: currentProvider(providerList[selectedProvider].model),
-        messages: [...systemMessage, ...messages, ...userMessage],
-        maxSteps: 500,
-        toolChoice: "auto",
+        messages: [...messages, ...userMessage],
+        system: systemMessage,
+        stopWhen: stepCountIs(500),
         tools: getFullTools(),
         abortSignal: abortControllerRef.current.signal,
-        // experimental_transform: smoothStream({
-        //   delayInMs: 100, // optional: defaults to 10ms
-        //   chunking: 'word', // optional: defaults to 'word'
-
-        // }),
       });
 
       const id = new Date().getTime();
@@ -270,12 +261,12 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
           setIsLoading(false);
         }
 
-        if (textPart.type === "reasoning") {
+        if (textPart.type === "reasoning-delta") {
           setMessages((prev) => [
             ...prev.map((p) => (
               p.id === id.toString() ? {
                 ...p,
-                reasoning: p.reasoning + textPart.textDelta,
+                reasoning: p.reasoning + textPart.text,
                 isReasoning: true,
                 error: false
               } : p
@@ -283,7 +274,7 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
           ]);
         }
         if (textPart.type === 'text-delta') {
-          let delta = textPart.textDelta;
+          let delta = textPart.text;
           let contentDelta = '';
           let reasoningDelta = '';
 
@@ -338,15 +329,15 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
         }
       }
 
-      const { completionTokens, promptTokens, totalTokens } = await usage;
+      const { outputTokens, inputTokens, totalTokens } = await usage;
       setMessages((prev) => [
         ...prev.map((p) => (
           p.id === id.toString() ? {
             ...p,
             content: p.content || "Received Epmty response from LLM",
-            ...(!isNaN(completionTokens) && { completionTokens }),
-            ...(!isNaN(promptTokens) && { promptTokens }),
-            ...(!isNaN(totalTokens) && { totalTokens }),
+            completionTokens: outputTokens,
+            promptTokens: inputTokens,
+            totalTokens: totalTokens,
           } : p
         ))
       ]);
