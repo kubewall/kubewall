@@ -89,13 +89,13 @@ const ListConfigurations = ({ setSelectedUUId, setKwAIStoredModelsCollection, is
     !data?.providerCollection || Object.keys(data.providerCollection).length === 0 ?
       <div className={cn("flex items-center justify-center", isDetailsPage ? 'chatbot-details-inner-container' : 'chatbot-list-inner-container')}>
         <p className="w-3/4 p-4 rounded text-center text-muted-foreground">
-          <span>You haven't set up any providers yet.</span>
+          <span>Looks like you haven't added a provider yet.</span>
           <br />
           <span>Click
-            <span className="text-blue-600/100 dark:text-sky-400/100 cursor-pointer" onClick={() => setShowAddConfiguration(true)}> here</span>
-            , or use the button <Button variant="outline" size="icon" className="h-8 w-8 shadow-none">
+            <span className="text-blue-600/100 dark:text-sky-400/100 cursor-pointer" onClick={() => setShowAddConfiguration(true)}> here </span>
+            or use the button <Button variant="outline" size="icon" className="h-8 w-8 shadow-none" onClick={() => setShowAddConfiguration(true)}>
               <CirclePlus className="h-4 w-4" />
-            </Button> at the top, to go to Configuration add one now.</span>
+            </Button> at the top, to go to Configuration add your first one.</span>
         </p>
       </div>
       :
