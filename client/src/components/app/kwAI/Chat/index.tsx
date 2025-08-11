@@ -248,6 +248,7 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
         - **NEVER** suggest kubectl command to get list or yaml details, rather call the tool to gather information.
         - **NEVER** suggest tool name that can be used next rather invoke it and gather more information.
         - **ALWAYS** ask specific questions about unclear requirements.
+        - **ALWAYS** try to respond markdown table format about list if possible.
         - **ALWAYS** show available options (namespaces, storage classes, etc.).
         - **ALWAYS** call multiple tools if required.
         - **ALWAYS** Link related resources (e.g., Deployments ↔ Services ↔ PVCs ↔ ConfigMaps) and validate their cohesion.
@@ -568,12 +569,12 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
     return (
       <Collapsible open={copen} onOpenChange={setCOpen}>
         <CollapsibleTrigger asChild>
-          <Card className={cn("rounded-none cursor-pointer shadow-none transition-all duration-200", copen ? "border-b-0 rounded-tl-lg rounded-tr-lg" : "rounded-md")}>
+          <Card className={cn("cursor-pointer shadow-none transition-all duration-200 border-dashed rounded-md", copen ? "rounded-b-none" : "rounded-0")}>
             <CardHeader className="p-3">
               <div className="flex items-center space-x-3">
-                <Icon className={cn("h-5 w-5 text-primary", isReasoning ? "animate-flashorange" : "text-orange-500")} />
+                <Icon className={cn("h-4 w-4 text-primary", isReasoning ? "animate-flashorange" : "text-orange-500")} />
                 <div className="flex-1">
-                  <CardTitle className="text-default font-medium tracking-tight">{isReasoning ? "Thinking..." : "Reasoning."}</CardTitle>
+                  <CardTitle className="text-default font-medium tracking-tight">{isReasoning ? "Thinking..." : "Reasoning..."}</CardTitle>
                   <CardDescription className="text-xs"></CardDescription>
                 </div>
                 <ChevronRight className={`h-4 w-4 transition-transform duration-200 ${copen ? 'rotate-90' : ''}`} />
@@ -582,7 +583,7 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
           </Card>
         </CollapsibleTrigger>
         <CollapsibleContent className='transition-all duration-200'>
-          <CardContent className="pt-0 border border-t-0 rounded-b-md">
+          <CardContent className="p-3 pt-2 border rounded-b-md border-t-0 border-dashed text-muted-foreground/95">
             {children}
           </CardContent>
         </CollapsibleContent>
@@ -598,7 +599,7 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
             !(message.role === "system") &&
             <div key={message.id} className={`flex gap-3 ${message.role === "user" ? "justify-end pt-4 pb-1" : "justify-start"}`}>
               <Card
-                className={`max-w-[95%] p-3 pb-0 ${message.role === "user" ? "bg-primary text-primary-foreground" : message.error ? "w-[95%] border-red-100 border-none shadow-none" : "w-[95%] border-none shadow-none"}`}
+                className={`max-w-[98%] p-3 pb-0 ${message.role === "user" ? "bg-primary text-primary-foreground" : message.error ? "w-[98%] border-red-100 border-none shadow-none" : "w-[98%] border-none shadow-none"}`}
               >
                 {
                   messageLoading && message.content === "" && !message.reasoning ?
@@ -727,7 +728,7 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your message..."
+            placeholder="Ask anything about current cluster..!!"
             disabled={isLoading}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {

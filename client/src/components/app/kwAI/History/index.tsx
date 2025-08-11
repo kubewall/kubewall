@@ -86,7 +86,7 @@ const ChatHistory = ({ cluster, config, isDetailsPage, resumeChat }: ChatHistory
               </p>
             </div>
             <div className="overflow-auto p-2 pt-0">
-              <Table>
+              <Table className="border rounded">
                 <TableHeader className="sticky top-0 z-10 bg-muted">
                   <TableRow>
                     <TableHead>Message</TableHead>

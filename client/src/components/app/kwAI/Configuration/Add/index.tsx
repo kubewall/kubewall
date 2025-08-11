@@ -33,13 +33,14 @@ const AddConfiguration = ({ uuid, setShowAddConfiguration, config, cluster, setK
     config,
     cluster
   }).toString();
+
   const getDefaultState = (uuid?: string) => {
     let defaultState = {
       provider: '',
       model: '',
       url: '',
       apiKey: '',
-      alias: '',
+      alias: '', // Default alias is an empty string
     };
     if (uuid) {
       const storedKwAIModel = localStorage.getItem('kwAIStoredModels');
@@ -59,14 +60,48 @@ const AddConfiguration = ({ uuid, setShowAddConfiguration, config, cluster, setK
       return (JSON.parse(storedKwAIModel) as kwAIStoredModels).defaultProvider === uuid;
     }
   };
+
   const [formData, setFormData] = useState(getDefaultState(uuid));
   const [currentProviderIsDefault, setCurrentProviderIsDefault] = useState(getDefaultCurrentProvider(uuid));
-  const handleChange = (name: string, value: string | boolean) => setFormData(prev => ({ ...prev, [name]: value }));
+
+  // Modified handleChange to include alias autofill logic, respecting existing alias value
+  const handleChange = (name: string, value: string | boolean) => {
+    setFormData(prev => {
+      const newState = { ...prev, [name]: value };
+
+      // Only auto-fill alias if the current alias is empty or was previously auto-filled by this logic
+      // This ensures manual input is not overwritten
+      const currentAliasValue = prev.alias;
+      const isAliasDefaultOrAutofilled = currentAliasValue === '' || currentAliasValue === `${prev.provider}-${prev.model}`;
+
+      if (name === 'model' && typeof value === 'string' && newState.provider && value && isAliasDefaultOrAutofilled) {
+        newState.alias = `${newState.provider}-${value}`;
+      } else if (name === 'provider' && typeof value === 'string' && newState.model && value && isAliasDefaultOrAutofilled) {
+        newState.alias = `${value}-${newState.model}`;
+      }
+      return newState;
+    });
+  };
+
   const isInvalid = (Object.keys(formData) as kwAIConfigurations[]).some((key) => key === 'apiKey' && ['ollama', 'lmstudio'].includes(formData.provider) ? false : formData[key] === '');
+
+  // Modified handleProviderChange to include alias autofill logic, respecting existing alias value
   const handleProviderChange = (name: string, providerValue: string | boolean) => {
     const providerDefaultUrl = KW_AI_PROVIDERS.find(({ value }) => value === providerValue)?.providerDefaultUrl || '';
-    setFormData(prev => ({ ...prev, [name]: providerValue, url: providerDefaultUrl }));
+    setFormData(prev => {
+      const newState = { ...prev, [name]: providerValue, url: providerDefaultUrl };
+
+      // Only auto-fill alias if the current alias is empty or was previously auto-filled by this logic
+      const currentAliasValue = prev.alias;
+      const isAliasDefaultOrAutofilled = currentAliasValue === '' || currentAliasValue === `${prev.provider}-${prev.model}`;
+
+      if (newState.model && typeof providerValue === 'string' && isAliasDefaultOrAutofilled) {
+        newState.alias = `${providerValue}-${newState.model}`;
+      }
+      return newState;
+    });
   };
+
   useEffect(() => {
     const {
       url,
@@ -74,12 +109,9 @@ const AddConfiguration = ({ uuid, setShowAddConfiguration, config, cluster, setK
       provider,
     } = formData;
     if (provider && url && (['ollama', 'lmstudio'].includes(provider) || apiKey)) {
-      setFormData({
-        ...formData,
-      });
       dispatch(kwAiModels({ apiKey, url, queryParams }));
     }
-  }, [formData.apiKey, formData.url, formData.provider, queryParams]);
+  }, [formData.apiKey, formData.url, formData.provider, queryParams, dispatch]);
 
   const resetAddConfiguration = () => {
     dispatch(resetKwAiModels());
@@ -95,8 +127,7 @@ const AddConfiguration = ({ uuid, setShowAddConfiguration, config, cluster, setK
       const raw = localStorage.getItem('kwAIStoredModels');
       let kwAiModels: kwAIStoredModels = raw ? JSON.parse(raw) : {};
 
-      // Initialize parent if not present
-      if (!kwAiModels) {
+      if (!kwAiModels || typeof kwAiModels.providerCollection === 'undefined') {
         kwAiModels = {
           defaultProvider: '',
           providerCollection: {}
@@ -136,14 +167,14 @@ const AddConfiguration = ({ uuid, setShowAddConfiguration, config, cluster, setK
         </div>
         <div>
           <Label>URL</Label>
-          <Input id="addKwAiConfigUrl" className={cn('shadow-none', error && 'border-destructive focus-visible:ring-destructive')} value={formData.url} onChange={(e) => handleChange('url', e.target.value)} />
+          <Input placeholder="URL to model provider" id="addKwAiConfigUrl" className={cn('shadow-none', error && 'border-destructive focus-visible:ring-destructive')} value={formData.url} onChange={(e) => handleChange('url', e.target.value)} />
         </div>
 
         {
           !['ollama', 'lmstudio'].includes(formData.provider) &&
           <div>
             <Label>API Key</Label>
-            <Input id="addKwAiConfigApiKey" className={cn('shadow-none', error && 'border-destructive focus-visible:ring-destructive')} value={formData.apiKey} onChange={(e) => handleChange('apiKey', e.target.value)} />
+            <Input placeholder="Secret Key" id="addKwAiConfigApiKey" className={cn('shadow-none', error && 'border-destructive focus-visible:ring-destructive')} value={formData.apiKey} onChange={(e) => handleChange('apiKey', e.target.value)} />
           </div>
         }
 
@@ -159,7 +190,7 @@ const AddConfiguration = ({ uuid, setShowAddConfiguration, config, cluster, setK
         </div>
         <div>
           <Label>Alias</Label>
-          <Input id="addKwAiConfigAlias" className="shadow-none" value={formData.alias} onChange={(e) => handleChange('alias', e.target.value)} />
+          <Input placeholder="Quick identifier name model" id="addKwAiConfigAlias" className="shadow-none" value={formData.alias} onChange={(e) => handleChange('alias', e.target.value)} />
         </div>
         <div>
           <Label htmlFor="airplane-mode">Set as default Provider</Label>
