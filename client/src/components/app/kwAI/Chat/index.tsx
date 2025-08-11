@@ -180,7 +180,9 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
               };
             }
             return fetch(newUrl, options);
-          }
+          },
+          apiKey: providerData.apiKey,
+          includeUsage: true
         });
       case "lmstudio":
         return createOpenAICompatible({
@@ -195,7 +197,8 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
               };
             }
             return fetch(newUrl, options);
-          }
+          },
+          includeUsage: true
         });
       case "openrouter":
         return createOpenRouter({

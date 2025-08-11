@@ -83,7 +83,7 @@ const AddConfiguration = ({ uuid, setShowAddConfiguration, config, cluster, setK
     });
   };
 
-  const isInvalid = (Object.keys(formData) as kwAIConfigurations[]).some((key) => key === 'apiKey' && ['ollama', 'lmstudio'].includes(formData.provider) ? false : formData[key] === '');
+  const isInvalid = (Object.keys(formData) as kwAIConfigurations[]).some((key) => key === 'apiKey' && ['lmstudio'].includes(formData.provider) ? false : formData[key] === '');
 
   // Modified handleProviderChange to include alias autofill logic, respecting existing alias value
   const handleProviderChange = (name: string, providerValue: string | boolean) => {
@@ -108,7 +108,7 @@ const AddConfiguration = ({ uuid, setShowAddConfiguration, config, cluster, setK
       apiKey,
       provider,
     } = formData;
-    if (provider && url && (['ollama', 'lmstudio'].includes(provider) || apiKey)) {
+    if (provider && url && (['lmstudio'].includes(provider) || apiKey)) {
       dispatch(kwAiModels({ apiKey, url, queryParams }));
     }
   }, [formData.apiKey, formData.url, formData.provider, queryParams, dispatch]);
@@ -171,7 +171,7 @@ const AddConfiguration = ({ uuid, setShowAddConfiguration, config, cluster, setK
         </div>
 
         {
-          !['ollama', 'lmstudio'].includes(formData.provider) &&
+          !['lmstudio'].includes(formData.provider) &&
           <div>
             <Label>API Key</Label>
             <Input placeholder="Secret Key" id="addKwAiConfigApiKey" className={cn('shadow-none', error && 'border-destructive focus-visible:ring-destructive')} value={formData.apiKey} onChange={(e) => handleChange('apiKey', e.target.value)} />
