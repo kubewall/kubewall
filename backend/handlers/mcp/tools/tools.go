@@ -49,6 +49,9 @@ func ListTool(c echo.Context, appContainer container.Container) Toolset {
 		}
 	}
 
+	// logs specific tool
+	toolset.ReadOnlyTools = append(toolset.ReadOnlyTools, NewLogsTool(c))
+
 	return toolset
 }
 
