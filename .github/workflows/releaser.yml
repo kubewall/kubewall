@@ -83,10 +83,3 @@ jobs:
           AUR_KEY: ${{ secrets.AUR_SSH_KEY }}
           GITHUB_TOKEN: ${{ secrets.GORELEASER_TOKEN }}
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_LOGIN }}
-
-      - name: Publish Helm chart to ghrc
-        id: helm
-        run: |
-          helm package charts/kubewall --version ${{ steps.get_version.outputs.version-without-v }} --app-version ${{ steps.get_version.outputs.version-without-v }}
-          helm push kubewall-${{ steps.get_version.outputs.version-without-v }}.tgz oci://ghcr.io/kubewall/charts |& tee .digest
-          cosign sign --yes ghcr.io/kubewall/charts/kubewall@$(cat .digest | awk -F "[, ]+" '/Digest/{print $NF}')
