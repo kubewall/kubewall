@@ -47,7 +47,7 @@ helm install kubewall oci://ghcr.io/kubewall/charts/kubewall -n kubewall-system 
 #### 🍺 Homebrew
 
 ```shell
-brew install kubewall/tap/kubewall
+brew install --cask kubewall/tap/kubewall
 ```
 
 #### 🧃 Snap
