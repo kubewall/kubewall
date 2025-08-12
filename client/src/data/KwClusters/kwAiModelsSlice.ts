@@ -25,7 +25,9 @@ type fetchKwAIModelsProps = {
 }
 
 const kwAiModels = createAsyncThunk('kwAiModels', ({ apiKey, url, queryParams }: fetchKwAIModelsProps, thunkAPI) => {
-  return kwFetch(`${API_VERSION}/${MCP_SERVER_ENDPOINT}/${url}/models?${queryParams}`, {
+  // TODO: Check why // is showing up in build
+  const formatedUrl = `${API_VERSION}/${MCP_SERVER_ENDPOINT}`.replace('//', '/');
+  return kwFetch(`${formatedUrl}/${url}/models?${queryParams}`, {
     headers: {
       'Authorization': `Bearer ${apiKey}`
     }
