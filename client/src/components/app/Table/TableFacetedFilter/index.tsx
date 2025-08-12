@@ -50,7 +50,7 @@ export function DataTableFacetedFilter<TData, TValue>({
           {title}
           {selectedValues?.size > 0 && (
             <>
-              <Separator orientation="vertical" className="mx-2 h-4" />
+              <Separator orientation="vertical" className="mx-2 data-[orientation=vertical]:h-4" />
               <Badge
                 variant="secondary"
                 className="rounded-sm px-1 font-normal lg:hidden"
@@ -135,7 +135,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                 <CommandSeparator />
                 <CommandGroup>
                   <CommandItem
-                    onSelect={() => {column?.setFilterValue(undefined);  dispatch(resetFilterNamespace());}}
+                    onSelect={() => { column?.setFilterValue(undefined); dispatch(resetFilterNamespace()); }}
                     className="justify-center text-center"
                   >
                     Clear filters

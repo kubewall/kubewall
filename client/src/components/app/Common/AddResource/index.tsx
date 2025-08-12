@@ -7,10 +7,10 @@ import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Check } from "lucide-react";
 import Editor from '../../Details/YamlEditor/MonacoWrapper';
 import { FilePlusIcon } from "@radix-ui/react-icons";
 import { Loader } from '../../Loader';
-import { SaveIcon } from "lucide-react";
 import { getSystemTheme } from "@/utils";
 import { kwList } from '@/routes';
 import { toast } from 'sonner';
@@ -96,17 +96,9 @@ const AddResource = () => {
         <Tooltip delayDuration={0}>
           <TooltipTrigger asChild>
             <DialogTrigger asChild>
-              <Button className="ml-1 h-8 w-8" variant="outline" size="icon">
+              <Button className="ml-1 h-8 w-8 shadow-none" variant="outline" size="icon">
                 <FilePlusIcon
-                  className={
-                    `h-[1.2rem]
-                    w-[1.2rem]
-                    rotate-0
-                    scale-100
-                    transition-all
-                    dark:-rotate-${getSystemTheme() === 'light' ? '90' : '0'}
-                    dark:scale-${getSystemTheme() === 'light' ? '0' : '100'}`
-                  }
+                  className="h-[1.2rem] w-[1.2rem]"
                 />
               </Button>
             </DialogTrigger>
@@ -122,7 +114,7 @@ const AddResource = () => {
         <DialogHeader>
           <DialogTitle>YAML/Manifest</DialogTitle>
           <DialogDescription>
-            Add the yaml/manifest file of the new resource you want to create and click Apply.
+            Add your resource’s YAML or manifest, then hit Apply to create it.
           </DialogDescription>
         </DialogHeader>
         <div ref={editorContainerRef} className="flex-grow border-b rounded-b-sm" style={{ overflow: "hidden" }}>
@@ -132,19 +124,20 @@ const AddResource = () => {
                 yamlUpdated &&
                 <Button
                   variant="default"
-                  size="icon"
-                  className='absolute bottom-12 right-12 rounded z-10 border w-16 gap-0'
+                  className="absolute bottom-10 right-12 z-10 shadow-none"
                   onClick={yamlUpdate}
-                > {
-                    yamlUpdateLoading ?
-                      <Loader className='w-5 h-5 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600' /> :
-                      <SaveIcon className="h-4 w-4 mr-1" />
-                  }
-                  <span className='text-xs'>Apply</span>
+                  disabled={yamlUpdateLoading}
+                >
+                  {yamlUpdateLoading ? (
+                    <Loader className="w-4 h-4 text-white animate-spin fill-white" />
+                  ) : (
+                    <Check className="w-[14px] h-[14px]" />
+                  )}
+                  Apply
                 </Button>
               }
               <Editor
-                className='border rounded-lg h-screen'
+                className='border rounded-md h-screen'
                 value={value}
                 defaultLanguage='yaml'
                 onChange={onChange}
@@ -161,7 +154,7 @@ const AddResource = () => {
 
         </div>
       </DialogContent>
-    </Dialog>
+    </Dialog >
   );
 };
 

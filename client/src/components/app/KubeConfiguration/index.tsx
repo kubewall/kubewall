@@ -19,6 +19,8 @@ import kwLogoLight from '../../../assets/kw-light-theme.svg';
 import { resetDeleteConfig } from '@/data/KwClusters/DeleteConfigSlice';
 import { toast } from "sonner";
 import { useNavigate } from '@tanstack/react-router';
+import { FileBox } from "lucide-react";
+import { Search } from "lucide-react";
 
 export function KubeConfiguration() {
   const {
@@ -111,15 +113,16 @@ export function KubeConfiguration() {
               </TooltipProvider>
             </div>
           </div>
-          <Input
-            placeholder="Filter configs..."
-            value={search}
-            onChange={(event) =>
-              onSearch(event.target.value)
-            }
-            type='search'
-            className="h-8 shadow-none"
-          />
+          <div className="relative w-full md:max-w-full">
+            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              value={search}
+              onChange={(e) => onSearch(e.target.value)}
+              placeholder="Filter configs..."
+              className="h-8 pl-8 pr-2 shadow-none"
+            />
+          </div>
           <div className="overflow-auto config-list mt-2 rounded-md border">
             <Table className="overflow-auto">
               <TableHeader className="bg-muted/80">
@@ -138,7 +141,10 @@ export function KubeConfiguration() {
                           <TableRow className="border-t group/item">
                             <TableCell colSpan={3} className="bg-muted/50">
                               <div className="flex items-center justify-between">
-                                <span> {config} </span>
+                                <div className="flex items-center space-x-1">
+                                  <FileBox className="h-4 w-4 text-muted-foreground" />
+                                  <span>{config}</span>
+                                </div>
                                 <DeleteConfiguration configId={config} />
                               </div>
                             </TableCell>

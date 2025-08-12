@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	v1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/base"
@@ -42,7 +42,7 @@ func NewEndpointsHandler(c echo.Context, container container.Container) *Endpoin
 	config := c.QueryParam("config")
 	cluster := c.QueryParam("cluster")
 
-	informer := container.SharedInformerFactory(config, cluster).Core().V1().Endpoints().Informer()
+	informer := container.SharedInformerFactory(config, cluster).Discovery().V1().EndpointSlices().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
 	handler := &EndpointsHandler{
@@ -58,17 +58,17 @@ func NewEndpointsHandler(c echo.Context, container container.Container) *Endpoin
 		},
 	}
 
-	cache := base.ResourceEventHandler[*v1.Endpoints](&handler.BaseHandler)
+	cache := base.ResourceEventHandler[*discoveryv1.EndpointSlice](&handler.BaseHandler)
 	handler.BaseHandler.StartInformer(c, cache)
 	handler.BaseHandler.WaitForSync(c)
 	return handler
 }
 
 func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
-	var list []v1.Endpoints
+	var list []discoveryv1.EndpointSlice
 
 	for _, obj := range items {
-		if item, ok := obj.(*v1.Endpoints); ok {
+		if item, ok := obj.(*discoveryv1.EndpointSlice); ok {
 			list = append(list, *item)
 		}
 	}

@@ -28,7 +28,7 @@ const ConfigMapDetailsContainer = memo(function () {
                   data && Object.keys(data).map((key: string) => {
                     return (
                       <div className="py-1.5 border-b border-dashed flex flex-row">
-                        <div className="pl-4 text-sm text-muted-foreground basis-1/4">{key}</div>
+                        <div className="pl-4 text-sm basis-1/4">{key}</div>
                         <div className="flex flex-row text-sm font-normal basis-3/4 group/item">
                           <div className="break-all basis-[97%] ">
                             <Badge variant="secondary" className="text-sm font-normal">

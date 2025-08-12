@@ -2,10 +2,11 @@ package middleware
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/charmbracelet/log"
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/labstack/echo/v4"
-	"net/http"
 )
 
 func ClusterConnectivityMiddleware(container container.Container) echo.MiddlewareFunc {
@@ -22,20 +23,20 @@ func ClusterConnectivityMiddleware(container container.Container) echo.Middlewar
 
 			isAbleToConnectToClusterCacheKey := fmt.Sprintf("%s-%s-isAbleToConnectToCluster", config, cluster)
 
-			if !container.Cache().Has(isAbleToConnectToClusterCacheKey) {
+			value, exists := container.Cache().GetIfPresent(isAbleToConnectToClusterCacheKey)
+			if !exists {
 				_, err = container.DiscoveryClient(config, cluster).ServerVersion()
 				if err != nil {
 					log.Error("failed to connect to cluster", "err", err)
-					container.Cache().Set(isAbleToConnectToClusterCacheKey, false)
-					return c.JSON(http.StatusInternalServerError, err.Error())
+					return c.JSON(http.StatusFailedDependency, err.Error())
 				}
 				container.Cache().Set(isAbleToConnectToClusterCacheKey, true)
 			}
 
-			value, _ := container.Cache().Get(isAbleToConnectToClusterCacheKey)
 			if value == false {
-				log.Error("previously failed to connect to this cluster, please read-load config or check network-connection")
-				return c.JSON(http.StatusInternalServerError, "Cluster is not available or failed to connect to cluster, please check network connection")
+				log.Warn("previously failed to connect to this cluster, please read-load config or check network-connection")
+				container.Cache().Invalidate(isAbleToConnectToClusterCacheKey)
+				return c.JSON(http.StatusFailedDependency, "previously failed to connect to this cluster, please read-load config or check network-connection")
 			}
 
 			return next(c)

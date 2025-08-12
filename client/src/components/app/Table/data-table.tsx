@@ -13,6 +13,7 @@ import {
   getSortedRowModel,
   useReactTable
 } from "@tanstack/react-table";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import {
   Table,
   TableBody,
@@ -23,6 +24,7 @@ import {
 } from "@/components/ui/table";
 import { useEffect, useState } from "react";
 
+import { AiChat } from '../kwAI';
 import { DataTableToolbar } from "@/components/app/Table/TableToolbar";
 import { RootState } from "@/redux/store";
 import { TableDelete } from './TableDelete';
@@ -37,12 +39,14 @@ type DataTableProps<TData, TValue> = {
   showToolbar?: boolean;
   loading?: boolean;
   isEventTable?: boolean;
+  showChat: boolean;
+  setShowChat: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 declare global {
   interface Window {
     /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-    safari:any;
+    safari: any;
     /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
     lastSelectedRow: any;
   }
@@ -71,6 +75,8 @@ export function DataTable<TData, TValue>({
   showToolbar = true,
   loading = false,
   isEventTable = false,
+  setShowChat,
+  showChat
 }: DataTableProps<TData, TValue>) {
 
   const {
@@ -129,76 +135,108 @@ export function DataTable<TData, TValue>({
     setRowSelection({});
   }, [instanceType]);
 
+
+  const [fullScreen, setFullScreen] = useState(false);
+  const onChatClose = () => {
+    setShowChat(false);
+    setFullScreen(false);
+  };
+
   return (
     <>
       {
         showToolbar
-        && <DataTableToolbar loading={loading} table={table} globalFilter={globalFilter} setGlobalFilter={setGlobalFilter} showNamespaceFilter={showNamespaceFilter} />
+        && <DataTableToolbar loading={loading} table={table} globalFilter={globalFilter} setGlobalFilter={setGlobalFilter} showNamespaceFilter={showNamespaceFilter} showChat={showChat} setShowChat={setShowChat} />
       }
       {
-         
-        window.safari !== undefined && 
+
+        window.safari !== undefined &&
         <div className='flex bg-red-500 dark:bg-red-900 items-center justify-between text-xs font-light px-2 py-1'>
-        <span className='text-xs text-white'>We detected you are on Safari browser and are using http. For seemless expereince switch over to chrome/firefox. More details <a className='underline' href='https://github.com/kubewall/kubewall/wiki/FAQ#https' target='blank'>here</a></span>
-      </div>
+          <span className='text-xs text-white'>We detected you are on Safari browser and are using http. For seemless expereince switch over to chrome/firefox. More details <a className='underline' href='https://github.com/kubewall/kubewall/wiki/FAQ#https' target='blank'>here</a></span>
+        </div>
       }
-      
-      <div className={`border border-x-0 overflow-auto ${tableWidthCss} `}>
+      <ResizablePanelGroup
+        direction="horizontal"
+      >
         {
-          Object.keys(rowSelection).length > 0 &&
-          <TableDelete selectedRows={table.getSelectedRowModel().rows} toggleAllRowsSelected={table.resetRowSelection}/>
+          !fullScreen &&
+          <ResizablePanel id="table" order={1} defaultSize={showChat ? 55 : 100}>
+            <div className={`border border-x-0 overflow-auto ${tableWidthCss} `}>
+              {
+                Object.keys(rowSelection).length > 0 &&
+                <TableDelete selectedRows={table.getSelectedRowModel().rows} toggleAllRowsSelected={table.resetRowSelection} />
+              }
+
+              <Table>
+                <TableHeader className="sticky top-0 z-10 bg-muted">
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                      {headerGroup.headers.map((header, index) => {
+                        return (
+                          <TableHead key={header.id} colSpan={header.colSpan} className={index === 0 ? 'w-px' : ''}>
+                            {header.isPlaceholder
+                              ? null
+                              : flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                          </TableHead>
+                        );
+                      })}
+                    </TableRow>
+                  ))}
+                </TableHeader>
+                <TableBody>
+                  {table.getRowModel().rows?.length ? (
+                    table.getRowModel().rows.map((row, index) => (
+                      <TableRow
+                        key={index}
+                        id={getIdAndSetClass(row.original.hasUpdated, row.original.name)}
+                        data-state={row.getIsSelected() && 'selected'}
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell key={cell.id}>
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow className={isEventTable ? 'empty-table-events' : 'empty-table'}>
+                      <TableCell
+                        colSpan={columns.length}
+                        className="text-center"
+                      >
+                        No results.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </ResizablePanel>
         }
 
-        <Table>
-          <TableHeader className="bg-muted/50">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header, index) => {
-                  return (
-                    <TableHead key={header.id} colSpan={header.colSpan} className={index === 0 ? 'w-px' : ''}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                    </TableHead>
-                  );
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row, index) => (
-                <TableRow
-                  key={index}
-                  id={getIdAndSetClass(row.original.hasUpdated, row.original.name)}
-                  data-state={row.getIsSelected() && 'selected'}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow className={isEventTable ? 'empty-table-events' : 'empty-table'}>
-                <TableCell
-                  colSpan={columns.length}
-                  className="text-center"
-                >
-                  No results.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+
+        {
+          showChat &&
+          <>
+            { !fullScreen && <ResizableHandle withHandle/> }
+            <ResizablePanel id="ai-chat" order={2} minSize={30} defaultSize={fullScreen ? 100 : 45}>
+              {/* <div className="flex h-full items-center justify-center p-6">
+                <span className="font-semibold">Sidebar</span>
+              </div> */}
+              <AiChat customHeight='chatbot-height' isFullscreen={fullScreen} onClose={onChatClose} onToggleFullscreen={() => setFullScreen(!fullScreen)} />
+            </ResizablePanel>
+          </>
+        }
+
+      </ResizablePanelGroup>
+
+
     </>
   );
 } 

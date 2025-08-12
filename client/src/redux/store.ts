@@ -31,6 +31,8 @@ import ingressDetailsSlice from '@/data/Networks/Ingresses/IngressDetailsSlice';
 import ingressesListSlice from '@/data/Networks/Ingresses/IngressesListSlice';
 import jobDetailsSlice from '@/data/Workloads/Jobs/JobDetailsSlice';
 import jobsSlice from '@/data/Workloads/Jobs/JobsSlice';
+import kwAiModelsSlice from '@/data/KwClusters/kwAiModelsSlice';
+import kwAiToolsSlice from '@/data/KwAi/KwAiToolsSlice';
 import leaseDetailsSlice from '@/data/Clusters/Leases/LeaseDetailsSlice';
 import leasesListSlice from '@/data/Clusters/Leases/LeasesListSlice';
 import limitRangeDetailsSlice from '@/data/Configurations/LimitRange/LimitRangeDetailsSlice';
@@ -151,7 +153,9 @@ const store = configureStore({
     listTableNamesapce: listTableNamesapceSlice,
     customResourcesDefinitionDetails: customResourcesDefinitionDetailsSlice,
     clusterEvents: clusterEventsListSlice,
-    deploymentScale: DeploymentScaleSlice
+    deploymentScale: DeploymentScaleSlice,
+    kwAiModels: kwAiModelsSlice,
+    kwAiTools: kwAiToolsSlice
   },
 });
 

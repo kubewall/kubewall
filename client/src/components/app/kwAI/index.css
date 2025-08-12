@@ -1,0 +1,17 @@
+.chatbot-height {
+  height: calc(100vh - 49px)
+}
+
+.chatbot-details-height {
+  height: calc(100vh - 120px);
+  margin-top: 0.5rem
+}
+
+.chatbot-details-inner-container {
+  height: calc(100vh - 160px);
+}
+
+.chatbot-list-inner-container {
+  height: calc(100vh - 95px);
+}
+

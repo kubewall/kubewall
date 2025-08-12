@@ -87,6 +87,7 @@ var iconsList = map[string][]string{
 	"velero.io":              {"velero.io"},
 	"x-k8s.io":               {"x-k8s.io"},
 	"zalan.do":               {"zalan.do"},
+	"kubevirt.io":            {"kubevirt.io"},
 }
 
 func resolveIcons(input string) string {

@@ -17,6 +17,7 @@ A single binary to manage your multiple kubernetes clusters.
 * **Real-time cluster monitoring:** kubewall offers a rich, real-time interface that displays the current state of your Kubernetes clusters, allowing you to quickly identify and address issues.
 * **Cluster management:** kubewall enables you to manage multiple Kubernetes clusters from a single pane of glass, reducing the overhead of switching between different tools and interfaces.
 * **Detailed cluster insights:** kubewall provides comprehensive insights into your Kubernetes clusters, manifest info of your pods, services, config and others.
+* **AI-powered**: kubewall provides AI support to analyze cluster data, optimize configurations, and assist with troubleshooting — making kubernetes management smarter and faster.
 
 # :movie_camera: Intro
 
@@ -27,54 +28,54 @@ A single binary to manage your multiple kubernetes clusters.
 
 # :battery: Install
 
-#### Docker
+#### 🐳 Docker
 
 ```shell
 docker run -p 7080:7080 -v kubewall:/.kubewall ghcr.io/kubewall/kubewall:latest
 ```
 
-> To access local kind cluster you can use "--network host" docker flag.
+> 💡 To access local kind cluster you can use "--network host" docker flag.
 
-#### Helm
+#### ⛵ Helm
 
 ```bash
 helm install kubewall oci://ghcr.io/kubewall/charts/kubewall -n kubewall-system --create-namespace
 ```
 
-> With helm kubewall runs on port `8443` with self-signed certificates. [see charts](https://github.com/kubewall/kubewall/tree/main/charts/kubewall)
+> 🛡️ With helm kubewall runs on port `8443` with self-signed certificates. [View chart →](https://github.com/kubewall/kubewall/tree/main/charts/kubewall)
 
-#### Homebrew
+#### 🍺 Homebrew
 
 ```shell
 brew install kubewall/tap/kubewall
 ```
 
-#### Snap
+#### 🧃 Snap
 
 ```shell
 sudo snap install kubewall
 ```
 
-#### Arch Linux
+#### 🐧 Arch Linux
 
 ```shell
 yay -S kubewall-bin
 ```
 
-#### Winget 
+#### 🪟 Winget 
 
 ```shell
 winget install --id=kubewall.kubewall -e
 ```
 
-#### Scoop
+#### 📦 Scoop
 
 ```shell
 scoop bucket add kubewall https://github.com/kubewall/scoop-bucket.git
 scoop install kubewall
 ```
 
-#### Binary
+#### 📁 Binary
 
 **MacOS**
 [Binary](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Darwin_all.tar.gz) ( Multi-Architecture )
@@ -82,20 +83,20 @@ scoop install kubewall
 **Linux (Binaries)**
 [amd64](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Linux_x86_64.tar.gz) | [arm64](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Linux_arm64.tar.gz) | [i386](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Linux_i386.tar.gz)
 
-**Windows (Exe)**
+**Windows (exe)**
 [amd64](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Windows_x86_64.zip) | [arm64](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Windows_arm64.zip) | [i386](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Windows_i386.zip)
 
 **FreeBSD (Binaries)**
 [amd64](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Freebsd_x86_64.tar.gz) | [arm64](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Freebsd_arm64.tar.gz) | [i386](https://github.com/kubewall/kubewall/releases/latest/download/kubewall_Freebsd_i386.tar.gz)
 
-Manually
-Download the pre-compiled binaries from the [Release!](https://github.com/kubewall/kubewall/releases) page and copy them to the desired location or system path.
+**Manually**
+📂 Download the pre-compiled binaries from the [Release!](https://github.com/kubewall/kubewall/releases) page and copy them to the desired location or system path.
 
 > [!TIP] 
 > After installation, you can access **kubewall** at `http://localhost:7080`
 >
 >  If you're running it in a Kubernetes cluster or on an on-premises server, we recommend using **HTTPS**.
->  When not used over HTTP/2 SSE suffers from a limitation to the maximum number of open connections. [Mozzila](https://developer.mozilla.org/en-US/docs/Web/API/EventSource)⤴
+>  When not used over HTTP/2 SSE suffers from a limitation to the maximum number of open connections. [Mozilla](https://developer.mozilla.org/en-US/docs/Web/API/EventSource)⤴
 >
 >  You can start **kubewall** with **HTTPS** using the following command:
 >
@@ -127,13 +128,11 @@ Flags:
       --k8s-client-burst int   Maximum burst for throttle (default 200)
       --k8s-client-qps int     maximum QPS to the master from client (default 100)
       --keyFile string         absolute path to key file
+  -l, --listen string          IP and port to listen on (e.g., 127.0.0.1:7080 or :7080) (default "127.0.0.1:7080")
       --no-open-browser        Do not open the default browser
-  -p, --port string            port to listen on (default ":7080")
-
-Use "kubewall [command] --help" for more information about a command.
 ```
 
-### Setting up HTTPS locally
+### 🔐 Setting up HTTPS locally
 
 You can use your own certificates or create new local trusted certificates using [mkcert](https://github.com/FiloSottile/mkcert)⤴.
 
@@ -167,13 +166,23 @@ docker run -p 7080:7080 \
     --keyFile=/.certs/kubewall.test+3-key.pem
 ```
 
-### Custom Port
+### 🛰️ Custom Address/Port Configuration
 
-You can run **kubewall** on any port you like. by using `-p` or `--port` flag
+You can run kubewall on any IP and port combination using the `--listen` flag.
+This flag controls which interface and port the application binds to.
+
+🔓 **Bind to all interfaces**
 
 ```shell
-kubewall -p 7080
+kubewall --listen :7080
 ```
+
+🌐 **Bind to a specific network interface**
+
+```shell
+kubewall --listen 192.168.1.10:8080
+```
+> Useful when exposing kubewall to a known private subnet or container network.
 
 # :man_technologist: Developers
 
@@ -187,7 +196,7 @@ kubewall -p 7080
    <picture width="49%">
       <source media="(prefers-color-scheme: dark)" srcset="./media/Kshitij-Dark.png" width="49%">
       <source media="(prefers-color-scheme: light)" srcset="./media/Kshitij-Light.png" width="49%">
-      <img src="./media/Abhimanyu-Light.png" width="49%">
+      <img src="./media/Kshitij-Light.png" width="49%">
    </picture>
    <a target="_blank" href="https://github.com/abhimanyu003">
       <picture width="49%">
@@ -233,7 +242,7 @@ kubewall -p 7080
    </a>
 </p>
 
-# Contribution
+# 🤝 Contribution
 
 This project welcomes your PR and issues. For example, refactoring, adding features, correcting English, etc.
 
@@ -242,6 +251,6 @@ If you need any help, you can contact us from the above Developers sections.
 Thanks to all the people who already contributed and using the project.
 
 
-# License
+# ⚖️ License
 
 kubewall is licensed under [Apache License, Version 2.0](./LICENSE)

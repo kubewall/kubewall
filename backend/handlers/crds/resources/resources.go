@@ -91,7 +91,7 @@ func (h *UnstructuredHandler) Get(c echo.Context) error {
 		itemKey = c.Param("name")
 	}
 
-	streamKey := fmt.Sprintf("%s-%s-%s", h.BaseHandler.QueryConfig, h.BaseHandler.QueryCluster, itemKey)
+	streamKey := fmt.Sprintf("%s-%s-%s-%s", h.BaseHandler.QueryConfig, h.BaseHandler.QueryCluster, h.BaseHandler.Kind, itemKey)
 	streamKey = strings.ReplaceAll(streamKey, "/", "-")
 	go h.BaseHandler.Container.EventProcessor().AddEvent(streamKey, h.ProcessDetails(itemKey, streamKey))
 	h.BaseHandler.Container.SSE().ServeHTTP(streamKey, c.Response(), c.Request())

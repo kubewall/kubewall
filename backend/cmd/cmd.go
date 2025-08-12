@@ -2,8 +2,11 @@ package cmd
 
 import (
 	"fmt"
+	"net"
 	"os"
+	"strings"
 
+	"github.com/charmbracelet/log"
 	"github.com/kubewall/kubewall/backend/config"
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/routes"
@@ -16,7 +19,8 @@ import (
 func init() {
 	rootCmd.PersistentFlags().String("certFile", "", "absolute path to certificate file")
 	rootCmd.PersistentFlags().String("keyFile", "", "absolute path to key file")
-	rootCmd.PersistentFlags().StringP("port", "p", ":7080", "port to listen on")
+	rootCmd.PersistentFlags().StringP("port", "p", ":7080", "port to listen on [deprecated, use --listen instead]")
+	rootCmd.PersistentFlags().StringP("listen", "l", "localhost:7080", "IP and port to listen on (e.g., localhost:7080 or :7080)")
 	rootCmd.PersistentFlags().Int("k8s-client-qps", 100, "maximum QPS to the master from client")
 	rootCmd.PersistentFlags().Int("k8s-client-burst", 200, "Maximum burst for throttle")
 	rootCmd.PersistentFlags().Bool("no-open-browser", false, "Do not open the default browser")
@@ -49,18 +53,27 @@ func Serve(cmd *cobra.Command) error {
 	if err != nil {
 		return err
 	}
-
-	cfg := config.NewAppConfig(Version, k8sClientQPS, k9sClientBurst)
-	cfg.LoadAppConfig()
-
+	// Determine listen address
+	listenAddr, err := cmd.Flags().GetString("listen")
+	if err != nil {
+		return err
+	}
+	// Backward compatibility: fallback to --port if --listen is not set
 	port, err := cmd.Flags().GetString("port")
 	if err != nil {
 		return err
 	}
-	if port[0] != ':' {
-		port = ":" + port
+	if port != ":7080" {
+		log.Warn("Flag --port is deprecated, use --listen instead. This will be removed in a future release.")
+		switch {
+		case port == "":
+			listenAddr = "localhost:7080" // default
+		case port[0] == ':':
+			listenAddr = "localhost" + port
+		default:
+			listenAddr = "localhost:" + port
+		}
 	}
-
 	certFile, err := cmd.Flags().GetString("certFile")
 	if err != nil {
 		return err
@@ -74,37 +87,55 @@ func Serve(cmd *cobra.Command) error {
 		return err
 	}
 
+	isSecure := certFile != "" || keyFile != ""
+
+	cfg := config.NewAppConfig(Version, listenAddr, k8sClientQPS, k9sClientBurst, isSecure)
+	cfg.LoadAppConfig()
+
 	c := container.NewContainer(env, cfg)
 	e := echo.New()
 	startBanner()
 	routes.ConfigureRoutes(e, c)
 
-	isSecure := certFile != "" || keyFile != ""
-
 	if !noOpen {
-		openDefaultBrowser(isSecure, port)
+		openDefaultBrowser(c.Config().IsSecure, c.Config().ListenAddr)
 	}
 
-	if isSecure {
+	if !isSecure && !strings.Contains(c.Config().ListenAddr, "localhost") {
+		log.Warn("SSE may not work properly without TLS. Use --certFile and --keyFile for HTTPS, or bind to localhost with --listen localhost:7080 to avoid issues.")
+	}
+
+	if c.Config().IsSecure {
 		e.Pre(middleware.HTTPSRedirect())
-		if err = e.StartTLS(port, certFile, keyFile); err != nil {
+		if err = e.StartTLS(c.Config().ListenAddr, certFile, keyFile); err != nil {
 			return err
 		}
 		return nil
 	}
 
-	if err = e.Start(port); err != nil {
+	if err = e.Start(c.Config().ListenAddr); err != nil {
 		return err
 	}
 	return nil
 }
 
-func openDefaultBrowser(isSecure bool, port string) {
-	url := fmt.Sprintf("http://localhost%s", port)
-	if isSecure {
-		url = fmt.Sprintf("https://localhost%s", port)
+func openDefaultBrowser(isSecure bool, listenAddr string) {
+	// Split IP and Port
+	host, port, err := net.SplitHostPort(listenAddr)
+	if err != nil {
+		// fallback if listenAddr is invalid
+		host = "localhost"
+		port = "7080"
 	}
-	// we are going to ignore error in this case
+	// Default to localhost if no IP is provided (e.g., ":7080")
+	if host == "" || host == "::" {
+		host = "localhost"
+	}
+	scheme := "http"
+	if isSecure {
+		scheme = "https"
+	}
+	url := fmt.Sprintf("%s://%s:%s", scheme, host, port)
 	// this will allow container apps to run
 	browser.OpenURL(url)
 }

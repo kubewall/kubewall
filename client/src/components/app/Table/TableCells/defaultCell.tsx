@@ -6,10 +6,10 @@ type DefaultCellProps = {
 };
 
 
-const DefaultCell = memo(function ({ cellValue, truncate=true }: DefaultCellProps) {
+const DefaultCell = memo(function ({ cellValue, truncate = true }: DefaultCellProps) {
   return (
     <div className="flex">
-      <span title={cellValue} className={`max-w-[750px] text-sm text-gray-700 dark:text-gray-400 px-3 ${truncate && 'truncate'}`}>
+      <span title={cellValue} className={`max-w-[750px] text-sm text-gray-700 dark:text-gray-100 px-3 ${truncate && 'truncate'}`}>
         {cellValue}
       </span>
     </div>

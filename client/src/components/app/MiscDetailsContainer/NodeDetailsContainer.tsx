@@ -78,7 +78,7 @@ const NodeDetailsContainer = memo(function () {
         </Card>
       }
       {
-        conditions && <Card className="mt-4 shadow-none rounded-lg">
+        conditions && <Card className="mt-2 shadow-none rounded-lg">
           <CardHeader className="p-4 ">
             <CardTitle className="text-sm font-medium">Conditions <span className="text-xs">({conditions?.length})</span></CardTitle>
           </CardHeader>

@@ -1,6 +1,3 @@
-import { memo, useEffect, useState } from "react";
-import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   CommandDialog,
   CommandEmpty,
@@ -11,15 +8,20 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "@/components/ui/command";
-import { CubeIcon, EnterIcon } from "@radix-ui/react-icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { memo, useEffect, useState } from "react";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
+
+import { BoxIcon } from "lucide-react";
+import { Kbd } from "@/components/ui/kbd";
 import { NAVIGATION_ROUTE } from "@/constants";
-import { resetListTableFilter } from "@/data/Misc/ListTableFilterSlice";
-import { useSidebar } from "@/components/ui/sidebar";
 import { RootState } from "@/redux/store";
 import { SearchIcon } from "lucide-react";
-import { Kbd } from "@/components/ui/kbd";
-import { useIsMac } from "@/hooks/use-is-mac"
+import { SvgRenderer } from '../../Common/SvgRenderer';
+import { resetListTableFilter } from "@/data/Misc/ListTableFilterSlice";
+import { useIsMac } from "@/hooks/use-is-mac";
+import { useSidebar } from "@/components/ui/sidebar";
 
 type SidebarNavigatorProps = {
   setOpenMenus: (value: React.SetStateAction<Record<string, boolean>>) => void;
@@ -36,7 +38,7 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
   const queryParams = new URLSearchParams(router.location.search);
   const clusterName = queryParams.get("cluster") || "";
   const { open: isSidebarOpen, openMobile } = useSidebar();
-  const isMac = useIsMac()
+  const isMac = useIsMac();
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -84,7 +86,7 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
           <span>Open...</span>
           <div className="absolute right-1.5 hidden gap-1 sm:flex">
             <Kbd>{isMac ? "⌘" : "Ctrl"}</Kbd>
-            <Kbd square>k</Kbd>
+            <Kbd square>K</Kbd>
           </div>
         </button >
       ) : (
@@ -95,9 +97,7 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
             </div>
           </TooltipTrigger>
           <TooltipContent side="right" align="center">
-            Open...
-            <Kbd>{isMac ? "⌘" : "Ctrl"}</Kbd>
-            <Kbd square>k</Kbd>
+            Open... {isMac ? "⌘" : "Ctrl"} K
           </TooltipContent>
         </Tooltip>
       )}
@@ -115,10 +115,10 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
                   className="group cursor-pointer"
                   onSelect={() => onSelectResources(routeValue, route)}
                 >
-                  <CubeIcon className="mr-2 h-4 w-4" />
+                  <BoxIcon className="mr-2 h-4 w-4" />
                   <span>{name}</span>
                   <CommandShortcut className="invisible group-aria-[selected=true]:visible">
-                    <EnterIcon />
+                    <Kbd square>↵</Kbd>
                   </CommandShortcut>
                 </CommandItem>
               ))}
@@ -133,13 +133,18 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
                   className="group cursor-pointer"
                   onSelect={() => onSelectCustomResources(customResource.route, customResourceGroup)}
                 >
-                  <CubeIcon className="mr-2 h-4 w-4" />
+                  <div className="mr-2 flex h-4 w-4 items-center justify-center">
+                    <SvgRenderer
+                      name={customResourcesNavigation[customResourceGroup].resources[0].icon}
+                      minWidth={16}
+                    />
+                  </div>
                   <span>
                     {customResource.name}{" "}
                     <span className="text-xs text-muted-foreground">({customResourceGroup})</span>
                   </span>
                   <CommandShortcut className="invisible group-aria-[selected=true]:visible">
-                    <EnterIcon />
+                    <Kbd square>↵</Kbd>
                   </CommandShortcut>
                 </CommandItem>
               ))
@@ -148,7 +153,7 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
 
           <CommandSeparator />
         </CommandList>
-      </CommandDialog>
+      </CommandDialog >
     </>
   );
 });

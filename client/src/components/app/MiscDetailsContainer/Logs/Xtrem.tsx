@@ -19,9 +19,10 @@ type XtermProp = {
   searchAddonRef: MutableRefObject<SearchAddon | null>
 };
 
-const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef,updateLogs }: XtermProp) => {
+const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef, updateLogs }: XtermProp) => {
   const dispatch = useAppDispatch();
   const terminalRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   const fitAddon = useRef<FitAddon | null>(null);
   const [showScrollDown, setShowScrollDown] = useState(false);
@@ -30,7 +31,8 @@ const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef,updateLogs }: 
     const newContainer = `-------------------${containerNameProp || 'All Containers'}-------------------`;
     xterm?.current?.writeln(newContainer);
     updateLogs({log: newContainer} as PodSocketResponse);
-  },[containerNameProp]);
+  }, [containerNameProp]);
+
   const scrollToBottom = () => {
     const xtermContainer = document.querySelector('.xterm-viewport');
     if (xtermContainer) {
@@ -72,35 +74,49 @@ const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef,updateLogs }: 
       // Resize the terminal on window resize
       const handleResize = () => fitAddon.current?.fit();
       window.addEventListener('resize', handleResize);
+
+      // Add ResizeObserver to handle container resize (for Resizable component)
+      const resizeObserver = new ResizeObserver(() => {
+        // Use requestAnimationFrame to ensure resize happens after DOM updates
+        requestAnimationFrame(() => {
+          fitAddon.current?.fit();
+        });
+      });
+      
+      if (containerRef.current) {
+        resizeObserver.observe(containerRef.current);
+      }
+
       const xtermContainer = document.querySelector('.xterm-viewport');
 
       const checkIfBottom = () => {
         const xtermContainer = document.querySelector('.xterm-viewport');
-        if(xtermContainer && xtermContainer?.clientHeight + xtermContainer?.scrollTop < xtermContainer.scrollHeight) {
+        if (xtermContainer && xtermContainer?.clientHeight + xtermContainer?.scrollTop < xtermContainer.scrollHeight) {
           setShowScrollDown(true);
         } else {
           setShowScrollDown(false);
         }
       };
       xtermContainer?.addEventListener('scroll', checkIfBottom);
+      
       return () => {
         xterm.current?.dispose();
         window.removeEventListener('resize', handleResize);
+        resizeObserver.disconnect();
         xtermContainer?.removeEventListener('scroll', checkIfBottom);
-
         dispatch(clearLogs());
       };
     }
   }, []);
 
   return (
-    <div className="w-full h-full">
+    <div ref={containerRef} className="w-full h-full relative">
       {
         showScrollDown &&
         <Button
-          variant="default"
+          variant="secondary"
           size="icon"
-          className='absolute bottom-7 right-0 mt-1 mr-9 rounded z-10 border'
+          className='absolute bottom-10 right-0 mt-1 mr-2 rounded z-10 border'
           onClick={scrollToBottom}
         >  <ChevronsDown className="h-4 w-4" />
         </Button>

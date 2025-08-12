@@ -13,10 +13,10 @@ const MultiValueCell = memo(function ({ cellValue, truncate = true }: MultiValue
         cellValue.split(',').map((value) => {
           return (
             <Fragment key={value}>
-            <span title={value} className={`max-w-[750px] text-sm text-gray-700 dark:text-gray-400 ${truncate && 'truncate'}`}>
-              {value}
-            </span>
-            <br />
+              <span title={value} className={`max-w-[750px] text-sm text-gray-700 dark:text-gray-100 ${truncate && 'truncate'}`}>
+                {value}
+              </span>
+              <br />
             </Fragment>
           );
         })

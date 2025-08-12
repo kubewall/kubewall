@@ -29,6 +29,8 @@ type KubeConfig struct {
 
 type AppConfig struct {
 	Version    string                     `json:"version"`
+	IsSecure   bool                       `json:"isSecure"`
+	ListenAddr string                     `json:"listenAddr"`
 	KubeConfig map[string]*KubeConfigInfo `json:"kubeConfigs"`
 	mu         sync.Mutex
 }
@@ -42,11 +44,13 @@ func NewEnv() *Env {
 	return &env
 }
 
-func NewAppConfig(version string, k8sClientQPS, k8sClientBurst int) *AppConfig {
+func NewAppConfig(version, listenAddr string, k8sClientQPS, k8sClientBurst int, isSecure bool) *AppConfig {
 	K8SQPS = k8sClientQPS
 	K8SBURST = k8sClientBurst
 	return &AppConfig{
 		Version:    version,
+		IsSecure:   isSecure,
+		ListenAddr: listenAddr,
 		KubeConfig: make(map[string]*KubeConfigInfo),
 	}
 }

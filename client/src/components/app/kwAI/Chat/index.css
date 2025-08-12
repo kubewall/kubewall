@@ -1,0 +1,7 @@
+.provider-list span {
+  max-width: 16rem;
+}
+
+.provider-list span:nth-child(2) {
+  display: none;
+}

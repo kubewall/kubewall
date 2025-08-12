@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 )
 
 type Endpoint struct {
@@ -26,11 +26,11 @@ type Subsets struct {
 	Ports     []string `json:"ports"`
 }
 
-func TransformEndpoint(pvs []v1.Endpoints) []Endpoint {
+func TransformEndpoint(pvs []discoveryv1.EndpointSlice) []Endpoint {
 	list := make([]Endpoint, 0)
 
 	for _, d := range pvs {
-		list = append(list, TransformEndpointItem(d))
+		list = append(list, TransformEndpointSliceItem(d))
 	}
 
 	sort.Slice(list, func(i, j int) bool {
@@ -40,22 +40,31 @@ func TransformEndpoint(pvs []v1.Endpoints) []Endpoint {
 	return list
 }
 
-func TransformEndpointItem(item v1.Endpoints) Endpoint {
+func TransformEndpointSliceItem(item discoveryv1.EndpointSlice) Endpoint {
 	ports := make([]string, 0)
 	ips := make([]string, 0)
 
-	for _, i := range item.Subsets {
-		for _, v := range i.Addresses {
-			ips = append(ips, v.IP)
+	for _, ep := range item.Endpoints {
+		ips = append(ips, ep.Addresses...)
+	}
+
+	for _, p := range item.Ports {
+		portNum := "unknown"
+		protocol := "unknown"
+
+		if p.Port != nil {
+			portNum = strconv.Itoa(int(*p.Port))
 		}
-		for _, p := range i.Ports {
-			if len(p.Name) > 0 {
-				ports = append(ports, fmt.Sprintf("%s/%s (%s)", strconv.Itoa(int(p.Port)), p.Protocol, p.Name))
-			} else {
-				ports = append(ports, fmt.Sprintf("%s/%s", strconv.Itoa(int(p.Port)), p.Protocol))
-			}
+		if p.Protocol != nil {
+			protocol = string(*p.Protocol)
+		}
+		if p.Name != nil && *p.Name != "" {
+			ports = append(ports, fmt.Sprintf("%s/%s (%s)", portNum, protocol, *p.Name))
+		} else {
+			ports = append(ports, fmt.Sprintf("%s/%s", portNum, protocol))
 		}
 	}
+
 	return Endpoint{
 		UID:       item.GetUID(),
 		Namespace: item.GetNamespace(),

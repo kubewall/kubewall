@@ -35,6 +35,7 @@ const KUBECONFIGS_BEARER_URL = 'kubeconfigs-bearer';
 const KUBECONFIGS_CERTIFICATE_URL = 'kubeconfigs-certificate';
 const KUBECONFIGS_URL = 'kubeconfigs';
 const NODES_ENDPOINT = 'nodes';
+const MCP_SERVER_ENDPOINT = '/mcp/proxy';
 
 
 
@@ -75,5 +76,6 @@ export {
   KUBECONFIGS_URL,
   KUBECONFIGS_BEARER_URL,
   KUBECONFIGS_CERTIFICATE_URL,
-  NODES_ENDPOINT
+  NODES_ENDPOINT,
+  MCP_SERVER_ENDPOINT
 };

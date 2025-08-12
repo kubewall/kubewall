@@ -3,14 +3,15 @@ package app
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/kubewall/kubewall/backend/container"
-	"github.com/labstack/echo/v4"
-	"k8s.io/client-go/tools/clientcmd"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/google/uuid"
+	"github.com/kubewall/kubewall/backend/container"
+	"github.com/labstack/echo/v4"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 type AppConfigHandler struct {
@@ -22,125 +23,127 @@ func NewAppConfigHandler(container container.Container) *AppConfigHandler {
 }
 
 func (h *AppConfigHandler) Get(c echo.Context) error {
-	return c.JSON(200, h.container.Config())
+	return c.JSON(http.StatusOK, h.container.Config())
 }
 
 func (h *AppConfigHandler) Reload(c echo.Context) error {
-	h.container.Cache().Clear()
+	h.container.Cache().InvalidateAll()
 	h.container.Config().ReloadConfig()
 	return c.Redirect(http.StatusTemporaryRedirect, "/")
 }
 
 func (h *AppConfigHandler) Post(c echo.Context) error {
-	file := c.FormValue("file")
-
-	if len(file) == 0 {
-		return echo.NewHTTPError(http.StatusBadRequest, "file is empty")
+	kubeconfig := c.FormValue("file")
+	if strings.TrimSpace(kubeconfig) == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "kubeconfig is empty")
 	}
 
-	uuidStr := uuid.New().String()
-	path := filepath.Join(homeDir(), ".kubewall", "kubeconfigs", uuidStr)
+	uuidStr, path := generateConfigPath()
 
-	if err := os.WriteFile(path, []byte(file), 0666); err != nil {
-		return echo.NewHTTPError(500, "Failed to write kubeconfig").SetInternal(err)
+	if err := writeKubeconfigToFile(path, kubeconfig); err != nil {
+		return err
 	}
-
-	if err := validateKubeConfig(path); err != nil {
+	if err := validateKubeconfigFile(path); err != nil {
 		defer os.Remove(path)
-		return echo.NewHTTPError(400, "Invalid kubeconfig").SetInternal(err)
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid kubeconfig").SetInternal(err)
 	}
 
 	h.container.Config().SaveKubeConfig(uuidStr)
-
-	return c.JSON(200, echo.Map{
-		"success": true,
-	})
+	return c.JSON(http.StatusOK, echo.Map{"success": true})
 }
 
 func (h *AppConfigHandler) PostBearer(c echo.Context) error {
 	serverIP := strings.TrimSpace(c.FormValue("serverIP"))
 	name := strings.TrimSpace(c.FormValue("name"))
 	token := strings.TrimSpace(c.FormValue("token"))
+
 	if serverIP == "" || name == "" || token == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "serverIP or name or token is empty")
+		return echo.NewHTTPError(http.StatusBadRequest, "Missing required fields: serverIP, name, or token")
 	}
 
-	uuidStr := uuid.New().String()
-	path := filepath.Join(homeDir(), ".kubewall", "kubeconfigs", uuidStr)
+	kubeconfig := generateBearerConfig(serverIP, name, token)
+	uuidStr, path := generateConfigPath()
 
-	config := createBearerConfig(
-		serverIP,
-		name,
-		token,
-	)
-
-	if err := os.WriteFile(path, []byte(config), 0666); err != nil {
-		return echo.NewHTTPError(500, "Failed to write kubeconfig").SetInternal(err)
+	if err := writeKubeconfigToFile(path, kubeconfig); err != nil {
+		return err
+	}
+	if err := validateKubeconfigFile(path); err != nil {
+		defer os.Remove(path)
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid kubeconfig").SetInternal(err)
 	}
 
 	h.container.Config().SaveKubeConfig(uuidStr)
-
-	return c.JSON(200, echo.Map{
-		"success": true,
-	})
+	return c.JSON(http.StatusOK, echo.Map{"success": true})
 }
 
 func (h *AppConfigHandler) PostCertificate(c echo.Context) error {
 	serverIP := strings.TrimSpace(c.FormValue("serverIP"))
 	name := strings.TrimSpace(c.FormValue("name"))
-	clientCertData := base64.StdEncoding.EncodeToString([]byte(strings.TrimSpace(c.FormValue("clientCertData"))))
-	clientKeyData := base64.StdEncoding.EncodeToString([]byte(strings.TrimSpace(c.FormValue("clientKeyData"))))
+	cert := strings.TrimSpace(c.FormValue("clientCertData"))
+	key := strings.TrimSpace(c.FormValue("clientKeyData"))
 
-	if serverIP == "" || name == "" || clientCertData == "" || clientKeyData == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "serverIP or name or clientCertData  or clientKeyData is empty")
+	if serverIP == "" || name == "" || cert == "" || key == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "Missing required fields: serverIP, name, clientCertData, or clientKeyData")
 	}
 
-	uuidStr := uuid.New().String()
-	path := filepath.Join(homeDir(), ".kubewall", "kubeconfigs", uuidStr)
+	encodedCert := base64.StdEncoding.EncodeToString([]byte(cert))
+	encodedKey := base64.StdEncoding.EncodeToString([]byte(key))
+	kubeconfig := generateCertificateConfig(serverIP, name, encodedCert, encodedKey)
 
-	config := createCertificateConfig(
-		serverIP,
-		name,
-		clientCertData,
-		clientKeyData,
-	)
+	uuidStr, path := generateConfigPath()
+	if err := writeKubeconfigToFile(path, kubeconfig); err != nil {
+		return err
+	}
 
-	if err := os.WriteFile(path, []byte(config), 0666); err != nil {
-		return echo.NewHTTPError(500, "Failed to write kubeconfig").SetInternal(err)
+	if err := validateKubeconfigFile(path); err != nil {
+		defer os.Remove(path)
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid kubeconfig").SetInternal(err)
 	}
 
 	h.container.Config().SaveKubeConfig(uuidStr)
-
-	return c.JSON(200, echo.Map{
-		"success": true,
-	})
+	return c.JSON(http.StatusOK, echo.Map{"success": true})
 }
 
 func (h *AppConfigHandler) Delete(c echo.Context) error {
 	if err := h.container.Config().RemoveKubeConfig(c.Param("uuid")); err != nil {
-		return echo.NewHTTPError(500, "Failed to remove kubeconfig").SetInternal(err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to remove kubeconfig").SetInternal(err)
 	}
-	return c.JSON(http.StatusOK, echo.Map{
-		"success": true,
-	})
+	return c.JSON(http.StatusOK, echo.Map{"success": true})
 }
 
+// ---------- Helper Functions Below ----------
 func homeDir() string {
 	if h := os.Getenv("HOME"); h != "" {
 		return h
 	}
-	return os.Getenv("USERPROFILE")
+	return os.Getenv("USERPROFILE") // For Windows
 }
 
-func validateKubeConfig(path string) error {
+func generateConfigPath() (uuidStr string, fullPath string) {
+	uuidStr = uuid.New().String()
+	fullPath = filepath.Join(homeDir(), ".kubewall", "kubeconfigs", uuidStr)
+	return
+}
+
+func writeKubeconfigToFile(path, content string) error {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create directory").SetInternal(err)
+	}
+	if err := os.WriteFile(path, []byte(content), 0600); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to write kubeconfig").SetInternal(err)
+	}
+	return nil
+}
+
+func validateKubeconfigFile(path string) error {
 	_, err := clientcmd.LoadFromFile(path)
 	return err
 }
 
-func createBearerConfig(serverIP, name, token string) string {
+func generateBearerConfig(serverIP, name, token string) string {
 	return fmt.Sprintf(`apiVersion: v1
 kind: Config
-preferences: {}
 clusters:
 - cluster:
     server: %s
@@ -158,10 +161,9 @@ users:
 `, serverIP, name, name, name, name, name, name, token)
 }
 
-func createCertificateConfig(serverIP, name, clientCertData, clientKeyData string) string {
+func generateCertificateConfig(serverIP, name, certData, keyData string) string {
 	return fmt.Sprintf(`apiVersion: v1
 kind: Config
-preferences: {}
 clusters:
 - cluster:
     certificate-authority-data: %s
@@ -178,5 +180,5 @@ users:
   user:
     client-certificate-data: %s
     client-key-data: %s
-`, clientCertData, serverIP, name, name, name, name, name, name, clientCertData, clientKeyData)
+`, certData, serverIP, name, name, name, name, name, name, certData, keyData)
 }

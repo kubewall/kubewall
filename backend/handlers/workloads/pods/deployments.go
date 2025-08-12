@@ -3,8 +3,9 @@ package pods
 import (
 	"encoding/json"
 	"fmt"
-	appV1 "k8s.io/api/apps/v1"
 	"strings"
+
+	appV1 "k8s.io/api/apps/v1"
 
 	"github.com/labstack/echo/v4"
 	"github.com/r3labs/sse/v2"
@@ -46,7 +47,7 @@ func (h *PodsHandler) FindPodDeploymentOwner(c echo.Context, pod v1.Pod) string 
 	for _, owner := range pod.OwnerReferences {
 		if owner.Kind == "ReplicaSet" {
 			item, exists, err := h.replicasetHandler.BaseHandler.Informer.GetStore().GetByKey(fmt.Sprintf("%s/%s", pod.GetNamespace(), owner.Name))
-			if err != nil || exists == false {
+			if err != nil || !exists {
 				return ""
 			}
 			rs := item.(*appV1.ReplicaSet)

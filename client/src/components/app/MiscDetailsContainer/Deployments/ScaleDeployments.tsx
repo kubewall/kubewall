@@ -1,4 +1,5 @@
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ScaleIcon, XIcon } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { deploymentScale, resetDeploymentScale } from "@/data/Workloads/Deployments/DeploymentScaleSlice";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
@@ -8,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader } from "../../Loader";
 import { RootState } from "@/redux/store";
-import { SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
 type ScaleDeploymentsProps = {
@@ -96,14 +96,13 @@ const ScaleDeployments = ({ resourcename, queryParams }: ScaleDeploymentsProps) 
                 disabled={loading}
                 variant='ghost'
                 size='icon'
-                className='right-0 mt-1 rounded z-10 border w-20 mr-1'
+                className='z-10 border w-20 mr-1 h-8'
                 onClick={() => setModalOpen(true)}
-
               >
                 {
                   loading ?
                     <Loader className='w-4 h-4 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600' /> :
-                    <SlidersHorizontal className='h-4 w-4' />
+                    <ScaleIcon className='h-4 w-4' />
                 }
                 <span className='text-xs'>Scale</span>
               </Button>
@@ -117,52 +116,47 @@ const ScaleDeployments = ({ resourcename, queryParams }: ScaleDeploymentsProps) 
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Scale Deployment</DialogTitle>
-          <DialogDescription>
-            {/* Are you sure you want to delete ? */}
-            <div className="mt-2">
-              <div className="flex flex-col gap-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">Current replicas:</span>
-                  <span className="px-2 py-1 rounded-md bg-muted text-muted-foreground">
-                    {deploymentDetails.status.replicas}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <label htmlFor="desired-replicas" className="font-medium">
-                    Desired replicas:
-                  </label>
-                  <Input
-                    id="desired-replicas"
-                    type="number"
-                    min="0"
-                    className="w-50 shadow-none h-7 text-sm rounded-sm px-1"
-                    placeholder="e.g. 5"
-                    onChange={handleChange}
-                    value={value}
-                  />
-                </div>
-              </div>
-            </div>
-
+          <DialogDescription className="text-sm">
+            Update the number of replicas for the deployment.
           </DialogDescription>
         </DialogHeader>
+        <div className="mt-3 space-y-4 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-foreground">Current Replicas:</span>
+            <span className="px-2 py-1 rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+              {deploymentDetails.status.replicas}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <label htmlFor="desired-replicas" className="w-32 font-medium text-foreground">
+              Desired Replicas:
+            </label>
+            <Input
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && value) {
+                  e.preventDefault();
+                  updateDeploymentScale();
+                }
+              }}
+              id="desired-replicas"
+              type="number"
+              min="0"
+              className="flex-1 rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+              placeholder="e.g. 5"
+              onChange={handleChange}
+              value={value}
+            />
+          </div>
+        </div>
 
-        <DialogFooter className="sm:justify-center">
-          <Button
-            className="md:w-2/4 w-full"
-            type="submit"
-            onClick={resetDialog}
-          >Cancel</Button>
-          <Button
-            onClick={updateDeploymentScale}
-            className="md:w-2/4 w-full"
-            type="submit"
-            disabled={!value}
-          >Update</Button>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="outline"><XIcon className="h-4 w-4" />Cancel</Button>
+          </DialogClose>
+          <Button type="submit" onClick={updateDeploymentScale}><ScaleIcon className="h-4 w-4" />Scale</Button>
         </DialogFooter>
       </DialogContent>
-    </Dialog>
+    </Dialog >
   );
 };
 

@@ -82,11 +82,23 @@ module.exports = {
 					to: {
 						height: 0
 					}
-				}
+				},
+				rotate: {
+					"0%, 100%": { transform: "rotate(0deg) scale(10)" },
+					"50%": { transform: "rotate(-360deg) scale(10)" },
+				},
+				flashorange: {
+         '0%': { color: 'inherit' },
+          '10%': { color: '#f97316' }, // Tailwind orange-500 hex
+          '66.6%': { color: '#f97316' },
+          '100%': { color: 'inherit' },
+        },
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				rotate: "rotate 10s linear infinite",
+				flashorange: 'flashorange 1.5s ease-in-out infinite',
 			}
 		}
 	},

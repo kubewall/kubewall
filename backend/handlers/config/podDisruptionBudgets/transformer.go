@@ -57,8 +57,8 @@ func TransformPodDisruptionBudgetItem(item policyV1.PodDisruptionBudget) PodDisr
 		Namespace: item.GetNamespace(),
 		Name:      item.GetName(),
 		Spec: Spec{
-			MinAvailable:   fmt.Sprintf("%s", minAvailable),
-			MaxUnavailable: fmt.Sprintf("%s", maxUnavailable),
+			MinAvailable:   minAvailable,
+			MaxUnavailable: maxUnavailable,
 		},
 		Status: Status{
 			CurrentHealthy: item.Status.CurrentHealthy,

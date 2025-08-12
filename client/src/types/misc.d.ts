@@ -69,19 +69,19 @@ type CustomResources = {
   scope: string,
   queryParam: string,
   spec: {
-      conversion: {
-          strategy: string
-      },
-      group: string,
-      icon: string,
-      names: {
-          kind: string,
-          listKind: string,
-          plural: string,
-          shortNames: string | null,
-          singular: string
-      },
-      scope: string
+    conversion: {
+      strategy: string
+    },
+    group: string,
+    icon: string,
+    names: {
+      kind: string,
+      listKind: string,
+      plural: string,
+      shortNames: string | null,
+      singular: string
+    },
+    scope: string
   },
   versions: number,
   additionalPrinterColumns: CustomResourcesPrinterColumns[];
@@ -105,8 +105,8 @@ type KeyValue = {
 };
 
 type KeyValueNull = ({
-  [key: string]:  string | number | null
-}| null);
+  [key: string]: string | number | null
+} | null);
 
 type DetailsCards = {
   label: string;
@@ -125,8 +125,19 @@ type CommonSearchParams = {
   config: string;
 } & kwListSearch & kwDetailsSearch;
 
+type Combobox = {
+  setValue: (value: string) => void;
+  value: string;
+  placeholder: string;
+  data: {
+    label: string;
+    value: string;
+  }[];
+};
+
 export {
   ClusterDetails,
+  Combobox,
   CustomResources,
   CustomResoucesListSearch,
   CustomResourcesNavigationKeys,

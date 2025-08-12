@@ -39,7 +39,7 @@ const getNamespaceDetailsConfig = (details: NamespaceDetails, loading: boolean) 
 });
 
 const getLeaseDetailsConfig = (details: LeaseDetails, loading: boolean) => ({
-  subHeading: !details.metadata ? '' : details.metadata.name,
+  subHeading: !details.metadata ? '' : `${details.metadata.namespace}/${details.metadata.name}`,
   detailCard: [
     { label: 'Name', value: defaultOrValue(details.metadata.name) },
     { label: 'Resource Version', value: defaultOrValue(details.metadata.resourceVersion) },
@@ -191,8 +191,8 @@ const getJobsDetailsConfig = (details: JobDetails, loading: boolean) => ({
     { label: 'Active', value: defaultOrValue(details.status.active) },
     { label: 'Completed Indexes', value: defaultOrValue(details.status.completedIndexes) },
     { label: 'Failed', value: defaultOrValue(details.status.failed) },
-    {label: 'Failed Indexes', value: defaultOrValue(details.status.failedIndexes)},
-    {label: 'Ready',value: defaultOrValue(details.status.ready)},
+    { label: 'Failed Indexes', value: defaultOrValue(details.status.failedIndexes) },
+    { label: 'Ready', value: defaultOrValue(details.status.ready) },
     { label: 'Parallelism', value: defaultOrValue(details.spec.parallelism) },
     { label: 'Backoff Limit', value: defaultOrValue(details.spec.backoffLimit) },
     { label: 'Completions', value: defaultOrValue(details.spec.completions) },
@@ -224,15 +224,15 @@ const getCronJobsDetailsConfig = (details: CronJobDetails, loading: boolean) => 
 const getSecretDetailsConfig = (details: SecretDetails, loading: boolean) => ({
   subHeading: !details.metadata ? '' : `${details.metadata.namespace}/${details.metadata.name}`,
   detailCard: [
-    {label: 'Name',value: defaultOrValue(details.metadata.name) },
-    {label: 'Resource Version',value: defaultOrValue(details.metadata.resourceVersion) },
-    {label: 'Namespace',value: defaultOrValue(details.metadata.namespace) },
-    {label: 'UID',value: defaultOrValue(details.metadata.uid) },
-    {label: 'Age',value: defaultOrValue(details.metadata.creationTimestamp) },
-    {label: 'Type',value: defaultOrValue(details.type) },
-    {label: 'Immutable',value: defaultOrValue(typeof(details.immutable) === 'boolean' ? String(details.immutable) : details.immutable) },
-    {label: 'Generate Name',value: defaultOrValue(details.metadata.generateName) },
-    {label: 'Generation',value: defaultOrValue(details.metadata.generation) }
+    { label: 'Name', value: defaultOrValue(details.metadata.name) },
+    { label: 'Resource Version', value: defaultOrValue(details.metadata.resourceVersion) },
+    { label: 'Namespace', value: defaultOrValue(details.metadata.namespace) },
+    { label: 'UID', value: defaultOrValue(details.metadata.uid) },
+    { label: 'Age', value: defaultOrValue(details.metadata.creationTimestamp) },
+    { label: 'Type', value: defaultOrValue(details.type) },
+    { label: 'Immutable', value: defaultOrValue(typeof (details.immutable) === 'boolean' ? String(details.immutable) : details.immutable) },
+    { label: 'Generate Name', value: defaultOrValue(details.metadata.generateName) },
+    { label: 'Generation', value: defaultOrValue(details.metadata.generation) }
   ],
   loading,
   ...getCommonCardConfig(details.metadata.annotations, details.metadata.labels)
@@ -241,14 +241,14 @@ const getSecretDetailsConfig = (details: SecretDetails, loading: boolean) => ({
 const getConfigMapDetailsConfig = (details: ConfigMapDetails, loading: boolean) => ({
   subHeading: !details.metadata ? '' : `${details.metadata.namespace}/${details.metadata.name}`,
   detailCard: [
-    {label: 'Name',value: defaultOrValue(details.metadata.name) },
-    {label: 'Resource Version',value: defaultOrValue(details.metadata.resourceVersion) },
-    {label: 'Namespace',value: defaultOrValue(details.metadata.namespace) },
-    {label: 'UID',value: defaultOrValue(details.metadata.uid) },
-    {label: 'Age',value: defaultOrValue(details.metadata.creationTimestamp) },
-    {label: 'Immutable',value: defaultOrValue(typeof(details.immutable) === 'boolean' ? String(details.immutable) : details.immutable) },
-    {label: 'Generate Name',value: defaultOrValue(details.metadata.generateName) },
-    {label: 'Generation',value: defaultOrValue(details.metadata.generation) }
+    { label: 'Name', value: defaultOrValue(details.metadata.name) },
+    { label: 'Resource Version', value: defaultOrValue(details.metadata.resourceVersion) },
+    { label: 'Namespace', value: defaultOrValue(details.metadata.namespace) },
+    { label: 'UID', value: defaultOrValue(details.metadata.uid) },
+    { label: 'Age', value: defaultOrValue(details.metadata.creationTimestamp) },
+    { label: 'Immutable', value: defaultOrValue(typeof (details.immutable) === 'boolean' ? String(details.immutable) : details.immutable) },
+    { label: 'Generate Name', value: defaultOrValue(details.metadata.generateName) },
+    { label: 'Generation', value: defaultOrValue(details.metadata.generation) }
   ],
   loading,
   ...getCommonCardConfig(details.metadata.annotations, details.metadata.labels)
@@ -353,14 +353,14 @@ const getPodDisruptionBudgetDetailsConfig = (details: PodDisruptionBudgetDetails
 const getServiceAccountDetailsConfig = (details: ServiceAccountDetails, loading: boolean) => ({
   subHeading: !details.metadata ? '' : `${details.metadata.namespace}/${details.metadata.name}`,
   detailCard: [
-    {label: 'Name',value: defaultOrValue(details.metadata.name) },
-    {label: 'Resource Version',value: defaultOrValue(details.metadata.resourceVersion) },
-    {label: 'Namespace',value: defaultOrValue(details.metadata.namespace) },
-    {label: 'UID',value: defaultOrValue(details.metadata.uid) },
-    {label: 'Age',value: defaultOrValue(details.metadata.creationTimestamp) },
-    {label: 'AutoMount Service Account Token',value: defaultOrValue(typeof(details.automountServiceAccountToken) === 'boolean' ? String(details.automountServiceAccountToken) : details.automountServiceAccountToken) },
-    {label: 'Generate Name',value: defaultOrValue(details.metadata.generateName) },
-    {label: 'Generation',value: defaultOrValue(details.metadata.generation) }
+    { label: 'Name', value: defaultOrValue(details.metadata.name) },
+    { label: 'Resource Version', value: defaultOrValue(details.metadata.resourceVersion) },
+    { label: 'Namespace', value: defaultOrValue(details.metadata.namespace) },
+    { label: 'UID', value: defaultOrValue(details.metadata.uid) },
+    { label: 'Age', value: defaultOrValue(details.metadata.creationTimestamp) },
+    { label: 'AutoMount Service Account Token', value: defaultOrValue(typeof (details.automountServiceAccountToken) === 'boolean' ? String(details.automountServiceAccountToken) : details.automountServiceAccountToken) },
+    { label: 'Generate Name', value: defaultOrValue(details.metadata.generateName) },
+    { label: 'Generation', value: defaultOrValue(details.metadata.generation) }
   ],
   loading,
   ...getCommonCardConfig(details.metadata.annotations, details.metadata.labels)
@@ -369,14 +369,14 @@ const getServiceAccountDetailsConfig = (details: ServiceAccountDetails, loading:
 const getRoleDetailsConfig = (details: RoleDetails, loading: boolean) => ({
   subHeading: !details.metadata ? '' : `${details.metadata.namespace}/${details.metadata.name}`,
   detailCard: [
-    {label: 'Name',value: defaultOrValue(details.metadata.name) },
-    {label: 'Resource Version',value: defaultOrValue(details.metadata.resourceVersion) },
-    {label: 'Namespace',value: defaultOrValue(details.metadata.namespace) },
-    {label: 'UID',value: defaultOrValue(details.metadata.uid) },
-    {label: 'Age',value: defaultOrValue(details.metadata.creationTimestamp) },
-    {label: 'Generate Name',value: defaultOrValue(details.metadata.generateName) },
-    {label: 'Generation',value: defaultOrValue(details.metadata.generation) },
-    {label: 'Deletion Grace Period Seconds', value: defaultOrValue(details.metadata.deletionGracePeriodSeconds)},
+    { label: 'Name', value: defaultOrValue(details.metadata.name) },
+    { label: 'Resource Version', value: defaultOrValue(details.metadata.resourceVersion) },
+    { label: 'Namespace', value: defaultOrValue(details.metadata.namespace) },
+    { label: 'UID', value: defaultOrValue(details.metadata.uid) },
+    { label: 'Age', value: defaultOrValue(details.metadata.creationTimestamp) },
+    { label: 'Generate Name', value: defaultOrValue(details.metadata.generateName) },
+    { label: 'Generation', value: defaultOrValue(details.metadata.generation) },
+    { label: 'Deletion Grace Period Seconds', value: defaultOrValue(details.metadata.deletionGracePeriodSeconds) },
   ],
   loading,
   ...getCommonCardConfig(details.metadata.annotations, details.metadata.labels)
@@ -460,20 +460,20 @@ const getServiceDetailsConfig = (details: ServiceDetails, loading: boolean) => (
 const getIngressDetailsConfig = (details: IngressDetails, loading: boolean) => ({
   subHeading: !details.metadata ? '' : `${details.metadata.namespace}/${details.metadata.name}`,
   detailCard: [
-    {label: 'Name',value: defaultOrValue(details.metadata.name) },
-    {label: 'Resource Version',value: defaultOrValue(details.metadata.resourceVersion) },
-    {label: 'Namespace',value: defaultOrValue(details.metadata.namespace) },
-    {label: 'UID',value: defaultOrValue(details.metadata.uid) },
-    {label: 'Age',value: defaultOrValue(details.metadata.creationTimestamp) },
-    {label: 'Generate Name',value: defaultOrValue(details.metadata.generateName) },
-    {label: 'Generation',value: defaultOrValue(details.metadata.generation) },
-    {label: 'Resource Name',value: defaultOrValue(details.spec.defaultBackend?.resource?.name) },
-    {label: 'Resource API Group',value: defaultOrValue(details.spec.defaultBackend?.resource?.apiGroup) },
-    {label: 'Resource Kind',value: defaultOrValue(details.spec.defaultBackend?.resource?.kind) },
-    {label: 'Service Name',value: defaultOrValue(details.spec.defaultBackend?.service?.name) },
-    {label: 'Port Name',value: defaultOrValue(details.spec.defaultBackend?.service?.port?.name) },
-    {label: 'Port Number',value: defaultOrValue(details.spec.defaultBackend?.service?.port?.number) },
-    {label: 'Ingress Class Name',value: defaultOrValue(details.spec.ingressClassName) }
+    { label: 'Name', value: defaultOrValue(details.metadata.name) },
+    { label: 'Resource Version', value: defaultOrValue(details.metadata.resourceVersion) },
+    { label: 'Namespace', value: defaultOrValue(details.metadata.namespace) },
+    { label: 'UID', value: defaultOrValue(details.metadata.uid) },
+    { label: 'Age', value: defaultOrValue(details.metadata.creationTimestamp) },
+    { label: 'Generate Name', value: defaultOrValue(details.metadata.generateName) },
+    { label: 'Generation', value: defaultOrValue(details.metadata.generation) },
+    { label: 'Resource Name', value: defaultOrValue(details.spec.defaultBackend?.resource?.name) },
+    { label: 'Resource API Group', value: defaultOrValue(details.spec.defaultBackend?.resource?.apiGroup) },
+    { label: 'Resource Kind', value: defaultOrValue(details.spec.defaultBackend?.resource?.kind) },
+    { label: 'Service Name', value: defaultOrValue(details.spec.defaultBackend?.service?.name) },
+    { label: 'Port Name', value: defaultOrValue(details.spec.defaultBackend?.service?.port?.name) },
+    { label: 'Port Number', value: defaultOrValue(details.spec.defaultBackend?.service?.port?.number) },
+    { label: 'Ingress Class Name', value: defaultOrValue(details.spec.ingressClassName) }
   ],
   loading,
   ...getCommonCardConfig(details.metadata.annotations, details.metadata.labels)
@@ -482,13 +482,13 @@ const getIngressDetailsConfig = (details: IngressDetails, loading: boolean) => (
 const getEndpointDetailsConfig = (details: EndpointDetails, loading: boolean) => ({
   subHeading: !details.metadata ? '' : `${details.metadata.namespace}/${details.metadata.name}`,
   detailCard: [
-    {label: 'Name',value: defaultOrValue(details.metadata.name) },
-    {label: 'Resource Version',value: defaultOrValue(details.metadata.resourceVersion) },
-    {label: 'Namespace',value: defaultOrValue(details.metadata.namespace) },
-    {label: 'UID',value: defaultOrValue(details.metadata.uid) },
-    {label: 'Age',value: defaultOrValue(details.metadata.creationTimestamp) },
-    {label: 'Generate Name',value: defaultOrValue(details.metadata.generateName) },
-    {label: 'Generation',value: defaultOrValue(details.metadata.generation) }
+    { label: 'Name', value: defaultOrValue(details.metadata.name) },
+    { label: 'Resource Version', value: defaultOrValue(details.metadata.resourceVersion) },
+    { label: 'Namespace', value: defaultOrValue(details.metadata.namespace) },
+    { label: 'UID', value: defaultOrValue(details.metadata.uid) },
+    { label: 'Age', value: defaultOrValue(details.metadata.creationTimestamp) },
+    { label: 'Generate Name', value: defaultOrValue(details.metadata.generateName) },
+    { label: 'Generation', value: defaultOrValue(details.metadata.generation) }
   ],
   loading,
   ...getCommonCardConfig(details.metadata.annotations, details.metadata.labels)
@@ -542,17 +542,17 @@ const getPersistentVolumeDetailsConfig = (details: PersistentVolumeDetails, load
 const getStorageClassDetailsConfig = (details: StorageClassDetails, loading: boolean) => ({
   subHeading: !details.metadata ? '' : `${details.metadata.name}`,
   detailCard: [
-    {label: 'Name',value: defaultOrValue(details.metadata.name) },
-    {label: 'Resource Version',value: defaultOrValue(details.metadata.resourceVersion) },
-    {label: 'UID',value: defaultOrValue(details.metadata.uid) },
-    {label: 'Age',value: defaultOrValue(details.metadata.creationTimestamp) },
-    {label: 'Generate Name',value: defaultOrValue(details.metadata.generateName) },
-    {label: 'Generation',value: defaultOrValue(details.metadata.generation) },
-    {label: 'Deletion Grace Period Seconds',value: defaultOrValue(details.metadata.deletionGracePeriodSeconds) },
-    {label: 'Deletion Timestamp',value: defaultOrValue(details.metadata.deletionTimestamp) },
-    {label: 'Provisioner',value: defaultOrValue(details.provisioner) },
-    {label: 'Reclaim Policy',value: defaultOrValue(details.reclaimPolicy) },
-    {label: 'Volume Binding Mode',value: defaultOrValue(details.volumeBindingMode) }
+    { label: 'Name', value: defaultOrValue(details.metadata.name) },
+    { label: 'Resource Version', value: defaultOrValue(details.metadata.resourceVersion) },
+    { label: 'UID', value: defaultOrValue(details.metadata.uid) },
+    { label: 'Age', value: defaultOrValue(details.metadata.creationTimestamp) },
+    { label: 'Generate Name', value: defaultOrValue(details.metadata.generateName) },
+    { label: 'Generation', value: defaultOrValue(details.metadata.generation) },
+    { label: 'Deletion Grace Period Seconds', value: defaultOrValue(details.metadata.deletionGracePeriodSeconds) },
+    { label: 'Deletion Timestamp', value: defaultOrValue(details.metadata.deletionTimestamp) },
+    { label: 'Provisioner', value: defaultOrValue(details.provisioner) },
+    { label: 'Reclaim Policy', value: defaultOrValue(details.reclaimPolicy) },
+    { label: 'Volume Binding Mode', value: defaultOrValue(details.volumeBindingMode) }
 
   ],
   loading,
@@ -563,25 +563,25 @@ const getStorageClassDetailsConfig = (details: StorageClassDetails, loading: boo
 const getCustomResourceDefinitionsDetailsConfig = (details: CustomResourcesDefinitionDetails, loading: boolean) => ({
   subHeading: !details.metadata ? '' : `${details.metadata.name}`,
   detailCard: [
-    {label: 'Name',value: defaultOrValue(details.metadata.name) },
-    {label: 'Resource Version',value: defaultOrValue(details.metadata.resourceVersion) },
-    {label: 'UID',value: defaultOrValue(details.metadata.uid) },
-    {label: 'Age',value: defaultOrValue(details.metadata.creationTimestamp) },
-    {label: 'Generation',value: defaultOrValue(details.metadata.generation) }
+    { label: 'Name', value: defaultOrValue(details.metadata.name) },
+    { label: 'Resource Version', value: defaultOrValue(details.metadata.resourceVersion) },
+    { label: 'UID', value: defaultOrValue(details.metadata.uid) },
+    { label: 'Age', value: defaultOrValue(details.metadata.creationTimestamp) },
+    { label: 'Generation', value: defaultOrValue(details.metadata.generation) }
   ],
   loading,
   ...getCommonCardConfig(details.metadata.annotations, details.metadata.labels)
 });
 
 const getCustomResourceDetailsConfig = (details: CustomResourceDetails, loading: boolean) => ({
-  subHeading: !details.metadata ? '' : `${details.metadata.namespace ? details.metadata.namespace+'/': ''}${details.metadata.name}`,
+  subHeading: !details.metadata ? '' : `${details.metadata.namespace ? details.metadata.namespace + '/' : ''}${details.metadata.name}`,
   detailCard: [
-    {label: 'Name',value: defaultOrValue(details.metadata.name) },
-    {label: 'Resource Version',value: defaultOrValue(details.metadata.resourceVersion) },
-    {label: 'Namespace',value: defaultOrValue(details.metadata.namespace) },
-    {label: 'UID',value: defaultOrValue(details.metadata.uid) },
-    {label: 'Age',value: defaultOrValue(details.metadata.creationTimestamp) },
-    {label: 'Generation',value: defaultOrValue(details.metadata.generation) }
+    { label: 'Name', value: defaultOrValue(details.metadata.name) },
+    { label: 'Resource Version', value: defaultOrValue(details.metadata.resourceVersion) },
+    { label: 'Namespace', value: defaultOrValue(details.metadata.namespace) },
+    { label: 'UID', value: defaultOrValue(details.metadata.uid) },
+    { label: 'Age', value: defaultOrValue(details.metadata.creationTimestamp) },
+    { label: 'Generation', value: defaultOrValue(details.metadata.generation) }
   ],
   loading,
   ...getCommonCardConfig(details.metadata.annotations, details.metadata.labels)

@@ -2,12 +2,13 @@ package base
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/labstack/echo/v4"
 	"github.com/r3labs/sse/v2"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-	"net/http"
 )
 
 type RouteType int
@@ -42,7 +43,7 @@ func (h *BaseHandler) GetList(c echo.Context) error {
 }
 
 func (h *BaseHandler) GetDetails(c echo.Context) error {
-	streamID, item, exists, err := h.getStreamIDAndItem(c.QueryParam("namespace"), c.Param("name"))
+	streamID, item, exists, err := h.getStreamIDAndItem(h.Kind, c.QueryParam("namespace"), c.Param("name"))
 	if err != nil {
 		return c.String(http.StatusBadRequest, err.Error())
 	}
@@ -55,7 +56,7 @@ func (h *BaseHandler) GetDetails(c echo.Context) error {
 }
 
 func (h *BaseHandler) GetYaml(c echo.Context) error {
-	streamID, item, exists, err := h.getStreamIDAndItem(c.QueryParam("namespace"), c.Param("name"))
+	streamID, item, exists, err := h.getStreamIDAndItem(h.Kind, c.QueryParam("namespace"), c.Param("name"))
 	if err != nil {
 		return c.String(http.StatusBadRequest, err.Error())
 	}

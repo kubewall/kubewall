@@ -13,9 +13,9 @@ import (
 	"k8s.io/client-go/dynamic/dynamicinformer"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/tools/clientcmd/api"
 	metricsclient "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
@@ -137,7 +137,7 @@ func LoadK8ConfigFromFile(path string) (map[string]*Cluster, error) {
 	clusters := make(map[string]*Cluster)
 
 	for key, cluster := range cmdConfig.Contexts {
-		rc, err := restConfig(*cmdConfig, key)
+		rc, err := restConfig(path, key)
 		if err != nil {
 			log.Warn("failed to load restConfig for cluster", "err", err)
 			// here we will ignore any invalid context and continue for next
@@ -171,9 +171,10 @@ func LoadK8ConfigFromFile(path string) (map[string]*Cluster, error) {
 	return clusters, nil
 }
 
-func restConfig(config api.Config, contextName string) (*rest.Config, error) {
-	config.CurrentContext = contextName
-	cc := clientcmd.NewDefaultClientConfig(config, &clientcmd.ConfigOverrides{CurrentContext: contextName})
+func restConfig(path string, contextName string) (*rest.Config, error) {
+	loadingRules := &clientcmd.ClientConfigLoadingRules{ExplicitPath: path}
+	overrides := &clientcmd.ConfigOverrides{CurrentContext: contextName}
+	cc := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
 
 	restConfig, err := cc.ClientConfig()
 	if err != nil {

@@ -1,6 +1,7 @@
 import { CustomResources, CustomResourcesNavigation, KeyValue, KeyValueNull } from "@/types";
 
 import { API_VERSION } from "@/constants";
+import { intervalToDuration } from "date-fns";
 
 const mathFloor = (val = 0) => Math.floor(val);
 
@@ -132,6 +133,31 @@ const toQueryParams = (collection: Record<string, string>) => {
   return new URLSearchParams(collection).toString();
 };
 
+const getDisplayTime = (ts: number) => {
+  const duration = intervalToDuration({ start: 0, end: ts });
+  if (ts < 60000) {
+    return `${mathFloor(duration.seconds)}s`;
+  } else if (ts < 3600000) {
+    return `${mathFloor(duration.minutes)}m:${mathFloor(duration.seconds)}s`;
+  } else if (ts < 86400000) {
+    return `${mathFloor(duration.hours)}h:${mathFloor(duration.minutes)}m`;
+  } else if (ts < 604800000) {
+    return `${mathFloor(duration.days)}d:${mathFloor(duration.hours)}h`;
+  } else if (ts < 2628000000 && duration.days) {
+    const weeks = duration.days / 7;
+    const days = duration.days % 7;
+    return `${mathFloor(weeks)}w:${mathFloor(days)}d`;
+  } else if (ts < 31540000000) {
+    let weeks = 0;
+    if (duration.days) {
+      weeks = duration.days / 7;
+    }
+    return `${mathFloor(duration.months)}M:${mathFloor(weeks)}w`;
+  } else {
+    return `${mathFloor(duration.years)}y:${mathFloor(duration.months)}M`;
+  }
+};
+
 export {
   createEventStreamQueryObject,
   defaultOrValue,
@@ -146,5 +172,6 @@ export {
   getSystemTheme,
   isIP,
   toggleValueInCollection,
-  toQueryParams
+  toQueryParams,
+  getDisplayTime
 };

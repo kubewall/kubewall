@@ -1,7 +1,14 @@
 import { Link, useNavigate } from "@tanstack/react-router";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { createEventStreamQueryObject, getEventStreamUrl } from "@/utils";
+import { resetYamlDetails, updateYamlDetails } from "@/data/Yaml/YamlSlice";
 import { useDetailsWrapper, useFetchDataForDetails } from "../Hooks/Details";
+import { useEffect, useState } from "react";
 
+import { AiChat } from "../../kwAI";
 import { CaretLeftIcon } from "@radix-ui/react-icons";
 import { Events } from "../../Details/Events";
 import FourOFourError from "../../Errors/404Error";
@@ -13,30 +20,54 @@ import { RootState } from "@/redux/store";
 import { Row } from "@tanstack/react-table";
 import { ScaleDeployments } from "../../MiscDetailsContainer/Deployments/ScaleDeployments";
 import { Separator } from "@/components/ui/separator";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Sparkles } from "lucide-react";
 import { TableDelete } from "../../Table/TableDelete";
+import { ThemeModeSelector } from "../ThemeModeSelector";
 import { YamlEditor } from "../../Details/YamlEditor";
 import { clearLogs } from "@/data/Workloads/Pods/PodLogsSlice";
 import { kwDetails } from "@/routes";
-import { resetYamlDetails } from "@/data/Yaml/YamlSlice";
 import { useAppSelector } from "@/redux/hooks";
 import { useDispatch } from "react-redux";
-import { useEffect } from "react";
+import { useEventSource } from "../Hooks/EventSource";
+import { useSidebarSize } from "@/hooks/use-get-sidebar-size";
 
 const KwDetails = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [showChat, setShowChat] = useState(false);
+  const [fullScreen, setFullScreen] = useState(false);
+  const { isMobile } = useSidebar();
+  const leftSize = useSidebarSize("left-sidebar");
   const { config } = kwDetails.useParams();
   const { cluster, resourcekind, resourcename, group = '', kind = '', resource = '', version = '', namespace } = kwDetails.useSearch();
   const { podDetails } = useAppSelector((state: RootState) => state.podDetails);
   const queryParamsObj: Record<string, string> = { config, cluster, namespace: namespace || '' };
+  const resourceInitialData = useFetchDataForDetails({ cluster, config, group, kind, namespace, resource, resourcekind, resourcename, version });
+  const resourceData = useDetailsWrapper({ loading: !!resourceInitialData?.loading, resourcekind });
   useEffect(() => {
     dispatch(resetYamlDetails());
     dispatch(clearLogs());
   }, []);
 
-  const resourceInitialData = useFetchDataForDetails({ cluster, config, group, kind, namespace, resource, resourcekind, resourcename, version });
-  const resourceData = useDetailsWrapper({ loading: !!resourceInitialData?.loading, resourcekind });
+  // Fetch yaml for kwAi
+  const sendMessage = (message: Event[]) => {
+    dispatch(updateYamlDetails(message));
+  };
+
+  useEventSource({
+    url: getEventStreamUrl(
+      `${resourcekind}${resourceInitialData?.label === 'Custom Resources' && namespace ? '/' + namespace : ''}`,
+      createEventStreamQueryObject(
+        config,
+        cluster,
+        namespace
+      ),
+      `/${resourcename}/yaml`,
+      resourceInitialData?.label === 'Custom Resources' ? '&' + new URLSearchParams({ group, kind, resource, version }).toString() : ''
+    ),
+    sendMessage
+  });
+
   if (!resourceInitialData) {
     return <FourOFourError />;
   }
@@ -71,6 +102,19 @@ const KwDetails = () => {
     navigate({ to: `/${config}/list?${getListPageQueryparams()}` });
   };
 
+  const onChatClose = () => {
+    setShowChat(false);
+    setFullScreen(false);
+  };
+
+  const getMaxWidth = () => {
+    if (isMobile) {
+      return 48;
+    } else {
+      return 47 + leftSize.width;
+    }
+  };
+
   return (
     <div className="py-2">
       <div className="flex items-center gap-2 pl-2">
@@ -82,78 +126,112 @@ const KwDetails = () => {
         </span>
       </div>
 
-      <div className="h-screen flex-1 flex-col space-y-2 pt-0 p-2 md:flex">
+      <div className="h-screen flex-1 flex-col space-y-2 pt-0 p-2 md:flex" style={{ width: `calc(100vw - ${(getMaxWidth())}px)` }}>
         {
           resourceInitialData?.loading ? <Loader /> :
             <>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-1 mt-1">
                 <SidebarTrigger />
-                <Separator orientation="vertical" className="mr-2 h-4 ml-1" />
-                <div className="ml-1">
-                  <h2 className="text-lg font-bold tracking-tight">
-                    {resourceData?.subHeading}
-                  </h2>
-                </div>
+                <Separator orientation="vertical" className="data-[orientation=vertical]:h-4 mr-2" />
+                <h2 className="text-lg font-bold tracking-tight">
+                  {resourceData?.subHeading}
+                </h2>
                 <div className="ml-auto">
                   {
-                    resourcekind === 'deployments' && 
-                    <ScaleDeployments resourcename={resourcename} queryParams={new URLSearchParams(queryParamsObj).toString()}/>
+                    resourcekind === 'deployments' &&
+                    <ScaleDeployments resourcename={resourcename} queryParams={new URLSearchParams(queryParamsObj).toString()} />
                   }
-                  
                   <TableDelete selectedRows={selectedRows} postDeleteCallback={redirectToListPage} />
+                  <ThemeModeSelector />
+                  <TooltipProvider>
+                    <Tooltip delayDuration={0}>
+                      <TooltipTrigger asChild>
+                        <div className="ml-2 relative inline-block cursor-pointer" onClick={() => setShowChat(!showChat)}>
+                          <div className="absolute inset-0 bg-gradient-to-r from-pink-500 via-purple-600 to-blue-500 rounded-sm blur-[3px] animate-pulse"></div>
+                          <div className="relative inline-flex i gap-[0.125rem] w-12 h-8 bg-background rounded-md flex items-center justify-center border border-gray-200 dark:border-none shadow-sm  hover:bg-accent hover:text-accent-foreground">
+                            <Sparkles className="w-4 h-4" />
+                            <span className='text-xs'>AI</span>
+                          </div>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">
+                        kwAI Chat
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
 
               </div>
               {resourceData &&
                 <Tabs defaultValue='overview'>
-                  <TabsList className="grid w-full grid-cols-6 md:grid-cols-6 sm:grid-cols-4">
+                  <TabsList className="grid w-full grid-cols-6 md:grid-cols-6 sm:grid-cols-4 mb-2">
                     <TabsTrigger value='overview' autoFocus={true}>Overview</TabsTrigger>
                     <TabsTrigger value='yaml'>YAML</TabsTrigger>
                     <TabsTrigger value='events'>Events</TabsTrigger>
                     {resourceInitialData.label.toLowerCase() === PODS_ENDPOINT && <TabsTrigger value='logs'>Logs</TabsTrigger>}
                   </TabsList>
 
-                  <TabsContent value='overview'>
-                    <Overview
-                      details={[resourceData.detailCard]}
-                      lableConditions={resourceData.lableConditionsCardDetails}
-                      annotations={resourceData.annotationCardDetails}
-                      miscComponent={resourceData.miscComponent}
-                    />
-                  </TabsContent>
-                  <TabsContent value='yaml'>
-                    <YamlEditor
-                      name={resourcename}
-                      configName={config}
-                      clusterName={cluster}
-                      instanceType={`${resourcekind}${resourceInitialData.label === 'Custom Resources' && namespace ? '/' + namespace : ''}`}
-                      namespace={namespace || ''}
-                      extraQuery={resourceInitialData.label === 'Custom Resources' ? '&' + new URLSearchParams({ group, kind, resource, version }).toString() : ''}
-                    />
-                  </TabsContent>
-                  <TabsContent value='events'>
-                    <Events
-                      name={resourcename}
-                      configName={config}
-                      clusterName={cluster}
-                      instanceType={resourcekind}
-                      namespace={namespace || ''}
-                    />
-                  </TabsContent>
-                  {
-                    resourceInitialData.label.toLowerCase() === PODS_ENDPOINT &&
-                    <TabsContent value='logs'>
-                      <PodLogs
-                        name={podDetails?.metadata?.name}
-                        configName={config}
-                        clusterName={cluster}
-                        namespace={podDetails?.metadata?.namespace}
-                      />
-                    </TabsContent>
+                  <ResizablePanelGroup
+                    direction="horizontal"
+                  >
+                    {
+                      !fullScreen &&
+                      <ResizablePanel className="border-t-0 mr-2 min-w-80 !overflow-auto" id="details" order={1} defaultSize={showChat ? 55 : 100}>
+                        <TabsContent className="mt-0" value='overview'>
+                          <Overview
+                            details={[resourceData.detailCard]}
+                            lableConditions={resourceData.lableConditionsCardDetails}
+                            annotations={resourceData.annotationCardDetails}
+                            miscComponent={resourceData.miscComponent}
+                          />
+                        </TabsContent>
+                        <TabsContent className="mt-0" value='yaml'>
+                          <YamlEditor
+                            name={resourcename}
+                            configName={config}
+                            clusterName={cluster}
+                            instanceType={`${resourcekind}${resourceInitialData.label === 'Custom Resources' && namespace ? '/' + namespace : ''}`}
+                            namespace={namespace || ''}
+                            extraQuery={resourceInitialData.label === 'Custom Resources' ? '&' + new URLSearchParams({ group, kind, resource, version }).toString() : ''}
+                          />
+                        </TabsContent>
+                        <TabsContent className="mt-0" value='events'>
+                          <Events
+                            name={resourcename}
+                            configName={config}
+                            clusterName={cluster}
+                            instanceType={resourcekind}
+                            namespace={namespace || ''}
+                          />
+                        </TabsContent>
+                        {
+                          resourceInitialData.label.toLowerCase() === PODS_ENDPOINT &&
+                          <TabsContent className="mt-0" value='logs'>
+                            <PodLogs
+                              name={podDetails?.metadata?.name}
+                              configName={config}
+                              clusterName={cluster}
+                              namespace={podDetails?.metadata?.namespace}
+                            />
+                          </TabsContent>
 
-                  }
+                        }
+                      </ResizablePanel>
+                    }
+                    {
+                      showChat &&
+                      <>
+                        {!fullScreen && <ResizableHandle withHandle className="mt-2 w-0" />}
+                        <ResizablePanel className="border-t border-r border-l rounded-lg" id="ai-chat" order={2} minSize={30} defaultSize={fullScreen ? 100 : 45}>
+                          <AiChat isDetailsPage={true} customHeight="chatbot-details-height" onClose={onChatClose} isFullscreen={fullScreen} onToggleFullscreen={() => setFullScreen(!fullScreen)} />
+                        </ResizablePanel>
+                      </>
+                    }
+                  </ResizablePanelGroup>
                 </Tabs>
+
               }
+
             </>
         }
       </div>

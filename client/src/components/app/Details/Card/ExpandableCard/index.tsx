@@ -44,12 +44,12 @@ function CardContentDetails({ fieldLabel, data, defaultLabelCount }: CardItems) 
         <div className="space-y-1">
           <div className="py-1 flex items-center">
             <span className="text-sm font-medium">
-              {fieldLabel}
+              {fieldLabel} <span className="text-xs">({Object.keys(data || {}).length})</span>
             </span>
             {
               checkForTagLength() &&
               <span
-                className="text-xs pl-1 text-blue-600 dark:text-blue-500 cursor-pointer hover:underline"
+                className="text-xs pl-1 pt-1 text-blue-600 dark:text-blue-500 cursor-pointer hover:underline"
                 onClick={() => setShowCompleteLabel(!showCompleteLabel)}
               >
                 {
@@ -87,7 +87,7 @@ export function ExpandableCard({ cards, title }: ExpandableCardProps) {
         {
           title && <CardTitle className="p-4">{title}</CardTitle>
         }
-        <CardContent className="grid gap-1 p-4 pt-0 ">
+        <CardContent className="grid gap-1 pb-2 pr-4 pl-4 pt-0 ">
           <div className={`grid grid-cols-1 md:grid-cols-${cards.length} gap-2`}>
             {
               cards.map(({ fieldLabel, data, defaultLabelCount }) => {

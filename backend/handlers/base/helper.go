@@ -10,15 +10,15 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-func (h *BaseHandler) getStreamIDAndItem(namespace, name string) (string, any, bool, error) {
+func (h *BaseHandler) getStreamIDAndItem(kind, namespace, name string) (string, any, bool, error) {
 	if h.IsNamespacedResource(h.Kind) {
-		streamID := fmt.Sprintf("%s-%s-%s-%s", h.QueryConfig, h.QueryCluster, namespace, name)
+		streamID := fmt.Sprintf("%s-%s-%s-%s-%s", h.QueryConfig, h.QueryCluster, kind, namespace, name)
 		item, exists, err := h.Informer.GetStore().GetByKey(fmt.Sprintf("%s/%s", namespace, name))
 		return streamID, item, exists, err
 	}
 
 	item, exists, err := h.Informer.GetStore().GetByKey(name)
-	return fmt.Sprintf("%s-%s-%s", h.QueryConfig, h.QueryCluster, name), item, exists, err
+	return fmt.Sprintf("%s-%s-%s-%s", h.QueryConfig, h.QueryCluster, kind, name), item, exists, err
 }
 
 func (h *BaseHandler) marshalDetailData(item any, exists bool) []byte {

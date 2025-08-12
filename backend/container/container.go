@@ -16,10 +16,9 @@ import (
 
 	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions"
 
-	"github.com/charmbracelet/log"
 	"github.com/gorilla/websocket"
 	"github.com/kubewall/kubewall/backend/config"
-	"github.com/maypok86/otter"
+	"github.com/maypok86/otter/v2"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 )
@@ -36,7 +35,7 @@ type Container interface {
 	SharedInformerFactory(config, cluster string) informers.SharedInformerFactory
 	ExtensionSharedFactoryInformer(config, cluster string) apiextensionsinformers.SharedInformerFactory
 	DynamicSharedInformerFactory(config, cluster string) dynamicinformer.DynamicSharedInformerFactory
-	Cache() otter.Cache[string, any]
+	Cache() *otter.Cache[string, any]
 	SSE() *sse.Server
 	SocketUpgrader() *websocket.Upgrader
 	EventProcessor() *event.EventProcessor
@@ -46,9 +45,7 @@ type Container interface {
 type container struct {
 	env            *config.Env
 	config         *config.AppConfig
-	logger         *log.Logger
-	configLock     sync.Mutex
-	cache          otter.Cache[string, any]
+	cache          *otter.Cache[string, any]
 	sseServer      *sse.Server
 	eventProcessor *event.EventProcessor
 	socketUpgrader *websocket.Upgrader
@@ -57,12 +54,10 @@ type container struct {
 
 // NewContainer is constructor.
 func NewContainer(env *config.Env, cfg *config.AppConfig) Container {
-	cache, err := otter.MustBuilder[string, any](10_000).
-		WithTTL(time.Hour * 10).
-		Build()
-	if err != nil {
-		panic(err)
-	}
+	cache := otter.Must(&otter.Options[string, any]{
+		MaximumSize:      5000,
+		ExpiryCalculator: otter.ExpiryAccessing[string, any](4 * time.Hour), // Reset timer on reads/writes
+	})
 
 	s := sse.New()
 	s.AutoStream = true
@@ -102,7 +97,7 @@ func (c *container) Config() *config.AppConfig {
 	return c.config
 }
 
-func (c *container) Cache() otter.Cache[string, any] {
+func (c *container) Cache() *otter.Cache[string, any] {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
