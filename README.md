@@ -5,7 +5,7 @@
 | [Releases](https://github.com/kubewall/kubewall/releases)
 | [Source Code](https://github.com/kubewall/kubewall)
 
-A single binary to manage your multiple kubernetes clusters.
+A single binary to manage your multiple kubernetes clusters. Supports multiple AI providers (OpenAI / Claude 4 / Gemini / DeepSeek / OpenRouter / Ollama / Qwen / LMStudio ). To manage multiple clusters.
 
 **kubewall** provides a simple and rich real time interface to manage and investigate your clusters.
 
@@ -21,7 +21,7 @@ A single binary to manage your multiple kubernetes clusters.
 
 # :movie_camera: Intro
 
-![kubewall](/media/readme.jpg?v=0.0.1)
+![kubewall](/media/readme.jpg?v=0.0.2)
 
 > [!Important]
 > Please keep in mind that kubewall is still under active development.
