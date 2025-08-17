@@ -3,7 +3,6 @@ package pods
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	"github.com/charmbracelet/log"
 	"github.com/kubewall/kubewall/backend/handlers/workloads/replicaset"
@@ -15,13 +14,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	"github.com/gorilla/websocket"
-	"github.com/kubewall/kubewall/backend/event"
 	"github.com/kubewall/kubewall/backend/handlers/helpers"
 
 	"net/http"
-	"strings"
-	"time"
 
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/labstack/echo/v4"
@@ -51,8 +46,6 @@ func NewPodsRouteHandler(container container.Container, routeType base.RouteType
 			return handler.BaseHandler.GetYaml(c)
 		case base.Delete:
 			return handler.BaseHandler.Delete(c)
-		case base.GetLogsWS:
-			return handler.GetLogsWS(c)
 		case base.GetLogs:
 			return handler.GetLogs(c)
 		default:
@@ -149,76 +142,6 @@ func (h *PodsHandler) GetLogs(c echo.Context) error {
 	go h.publishLogsToSSE(c, key, sseServer)
 
 	sseServer.ServeHTTP(key, c.Response(), c.Request())
-
-	return nil
-}
-
-func (h *PodsHandler) GetLogsWS(c echo.Context) error {
-	ws, err := h.BaseHandler.Container.SocketUpgrader().Upgrade(c.Response(), c.Request(), nil)
-	if err != nil {
-		return err
-	}
-	defer ws.Close()
-
-	name := c.Param("name")
-	namespace := c.QueryParam("namespace")
-	container := c.QueryParam("container")
-	isAllContainers := strings.EqualFold(c.QueryParam("all-containers"), "true")
-
-	var containerNames []string
-
-	if isAllContainers {
-		podObj, _, err := h.BaseHandler.Informer.GetStore().GetByKey(fmt.Sprintf("%s/%s", c.QueryParam("namespace"), c.Param("name")))
-		if err != nil {
-			return err
-		}
-		pod := podObj.(*v1.Pod)
-		for _, logContainer := range pod.Spec.Containers {
-			containerNames = append(containerNames, logContainer.Name)
-		}
-	} else {
-		containerNames = []string{container}
-	}
-
-	logsChannel := make(chan LogMessage)
-	defer close(logsChannel)
-
-	for _, containerName := range containerNames {
-		go h.fetchLogs(c.Request().Context(), namespace, name, containerName, logsChannel)
-	}
-	event := event.NewEventCounter(250 * time.Millisecond)
-	var logMessages []LogMessage
-	var mu sync.RWMutex
-
-	go event.Run()
-
-	for logMsg := range logsChannel {
-		select {
-		case <-c.Request().Context().Done():
-			c.Logger().Info("request context cancelled, closing logs channel")
-			return nil
-		default:
-			mu.Lock()
-			event.AddEvent(fmt.Sprintf("pod-logs-%s", container), func() {
-				mu.Lock()
-				defer mu.Unlock()
-				if len(logMessages) > 0 {
-					j, err := json.Marshal(logMessages)
-					if err != nil {
-						c.Logger().Errorf("failed to marshal log message: %v", err)
-					}
-
-					err = ws.WriteMessage(websocket.TextMessage, j)
-					if err != nil {
-						c.Logger().Error(err)
-					}
-				}
-				logMessages = []LogMessage{}
-			})
-			logMessages = append(logMessages, logMsg)
-			mu.Unlock()
-		}
-	}
 
 	return nil
 }
