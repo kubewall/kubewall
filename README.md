@@ -5,28 +5,32 @@
 | [Releases](https://github.com/kubewall/kubewall/releases)
 | [Source Code](https://github.com/kubewall/kubewall)
 
-A single binary to manage your multiple kubernetes clusters. Supports multiple AI providers (OpenAI / Claude 4 / Gemini / DeepSeek / OpenRouter / Ollama / Qwen / LMStudio ). To manage multiple clusters.
+**kubewall** is a Open-Source, Single-Binary Kubernetes Dashboard with Multi-Cluster Management & AI Integration.
 
-**kubewall** provides a simple and rich real time interface to manage and investigate your clusters.
+It provides a simple and rich realtime interface to manage and investigate your clusters.
 
+| Feature&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Benefit |
+|---|---|
+| 🔗 **Multi-Cluster Management** | Control unlimited Kubernetes clusters from one intuitive interface, saving time on tool-switching and boosting productivity for DevOps teams. |
+| 🤖 **AI-Powered** | Leverage AI (OpenAI / Claude 4 / Gemini / DeepSeek / OpenRouter / Ollama / Qwen / LMStudio) for automated troubleshooting, config optimization, and smart recommendations - a game-changer for complex environments. |
+| 📊 **Real-Time Monitoring** | Get live views of cluster, pods, services, and metrics, enabling quick issue detection without manual queries. |
+| 🚀 **Single-Binary Deployment** | Install effortlessly as a lightweight binary on Mac, Windows, or Linux - no dependencies, zero config. |
+| 🔍 **In-Depth Resource Views** | Dive into detailed manifests, logs, and configurations through an intuitive dashboard, making debugging a breeze for novices and pros alike. |
+| 🌐 **Browser-Based Access** | Access securely via any browser with optional HTTPS setup, perfect for remote teams managing on-premises or cloud clusters. |
+| 🧭 **Search & Filter** | Instantly locate namespaces, labels, images, nodes, and workloads with powerful search and filtering—streamlining navigation across large clusters. |
+| 🛡 **Privacy by Default** | Maintain full control with zero cloud dependency, ensuring your cluster data stays local and secure by design. |
+| 🔄 **Live Refresh** | Experience seamless auto-updates for resources, eliminating manual refresh cycles and keeping your dashboard perpetually current. |
+| 📜 **Aggregated Pod Logs** | Stream logs across pods and containers with advanced search and tail options—perfect for monitoring multi-replica applications with ease. |
+| 🖥️ **Clean Resource Management** | Enjoy streamlined views for Deployments, Pods, Services, ConfigMaps, and more scale deployments, restart pods, perform rollout restarts, and apply manifests with a single click for unmatched efficiency. |
 
-**Key features of kubewall include:**
-
-* **Single binary deployment:** kubewall can be easily deployed as a single binary, eliminating the need for complex configurations.
-* **Browser-based access:** kubewall can be accessed directly from your favorite web browser, providing a seamless user experience.
-* **Real-time cluster monitoring:** kubewall offers a rich, real-time interface that displays the current state of your Kubernetes clusters, allowing you to quickly identify and address issues.
-* **Cluster management:** kubewall enables you to manage multiple Kubernetes clusters from a single pane of glass, reducing the overhead of switching between different tools and interfaces.
-* **Detailed cluster insights:** kubewall provides comprehensive insights into your Kubernetes clusters, manifest info of your pods, services, config and others.
-* **AI-powered**: kubewall provides AI support to analyze cluster data, optimize configurations, and assist with troubleshooting — making kubernetes management smarter and faster.
-
-# :movie_camera: Intro
+## :movie_camera: Intro
 
 ![kubewall](/media/readme.jpg?v=0.0.2)
 
 > [!Important]
 > Please keep in mind that kubewall is still under active development.
 
-# :battery: Install
+## :battery: Install
 
 #### 🐳 Docker
 
@@ -104,7 +108,7 @@ scoop install kubewall
 > $ kubewall --certFile=/path/to/cert.pem --keyFile=/path/to/key.pem
 > ```
 
-# :books: Guide
+## :books: Guide
 
 ### Flags
 
@@ -184,7 +188,7 @@ kubewall --listen 192.168.1.10:8080
 ```
 > Useful when exposing kubewall to a known private subnet or container network.
 
-# :man_technologist: Developers
+## :man_technologist: Developers
 
 
 <p float="left">
@@ -242,7 +246,7 @@ kubewall --listen 192.168.1.10:8080
    </a>
 </p>
 
-# 🤝 Contribution
+## 🤝 Contribution
 
 This project welcomes your PR and issues. For example, refactoring, adding features, correcting English, etc.
 
@@ -251,6 +255,6 @@ If you need any help, you can contact us from the above Developers sections.
 Thanks to all the people who already contributed and using the project.
 
 
-# ⚖️ License
+## ⚖️ License
 
 kubewall is licensed under [Apache License, Version 2.0](./LICENSE)
