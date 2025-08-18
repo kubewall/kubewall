@@ -2,22 +2,32 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDetailsWrapper, useFetchDataForDetails } from "../Hooks/Details";
 
-import { CaretLeftIcon } from "@radix-ui/react-icons";
+import { CaretLeftIcon, UpdateIcon } from "@radix-ui/react-icons";
 import helmLogo from '../../../../assets/helm-logo.png';
 import { Events } from "../../Details/Events";
 import FourOFourError from "../../Errors/404Error";
 import { Loader } from "../../Loader";
 import { Overview } from "../../Details/Overview";
-import { PODS_ENDPOINT, HELM_RELEASES_ENDPOINT } from "@/constants";
+import { PODS_ENDPOINT, HELM_RELEASES_ENDPOINT, PERSISTENT_VOLUME_CLAIMS_ENDPOINT, STATEFUL_SETS_ENDPOINT } from "@/constants";
 import { PodLogs } from "../../MiscDetailsContainer";
 import { PodExec } from "../../MiscDetailsContainer/PodExec";
+import { PortForwardDialog } from "../../MiscDetailsContainer/PortForward/PortForwardDialog";
+
 import { RootState } from "@/redux/store";
 
 import { ScaleDeployments } from "../../MiscDetailsContainer/Deployments/ScaleDeployments";
+import { RestartDeployments } from "../../MiscDetailsContainer/Deployments/RestartDeployments";
+import { ScaleStatefulSets } from "../../MiscDetailsContainer/StatefulSets/ScaleStatefulSets";
+import { RestartStatefulSets } from "../../MiscDetailsContainer/StatefulSets/RestartStatefulSets";
+import { RestartDaemonSets } from "../../MiscDetailsContainer/DaemonSets/RestartDaemonSets";
+import { CronJobTrigger } from "../../MiscDetailsContainer/CronJobs/CronJobTrigger";
+import NodeActions from "../../MiscDetailsContainer/NodeActions";
+import TableDelete from "../../Table/TableDelete";
+import ScalePVC from "../ScalePVC";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
-import { YamlEditor } from "../../Details/YamlEditor";
+import { EnhancedYamlEditor } from "../../Details/YamlEditor/EnhancedYamlEditor";
 import { clearLogs } from "@/data/Workloads/Pods/PodLogsSlice";
 import { kwDetails, appRoute } from "@/routes";
 import { resetYamlDetails } from "@/data/Yaml/YamlSlice";
@@ -29,6 +39,13 @@ import { toast } from "sonner";
 import { HelmReleaseHistory } from "../../Details/HelmReleaseHistory";
 import { HelmReleaseValues } from "../../Details/HelmReleaseValues";
 import { HelmReleaseResources } from "../../Details/HelmReleaseResources";
+import { RollbackHelmRelease } from "@/components/HelmReleases/RollbackHelmRelease";
+import { Button } from "@/components/ui/button";
+import { HelmChartUpgradeDialog } from "@/components/app/HelmCharts/HelmChartUpgradeDialog";
+import NodeMetricsSwitch from "@/components/app/MiscDetailsContainer/NodeMetricsSwitch";
+import PodPrometheusMetricsChart from "@/components/app/MiscDetailsContainer/PodPrometheusMetricsChart";
+import { usePrometheusAvailability } from "@/hooks/usePrometheusAvailability";
+import { useState } from "react";
 
 const KwDetails = () => {
   const dispatch = useAppDispatch();
@@ -37,9 +54,13 @@ const KwDetails = () => {
   const { config } = appRoute.useParams();
   const { cluster, resourcekind, resourcename, group = '', kind = '', resource = '', version = '', namespace } = kwDetails.useSearch();
   const { podDetails } = useAppSelector((state: RootState) => state.podDetails);
+  const { persistentVolumeClaimDetails } = useAppSelector((state: RootState) => state.persistentVolumeClaimDetails);
   const { clusters, loading: clustersLoading } = useAppSelector((state: RootState) => state.clusters);
+  const { details: helmReleaseDetails } = useAppSelector((state: RootState) => state.helmReleaseDetails);
   const queryParamsObj: Record<string, string> = { config, cluster, namespace: namespace || '' };
   const hasShownConfigNotFoundToast = useRef(false);
+  const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
+  const { isAvailable: isPrometheusAvailable } = usePrometheusAvailability();
   
   useEffect(() => {
     dispatch(resetYamlDetails());
@@ -125,7 +146,7 @@ const KwDetails = () => {
         </span>
       </div>
 
-      <div className="min-h-screen flex-1 flex-col space-y-2 pt-0 p-2 md:flex">
+      <div className="h-[calc(100vh-4rem)] flex-1 flex-col space-y-2 pt-0 p-2 md:flex">
         {
           resourceInitialData?.loading ? <Loader /> :
             <>
@@ -137,11 +158,74 @@ const KwDetails = () => {
                     {resourceData?.subHeading}
                   </h2>
                 </div>
-                <div className="ml-auto">
+                <div className="ml-auto flex items-center gap-2">
                   {
                     resourcekind === 'deployments' && 
-                    <ScaleDeployments resourcename={resourcename} queryParams={new URLSearchParams(queryParamsObj).toString()}/>
+                    <>
+                      <RestartDeployments resourcename={resourcename} queryParams={new URLSearchParams(queryParamsObj).toString()}/>
+                      <ScaleDeployments resourcename={resourcename} queryParams={new URLSearchParams(queryParamsObj).toString()}/>
+                    </>
                   }
+                  {
+                    resourcekind === STATEFUL_SETS_ENDPOINT && 
+                    <>
+                      <RestartStatefulSets resourcename={resourcename} queryParams={new URLSearchParams(queryParamsObj).toString()}/>
+                      <ScaleStatefulSets resourcename={resourcename} queryParams={new URLSearchParams(queryParamsObj).toString()}/>
+                    </>
+                  }
+                  {
+                    resourcekind === 'daemonsets' && 
+                    <RestartDaemonSets resourcename={resourcename} queryParams={new URLSearchParams(queryParamsObj).toString()}/>
+                  }
+                  {
+                    resourcekind === 'cronjobs' && 
+                    <CronJobTrigger resourcename={resourcename} queryParams={new URLSearchParams(queryParamsObj).toString()}/>
+                  }
+                  {
+                    resourcekind === 'nodes' && 
+                    <NodeActions 
+                      nodeName={resourcename} 
+                      config={config} 
+                      cluster={cluster}
+                    />
+                  }
+                  {
+                    resourcekind === PODS_ENDPOINT && 
+                    <PortForwardDialog
+                      resourceType="pod"
+                      resourceName={resourcename}
+                      namespace={namespace || ''}
+                      configName={config}
+                      clusterName={cluster}
+                      podDetails={podDetails}
+                    />
+                  }
+                  {/* Delete on details page reuses the same component with empty selectedRows; it will use params */}
+                  {resourcekind === PERSISTENT_VOLUME_CLAIMS_ENDPOINT && (
+                    <ScalePVC
+                      configName={config}
+                      clusterName={cluster}
+                      namespace={namespace || ''}
+                      name={resourcename}
+                      currentSize={String(persistentVolumeClaimDetails?.spec?.resources?.requests?.storage || '0')}
+                    />
+                  )}
+                  {resourcekind === HELM_RELEASES_ENDPOINT && helmReleaseDetails && (
+                    <>
+                      <RollbackHelmRelease
+                        releaseName={resourcename}
+                        namespace={namespace || ''}
+                        configName={config}
+                        clusterName={cluster}
+                        history={helmReleaseDetails.history || []}
+                      />
+                      <Button variant="outline" className="justify-start" size="sm" onClick={() => setUpgradeDialogOpen(true)}>
+                        <UpdateIcon className="h-3 w-3 mr-1" />
+                        Upgrade
+                      </Button>
+                    </>
+                  )}
+                  <TableDelete selectedRows={[]} />
                 </div>
 
               </div>
@@ -161,8 +245,10 @@ const KwDetails = () => {
                         <TabsTrigger value='events'>Events</TabsTrigger>
                       </>
                     )}
-                    {resourceInitialData.label.toLowerCase() === PODS_ENDPOINT && <TabsTrigger value='logs'>Logs</TabsTrigger>}
-                    {resourceInitialData.label.toLowerCase() === PODS_ENDPOINT && <TabsTrigger value='exec'>Exec</TabsTrigger>}
+                    {resourcekind === 'nodes' && <TabsTrigger value='metrics'>Metrics</TabsTrigger>}
+                    {resourcekind === PODS_ENDPOINT && <TabsTrigger value='logs'>Logs</TabsTrigger>}
+                    {resourcekind === PODS_ENDPOINT && isPrometheusAvailable && <TabsTrigger value='metrics'>Metrics</TabsTrigger>}
+                    {resourcekind === PODS_ENDPOINT && <TabsTrigger value='exec'>Exec</TabsTrigger>}
                   </TabsList>
 
                   <TabsContent value='overview'>
@@ -171,6 +257,7 @@ const KwDetails = () => {
                       lableConditions={resourceData.lableConditionsCardDetails}
                       annotations={resourceData.annotationCardDetails}
                       miscComponent={resourceData.miscComponent}
+                      topComponent={(resourcekind === PODS_ENDPOINT) ? resourceData.topComponent : undefined}
                     />
                   </TabsContent>
                   
@@ -204,7 +291,7 @@ const KwDetails = () => {
                   ) : (
                     <>
                       <TabsContent value='yaml'>
-                        <YamlEditor
+                        <EnhancedYamlEditor
                           name={resourcename}
                           configName={config}
                           clusterName={cluster}
@@ -218,16 +305,23 @@ const KwDetails = () => {
                           name={resourcename}
                           configName={config}
                           clusterName={cluster}
-                          instanceType={resourcekind === 'pods' ? 'pod' : resourcekind}
+                          instanceType={resourceInitialData.label === 'Custom Resources' ? (namespace ? 'customresources' : 'customresource') : (resourcekind === 'pods' ? 'pod' : resourcekind)}
                           namespace={namespace || ''}
+                          extraQuery={resourceInitialData.label === 'Custom Resources' ? '&' + new URLSearchParams({ group, kind, resource, version }).toString() : ''}
                         />
                       </TabsContent>
                     </>
                   )}
                   
+                  {resourcekind === 'nodes' && (
+                    <TabsContent value='metrics'>
+                      <NodeMetricsSwitch />
+                    </TabsContent>
+                  )}
+                  
                   {
-                    resourceInitialData.label.toLowerCase() === PODS_ENDPOINT &&
-                    <TabsContent value='logs'>
+                    resourcekind === PODS_ENDPOINT &&
+                    <TabsContent value='logs' className="h-full">
                       <PodLogs
                         name={podDetails?.metadata?.name}
                         configName={config}
@@ -236,8 +330,20 @@ const KwDetails = () => {
                       />
                     </TabsContent>
                   }
+                  
+                  {resourcekind === PODS_ENDPOINT && isPrometheusAvailable && (
+                    <TabsContent value='metrics'>
+                      <PodPrometheusMetricsChart
+                        podName={resourcename}
+                        namespace={namespace || ''}
+                        configName={config}
+                        clusterName={cluster}
+                      />
+                    </TabsContent>
+                  )}
+                  
                   {
-                    resourceInitialData.label.toLowerCase() === PODS_ENDPOINT &&
+                    resourcekind === PODS_ENDPOINT &&
                     <TabsContent value='exec'>
                       <PodExec
                         pod={podDetails?.metadata?.name}
@@ -248,11 +354,21 @@ const KwDetails = () => {
                       />
                     </TabsContent>
                   }
+
                 </Tabs>
               }
             </>
         }
       </div>
+      {resourcekind === HELM_RELEASES_ENDPOINT && helmReleaseDetails && (
+        <HelmChartUpgradeDialog
+          open={upgradeDialogOpen}
+          onOpenChange={setUpgradeDialogOpen}
+          release={helmReleaseDetails.release}
+          clusterName={cluster}
+          configName={config}
+        />
+      )}
     </div>
   );
 };

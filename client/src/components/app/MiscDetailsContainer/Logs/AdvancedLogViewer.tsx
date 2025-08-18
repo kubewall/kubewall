@@ -242,7 +242,7 @@ export const AdvancedLogViewer: React.FC<AdvancedLogViewerProps> = ({
   const downloadLogs = useCallback((format: 'txt' | 'json' | 'csv' = 'txt') => {
     const a = document.createElement('a');
     let content = '';
-    let filename = `pod-logs.${format}`;
+    const filename = `pod-logs.${format}`;
     
     if (format === 'json') {
       content = JSON.stringify(logs, null, 2);

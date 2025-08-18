@@ -1,4 +1,11 @@
 import DeploymentScaleSlice from '@/data/Workloads/Deployments/DeploymentScaleSlice';
+import DeploymentRestartSlice from '@/data/Workloads/Deployments/DeploymentRestartSlice';
+import StatefulSetScaleSlice from '@/data/Workloads/StatefulSets/StatefulSetScaleSlice';
+import StatefulSetRestartSlice from '@/data/Workloads/StatefulSets/StatefulSetRestartSlice';
+import DaemonSetRestartSlice from '@/data/Workloads/DaemonSets/DaemonSetRestartSlice';
+import CronJobTriggerSlice from '@/data/Workloads/CronJobs/CronJobTriggerSlice';
+import JobPodsSlice from '@/data/Workloads/Jobs/JobPodsSlice';
+import CronJobJobsSlice from '@/data/Workloads/CronJobs/CronJobJobsSlice';
 import addConfigSlice from '@/data/KwClusters/AddConfigSlice';
 import validateConfigSlice from '@/data/KwClusters/ValidateConfigSlice';
 import validateAllConfigsSlice from '@/data/KwClusters/ValidateAllConfigsSlice';
@@ -40,12 +47,16 @@ import limitRangeDetailsSlice from '@/data/Configurations/LimitRange/LimitRangeD
 import limitRangeListSlice from '@/data/Configurations/LimitRange/LimitRangeListSlice';
 import listTableFilterSlice from '@/data/Misc/ListTableFilterSlice';
 import listTableNamesapceSlice from '@/data/Misc/ListTableNamesapceSlice';
+import listTableNodeSlice from '@/data/Misc/ListTableNodeSlice';
+import listTableStatusSlice from '@/data/Misc/ListTableStatusSlice';
+import listTableQosSlice from '@/data/Misc/ListTableQosSlice';
 import namespaceDetailsSlice from '@/data/Clusters/Namespaces/NamespaceDetailsSlice';
 import namespacePodsSlice from '@/data/Clusters/Namespaces/NamespacePodsSlice';
 import namespacesSlice from '@/data/Clusters/Namespaces/NamespacesSlice';
 import nodeDetailsSlice from '@/data/Clusters/Nodes/NodeDetailsSlice';
 import nodeListSlice from '@/data/Clusters/Nodes/NodeListSlice';
 import nodePodsSlice from '@/data/Clusters/Nodes/NodePodsSlice';
+import nodeMetricsSlice from '@/data/Clusters/Nodes/NodeMetricsSlice';
 import persistentVolumeClaimsDetailsSlice from '@/data/Storages/PersistentVolumeClaims/PersistentVolumeClaimDetailsSlice';
 import persistentVolumeClaimsListSlice from '@/data/Storages/PersistentVolumeClaims/PersistentVolumeClaimsListSlice';
 import persistentVolumeDetailsSlice from '@/data/Storages/PersistentVolumes/PersistentVolumeDetailsSlice';
@@ -70,6 +81,8 @@ import runtimeClassDetailsSlice from '@/data/Configurations/RuntimeClasses/Runti
 import runtimeClassesListSlice from '@/data/Configurations/RuntimeClasses/RuntimeClassesListSlice';
 import secretsDetailsSlice from '@/data/Configurations/Secrets/SecretsDetailsSlice';
 import secretsListSlice from '@/data/Configurations/Secrets/SecretsListSlice';
+import secretDependenciesSlice from '@/data/Configurations/Secrets/SecretDependenciesSlice';
+import configMapDependenciesSlice from '@/data/Configurations/ConfigMaps/ConfigMapDependenciesSlice';
 import serviceAccountDetailsSlice from '@/data/AccessControls/ServiceAccounts/ServiceAccountDetailsSlice';
 import serviceAccountsListSlice from '@/data/AccessControls/ServiceAccounts/ServiceAccountsListSlice';
 import serviceDetailSlice from '@/data/Networks/Services/ServiceDetailSlice';
@@ -83,8 +96,18 @@ import updateYamlSlice from '@/data/Yaml/YamlUpdateSlice';
 import yamlSlice from '@/data/Yaml/YamlSlice';
 import { helmReleasesReducer, helmReleaseDetailsReducer } from '@/data/Helm';
 import helmReleaseResourcesReducer from '@/data/Helm/HelmReleaseResourcesSlice';
+import helmActionsReducer from '@/data/Helm/HelmActionsSlice';
+import helmChartsReducer from '@/data/Helm/HelmChartsSlice';
 import cloudShellSlice from '@/data/CloudShell/CloudShellSlice';
 import permissionErrorsSlice from '@/data/PermissionErrors/PermissionErrorsSlice';
+import listTableRefreshSlice from '@/data/Misc/ListTableRefreshSlice';
+import nodeActionsSlice from '@/data/Clusters/Nodes/NodeActionsSlice';
+import persistentVolumeClaimScaleSlice from '@/data/Storages/PersistentVolumeClaims/PersistentVolumeClaimScaleSlice';
+import listTableNodeArchitectureSlice from '@/data/Misc/ListTableNodeArchitectureSlice';
+import listTableNodeConditionSlice from '@/data/Misc/ListTableNodeConditionSlice';
+import listTableNodeOperatingSystemSlice from '@/data/Misc/ListTableNodeOperatingSystemSlice';
+import clusterOverviewSlice from '@/data/Overview/ClusterOverviewSlice';
+import tracingSlice from '@/data/Tracing/TracingSlice';
 
 const store = configureStore({
   reducer: {
@@ -165,16 +188,39 @@ const store = configureStore({
     nodes: nodeListSlice,
     nodeDetails: nodeDetailsSlice,
     nodePods: nodePodsSlice,
+    nodeMetrics: nodeMetricsSlice,
     deleteResources: deleteResourcesSlice,
     listTableNamesapce: listTableNamesapceSlice,
+    listTableNode: listTableNodeSlice,
+    listTableStatus: listTableStatusSlice,
+    listTableQos: listTableQosSlice,
     customResourcesDefinitionDetails: customResourcesDefinitionDetailsSlice,
     clusterEvents: clusterEventsListSlice,
     cloudShell: cloudShellSlice,
     deploymentScale: DeploymentScaleSlice,
+    deploymentRestart: DeploymentRestartSlice,
+    statefulSetScale: StatefulSetScaleSlice,
+    statefulSetRestart: StatefulSetRestartSlice,
+    daemonSetRestart: DaemonSetRestartSlice,
+    cronJobTrigger: CronJobTriggerSlice,
+    jobPods: JobPodsSlice,
+    cronJobJobs: CronJobJobsSlice,
     helmReleases: helmReleasesReducer,
     helmReleaseDetails: helmReleaseDetailsReducer,
     helmReleaseResources: helmReleaseResourcesReducer,
-    permissionErrors: permissionErrorsSlice
+    helmActions: helmActionsReducer,
+    helmCharts: helmChartsReducer,
+    permissionErrors: permissionErrorsSlice,
+    listTableRefresh: listTableRefreshSlice,
+    nodeActions: nodeActionsSlice,
+    persistentVolumeClaimScale: persistentVolumeClaimScaleSlice,
+    secretDependencies: secretDependenciesSlice,
+    configMapDependencies: configMapDependenciesSlice,
+    listTableNodeArchitecture: listTableNodeArchitectureSlice,
+    listTableNodeCondition: listTableNodeConditionSlice,
+    listTableNodeOperatingSystem: listTableNodeOperatingSystemSlice,
+    clusterOverview: clusterOverviewSlice,
+    tracing: tracingSlice,
   },
 });
 

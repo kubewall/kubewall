@@ -47,14 +47,14 @@ export function Events({ instanceType, name, namespace, configName, clusterName,
 
   useEventSource({
     url: getEventStreamUrl(
-      instanceType,
+      instanceType.includes('customresource') ? instanceType : instanceType,
       createEventStreamQueryObject(
         configName,
         clusterName,
         namespace
       ),
       // For namespace-scoped resources, include namespace in path
-      (instanceType === 'deployments' || instanceType === 'daemonsets' || instanceType === 'statefulsets' || instanceType === 'replicasets' || instanceType === 'jobs' || instanceType === 'cronjobs' || instanceType === 'services' || instanceType === 'configmaps' || instanceType === 'secrets' || instanceType === 'horizontalpodautoscalers' || instanceType === 'limitranges' || instanceType === 'resourcequotas' || instanceType === 'serviceaccounts' || instanceType === 'roles' || instanceType === 'rolebindings' || instanceType === 'persistentvolumeclaims' || instanceType === 'poddisruptionbudgets' || instanceType === 'endpoints' || instanceType === 'ingresses' || instanceType === 'leases') ? `/${namespace}/${name}/events` : `/${name}/events`,
+      ((instanceType === 'deployments' || instanceType === 'daemonsets' || instanceType === 'statefulsets' || instanceType === 'replicasets' || instanceType === 'jobs' || instanceType === 'cronjobs' || instanceType === 'services' || instanceType === 'configmaps' || instanceType === 'secrets' || instanceType === 'horizontalpodautoscalers' || instanceType === 'limitranges' || instanceType === 'resourcequotas' || instanceType === 'serviceaccounts' || instanceType === 'roles' || instanceType === 'rolebindings' || instanceType === 'persistentvolumeclaims' || instanceType === 'poddisruptionbudgets' || instanceType === 'endpoints' || instanceType === 'ingresses' || instanceType === 'leases' || instanceType === 'customresources') && namespace) ? `/${namespace}/${name}/events` : `/${name}/events`,
       extraQuery
     ),
     sendMessage,

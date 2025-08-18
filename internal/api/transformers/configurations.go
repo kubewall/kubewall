@@ -16,7 +16,7 @@ import (
 func TransformConfigMapToResponse(configMap *v1.ConfigMap) types.ConfigMapListResponse {
 	age := ""
 	if !configMap.CreationTimestamp.IsZero() {
-		age = time.Since(configMap.CreationTimestamp.Time).String()
+		age = configMap.CreationTimestamp.Time.Format(time.RFC3339)
 	}
 
 	// Extract keys from data
@@ -39,7 +39,7 @@ func TransformConfigMapToResponse(configMap *v1.ConfigMap) types.ConfigMapListRe
 func TransformSecretToResponse(secret *v1.Secret) types.SecretListResponse {
 	age := ""
 	if !secret.CreationTimestamp.IsZero() {
-		age = time.Since(secret.CreationTimestamp.Time).String()
+		age = secret.CreationTimestamp.Time.Format(time.RFC3339)
 	}
 
 	// Extract keys from data
@@ -63,7 +63,7 @@ func TransformSecretToResponse(secret *v1.Secret) types.SecretListResponse {
 func TransformHPAToResponse(hpa *autoscalingV2.HorizontalPodAutoscaler) types.HPAListResponse {
 	age := ""
 	if !hpa.CreationTimestamp.IsZero() {
-		age = time.Since(hpa.CreationTimestamp.Time).String()
+		age = hpa.CreationTimestamp.Time.Format(time.RFC3339)
 	}
 
 	minPods := int32(0)
@@ -95,7 +95,7 @@ func TransformHPAToResponse(hpa *autoscalingV2.HorizontalPodAutoscaler) types.HP
 func TransformLimitRangeToResponse(limitRange *v1.LimitRange) types.LimitRangeListResponse {
 	age := ""
 	if !limitRange.CreationTimestamp.IsZero() {
-		age = time.Since(limitRange.CreationTimestamp.Time).String()
+		age = limitRange.CreationTimestamp.Time.Format(time.RFC3339)
 	}
 
 	return types.LimitRangeListResponse{
@@ -116,7 +116,7 @@ func TransformLimitRangeToResponse(limitRange *v1.LimitRange) types.LimitRangeLi
 func TransformResourceQuotaToResponse(quota *v1.ResourceQuota) types.ResourceQuotaListResponse {
 	age := ""
 	if !quota.CreationTimestamp.IsZero() {
-		age = time.Since(quota.CreationTimestamp.Time).String()
+		age = quota.CreationTimestamp.Time.Format(time.RFC3339)
 	}
 
 	// Convert hard limits to string map
@@ -154,7 +154,7 @@ func TransformResourceQuotaToResponse(quota *v1.ResourceQuota) types.ResourceQuo
 func TransformPodDisruptionBudgetToResponse(pdb *policyV1.PodDisruptionBudget) types.PodDisruptionBudgetListResponse {
 	age := ""
 	if !pdb.CreationTimestamp.IsZero() {
-		age = time.Since(pdb.CreationTimestamp.Time).String()
+		age = pdb.CreationTimestamp.Time.Format(time.RFC3339)
 	}
 
 	minAvailable := ""
@@ -197,7 +197,7 @@ func TransformPodDisruptionBudgetToResponse(pdb *policyV1.PodDisruptionBudget) t
 func TransformPriorityClassToResponse(priorityClass *schedulingV1.PriorityClass) types.PriorityClassListResponse {
 	age := ""
 	if !priorityClass.CreationTimestamp.IsZero() {
-		age = time.Since(priorityClass.CreationTimestamp.Time).String()
+		age = priorityClass.CreationTimestamp.Time.Format(time.RFC3339)
 	}
 
 	return types.PriorityClassListResponse{
@@ -215,7 +215,7 @@ func TransformPriorityClassToResponse(priorityClass *schedulingV1.PriorityClass)
 func TransformRuntimeClassToResponse(runtimeClass *nodeV1.RuntimeClass) types.RuntimeClassListResponse {
 	age := ""
 	if !runtimeClass.CreationTimestamp.IsZero() {
-		age = time.Since(runtimeClass.CreationTimestamp.Time).String()
+		age = runtimeClass.CreationTimestamp.Time.Format(time.RFC3339)
 	}
 
 	return types.RuntimeClassListResponse{

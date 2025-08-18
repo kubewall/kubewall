@@ -23,7 +23,8 @@ const podsSlice = createSlice({
       state.pods = action.payload.map((pod: Pods) => {
         return {
           ...pod,
-          ...(pod.memory ? {memory: `${pod.memory} MiB`}: {})
+          // If backend already sends memory as MiB number string, append unit; if it already contains unit, keep as-is
+          ...(pod.memory ? { memory: /MiB|GiB|KiB|Mi|Gi|Ki/.test(pod.memory) ? pod.memory : `${pod.memory} MiB` } : {})
         };
       });
       state.loading = false;

@@ -71,41 +71,7 @@ export function KubeWall() {
           <div className="flex-shrink-0 border-r basis-12 bg-muted/50 flex flex-col items-center overflow-hidden relative">
             <div className="flex-1 overflow-auto w-full pl-[2px]">
               <TooltipProvider>
-                {clusters.kubeConfigs &&
-                  Object.keys(clusters.kubeConfigs).map((config) => {
-                    return (
-                      clusters.kubeConfigs[config].fileExists &&
-                      Object.keys(clusters.kubeConfigs[config].clusters).map((cluster) => {
-                        const { name } = clusters.kubeConfigs[config].clusters[cluster];
-
-                        return (
-                          <Tooltip key={name} delayDuration={0}>
-                            <TooltipTrigger asChild>
-                              <Link
-                                to={`/${config}/list?cluster=${name}&resourcekind=${selectedResource}`}
-                                onClick={() => !isSelected(config, name) && dispatch(resetAllStates())}
-                                href="#"
-                                className={cn(
-                                  buttonVariants({ variant: isSelected(config, name) ? 'default' : 'ghost', size: 'icon' }),
-                                  'h-10 w-10',
-                                  'border',
-                                  'shadow-none',
-                                  'm-0.5',
-                                  isSelected(config, clusterName) ? '' : 'dark:border',
-                                )}
-                              >
-                                <span className="text-[16px] font-normal">{name.substring(0, 2).toUpperCase()}</span>
-                                <span className="sr-only">{name}</span>
-                              </Link>
-                            </TooltipTrigger>
-                            <TooltipContent side="right" className="flex items-center gap-4">
-                              {name}
-                            </TooltipContent>
-                          </Tooltip>
-                        );
-                      })
-                    );
-                  })}
+                {/* Add Cluster button at the top */}
                 <Tooltip delayDuration={0}>
                   <TooltipTrigger asChild>
                     <Link
@@ -121,13 +87,55 @@ export function KubeWall() {
                     Add Cluster
                   </TooltipContent>
                 </Tooltip>
+                {/* Cluster context initials under the + button (all contexts) */}
+                {(() => {
+                  const items: { configId: string; name: string }[] = [];
+                  if (clusters.kubeConfigs) {
+                    Object.keys(clusters.kubeConfigs).forEach((configId) => {
+                      const cfg = clusters.kubeConfigs[configId];
+                      if (cfg?.clusters) {
+                        Object.keys(cfg.clusters).forEach((ctxKey) => {
+                          const { name } = cfg.clusters[ctxKey];
+                          items.push({ configId, name });
+                        });
+                      }
+                    });
+                  }
+                  items.sort((a, b) => a.name.localeCompare(b.name));
+                  const resourceKind = selectedResource || 'pods';
+                  return items.map(({ configId, name }) => (
+                    <Tooltip key={`${configId}-${name}`} delayDuration={0}>
+                      <TooltipTrigger asChild>
+                        <Link
+                          to={`/${configId}/list?cluster=${name}&resourcekind=${resourceKind}`}
+                          onClick={() => !isSelected(configId, name) && dispatch(resetAllStates())}
+                          href="#"
+                          className={cn(
+                            buttonVariants({ variant: isSelected(configId, name) ? 'default' : 'ghost', size: 'icon' }),
+                            'h-10 w-10',
+                            'border',
+                            'shadow-none',
+                            'm-0.5',
+                            isSelected(configId, name) ? '' : 'dark:border',
+                          )}
+                        >
+                          <span className="text-[16px] font-normal">{name.substring(0, 2).toUpperCase()}</span>
+                          <span className="sr-only">{name}</span>
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="flex items-center gap-4">
+                        {name}
+                      </TooltipContent>
+                    </Tooltip>
+                  ));
+                })()}
               </TooltipProvider>
             </div>
             <div className="sticky bottom-0 w-full flex justify-center p-2 bg-muted/50">
               <GitHubLogoIcon className="w-6 h-6 cursor-pointer" onClick={() => window.open('https://github.com/Facets-cloud/kube-dash')} />
             </div>
           </div>
-          <div className="flex-1 flex overflow-hidden">
+          <div className="flex-1 flex overflow-y-auto">
             <Outlet />
           </div>
         </div>

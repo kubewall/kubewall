@@ -18,6 +18,20 @@ type PodListResponse struct {
 	ClusterName       string `json:"clusterName"`
 }
 
+// PodMetricsPoint represents a single datapoint for CPU/memory usage
+type PodMetricsPoint struct {
+	Timestamp string `json:"timestamp"`
+	CPU       string `json:"cpu"`
+	Memory    string `json:"memory"`
+}
+
+// PodMetricsResponse represents metrics history for a pod
+type PodMetricsResponse struct {
+	Namespace string            `json:"namespace"`
+	Name      string            `json:"name"`
+	Points    []PodMetricsPoint `json:"points"`
+}
+
 // DeploymentListResponse represents the response format expected by the frontend for deployments
 type DeploymentListResponse struct {
 	NamespacedResponse

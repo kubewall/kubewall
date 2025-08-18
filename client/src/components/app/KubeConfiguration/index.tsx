@@ -13,6 +13,7 @@ import { DeleteConfiguration } from './DeleteConfiguration';
 import { Input } from '@/components/ui/input';
 import { ReloadIcon } from '@radix-ui/react-icons';
 import { ClusterStatusCell } from './ClusterStatusCell';
+import { ThemeModeSelector } from '../Common/ThemeModeSelector';
 import { fetchClusters } from '@/data/KwClusters/ClustersSlice';
 import { validateAllConfigs, resetValidateAllConfigs } from '@/data/KwClusters/ValidateAllConfigsSlice';
 import { getSystemTheme } from '@/utils';
@@ -200,17 +201,21 @@ export function KubeConfiguration() {
       toast.error("Cannot navigate to unreachable cluster");
       return;
     }
-    navigate({ to: `/${config}/list?cluster=${encodeURIComponent(name)}&resourcekind=pods` });
+    navigate({ to: `/${config}/overview?cluster=${encodeURIComponent(name)}` });
   };
 
   return (
     <>
+      {/* Floating Theme Switcher */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <ThemeModeSelector />
+      </div>
+      
       <div className='h-screen px-[1%] py-[1%]'>
         <div className="flex flex-col space-y-8 md:flex p-2">
           <div className="flex items-center justify-between">
             <div className="flex items-end">
               <img className="w-12" src={getSystemTheme() === 'light' ? kwLogoLight : kwLogoDark} alt="Facets KubeDash" />
-              <span className="ml-2 text-xs">({clusters.version})</span>
             </div>
             <div className="flex space-x-2">
               <AddConfig />

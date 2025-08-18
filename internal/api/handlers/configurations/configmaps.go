@@ -1,19 +1,20 @@
 package configurations
 
 import (
-	"encoding/base64"
+	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/Facets-cloud/kube-dash/internal/api/transformers"
 	"github.com/Facets-cloud/kube-dash/internal/api/types"
 	"github.com/Facets-cloud/kube-dash/internal/api/utils"
 	"github.com/Facets-cloud/kube-dash/internal/k8s"
 	"github.com/Facets-cloud/kube-dash/internal/storage"
+	"github.com/Facets-cloud/kube-dash/internal/tracing"
 	"github.com/Facets-cloud/kube-dash/pkg/logger"
 
 	"github.com/gin-gonic/gin"
-	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -26,6 +27,7 @@ type ConfigMapsHandler struct {
 	sseHandler    *utils.SSEHandler
 	yamlHandler   *utils.YAMLHandler
 	eventsHandler *utils.EventsHandler
+	tracingHelper *tracing.TracingHelper
 }
 
 // NewConfigMapsHandler creates a new ConfigMapsHandler
@@ -37,6 +39,7 @@ func NewConfigMapsHandler(store *storage.KubeConfigStore, clientFactory *k8s.Cli
 		sseHandler:    utils.NewSSEHandler(log),
 		yamlHandler:   utils.NewYAMLHandler(log),
 		eventsHandler: utils.NewEventsHandler(log),
+		tracingHelper: tracing.GetTracingHelper(),
 	}
 }
 
@@ -64,53 +67,94 @@ func (h *ConfigMapsHandler) getClientAndConfig(c *gin.Context) (*kubernetes.Clie
 
 // GetConfigMaps returns all configmaps in a namespace
 func (h *ConfigMapsHandler) GetConfigMaps(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for configmaps")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get client for configmaps")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Client setup completed for configmaps")
 
 	namespace := c.Query("namespace")
-	configMapList, err := client.CoreV1().ConfigMaps(namespace).List(c.Request.Context(), metav1.ListOptions{})
+
+	// Start child span for Kubernetes API call
+	_, k8sSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "list", "configmap", namespace)
+	defer k8sSpan.End()
+
+	configMapList, err := client.CoreV1().ConfigMaps(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to list configmaps")
+		h.tracingHelper.RecordError(k8sSpan, err, "Failed to list configmaps")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.AddResourceAttributes(k8sSpan, "configmaps", "configmap", len(configMapList.Items))
+	h.tracingHelper.RecordSuccess(k8sSpan, "Successfully listed configmaps")
+
+	// Start child span for data processing
+	_, processSpan := h.tracingHelper.StartDataProcessingSpan(ctx, "transform-data")
+	defer processSpan.End()
 
 	// Transform configmaps to the expected format
 	var transformedConfigMaps []types.ConfigMapListResponse
 	for _, configMap := range configMapList.Items {
 		transformedConfigMaps = append(transformedConfigMaps, transformers.TransformConfigMapToResponse(&configMap))
 	}
+	h.tracingHelper.RecordSuccess(processSpan, "Successfully transformed configmaps data")
 
 	c.JSON(http.StatusOK, transformedConfigMaps)
 }
 
 // GetConfigMapsSSE returns configmaps as Server-Sent Events with real-time updates
 func (h *ConfigMapsHandler) GetConfigMapsSSE(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client-for-sse")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for configmaps SSE")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get client for configmaps SSE")
 		h.sseHandler.SendSSEError(c, http.StatusBadRequest, err.Error())
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Client setup completed for configmaps SSE")
 
 	namespace := c.Query("namespace")
 
 	// Function to fetch and transform configmaps data
 	fetchConfigMaps := func() (interface{}, error) {
-		configMapList, err := client.CoreV1().ConfigMaps(namespace).List(c.Request.Context(), metav1.ListOptions{})
+		// Use context.Background() with timeout instead of request context to avoid cancellation
+		fetchCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		// Start child span for Kubernetes API call
+		_, k8sSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "list", "configmap", namespace)
+		defer k8sSpan.End()
+
+		configMapList, err := client.CoreV1().ConfigMaps(namespace).List(fetchCtx, metav1.ListOptions{})
 		if err != nil {
+			h.tracingHelper.RecordError(k8sSpan, err, "Failed to list configmaps")
 			return nil, err
 		}
+		h.tracingHelper.AddResourceAttributes(k8sSpan, "configmaps", "configmap", len(configMapList.Items))
+		h.tracingHelper.RecordSuccess(k8sSpan, "Successfully listed configmaps")
+
+		// Start child span for data processing
+		_, processSpan := h.tracingHelper.StartDataProcessingSpan(ctx, "transform-data")
+		defer processSpan.End()
 
 		// Transform configmaps to the expected format
 		var transformedConfigMaps []types.ConfigMapListResponse
 		for _, configMap := range configMapList.Items {
 			transformedConfigMaps = append(transformedConfigMaps, transformers.TransformConfigMapToResponse(&configMap))
 		}
+		h.tracingHelper.RecordSuccess(processSpan, "Successfully transformed configmaps data")
 
 		return transformedConfigMaps, nil
 	}
@@ -143,21 +187,35 @@ func (h *ConfigMapsHandler) GetConfigMapsSSE(c *gin.Context) {
 
 // GetConfigMap returns a specific configmap
 func (h *ConfigMapsHandler) GetConfigMap(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for configmap")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get client for configmap")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Client setup completed for configmap")
 
 	namespace := c.Param("namespace")
 	name := c.Param("name")
-	configMap, err := client.CoreV1().ConfigMaps(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+
+	// Start child span for Kubernetes API call
+	_, k8sSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "get", "configmap", namespace)
+	defer k8sSpan.End()
+
+	configMap, err := client.CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		h.logger.WithError(err).WithField("configmap", name).WithField("namespace", namespace).Error("Failed to get configmap")
+		h.tracingHelper.RecordError(k8sSpan, err, "Failed to get configmap")
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.AddResourceAttributes(k8sSpan, name, "configmap", 1)
+	h.tracingHelper.RecordSuccess(k8sSpan, "Successfully retrieved configmap")
 
 	// Always send SSE format for detail endpoints since they're used by EventSource
 	h.sseHandler.SendSSEResponse(c, configMap)
@@ -165,12 +223,18 @@ func (h *ConfigMapsHandler) GetConfigMap(c *gin.Context) {
 
 // GetConfigMapByName returns a specific configmap by name using namespace from query parameters
 func (h *ConfigMapsHandler) GetConfigMapByName(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for configmap")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get client for configmap")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Client setup completed for configmap")
 
 	name := c.Param("name")
 	namespace := c.Query("namespace")
@@ -181,12 +245,19 @@ func (h *ConfigMapsHandler) GetConfigMapByName(c *gin.Context) {
 		return
 	}
 
-	configMap, err := client.CoreV1().ConfigMaps(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	// Start child span for Kubernetes API call
+	_, k8sSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "get", "configmap", namespace)
+	defer k8sSpan.End()
+
+	configMap, err := client.CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		h.logger.WithError(err).WithField("configmap", name).WithField("namespace", namespace).Error("Failed to get configmap")
+		h.tracingHelper.RecordError(k8sSpan, err, "Failed to get configmap")
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.AddResourceAttributes(k8sSpan, name, "configmap", 1)
+	h.tracingHelper.RecordSuccess(k8sSpan, "Successfully retrieved configmap by name")
 
 	// Always send SSE format for detail endpoints since they're used by EventSource
 	h.sseHandler.SendSSEResponse(c, configMap)
@@ -194,12 +265,18 @@ func (h *ConfigMapsHandler) GetConfigMapByName(c *gin.Context) {
 
 // GetConfigMapYAMLByName returns the YAML representation of a specific configmap by name using namespace from query parameters
 func (h *ConfigMapsHandler) GetConfigMapYAMLByName(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for configmap YAML")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get client for configmap YAML")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Client setup completed for configmap YAML")
 
 	name := c.Param("name")
 	namespace := c.Query("namespace")
@@ -210,73 +287,66 @@ func (h *ConfigMapsHandler) GetConfigMapYAMLByName(c *gin.Context) {
 		return
 	}
 
-	configMap, err := client.CoreV1().ConfigMaps(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	// Start child span for Kubernetes API call
+	_, k8sSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "get", "configmap", namespace)
+	defer k8sSpan.End()
+
+	configMap, err := client.CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		h.logger.WithError(err).WithField("configmap", name).WithField("namespace", namespace).Error("Failed to get configmap for YAML")
+		h.tracingHelper.RecordError(k8sSpan, err, "Failed to get configmap for YAML")
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.AddResourceAttributes(k8sSpan, name, "configmap", 1)
+	h.tracingHelper.RecordSuccess(k8sSpan, "Successfully retrieved configmap for YAML")
 
-	// Convert to YAML
-	yamlData, err := yaml.Marshal(configMap)
-	if err != nil {
-		h.logger.WithError(err).Error("Failed to marshal configmap to YAML")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
-		return
-	}
+	// Start child span for YAML generation
+	_, yamlSpan := h.tracingHelper.StartDataProcessingSpan(ctx, "generate-yaml")
+	defer yamlSpan.End()
 
-	// Check if this is an SSE request (EventSource expects SSE format)
-	acceptHeader := c.GetHeader("Accept")
-	if acceptHeader == "text/event-stream" {
-		// For EventSource, send the YAML data as base64 encoded string
-		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
-		h.sseHandler.SendSSEResponse(c, gin.H{"data": encodedYAML})
-		return
-	}
-
-	// Return as base64 encoded string to match frontend expectations
-	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
-	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+	h.yamlHandler.SendYAMLResponse(c, configMap, name)
+	h.tracingHelper.RecordSuccess(yamlSpan, "Successfully generated YAML for configmap")
 }
 
 // GetConfigMapYAML returns the YAML representation of a specific configmap
 func (h *ConfigMapsHandler) GetConfigMapYAML(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for configmap YAML")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get client for configmap YAML")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Client setup completed for configmap YAML")
 
 	namespace := c.Param("namespace")
 	name := c.Param("name")
-	configMap, err := client.CoreV1().ConfigMaps(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+
+	// Start child span for Kubernetes API call
+	_, k8sSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "get", "configmap", namespace)
+	defer k8sSpan.End()
+
+	configMap, err := client.CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		h.logger.WithError(err).WithField("configmap", name).WithField("namespace", namespace).Error("Failed to get configmap for YAML")
+		h.tracingHelper.RecordError(k8sSpan, err, "Failed to get configmap for YAML")
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.AddResourceAttributes(k8sSpan, name, "configmap", 1)
+	h.tracingHelper.RecordSuccess(k8sSpan, "Successfully retrieved configmap for YAML")
 
-	// Convert to YAML
-	yamlData, err := yaml.Marshal(configMap)
-	if err != nil {
-		h.logger.WithError(err).Error("Failed to marshal configmap to YAML")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
-		return
-	}
+	// Start child span for YAML generation
+	_, yamlSpan := h.tracingHelper.StartDataProcessingSpan(ctx, "generate-yaml")
+	defer yamlSpan.End()
 
-	// Check if this is an SSE request (EventSource expects SSE format)
-	acceptHeader := c.GetHeader("Accept")
-	if acceptHeader == "text/event-stream" {
-		// For EventSource, send the YAML data as base64 encoded string
-		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
-		h.sseHandler.SendSSEResponse(c, gin.H{"data": encodedYAML})
-		return
-	}
-
-	// Return as base64 encoded string to match frontend expectations
-	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
-	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+	h.yamlHandler.SendYAMLResponse(c, configMap, name)
+	h.tracingHelper.RecordSuccess(yamlSpan, "Successfully generated YAML for configmap")
 }
 
 // GetConfigMapEventsByName returns events for a specific configmap by name using namespace from query parameters
@@ -290,14 +360,25 @@ func (h *ConfigMapsHandler) GetConfigMapEventsByName(c *gin.Context) {
 		return
 	}
 
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for configmap events")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get client for configmap events")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Client setup completed for configmap events")
+
+	// Start child span for events retrieval
+	_, eventsSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "list", "events", namespace)
+	defer eventsSpan.End()
 
 	h.eventsHandler.GetResourceEventsWithNamespace(c, client, "ConfigMap", name, namespace, h.sseHandler.SendSSEResponse)
+	h.tracingHelper.RecordSuccess(eventsSpan, "Successfully retrieved events for configmap")
 }
 
 // GetConfigMapEvents returns events for a specific configmap
@@ -305,12 +386,23 @@ func (h *ConfigMapsHandler) GetConfigMapEvents(c *gin.Context) {
 	name := c.Param("name")
 	namespace := c.Param("namespace")
 
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for configmap events")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get client for configmap events")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Client setup completed for configmap events")
+
+	// Start child span for events retrieval
+	_, eventsSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "list", "events", namespace)
+	defer eventsSpan.End()
 
 	h.eventsHandler.GetResourceEventsWithNamespace(c, client, "ConfigMap", name, namespace, h.sseHandler.SendSSEResponse)
+	h.tracingHelper.RecordSuccess(eventsSpan, "Successfully retrieved events for configmap")
 }

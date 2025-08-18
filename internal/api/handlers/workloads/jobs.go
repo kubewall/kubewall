@@ -9,6 +9,7 @@ import (
 	"github.com/Facets-cloud/kube-dash/internal/api/utils"
 	"github.com/Facets-cloud/kube-dash/internal/k8s"
 	"github.com/Facets-cloud/kube-dash/internal/storage"
+	"github.com/Facets-cloud/kube-dash/internal/tracing"
 	"github.com/Facets-cloud/kube-dash/pkg/logger"
 
 	"github.com/gin-gonic/gin"
@@ -24,6 +25,7 @@ type JobsHandler struct {
 	eventsHandler *utils.EventsHandler
 	yamlHandler   *utils.YAMLHandler
 	sseHandler    *utils.SSEHandler
+	tracingHelper *tracing.TracingHelper
 }
 
 // NewJobsHandler creates a new Jobs handler
@@ -35,6 +37,7 @@ func NewJobsHandler(store *storage.KubeConfigStore, clientFactory *k8s.ClientFac
 		eventsHandler: utils.NewEventsHandler(log),
 		yamlHandler:   utils.NewYAMLHandler(log),
 		sseHandler:    utils.NewSSEHandler(log),
+		tracingHelper: tracing.GetTracingHelper(),
 	}
 }
 
@@ -62,27 +65,47 @@ func (h *JobsHandler) getClientAndConfig(c *gin.Context) (*kubernetes.Clientset,
 
 // GetJobsSSE returns jobs as Server-Sent Events with real-time updates
 func (h *JobsHandler) GetJobsSSE(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client-for-sse")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for jobs SSE")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
 		h.sseHandler.SendSSEError(c, http.StatusBadRequest, err.Error())
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Kubernetes client setup for SSE")
 
 	namespace := c.Query("namespace")
 
 	// Function to fetch and transform jobs data
 	fetchJobs := func() (interface{}, error) {
+		// Start child span for data fetching
+		_, fetchSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "list", "jobs", namespace)
+		defer fetchSpan.End()
+
 		jobList, err := client.BatchV1().Jobs(namespace).List(c.Request.Context(), metav1.ListOptions{})
 		if err != nil {
+			h.tracingHelper.RecordError(fetchSpan, err, "Failed to list jobs for SSE")
 			return nil, err
 		}
+
+		// Start child span for data transformation
+		_, transformSpan := h.tracingHelper.StartDataProcessingSpan(ctx, "transform-jobs")
+		defer transformSpan.End()
 
 		// Transform jobs to frontend-expected format
 		var response []types.JobListResponse
 		for _, job := range jobList.Items {
 			response = append(response, transformers.TransformJobToResponse(&job))
 		}
+
+		h.tracingHelper.AddResourceAttributes(fetchSpan, "", "jobs", len(jobList.Items))
+		h.tracingHelper.RecordSuccess(fetchSpan, fmt.Sprintf("Listed %d jobs for SSE", len(jobList.Items)))
+		h.tracingHelper.AddResourceAttributes(transformSpan, "", "jobs", len(response))
+		h.tracingHelper.RecordSuccess(transformSpan, fmt.Sprintf("Transformed %d jobs", len(response)))
 
 		return response, nil
 	}
@@ -114,9 +137,14 @@ func (h *JobsHandler) GetJobsSSE(c *gin.Context) {
 
 // GetJob returns a specific job
 func (h *JobsHandler) GetJob(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for job")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
 		// For EventSource, send error as SSE
 		if c.GetHeader("Accept") == "text/event-stream" {
 			h.sseHandler.SendSSEError(c, http.StatusBadRequest, err.Error())
@@ -125,13 +153,19 @@ func (h *JobsHandler) GetJob(c *gin.Context) {
 		}
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Kubernetes client setup completed")
 
 	namespace := c.Param("namespace")
 	name := c.Param("name")
 
+	// Start child span for Kubernetes API call
+	_, k8sSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "get", "job", namespace)
+	defer k8sSpan.End()
+
 	job, err := client.BatchV1().Jobs(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
 	if err != nil {
 		h.logger.WithError(err).WithField("job", name).WithField("namespace", namespace).Error("Failed to get job")
+		h.tracingHelper.RecordError(k8sSpan, err, "Failed to get job")
 		// For EventSource, send error as SSE
 		if c.GetHeader("Accept") == "text/event-stream" {
 			h.sseHandler.SendSSEError(c, http.StatusNotFound, err.Error())
@@ -140,6 +174,8 @@ func (h *JobsHandler) GetJob(c *gin.Context) {
 		}
 		return
 	}
+	h.tracingHelper.AddResourceAttributes(k8sSpan, name, "job", 1)
+	h.tracingHelper.RecordSuccess(k8sSpan, fmt.Sprintf("Retrieved job: %s", name))
 
 	// Check if this is an SSE request (EventSource expects SSE format)
 	acceptHeader := c.GetHeader("Accept")
@@ -153,12 +189,18 @@ func (h *JobsHandler) GetJob(c *gin.Context) {
 
 // GetJobByName returns a specific job by name
 func (h *JobsHandler) GetJobByName(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for job by name")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Kubernetes client setup completed")
 
 	name := c.Param("name")
 	namespace := c.Query("namespace")
@@ -168,24 +210,37 @@ func (h *JobsHandler) GetJobByName(c *gin.Context) {
 		return
 	}
 
+	// Start child span for Kubernetes API call
+	_, k8sSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "get", "job", namespace)
+	defer k8sSpan.End()
+
 	job, err := client.BatchV1().Jobs(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
 	if err != nil {
 		h.logger.WithError(err).WithField("job", name).WithField("namespace", namespace).Error("Failed to get job by name")
+		h.tracingHelper.RecordError(k8sSpan, err, "Failed to get job by name")
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.AddResourceAttributes(k8sSpan, name, "job", 1)
+	h.tracingHelper.RecordSuccess(k8sSpan, fmt.Sprintf("Retrieved job by name: %s", name))
 
 	c.JSON(http.StatusOK, job)
 }
 
 // GetJobYAMLByName returns the YAML representation of a specific job by name
 func (h *JobsHandler) GetJobYAMLByName(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for job YAML by name")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Kubernetes client setup completed")
 
 	name := c.Param("name")
 	namespace := c.Query("namespace")
@@ -195,36 +250,66 @@ func (h *JobsHandler) GetJobYAMLByName(c *gin.Context) {
 		return
 	}
 
+	// Start child span for Kubernetes API call
+	_, k8sSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "get", "job", namespace)
+	defer k8sSpan.End()
+
 	job, err := client.BatchV1().Jobs(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
 	if err != nil {
 		h.logger.WithError(err).WithField("job", name).WithField("namespace", namespace).Error("Failed to get job for YAML by name")
+		h.tracingHelper.RecordError(k8sSpan, err, "Failed to get job for YAML")
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.AddResourceAttributes(k8sSpan, name, "job", 1)
+	h.tracingHelper.RecordSuccess(k8sSpan, fmt.Sprintf("Retrieved job for YAML: %s", name))
+
+	// Start child span for YAML generation
+	_, yamlSpan := h.tracingHelper.StartDataProcessingSpan(ctx, "generate-yaml")
+	defer yamlSpan.End()
 
 	h.yamlHandler.SendYAMLResponse(c, job, name)
+	h.tracingHelper.RecordSuccess(yamlSpan, "Generated YAML response")
 }
 
 // GetJobYAML returns the YAML representation of a specific job
 func (h *JobsHandler) GetJobYAML(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for job YAML")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Kubernetes client setup completed")
 
 	namespace := c.Param("namespace")
 	name := c.Param("name")
 
+	// Start child span for Kubernetes API call
+	_, k8sSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "get", "job", namespace)
+	defer k8sSpan.End()
+
 	job, err := client.BatchV1().Jobs(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
 	if err != nil {
 		h.logger.WithError(err).WithField("job", name).WithField("namespace", namespace).Error("Failed to get job for YAML")
+		h.tracingHelper.RecordError(k8sSpan, err, "Failed to get job for YAML")
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.AddResourceAttributes(k8sSpan, name, "job", 1)
+	h.tracingHelper.RecordSuccess(k8sSpan, fmt.Sprintf("Retrieved job for YAML: %s", name))
+
+	// Start child span for YAML generation
+	_, yamlSpan := h.tracingHelper.StartDataProcessingSpan(ctx, "generate-yaml")
+	defer yamlSpan.End()
 
 	h.yamlHandler.SendYAMLResponse(c, job, name)
+	h.tracingHelper.RecordSuccess(yamlSpan, "Generated YAML response")
 }
 
 // GetJobEventsByName returns events for a specific job by name

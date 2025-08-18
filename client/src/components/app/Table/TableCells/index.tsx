@@ -1,4 +1,4 @@
-import { CUSTOM_RESOURCES_LIST_ENDPOINT, ENDPOINTS_ENDPOINT, HPA_ENDPOINT, INGRESSES_ENDPOINT, NODES_ENDPOINT, ROLE_BINDINGS_ENDPOINT, SECRETS_ENDPOINT, SERVICES_ENDPOINT } from '@/constants';
+import { CUSTOM_RESOURCES_ENDPOINT, CUSTOM_RESOURCES_LIST_ENDPOINT, ENDPOINTS_ENDPOINT, HPA_ENDPOINT, INGRESSES_ENDPOINT, NODES_ENDPOINT, ROLE_BINDINGS_ENDPOINT, SECRETS_ENDPOINT, SERVICES_ENDPOINT } from '@/constants';
 import { Row, Table } from '@tanstack/react-table';
 
 import { ClusterDetails } from '@/types';
@@ -106,10 +106,29 @@ const TableCells = <T extends ClusterDetails>({
       resourcename: value,
       ...(namespace ? {namespace:namespace} :  {})
     };
-    if (instanceType !== CUSTOM_RESOURCES_LIST_ENDPOINT) {
+    if (instanceType === CUSTOM_RESOURCES_ENDPOINT) {
+      // From CRD Definitions list, navigate to the corresponding Custom Resources list
+      const original: any = row.original as any;
+      const group: string = original?.group || '';
+      const version: string = original?.version || '';
+      const kind: string = original?.resource || '';
+      // Derive plural resource from CRD name (e.g., alertmanagers.monitoring.coreos.com)
+      const resourcePlural: string = (original?.name?.split?.('.')?.[0]) || '';
+      const listQueryParams: Record<string, string> = {
+        resourcekind: CUSTOM_RESOURCES_LIST_ENDPOINT,
+        cluster: clusterName,
+        group,
+        kind,
+        resource: resourcePlural,
+        version
+      };
+      link = `${configName}/list?${toQueryParams(listQueryParams)}`;
+    } else if (instanceType !== CUSTOM_RESOURCES_LIST_ENDPOINT) {
       defaultQueryParams.cluster = clusterName;
       link = `${configName}/details?${toQueryParams(defaultQueryParams)}`;
     } else {
+      // For custom resources list, ensure cluster param is included in details route
+      defaultQueryParams.cluster = clusterName;
       link = `${configName}/details?${toQueryParams(defaultQueryParams)}&${queryParams}`;
     }
     return <NameCell

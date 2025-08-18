@@ -19,6 +19,7 @@ import { ListFilterIcon } from "lucide-react";
 import { RootState } from "@/redux/store";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import React from "react";
 
 type DataTableFacetedFilterProps<TData, TValue> = {
   column?: Column<TData, TValue>;
@@ -39,11 +40,15 @@ export function DataTableFacetedFilter<TData, TValue>({
     selectedNamespace
   } = useAppSelector((state: RootState) => state.listTableNamesapce);
   const dispatch = useAppDispatch();
-  const facets = column?.getFacetedUniqueValues();
+  // Compute faceted unique values only when popover is open to avoid expensive calculations each render
+  const [open, setOpen] = React.useState(false);
+  const facets = React.useMemo(() => {
+    return open ? column?.getFacetedUniqueValues() : undefined;
+  }, [open, column]);
   const selectedValues = new Set(selectedNamespace);
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className="h-8 shadow-none gap-0">
           <ListFilterIcon className="mr-2 h-4 w-4" />

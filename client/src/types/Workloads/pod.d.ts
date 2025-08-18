@@ -27,6 +27,7 @@ type PodDetailsMetadata = {
   uid: string,
   resourceVersion: string,
   creationTimestamp: string,
+  deletionTimestamp?: string | null,
   labels: {
     [key: string]: string,
   },
@@ -52,6 +53,13 @@ type PodDetailsSpec = {
     resources: {
       [key: string]: string,
     },
+    ports?: {
+      containerPort: number,
+      protocol?: string,
+      name?: string,
+      hostPort?: number,
+      hostIP?: string
+    }[],
     volumeMounts:{
         name: string,
         readOnly: boolean,
@@ -68,6 +76,13 @@ type PodDetailsSpec = {
     resources: {
       [key: string]: string,
     },
+    ports?: {
+      containerPort: number,
+      protocol?: string,
+      name?: string,
+      hostPort?: number,
+      hostIP?: string
+    }[],
     volumeMounts:{
         name: string,
         readOnly: boolean,

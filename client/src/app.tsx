@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector } from "./redux/hooks";
 import { PermissionErrorPage } from "./components/app/Common/PermissionErrorPage";
 import { RootState } from "./redux/store";
 import { clearPermissionError } from "./data/PermissionErrors/PermissionErrorsSlice";
+import { ThemeModeSelector } from "@/components/app/Common/ThemeModeSelector";
 
 export function App() {
   const dispatch = useAppDispatch();
@@ -65,6 +66,10 @@ export function App() {
           )}
         </SidebarInset>
       </SidebarProvider>
+      {/* Floating theme toggle (bottom-right across all pages) */}
+      <div className="fixed right-4 bottom-4 z-[60]">
+        <ThemeModeSelector />
+      </div>
       {/* Remove the GlobalPermissionErrorHandler since we're now showing full page errors */}
     </>
   );

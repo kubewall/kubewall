@@ -1,19 +1,20 @@
 package configurations
 
 import (
-	"encoding/base64"
+	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/Facets-cloud/kube-dash/internal/api/transformers"
 	"github.com/Facets-cloud/kube-dash/internal/api/types"
 	"github.com/Facets-cloud/kube-dash/internal/api/utils"
 	"github.com/Facets-cloud/kube-dash/internal/k8s"
 	"github.com/Facets-cloud/kube-dash/internal/storage"
+	"github.com/Facets-cloud/kube-dash/internal/tracing"
 	"github.com/Facets-cloud/kube-dash/pkg/logger"
 
 	"github.com/gin-gonic/gin"
-	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -26,6 +27,7 @@ type PodDisruptionBudgetsHandler struct {
 	sseHandler    *utils.SSEHandler
 	yamlHandler   *utils.YAMLHandler
 	eventsHandler *utils.EventsHandler
+	tracingHelper *tracing.TracingHelper
 }
 
 // NewPodDisruptionBudgetsHandler creates a new PodDisruptionBudgetsHandler
@@ -37,6 +39,7 @@ func NewPodDisruptionBudgetsHandler(store *storage.KubeConfigStore, clientFactor
 		sseHandler:    utils.NewSSEHandler(log),
 		yamlHandler:   utils.NewYAMLHandler(log),
 		eventsHandler: utils.NewEventsHandler(log),
+		tracingHelper: tracing.GetTracingHelper(),
 	}
 }
 
@@ -64,53 +67,96 @@ func (h *PodDisruptionBudgetsHandler) getClientAndConfig(c *gin.Context) (*kuber
 
 // GetPodDisruptionBudgets returns all pod disruption budgets in a namespace
 func (h *PodDisruptionBudgetsHandler) GetPodDisruptionBudgets(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for pod disruption budgets")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Client setup completed")
 
 	namespace := c.Query("namespace")
-	podDisruptionBudgetList, err := client.PolicyV1().PodDisruptionBudgets(namespace).List(c.Request.Context(), metav1.ListOptions{})
+
+	// Start child span for Kubernetes API call
+	_, k8sSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "list", "poddisruptionbudgets", namespace)
+	defer k8sSpan.End()
+
+	podDisruptionBudgetList, err := client.PolicyV1().PodDisruptionBudgets(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to list pod disruption budgets")
+		h.tracingHelper.RecordError(k8sSpan, err, "Failed to list pod disruption budgets")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.RecordSuccess(k8sSpan, "Successfully listed pod disruption budgets")
+	h.tracingHelper.AddResourceAttributes(k8sSpan, "poddisruptionbudgets", "poddisruptionbudget", len(podDisruptionBudgetList.Items))
+
+	// Start child span for data processing
+	_, processSpan := h.tracingHelper.StartDataProcessingSpan(ctx, "transform-poddisruptionbudgets")
+	defer processSpan.End()
 
 	// Transform pod disruption budgets to the expected format
 	var transformedPodDisruptionBudgets []types.PodDisruptionBudgetListResponse
 	for _, pdb := range podDisruptionBudgetList.Items {
 		transformedPodDisruptionBudgets = append(transformedPodDisruptionBudgets, transformers.TransformPodDisruptionBudgetToResponse(&pdb))
 	}
+	h.tracingHelper.RecordSuccess(processSpan, "Successfully transformed pod disruption budgets")
+	h.tracingHelper.AddResourceAttributes(processSpan, "transformed-poddisruptionbudgets", "poddisruptionbudget", len(transformedPodDisruptionBudgets))
 
 	c.JSON(http.StatusOK, transformedPodDisruptionBudgets)
 }
 
 // GetPodDisruptionBudgetsSSE returns pod disruption budgets as Server-Sent Events with real-time updates
 func (h *PodDisruptionBudgetsHandler) GetPodDisruptionBudgetsSSE(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client-for-sse")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for pod disruption budgets SSE")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get client for pod disruption budgets SSE")
 		h.sseHandler.SendSSEError(c, http.StatusBadRequest, err.Error())
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Client setup completed for pod disruption budgets SSE")
 
 	namespace := c.Query("namespace")
 
 	// Function to fetch and transform pod disruption budgets data
 	fetchPodDisruptionBudgets := func() (interface{}, error) {
-		podDisruptionBudgetList, err := client.PolicyV1().PodDisruptionBudgets(namespace).List(c.Request.Context(), metav1.ListOptions{})
+		// Start child span for data fetching
+		_, fetchSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "list", "poddisruptionbudgets", namespace)
+		defer fetchSpan.End()
+
+		// Use context.Background() with timeout instead of request context to avoid cancellation
+		fetchCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		podDisruptionBudgetList, err := client.PolicyV1().PodDisruptionBudgets(namespace).List(fetchCtx, metav1.ListOptions{})
 		if err != nil {
+			h.tracingHelper.RecordError(fetchSpan, err, "Failed to fetch pod disruption budgets for SSE")
 			return nil, err
 		}
+		h.tracingHelper.RecordSuccess(fetchSpan, "Successfully fetched pod disruption budgets for SSE")
+		h.tracingHelper.AddResourceAttributes(fetchSpan, "poddisruptionbudgets", "poddisruptionbudget", len(podDisruptionBudgetList.Items))
+
+		// Start child span for data transformation
+		_, transformSpan := h.tracingHelper.StartDataProcessingSpan(ctx, "transform-poddisruptionbudgets-sse")
+		defer transformSpan.End()
 
 		// Transform pod disruption budgets to the expected format
 		var transformedPodDisruptionBudgets []types.PodDisruptionBudgetListResponse
 		for _, pdb := range podDisruptionBudgetList.Items {
 			transformedPodDisruptionBudgets = append(transformedPodDisruptionBudgets, transformers.TransformPodDisruptionBudgetToResponse(&pdb))
 		}
+		h.tracingHelper.RecordSuccess(transformSpan, "Successfully transformed pod disruption budgets for SSE")
+		h.tracingHelper.AddResourceAttributes(transformSpan, "transformed-poddisruptionbudgets", "poddisruptionbudget", len(transformedPodDisruptionBudgets))
 
 		return transformedPodDisruptionBudgets, nil
 	}
@@ -134,21 +180,35 @@ func (h *PodDisruptionBudgetsHandler) GetPodDisruptionBudgetsSSE(c *gin.Context)
 
 // GetPodDisruptionBudget returns a specific pod disruption budget
 func (h *PodDisruptionBudgetsHandler) GetPodDisruptionBudget(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for pod disruption budget")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Client setup completed")
 
 	namespace := c.Param("namespace")
 	name := c.Param("name")
-	podDisruptionBudget, err := client.PolicyV1().PodDisruptionBudgets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+
+	// Start child span for Kubernetes API call
+	_, k8sSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "get", "poddisruptionbudget", namespace)
+	defer k8sSpan.End()
+
+	podDisruptionBudget, err := client.PolicyV1().PodDisruptionBudgets(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		h.logger.WithError(err).WithField("poddisruptionbudget", name).WithField("namespace", namespace).Error("Failed to get pod disruption budget")
+		h.tracingHelper.RecordError(k8sSpan, err, "Failed to get pod disruption budget")
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.RecordSuccess(k8sSpan, "Successfully retrieved pod disruption budget")
+	h.tracingHelper.AddResourceAttributes(k8sSpan, name, "poddisruptionbudget", 1)
 
 	// Check if this is an SSE request (EventSource expects SSE format)
 	acceptHeader := c.GetHeader("Accept")
@@ -162,9 +222,14 @@ func (h *PodDisruptionBudgetsHandler) GetPodDisruptionBudget(c *gin.Context) {
 
 // GetPodDisruptionBudgetByName returns a specific pod disruption budget by name using namespace from query parameters
 func (h *PodDisruptionBudgetsHandler) GetPodDisruptionBudgetByName(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for pod disruption budget")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -174,16 +239,25 @@ func (h *PodDisruptionBudgetsHandler) GetPodDisruptionBudgetByName(c *gin.Contex
 
 	if namespace == "" {
 		h.logger.WithField("poddisruptionbudget", name).Error("Namespace is required for pod disruption budget lookup")
+		h.tracingHelper.RecordError(clientSpan, fmt.Errorf("namespace parameter is required"), "Namespace parameter is required")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "namespace parameter is required"})
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Client setup completed")
 
-	podDisruptionBudget, err := client.PolicyV1().PodDisruptionBudgets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	// Start child span for Kubernetes API call
+	_, k8sSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "get", "poddisruptionbudget", namespace)
+	defer k8sSpan.End()
+
+	podDisruptionBudget, err := client.PolicyV1().PodDisruptionBudgets(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		h.logger.WithError(err).WithField("poddisruptionbudget", name).WithField("namespace", namespace).Error("Failed to get pod disruption budget")
+		h.tracingHelper.RecordError(k8sSpan, err, "Failed to get pod disruption budget")
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.RecordSuccess(k8sSpan, "Successfully retrieved pod disruption budget")
+	h.tracingHelper.AddResourceAttributes(k8sSpan, name, "poddisruptionbudget", 1)
 
 	// Check if this is an SSE request (EventSource expects SSE format)
 	acceptHeader := c.GetHeader("Accept")
@@ -197,9 +271,14 @@ func (h *PodDisruptionBudgetsHandler) GetPodDisruptionBudgetByName(c *gin.Contex
 
 // GetPodDisruptionBudgetYAMLByName returns the YAML representation of a specific pod disruption budget by name using namespace from query parameters
 func (h *PodDisruptionBudgetsHandler) GetPodDisruptionBudgetYAMLByName(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for pod disruption budget YAML")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -209,77 +288,72 @@ func (h *PodDisruptionBudgetsHandler) GetPodDisruptionBudgetYAMLByName(c *gin.Co
 
 	if namespace == "" {
 		h.logger.WithField("poddisruptionbudget", name).Error("Namespace is required for pod disruption budget YAML lookup")
+		h.tracingHelper.RecordError(clientSpan, fmt.Errorf("namespace parameter is required"), "Namespace parameter is required")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "namespace parameter is required"})
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Client setup completed")
 
-	podDisruptionBudget, err := client.PolicyV1().PodDisruptionBudgets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	// Start child span for Kubernetes API call
+	_, k8sSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "get", "poddisruptionbudget", namespace)
+	defer k8sSpan.End()
+
+	podDisruptionBudget, err := client.PolicyV1().PodDisruptionBudgets(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		h.logger.WithError(err).WithField("poddisruptionbudget", name).WithField("namespace", namespace).Error("Failed to get pod disruption budget for YAML")
+		h.tracingHelper.RecordError(k8sSpan, err, "Failed to get pod disruption budget for YAML")
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.RecordSuccess(k8sSpan, "Successfully retrieved pod disruption budget for YAML")
+	h.tracingHelper.AddResourceAttributes(k8sSpan, name, "poddisruptionbudget", 1)
 
-	// Convert to YAML
-	yamlData, err := yaml.Marshal(podDisruptionBudget)
-	if err != nil {
-		h.logger.WithError(err).Error("Failed to marshal pod disruption budget to YAML")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
-		return
-	}
+	// Start child span for YAML generation
+	_, yamlSpan := h.tracingHelper.StartDataProcessingSpan(ctx, "generate-yaml")
+	defer yamlSpan.End()
 
-	// Check if this is an SSE request (EventSource expects SSE format)
-	acceptHeader := c.GetHeader("Accept")
-	if acceptHeader == "text/event-stream" {
-		// For EventSource, send the YAML data as base64 encoded string
-		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
-		h.sseHandler.SendSSEResponse(c, gin.H{"data": encodedYAML})
-		return
-	}
-
-	// Return as base64 encoded string to match frontend expectations
-	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
-	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+	h.yamlHandler.SendYAMLResponse(c, podDisruptionBudget, name)
+	h.tracingHelper.RecordSuccess(yamlSpan, "Successfully generated YAML response")
 }
 
 // GetPodDisruptionBudgetYAML returns the YAML representation of a specific pod disruption budget
 func (h *PodDisruptionBudgetsHandler) GetPodDisruptionBudgetYAML(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for pod disruption budget YAML")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Client setup completed")
 
 	namespace := c.Param("namespace")
 	name := c.Param("name")
-	podDisruptionBudget, err := client.PolicyV1().PodDisruptionBudgets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+
+	// Start child span for Kubernetes API call
+	_, k8sSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "get", "poddisruptionbudget", namespace)
+	defer k8sSpan.End()
+
+	podDisruptionBudget, err := client.PolicyV1().PodDisruptionBudgets(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		h.logger.WithError(err).WithField("poddisruptionbudget", name).WithField("namespace", namespace).Error("Failed to get pod disruption budget for YAML")
+		h.tracingHelper.RecordError(k8sSpan, err, "Failed to get pod disruption budget for YAML")
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.RecordSuccess(k8sSpan, "Successfully retrieved pod disruption budget for YAML")
+	h.tracingHelper.AddResourceAttributes(k8sSpan, name, "poddisruptionbudget", 1)
 
-	// Convert to YAML
-	yamlData, err := yaml.Marshal(podDisruptionBudget)
-	if err != nil {
-		h.logger.WithError(err).Error("Failed to marshal pod disruption budget to YAML")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to YAML"})
-		return
-	}
+	// Start child span for YAML generation
+	_, yamlSpan := h.tracingHelper.StartDataProcessingSpan(ctx, "generate-yaml")
+	defer yamlSpan.End()
 
-	// Check if this is an SSE request (EventSource expects SSE format)
-	acceptHeader := c.GetHeader("Accept")
-	if acceptHeader == "text/event-stream" {
-		// For EventSource, send the YAML data as base64 encoded string
-		encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
-		h.sseHandler.SendSSEResponse(c, gin.H{"data": encodedYAML})
-		return
-	}
-
-	// Return as base64 encoded string to match frontend expectations
-	encodedYAML := base64.StdEncoding.EncodeToString(yamlData)
-	c.JSON(http.StatusOK, gin.H{"data": encodedYAML})
+	h.yamlHandler.SendYAMLResponse(c, podDisruptionBudget, name)
+	h.tracingHelper.RecordSuccess(yamlSpan, "Successfully generated YAML response")
 }
 
 // GetPodDisruptionBudgetEventsByName returns events for a specific pod disruption budget by name using namespace from query parameters
@@ -293,14 +367,26 @@ func (h *PodDisruptionBudgetsHandler) GetPodDisruptionBudgetEventsByName(c *gin.
 		return
 	}
 
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for pod disruption budget events")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Client setup completed")
+
+	// Start child span for events retrieval
+	_, eventsSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "list", "events", namespace)
+	defer eventsSpan.End()
 
 	h.eventsHandler.GetResourceEventsWithNamespace(c, client, "PodDisruptionBudget", name, namespace, h.sseHandler.SendSSEResponse)
+	h.tracingHelper.RecordSuccess(eventsSpan, "Successfully retrieved pod disruption budget events")
+	h.tracingHelper.AddResourceAttributes(eventsSpan, name, "poddisruptionbudget-events", 1)
 }
 
 // GetPodDisruptionBudgetEvents returns events for a specific pod disruption budget
@@ -308,12 +394,24 @@ func (h *PodDisruptionBudgetsHandler) GetPodDisruptionBudgetEvents(c *gin.Contex
 	name := c.Param("name")
 	namespace := c.Param("namespace")
 
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for pod disruption budget events")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Client setup completed")
+
+	// Start child span for events retrieval
+	_, eventsSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "list", "events", namespace)
+	defer eventsSpan.End()
 
 	h.eventsHandler.GetResourceEventsWithNamespace(c, client, "PodDisruptionBudget", name, namespace, h.sseHandler.SendSSEResponse)
+	h.tracingHelper.RecordSuccess(eventsSpan, "Successfully retrieved pod disruption budget events")
+	h.tracingHelper.AddResourceAttributes(eventsSpan, name, "poddisruptionbudget-events", 1)
 }

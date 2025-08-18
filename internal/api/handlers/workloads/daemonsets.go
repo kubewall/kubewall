@@ -1,14 +1,17 @@
 package workloads
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/Facets-cloud/kube-dash/internal/api/transformers"
 	"github.com/Facets-cloud/kube-dash/internal/api/types"
 	"github.com/Facets-cloud/kube-dash/internal/api/utils"
 	"github.com/Facets-cloud/kube-dash/internal/k8s"
 	"github.com/Facets-cloud/kube-dash/internal/storage"
+	"github.com/Facets-cloud/kube-dash/internal/tracing"
 	"github.com/Facets-cloud/kube-dash/pkg/logger"
 
 	"github.com/gin-gonic/gin"
@@ -24,6 +27,7 @@ type DaemonSetsHandler struct {
 	eventsHandler *utils.EventsHandler
 	yamlHandler   *utils.YAMLHandler
 	sseHandler    *utils.SSEHandler
+	tracingHelper *tracing.TracingHelper
 }
 
 // NewDaemonSetsHandler creates a new DaemonSets handler
@@ -35,6 +39,7 @@ func NewDaemonSetsHandler(store *storage.KubeConfigStore, clientFactory *k8s.Cli
 		eventsHandler: utils.NewEventsHandler(log),
 		yamlHandler:   utils.NewYAMLHandler(log),
 		sseHandler:    utils.NewSSEHandler(log),
+		tracingHelper: tracing.GetTracingHelper(),
 	}
 }
 
@@ -62,27 +67,47 @@ func (h *DaemonSetsHandler) getClientAndConfig(c *gin.Context) (*kubernetes.Clie
 
 // GetDaemonSetsSSE returns daemonsets as Server-Sent Events with real-time updates
 func (h *DaemonSetsHandler) GetDaemonSetsSSE(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client-for-sse")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for daemonsets SSE")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
 		h.sseHandler.SendSSEError(c, http.StatusBadRequest, err.Error())
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Kubernetes client setup for SSE")
 
 	namespace := c.Query("namespace")
 
 	// Function to fetch and transform daemonsets data
 	fetchDaemonSets := func() (interface{}, error) {
+		// Start child span for data fetching
+		_, fetchSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "list", "daemonsets", namespace)
+		defer fetchSpan.End()
+
 		daemonSetList, err := client.AppsV1().DaemonSets(namespace).List(c.Request.Context(), metav1.ListOptions{})
 		if err != nil {
+			h.tracingHelper.RecordError(fetchSpan, err, "Failed to list daemonsets for SSE")
 			return nil, err
 		}
+
+		// Start child span for data transformation
+		_, transformSpan := h.tracingHelper.StartDataProcessingSpan(ctx, "transform-daemonsets")
+		defer transformSpan.End()
 
 		// Transform daemonsets to frontend-expected format
 		var response []types.DaemonSetListResponse
 		for _, daemonSet := range daemonSetList.Items {
 			response = append(response, transformers.TransformDaemonSetToResponse(&daemonSet))
 		}
+
+		h.tracingHelper.AddResourceAttributes(fetchSpan, "", "daemonsets", len(daemonSetList.Items))
+		h.tracingHelper.RecordSuccess(fetchSpan, fmt.Sprintf("Listed %d daemonsets for SSE", len(daemonSetList.Items)))
+		h.tracingHelper.AddResourceAttributes(transformSpan, "", "daemonsets", len(response))
+		h.tracingHelper.RecordSuccess(transformSpan, fmt.Sprintf("Transformed %d daemonsets", len(response)))
 
 		return response, nil
 	}
@@ -114,9 +139,14 @@ func (h *DaemonSetsHandler) GetDaemonSetsSSE(c *gin.Context) {
 
 // GetDaemonSet returns a specific daemonset
 func (h *DaemonSetsHandler) GetDaemonSet(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for daemonset")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
 		// For EventSource, send error as SSE
 		if c.GetHeader("Accept") == "text/event-stream" {
 			h.sseHandler.SendSSEError(c, http.StatusBadRequest, err.Error())
@@ -125,13 +155,19 @@ func (h *DaemonSetsHandler) GetDaemonSet(c *gin.Context) {
 		}
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Kubernetes client obtained")
 
 	namespace := c.Param("namespace")
 	name := c.Param("name")
 
+	// Start child span for Kubernetes API call
+	_, k8sSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "get", "daemonset", namespace)
+	defer k8sSpan.End()
+
 	daemonSet, err := client.AppsV1().DaemonSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
 	if err != nil {
 		h.logger.WithError(err).WithField("daemonset", name).WithField("namespace", namespace).Error("Failed to get daemonset")
+		h.tracingHelper.RecordError(k8sSpan, err, "Failed to get daemonset")
 		// For EventSource, send error as SSE
 		if c.GetHeader("Accept") == "text/event-stream" {
 			h.sseHandler.SendSSEError(c, http.StatusNotFound, err.Error())
@@ -140,6 +176,9 @@ func (h *DaemonSetsHandler) GetDaemonSet(c *gin.Context) {
 		}
 		return
 	}
+
+	h.tracingHelper.AddResourceAttributes(k8sSpan, name, "daemonset", 1)
+	h.tracingHelper.RecordSuccess(k8sSpan, fmt.Sprintf("Retrieved daemonset: %s", name))
 
 	// Check if this is an SSE request (EventSource expects SSE format)
 	acceptHeader := c.GetHeader("Accept")
@@ -153,12 +192,18 @@ func (h *DaemonSetsHandler) GetDaemonSet(c *gin.Context) {
 
 // GetDaemonSetByName returns a specific daemonset by name
 func (h *DaemonSetsHandler) GetDaemonSetByName(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for daemonset by name")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Kubernetes client obtained")
 
 	name := c.Param("name")
 	namespace := c.Query("namespace")
@@ -168,24 +213,38 @@ func (h *DaemonSetsHandler) GetDaemonSetByName(c *gin.Context) {
 		return
 	}
 
+	// Start child span for Kubernetes API call
+	_, k8sSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "get", "daemonset", namespace)
+	defer k8sSpan.End()
+
 	daemonSet, err := client.AppsV1().DaemonSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
 	if err != nil {
 		h.logger.WithError(err).WithField("daemonset", name).WithField("namespace", namespace).Error("Failed to get daemonset by name")
+		h.tracingHelper.RecordError(k8sSpan, err, "Failed to get daemonset by name")
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
+
+	h.tracingHelper.AddResourceAttributes(k8sSpan, name, "daemonset", 1)
+	h.tracingHelper.RecordSuccess(k8sSpan, fmt.Sprintf("Retrieved daemonset by name: %s", name))
 
 	c.JSON(http.StatusOK, daemonSet)
 }
 
 // GetDaemonSetYAMLByName returns the YAML representation of a specific daemonset by name
 func (h *DaemonSetsHandler) GetDaemonSetYAMLByName(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for daemonset YAML by name")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Kubernetes client obtained")
 
 	name := c.Param("name")
 	namespace := c.Query("namespace")
@@ -195,36 +254,68 @@ func (h *DaemonSetsHandler) GetDaemonSetYAMLByName(c *gin.Context) {
 		return
 	}
 
+	// Start child span for Kubernetes API call
+	_, k8sSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "get", "daemonset", namespace)
+	defer k8sSpan.End()
+
 	daemonSet, err := client.AppsV1().DaemonSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
 	if err != nil {
 		h.logger.WithError(err).WithField("daemonset", name).WithField("namespace", namespace).Error("Failed to get daemonset for YAML by name")
+		h.tracingHelper.RecordError(k8sSpan, err, "Failed to get daemonset for YAML")
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
 
+	h.tracingHelper.AddResourceAttributes(k8sSpan, name, "daemonset", 1)
+	h.tracingHelper.RecordSuccess(k8sSpan, fmt.Sprintf("Retrieved daemonset YAML: %s", name))
+
+	// Start child span for YAML processing
+	_, yamlSpan := h.tracingHelper.StartDataProcessingSpan(ctx, "generate-yaml")
+	defer yamlSpan.End()
+
 	h.yamlHandler.SendYAMLResponse(c, daemonSet, name)
+	h.tracingHelper.RecordSuccess(yamlSpan, "Generated YAML response")
 }
 
 // GetDaemonSetYAML returns the YAML representation of a specific daemonset
 func (h *DaemonSetsHandler) GetDaemonSetYAML(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for daemonset YAML")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Kubernetes client obtained")
 
 	namespace := c.Param("namespace")
 	name := c.Param("name")
 
+	// Start child span for Kubernetes API call
+	_, k8sSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "get", "daemonset", namespace)
+	defer k8sSpan.End()
+
 	daemonSet, err := client.AppsV1().DaemonSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
 	if err != nil {
 		h.logger.WithError(err).WithField("daemonset", name).WithField("namespace", namespace).Error("Failed to get daemonset for YAML")
+		h.tracingHelper.RecordError(k8sSpan, err, "Failed to get daemonset for YAML")
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
 
+	h.tracingHelper.AddResourceAttributes(k8sSpan, name, "daemonset", 1)
+	h.tracingHelper.RecordSuccess(k8sSpan, fmt.Sprintf("Retrieved daemonset YAML: %s", name))
+
+	// Start child span for YAML processing
+	_, yamlSpan := h.tracingHelper.StartDataProcessingSpan(ctx, "generate-yaml")
+	defer yamlSpan.End()
+
 	h.yamlHandler.SendYAMLResponse(c, daemonSet, name)
+	h.tracingHelper.RecordSuccess(yamlSpan, "Generated YAML response")
 }
 
 // GetDaemonSetEventsByName returns events for a specific daemonset by name
@@ -306,6 +397,70 @@ func (h *DaemonSetsHandler) GetDaemonSetPods(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+// RestartDaemonSet restarts a daemonset using rolling restart
+func (h *DaemonSetsHandler) RestartDaemonSet(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
+	defer clientSpan.End()
+
+	client, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for restarting daemonset")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error(), "code": http.StatusBadRequest})
+		return
+	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Kubernetes client obtained")
+
+	name := c.Param("name")
+	namespace := c.Query("namespace")
+	if namespace == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "namespace parameter is required", "code": http.StatusBadRequest})
+		return
+	}
+
+	// Start child span for rolling restart operation
+	_, restartSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "rolling-restart", "daemonset", namespace)
+	defer restartSpan.End()
+
+	// DaemonSets only support rolling restart (no recreate option like StatefulSets)
+	err = h.performRollingRestart(client, name, namespace)
+	if err != nil {
+		h.logger.WithError(err).WithField("daemonset", name).WithField("namespace", namespace).Error("Failed to perform rolling restart")
+		h.tracingHelper.RecordError(restartSpan, err, "Failed to perform rolling restart")
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error(), "code": http.StatusBadRequest})
+		return
+	}
+
+	h.tracingHelper.AddResourceAttributes(restartSpan, name, "daemonset", 1)
+	h.tracingHelper.RecordSuccess(restartSpan, "Rolling restart initiated successfully")
+
+	c.JSON(http.StatusOK, gin.H{"message": "Rolling restart initiated - pods will be replaced gradually while maintaining availability"})
+}
+
+// performRollingRestart performs a rolling restart by adding a restart annotation
+func (h *DaemonSetsHandler) performRollingRestart(client *kubernetes.Clientset, name, namespace string) error {
+	// Get the current daemonset
+	daemonSet, err := client.AppsV1().DaemonSets(namespace).Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get daemonset: %w", err)
+	}
+
+	// Add restart annotation to pod template
+	if daemonSet.Spec.Template.Annotations == nil {
+		daemonSet.Spec.Template.Annotations = make(map[string]string)
+	}
+	daemonSet.Spec.Template.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
+
+	// Update the daemonset
+	_, err = client.AppsV1().DaemonSets(namespace).Update(context.Background(), daemonSet, metav1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to update daemonset with restart annotation: %w", err)
+	}
+
+	return nil
 }
 
 // GetDaemonSetPodsByName returns pods for a specific daemonset by name

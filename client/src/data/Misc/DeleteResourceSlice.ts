@@ -23,6 +23,7 @@ type DeleteResourcesParams = {
   data: object;
   resourcekind: string;
   queryParams: string;
+  useBulkEndpoint?: boolean;
 };
 
 const initialState: InitialState = {
@@ -31,8 +32,10 @@ const initialState: InitialState = {
   error: null
 };
 
-const deleteResources = createAsyncThunk('deleteResources', ({ data, resourcekind, queryParams }: DeleteResourcesParams, thunkAPI) => {
-  const url = `${API_VERSION}/${resourcekind}?${queryParams}`;
+const deleteResources = createAsyncThunk('deleteResources', ({ data, resourcekind, queryParams, useBulkEndpoint = false }: DeleteResourcesParams, thunkAPI) => {
+  // Use bulk endpoint for 5+ items, regular endpoint otherwise
+  const endpoint = useBulkEndpoint ? `bulk/${resourcekind}` : resourcekind;
+  const url = `${API_VERSION}/${endpoint}?${queryParams}`;
 
   return kwFetch(url, {
     body: JSON.stringify(data),

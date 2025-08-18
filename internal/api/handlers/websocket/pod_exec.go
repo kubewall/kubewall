@@ -172,7 +172,7 @@ func (h *PodExecHandler) HandlePodExec(c *gin.Context) {
 	}
 
 	// Create terminal session using shared implementation
-	session := shared.NewTerminalSession(conn, h.logger)
+	session := shared.NewEnhancedTerminalSession(conn, h.logger)
 
 	// Start the exec session
 	err = exec.Stream(remotecommand.StreamOptions{

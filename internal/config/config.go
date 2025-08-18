@@ -11,6 +11,7 @@ type Config struct {
 	Logging     LoggingConfig
 	K8s         K8sConfig
 	StaticFiles StaticFilesConfig
+	Tracing     TracingConfig
 }
 
 // ServerConfig holds server-specific configuration
@@ -37,6 +38,18 @@ type StaticFilesConfig struct {
 	Path string
 }
 
+// TracingConfig holds OpenTelemetry tracing configuration
+type TracingConfig struct {
+	Enabled         bool    `json:"enabled"`
+	SamplingRate    float64 `json:"samplingRate"`
+	MaxTraces       int     `json:"maxTraces"`
+	RetentionHours  int     `json:"retentionHours"`
+	ExportEnabled   bool    `json:"exportEnabled"`
+	JaegerEndpoint  string  `json:"jaegerEndpoint"`
+	ServiceName     string  `json:"serviceName"`
+	ServiceVersion  string  `json:"serviceVersion"`
+}
+
 // Load loads configuration from environment variables
 func Load() *Config {
 	return &Config{
@@ -56,6 +69,16 @@ func Load() *Config {
 		StaticFiles: StaticFilesConfig{
 			Path: getEnv("STATIC_FILES_PATH", "client/dist"),
 		},
+		Tracing: TracingConfig{
+			Enabled:         getEnvAsBool("TRACING_ENABLED", true),
+			SamplingRate:    getEnvAsFloat("TRACING_SAMPLING_RATE", 1.0),
+			MaxTraces:       getEnvAsInt("TRACING_MAX_TRACES", 10000),
+			RetentionHours:  getEnvAsInt("TRACING_RETENTION_HOURS", 24),
+			ExportEnabled:   getEnvAsBool("TRACING_EXPORT_ENABLED", false),
+			JaegerEndpoint:  getEnv("JAEGER_ENDPOINT", "http://localhost:14268/api/traces"),
+			ServiceName:     getEnv("TRACING_SERVICE_NAME", "kube-dash"),
+			ServiceVersion:  getEnv("TRACING_SERVICE_VERSION", "1.0.0"),
+		},
 	}
 }
 
@@ -72,6 +95,26 @@ func getEnvAsInt(key string, defaultValue int) int {
 	if value := os.Getenv(key); value != "" {
 		if intValue, err := strconv.Atoi(value); err == nil {
 			return intValue
+		}
+	}
+	return defaultValue
+}
+
+// getEnvAsBool gets an environment variable as boolean or returns a default value
+func getEnvAsBool(key string, defaultValue bool) bool {
+	if value := os.Getenv(key); value != "" {
+		if boolValue, err := strconv.ParseBool(value); err == nil {
+			return boolValue
+		}
+	}
+	return defaultValue
+}
+
+// getEnvAsFloat gets an environment variable as float64 or returns a default value
+func getEnvAsFloat(key string, defaultValue float64) float64 {
+	if value := os.Getenv(key); value != "" {
+		if floatValue, err := strconv.ParseFloat(value, 64); err == nil {
+			return floatValue
 		}
 	}
 	return defaultValue

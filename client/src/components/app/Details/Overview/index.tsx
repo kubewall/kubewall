@@ -6,11 +6,13 @@ type OverviewProps = {
   lableConditions: BadgeDetails | null;
   annotations: BadgeDetails | null;
   miscComponent?: React.ReactNode;
+  topComponent?: React.ReactNode;
 }
 
-export function Overview({ details, lableConditions, annotations, miscComponent }: OverviewProps) {
+export function Overview({ details, lableConditions, annotations, miscComponent, topComponent }: OverviewProps) {
   return (
     <div className="overview overflow-auto">
+      {topComponent}
       <div className="items-start justify-center gap-6 rounded-lg">
         {
           details.map((detailCard, index) => {

@@ -3,7 +3,7 @@ import { PodDetailsSpec } from "@/types";
 
 import { SearchAddon } from "@xterm/addon-search";
 import { Terminal } from "@xterm/xterm";
-import XtermTerminal from "../Logs/Xtrem";
+import EnhancedTerminal from "../Terminal/EnhancedTerminal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -249,13 +249,17 @@ export function PodExec({ pod, namespace, configName, clusterName, podDetailsSpe
         </div>
       </div>
       
-      <div ref={execContainerRef} className="w-full h-full">
-        <XtermTerminal
+      <div ref={execContainerRef} className="w-full h-full border rounded-lg overflow-hidden bg-background">
+        <EnhancedTerminal
           xterm={xterm}
           searchAddonRef={searchAddonRef}
           onInput={handleTerminalInput}
+          allowFullscreen={true}
+          initialRows={30}
+          initialCols={120}
+          enableWebGL={true}
         />
       </div>
     </div>
   );
-} 
+}

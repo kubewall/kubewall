@@ -5,10 +5,20 @@ import { API_VERSION } from "@/constants";
 import { resetAllStates } from "@/redux/hooks";
 import { serializeError } from "serialize-error";
 
+type AppliedResource = {
+  name: string;
+  namespace?: string;
+  kind: string;
+  group: string;
+  version: string;
+  resource: string;
+};
+
 type InitialState = {
   loading: boolean;
   yamlUpdateResponse: {
     message: string;
+    appliedResources?: AppliedResource[];
   };
   error: RawRequestError | null;
 };
@@ -54,10 +64,12 @@ const updateYamlSlice = createSlice({
     });
     builder.addCase(
       updateYaml.fulfilled,
-      (state) => {
+      (state, action) => {
         state.loading = false;
+        const payload = action.payload as { message?: string; appliedResources?: AppliedResource[] } | undefined;
         state.yamlUpdateResponse = {
-          message: 'Yaml Updated.'
+          message: payload?.message || 'Yaml Updated.',
+          appliedResources: payload?.appliedResources,
         };
         state.error = null;
       },

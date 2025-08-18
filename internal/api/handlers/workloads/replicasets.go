@@ -9,6 +9,7 @@ import (
 	"github.com/Facets-cloud/kube-dash/internal/api/utils"
 	"github.com/Facets-cloud/kube-dash/internal/k8s"
 	"github.com/Facets-cloud/kube-dash/internal/storage"
+	"github.com/Facets-cloud/kube-dash/internal/tracing"
 	"github.com/Facets-cloud/kube-dash/pkg/logger"
 
 	"github.com/gin-gonic/gin"
@@ -24,6 +25,7 @@ type ReplicaSetsHandler struct {
 	eventsHandler *utils.EventsHandler
 	yamlHandler   *utils.YAMLHandler
 	sseHandler    *utils.SSEHandler
+	tracingHelper *tracing.TracingHelper
 }
 
 // NewReplicaSetsHandler creates a new ReplicaSets handler
@@ -35,6 +37,7 @@ func NewReplicaSetsHandler(store *storage.KubeConfigStore, clientFactory *k8s.Cl
 		eventsHandler: utils.NewEventsHandler(log),
 		yamlHandler:   utils.NewYAMLHandler(log),
 		sseHandler:    utils.NewSSEHandler(log),
+		tracingHelper: tracing.GetTracingHelper(),
 	}
 }
 
@@ -62,27 +65,47 @@ func (h *ReplicaSetsHandler) getClientAndConfig(c *gin.Context) (*kubernetes.Cli
 
 // GetReplicaSetsSSE returns replicasets as Server-Sent Events with real-time updates
 func (h *ReplicaSetsHandler) GetReplicaSetsSSE(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client-for-sse")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for replicasets SSE")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
 		h.sseHandler.SendSSEError(c, http.StatusBadRequest, err.Error())
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Kubernetes client setup for SSE")
 
 	namespace := c.Query("namespace")
 
 	// Function to fetch and transform replicasets data
 	fetchReplicaSets := func() (interface{}, error) {
+		// Start child span for data fetching
+		_, fetchSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "list", "replicasets", namespace)
+		defer fetchSpan.End()
+
 		replicaSetList, err := client.AppsV1().ReplicaSets(namespace).List(c.Request.Context(), metav1.ListOptions{})
 		if err != nil {
+			h.tracingHelper.RecordError(fetchSpan, err, "Failed to list replicasets for SSE")
 			return nil, err
 		}
+
+		// Start child span for data transformation
+		_, transformSpan := h.tracingHelper.StartDataProcessingSpan(ctx, "transform-replicasets")
+		defer transformSpan.End()
 
 		// Transform replicasets to frontend-expected format
 		var response []types.ReplicaSetListResponse
 		for _, replicaSet := range replicaSetList.Items {
 			response = append(response, transformers.TransformReplicaSetToResponse(&replicaSet))
 		}
+
+		h.tracingHelper.AddResourceAttributes(fetchSpan, "", "replicasets", len(replicaSetList.Items))
+		h.tracingHelper.RecordSuccess(fetchSpan, fmt.Sprintf("Listed %d replicasets for SSE", len(replicaSetList.Items)))
+		h.tracingHelper.AddResourceAttributes(transformSpan, "", "replicasets", len(response))
+		h.tracingHelper.RecordSuccess(transformSpan, fmt.Sprintf("Transformed %d replicasets", len(response)))
 
 		return response, nil
 	}
@@ -114,9 +137,14 @@ func (h *ReplicaSetsHandler) GetReplicaSetsSSE(c *gin.Context) {
 
 // GetReplicaSet returns a specific replicaset
 func (h *ReplicaSetsHandler) GetReplicaSet(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for replicaset")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
 		// For EventSource, send error as SSE
 		if c.GetHeader("Accept") == "text/event-stream" {
 			h.sseHandler.SendSSEError(c, http.StatusBadRequest, err.Error())
@@ -125,13 +153,19 @@ func (h *ReplicaSetsHandler) GetReplicaSet(c *gin.Context) {
 		}
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Kubernetes client setup completed")
 
 	namespace := c.Param("namespace")
 	name := c.Param("name")
 
+	// Start child span for Kubernetes API call
+	_, k8sSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "get", "replicaset", namespace)
+	defer k8sSpan.End()
+
 	replicaSet, err := client.AppsV1().ReplicaSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
 	if err != nil {
 		h.logger.WithError(err).WithField("replicaset", name).WithField("namespace", namespace).Error("Failed to get replicaset")
+		h.tracingHelper.RecordError(k8sSpan, err, "Failed to get replicaset")
 		// For EventSource, send error as SSE
 		if c.GetHeader("Accept") == "text/event-stream" {
 			h.sseHandler.SendSSEError(c, http.StatusNotFound, err.Error())
@@ -140,6 +174,8 @@ func (h *ReplicaSetsHandler) GetReplicaSet(c *gin.Context) {
 		}
 		return
 	}
+	h.tracingHelper.AddResourceAttributes(k8sSpan, name, "replicaset", 1)
+	h.tracingHelper.RecordSuccess(k8sSpan, fmt.Sprintf("Retrieved replicaset: %s", name))
 
 	// Check if this is an SSE request (EventSource expects SSE format)
 	acceptHeader := c.GetHeader("Accept")
@@ -153,12 +189,18 @@ func (h *ReplicaSetsHandler) GetReplicaSet(c *gin.Context) {
 
 // GetReplicaSetByName returns a specific replicaset by name
 func (h *ReplicaSetsHandler) GetReplicaSetByName(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for replicaset by name")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Kubernetes client setup completed")
 
 	name := c.Param("name")
 	namespace := c.Query("namespace")
@@ -168,24 +210,37 @@ func (h *ReplicaSetsHandler) GetReplicaSetByName(c *gin.Context) {
 		return
 	}
 
+	// Start child span for Kubernetes API call
+	_, k8sSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "get", "replicaset", namespace)
+	defer k8sSpan.End()
+
 	replicaSet, err := client.AppsV1().ReplicaSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
 	if err != nil {
 		h.logger.WithError(err).WithField("replicaset", name).WithField("namespace", namespace).Error("Failed to get replicaset by name")
+		h.tracingHelper.RecordError(k8sSpan, err, "Failed to get replicaset by name")
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.AddResourceAttributes(k8sSpan, name, "replicaset", 1)
+	h.tracingHelper.RecordSuccess(k8sSpan, fmt.Sprintf("Retrieved replicaset by name: %s", name))
 
 	c.JSON(http.StatusOK, replicaSet)
 }
 
 // GetReplicaSetYAMLByName returns the YAML representation of a specific replicaset by name
 func (h *ReplicaSetsHandler) GetReplicaSetYAMLByName(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for replicaset YAML by name")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Kubernetes client setup completed")
 
 	name := c.Param("name")
 	namespace := c.Query("namespace")
@@ -195,36 +250,66 @@ func (h *ReplicaSetsHandler) GetReplicaSetYAMLByName(c *gin.Context) {
 		return
 	}
 
+	// Start child span for Kubernetes API call
+	_, k8sSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "get", "replicaset", namespace)
+	defer k8sSpan.End()
+
 	replicaSet, err := client.AppsV1().ReplicaSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
 	if err != nil {
 		h.logger.WithError(err).WithField("replicaset", name).WithField("namespace", namespace).Error("Failed to get replicaset for YAML by name")
+		h.tracingHelper.RecordError(k8sSpan, err, "Failed to get replicaset for YAML")
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.AddResourceAttributes(k8sSpan, name, "replicaset", 1)
+	h.tracingHelper.RecordSuccess(k8sSpan, fmt.Sprintf("Retrieved replicaset for YAML: %s", name))
+
+	// Start child span for YAML generation
+	_, yamlSpan := h.tracingHelper.StartDataProcessingSpan(ctx, "generate-yaml")
+	defer yamlSpan.End()
 
 	h.yamlHandler.SendYAMLResponse(c, replicaSet, name)
+	h.tracingHelper.RecordSuccess(yamlSpan, "Generated YAML response")
 }
 
 // GetReplicaSetYAML returns the YAML representation of a specific replicaset
 func (h *ReplicaSetsHandler) GetReplicaSetYAML(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for replicaset YAML")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Kubernetes client setup completed")
 
 	namespace := c.Param("namespace")
 	name := c.Param("name")
 
+	// Start child span for Kubernetes API call
+	_, k8sSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "get", "replicaset", namespace)
+	defer k8sSpan.End()
+
 	replicaSet, err := client.AppsV1().ReplicaSets(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
 	if err != nil {
 		h.logger.WithError(err).WithField("replicaset", name).WithField("namespace", namespace).Error("Failed to get replicaset for YAML")
+		h.tracingHelper.RecordError(k8sSpan, err, "Failed to get replicaset for YAML")
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.AddResourceAttributes(k8sSpan, name, "replicaset", 1)
+	h.tracingHelper.RecordSuccess(k8sSpan, fmt.Sprintf("Retrieved replicaset for YAML: %s", name))
+
+	// Start child span for YAML generation
+	_, yamlSpan := h.tracingHelper.StartDataProcessingSpan(ctx, "generate-yaml")
+	defer yamlSpan.End()
 
 	h.yamlHandler.SendYAMLResponse(c, replicaSet, name)
+	h.tracingHelper.RecordSuccess(yamlSpan, "Generated YAML response")
 }
 
 // GetReplicaSetEventsByName returns events for a specific replicaset by name

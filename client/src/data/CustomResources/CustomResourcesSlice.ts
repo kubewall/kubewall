@@ -1,5 +1,5 @@
 import { CustomResources, CustomResourcesDefinitionsHeader, CustomResourcesNavigation } from '../../types';
-import { formatCustomResources, formatCustomResourcesDefinitionsResponse } from '@/utils';
+import { formatCustomResources } from '@/utils';
 
 import { RawRequestError } from '../kwFetch';
 import { createSlice } from '@reduxjs/toolkit';
@@ -27,7 +27,17 @@ const customResourcesSlice = createSlice({
   reducers: {
     updateCustomResources: (state, action) => {
       state.customResources = action.payload;
-      state.customResourcesDefinitions = formatCustomResourcesDefinitionsResponse(action.payload);
+      // The backend now returns transformed data, so we need to map it to the expected format
+      state.customResourcesDefinitions = action.payload.map((crd: any) => ({
+        name: crd.name,
+        icon: crd.spec.icon,
+        resource: crd.spec.names.kind,
+        group: crd.spec.group,
+        version: crd.activeVersion,
+        scope: crd.scope,
+        age: crd.age,
+        uid: crd.uid
+      }));
       state.customResourcesNavigation = formatCustomResources(action.payload);
       state.loading = false;
     }

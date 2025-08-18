@@ -9,9 +9,11 @@ import (
 	"github.com/Facets-cloud/kube-dash/internal/api/utils"
 	"github.com/Facets-cloud/kube-dash/internal/k8s"
 	"github.com/Facets-cloud/kube-dash/internal/storage"
+	"github.com/Facets-cloud/kube-dash/internal/tracing"
 	"github.com/Facets-cloud/kube-dash/pkg/logger"
 
 	"github.com/gin-gonic/gin"
+	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -24,6 +26,7 @@ type CronJobsHandler struct {
 	eventsHandler *utils.EventsHandler
 	yamlHandler   *utils.YAMLHandler
 	sseHandler    *utils.SSEHandler
+	tracingHelper *tracing.TracingHelper
 }
 
 // NewCronJobsHandler creates a new CronJobs handler
@@ -35,6 +38,7 @@ func NewCronJobsHandler(store *storage.KubeConfigStore, clientFactory *k8s.Clien
 		eventsHandler: utils.NewEventsHandler(log),
 		yamlHandler:   utils.NewYAMLHandler(log),
 		sseHandler:    utils.NewSSEHandler(log),
+		tracingHelper: tracing.GetTracingHelper(),
 	}
 }
 
@@ -62,27 +66,47 @@ func (h *CronJobsHandler) getClientAndConfig(c *gin.Context) (*kubernetes.Client
 
 // GetCronJobsSSE returns cronjobs as Server-Sent Events with real-time updates
 func (h *CronJobsHandler) GetCronJobsSSE(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client-for-sse")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for cronjobs SSE")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
 		h.sseHandler.SendSSEError(c, http.StatusBadRequest, err.Error())
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Kubernetes client setup for SSE")
 
 	namespace := c.Query("namespace")
 
 	// Function to fetch cronjobs data
 	fetchCronJobs := func() (interface{}, error) {
+		// Start child span for data fetching
+		_, fetchSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "list", "cronjobs", namespace)
+		defer fetchSpan.End()
+
 		cronJobList, err := client.BatchV1().CronJobs(namespace).List(c.Request.Context(), metav1.ListOptions{})
 		if err != nil {
+			h.tracingHelper.RecordError(fetchSpan, err, "Failed to list cronjobs for SSE")
 			return nil, err
 		}
+
+		// Start child span for data transformation
+		_, transformSpan := h.tracingHelper.StartDataProcessingSpan(ctx, "transform-cronjobs")
+		defer transformSpan.End()
 
 		// Transform cronjobs to frontend-expected format
 		var response []types.CronJobListResponse
 		for _, cronJob := range cronJobList.Items {
 			response = append(response, transformers.TransformCronJobToResponse(&cronJob))
 		}
+
+		h.tracingHelper.AddResourceAttributes(fetchSpan, "", "cronjobs", len(cronJobList.Items))
+		h.tracingHelper.RecordSuccess(fetchSpan, fmt.Sprintf("Listed %d cronjobs for SSE", len(cronJobList.Items)))
+		h.tracingHelper.AddResourceAttributes(transformSpan, "", "cronjobs", len(response))
+		h.tracingHelper.RecordSuccess(transformSpan, fmt.Sprintf("Transformed %d cronjobs", len(response)))
 
 		return response, nil
 	}
@@ -114,9 +138,14 @@ func (h *CronJobsHandler) GetCronJobsSSE(c *gin.Context) {
 
 // GetCronJob returns a specific cronjob
 func (h *CronJobsHandler) GetCronJob(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for cronjob")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
 		// For EventSource, send error as SSE
 		if c.GetHeader("Accept") == "text/event-stream" {
 			h.sseHandler.SendSSEError(c, http.StatusBadRequest, err.Error())
@@ -125,13 +154,19 @@ func (h *CronJobsHandler) GetCronJob(c *gin.Context) {
 		}
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Kubernetes client setup completed")
 
 	namespace := c.Param("namespace")
 	name := c.Param("name")
 
+	// Start child span for Kubernetes API call
+	_, k8sSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "get", "cronjob", namespace)
+	defer k8sSpan.End()
+
 	cronJob, err := client.BatchV1().CronJobs(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
 	if err != nil {
 		h.logger.WithError(err).WithField("cronjob", name).WithField("namespace", namespace).Error("Failed to get cronjob")
+		h.tracingHelper.RecordError(k8sSpan, err, "Failed to get cronjob")
 		// For EventSource, send error as SSE
 		if c.GetHeader("Accept") == "text/event-stream" {
 			h.sseHandler.SendSSEError(c, http.StatusNotFound, err.Error())
@@ -140,6 +175,8 @@ func (h *CronJobsHandler) GetCronJob(c *gin.Context) {
 		}
 		return
 	}
+	h.tracingHelper.AddResourceAttributes(k8sSpan, name, "cronjob", 1)
+	h.tracingHelper.RecordSuccess(k8sSpan, fmt.Sprintf("Retrieved cronjob: %s", name))
 
 	// Check if this is an SSE request (EventSource expects SSE format)
 	acceptHeader := c.GetHeader("Accept")
@@ -289,4 +326,54 @@ func (h *CronJobsHandler) GetCronJobJobsByName(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, jobs)
+}
+
+// TriggerCronJob manually triggers a CronJob by creating a job from it
+func (h *CronJobsHandler) TriggerCronJob(c *gin.Context) {
+	client, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for cronjob trigger")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+
+	// Get the CronJob
+	cronJob, err := client.BatchV1().CronJobs(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("cronjob", name).WithField("namespace", namespace).Error("Failed to get cronjob for trigger")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Create a job from the CronJob template
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: fmt.Sprintf("%s-manual-", name),
+			Namespace:    namespace,
+			Labels: map[string]string{
+				"job-name": name,
+			},
+		},
+		Spec: *cronJob.Spec.JobTemplate.Spec.DeepCopy(),
+	}
+
+	// Create the job
+	createdJob, err := client.BatchV1().Jobs(namespace).Create(c.Request.Context(), job, metav1.CreateOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("cronjob", name).WithField("namespace", namespace).Error("Failed to create job from cronjob")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	h.logger.WithField("cronjob", name).WithField("job", createdJob.Name).WithField("namespace", namespace).Info("Successfully triggered cronjob")
+	c.JSON(http.StatusOK, gin.H{
+		"message": "CronJob triggered successfully",
+		"job": gin.H{
+			"name":      createdJob.Name,
+			"namespace": createdJob.Namespace,
+		},
+	})
 }

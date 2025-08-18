@@ -1,0 +1,1 @@
+Always use `make build` to build the frontend and backend and `make run` to run the project which will open in localhost:7080, that is what we need to open in the browser

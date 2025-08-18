@@ -21,7 +21,7 @@ type HandlerAggregator struct {
 
 // NewHandlerAggregator creates a new handler aggregator with all resource handlers
 func NewHandlerAggregator(store *storage.KubeConfigStore, clientFactory *k8s.ClientFactory, log *logger.Logger) *HandlerAggregator {
-	baseHandler := NewResourcesHandler(store, clientFactory, log)
+	baseHandler := NewResourcesHandler(store, clientFactory, log, nil)
 
 	return &HandlerAggregator{
 		ResourcesHandler: baseHandler,

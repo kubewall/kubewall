@@ -4,26 +4,33 @@
  
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 20 14.3% 4.1%;
+    /* Defaults for dynamic theme variables */
+    --kw-primary-light: 245.5 88.6% 66.9%;
+    --kw-primary-foreground-light: 0 0% 100%;
+    --kw-secondary-light: 178.3 100% 38.0%;
+    --kw-secondary-foreground-light: 0 0% 0%;
+    --kw-accent-light: 245.5 88.6% 66.9%;
+    --kw-accent-foreground-light: 0 0% 100%;
+    --background: var(--kw-background-light, 0 0% 100%);
+    --foreground: var(--kw-foreground-light, 20 14.3% 4.1%);
 
-    --card: 0 0% 100%;
-    --card-foreground: 20 14.3% 4.1%;
+    --card: var(--kw-background-light, 0 0% 100%);
+    --card-foreground: var(--kw-foreground-light, 20 14.3% 4.1%);
  
-    --popover: 0 0% 100%;
-    --popover-foreground: 20 14.3% 4.1%;
+    --popover: var(--kw-background-light, 0 0% 100%);
+    --popover-foreground: var(--kw-foreground-light, 20 14.3% 4.1%);
  
-    --primary: 24 9.8% 10%;
-    --primary-foreground: 60 9.1% 97.8%;
+    --primary: var(--kw-primary-light, 24 9.8% 10%);
+    --primary-foreground: var(--kw-primary-foreground-light, 60 9.1% 97.8%);
  
-    --secondary: 60 4.8% 95.9%;
-    --secondary-foreground: 24 9.8% 10%;
+    --secondary: var(--kw-secondary-light, 60 4.8% 95.9%);
+    --secondary-foreground: var(--kw-secondary-foreground-light, 24 9.8% 10%);
  
-    --muted: 60 4.8% 95.9%;
+    --muted: var(--kw-background-light, 60 4.8% 95.9%);
     --muted-foreground: 25 5.3% 44.7%;
  
-    --accent: 60 4.8% 95.9%;
-    --accent-foreground: 24 9.8% 10%;
+    --accent: var(--kw-accent-light, 60 4.8% 95.9%);
+    --accent-foreground: var(--kw-accent-foreground-light, 24 9.8% 10%);
  
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 60 9.1% 97.8%;
@@ -36,28 +43,28 @@
     --ring: 20 14.3% 4.1%;
  
     --radius: 0.5rem;
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
+    --background: var(--kw-background-light, 0 0% 100%);
+    --foreground: var(--kw-foreground-light, 222.2 84% 4.9%);
+    --card: var(--kw-background-light, 0 0% 100%);
+    --card-foreground: var(--kw-foreground-light, 222.2 84% 4.9%);
+    --popover: var(--kw-background-light, 0 0% 100%);
+    --popover-foreground: var(--kw-foreground-light, 222.2 84% 4.9%);
+    --primary: var(--kw-primary-light, 222.2 47.4% 11.2%);
+    --primary-foreground: var(--kw-primary-foreground-light, 210 40% 98%);
+    --secondary: var(--kw-secondary-light, 210 40% 96.1%);
+    --secondary-foreground: var(--kw-secondary-foreground-light, 222.2 47.4% 11.2%);
+    --muted: var(--kw-background-light, 210 40% 96.1%);
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: var(--kw-accent-light, 210 40% 96.1%);
+    --accent-foreground: var(--kw-accent-foreground-light, 222.2 47.4% 11.2%);
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     /* --radius: 0.3rem; */
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222.2 84% 4.9%;
+    --sidebar-background: var(--kw-background-light, 0 0% 100%);
+    --sidebar-foreground: var(--kw-foreground-light, 222.2 84% 4.9%);
     --sidebar-primary: 222.2 47.4% 11.2%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 210 40% 96.1%;
@@ -67,26 +74,32 @@
   }
  
   .dark {
-    --background: 20 14.3% 4.1%;
-    --foreground: 60 9.1% 97.8%;
+    --kw-primary-dark: 245.5 88.6% 66.9%;
+    --kw-primary-foreground-dark: 0 0% 0%;
+    --kw-secondary-dark: 178.3 100% 38.0%;
+    --kw-secondary-foreground-dark: 0 0% 100%;
+    --kw-accent-dark: 245.5 88.6% 66.9%;
+    --kw-accent-foreground-dark: 0 0% 0%;
+    --background: var(--kw-background-dark, 20 14.3% 4.1%);
+    --foreground: var(--kw-foreground-dark, 60 9.1% 97.8%);
  
-    --card: 20 14.3% 4.1%;
-    --card-foreground: 60 9.1% 97.8%;
+    --card: var(--kw-background-dark, 20 14.3% 4.1%);
+    --card-foreground: var(--kw-foreground-dark, 60 9.1% 97.8%);
  
-    --popover: 20 14.3% 4.1%;
-    --popover-foreground: 60 9.1% 97.8%;
+    --popover: var(--kw-background-dark, 20 14.3% 4.1%);
+    --popover-foreground: var(--kw-foreground-dark, 60 9.1% 97.8%);
  
-    --primary: 60 9.1% 97.8%;
-    --primary-foreground: 24 9.8% 10%;
+    --primary: var(--kw-primary-dark, 60 9.1% 97.8%);
+    --primary-foreground: var(--kw-primary-foreground-dark, 24 9.8% 10%);
  
-    --secondary: 12 6.5% 15.1%;
-    --secondary-foreground: 60 9.1% 97.8%;
+    --secondary: var(--kw-secondary-dark, 12 6.5% 15.1%);
+    --secondary-foreground: var(--kw-secondary-foreground-dark, 60 9.1% 97.8%);
  
-    --muted: 12 6.5% 15.1%;
+    --muted: var(--kw-background-dark, 12 6.5% 15.1%);
     --muted-foreground: 24 5.4% 63.9%;
  
-    --accent: 12 6.5% 15.1%;
-    --accent-foreground: 60 9.1% 97.8%;
+    --accent: var(--kw-accent-dark, 12 6.5% 15.1%);
+    --accent-foreground: var(--kw-accent-foreground-dark, 60 9.1% 97.8%);
  
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 60 9.1% 97.8%;
@@ -97,27 +110,27 @@
     --border: 12 6.5% 15.1%;
     --input: 12 6.5% 15.1%;
     --ring: 24 5.7% 82.9%;
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
+    --background: var(--kw-background-dark, 222.2 84% 4.9%);
+    --foreground: var(--kw-foreground-dark, 210 40% 98%);
+    --card: var(--kw-background-dark, 222.2 84% 4.9%);
+    --card-foreground: var(--kw-foreground-dark, 210 40% 98%);
+    --popover: var(--kw-background-dark, 222.2 84% 4.9%);
+    --popover-foreground: var(--kw-foreground-dark, 210 40% 98%);
+    --primary: var(--kw-primary-dark, 210 40% 98%);
+    --primary-foreground: var(--kw-primary-foreground-dark, 222.2 47.4% 11.2%);
+    --secondary: var(--kw-secondary-dark, 217.2 32.6% 17.5%);
+    --secondary-foreground: var(--kw-secondary-foreground-dark, 210 40% 98%);
+    --muted: var(--kw-background-dark, 217.2 32.6% 17.5%);
     --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: var(--kw-accent-dark, 217.2 32.6% 17.5%);
+    --accent-foreground: var(--kw-accent-foreground-dark, 210 40% 98%);
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9;
-    --sidebar-background: 222.2 84% 4.9%;
-    --sidebar-foreground: 210 40% 98%;
+    --sidebar-background: var(--kw-background-dark, 222.2 84% 4.9%);
+    --sidebar-foreground: var(--kw-foreground-dark, 210 40% 98%);
     --sidebar-primary: 210 40% 98%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 217.2 32.6% 17.5%;
@@ -226,8 +239,9 @@ html {
   background-color: hsl(var(--success));
 }
 
-body { 
-  overflow: hidden; 
+body {
+  /* Allow page to scroll when content exceeds viewport */
+  overflow: auto;
 }
 
 .empty-table {
@@ -247,6 +261,13 @@ body {
   animation: bgColorChange 2s ease-in-out;
 }
 
+/* Simple indeterminate progress bar animation */
+@keyframes progress {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(0%); }
+  100% { transform: translateX(100%); }
+}
+
 .overview {
   max-height: calc(100vh - 115px);
 }
@@ -260,7 +281,7 @@ body {
 
 /* Monaco editor container fix */
 .monaco-editor {
-  overflow: hidden;
+  overflow: auto;
 }
 
 /* Parent container fix */

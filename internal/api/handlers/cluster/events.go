@@ -7,6 +7,7 @@ import (
 	"github.com/Facets-cloud/kube-dash/internal/api/utils"
 	"github.com/Facets-cloud/kube-dash/internal/k8s"
 	"github.com/Facets-cloud/kube-dash/internal/storage"
+	"github.com/Facets-cloud/kube-dash/internal/tracing"
 	"github.com/Facets-cloud/kube-dash/pkg/logger"
 
 	"github.com/gin-gonic/gin"
@@ -20,6 +21,7 @@ type EventsHandler struct {
 	clientFactory *k8s.ClientFactory
 	logger        *logger.Logger
 	sseHandler    *utils.SSEHandler
+	tracingHelper *tracing.TracingHelper
 }
 
 // NewEventsHandler creates a new EventsHandler instance
@@ -29,6 +31,7 @@ func NewEventsHandler(store *storage.KubeConfigStore, clientFactory *k8s.ClientF
 		clientFactory: clientFactory,
 		logger:        log,
 		sseHandler:    utils.NewSSEHandler(log),
+		tracingHelper: tracing.GetTracingHelper(),
 	}
 }
 
@@ -56,17 +59,29 @@ func (h *EventsHandler) getClientAndConfig(c *gin.Context) (*kubernetes.Clientse
 
 // GetEvents returns all events in a namespace
 func (h *EventsHandler) GetEvents(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for events")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Successfully obtained Kubernetes client")
 
 	namespace := c.Query("namespace")
-	events, err := client.CoreV1().Events(namespace).List(c.Request.Context(), metav1.ListOptions{})
+
+	// Start child span for Kubernetes API call
+	_, apiSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "list", "events", namespace)
+	defer apiSpan.End()
+
+	events, err := client.CoreV1().Events(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to list events")
+		h.tracingHelper.RecordError(apiSpan, err, "Failed to list events")
 
 		// Check if this is a permission error
 		if utils.IsPermissionError(err) {
@@ -76,6 +91,8 @@ func (h *EventsHandler) GetEvents(c *gin.Context) {
 		}
 		return
 	}
+	h.tracingHelper.RecordSuccess(apiSpan, "Successfully listed events")
+	h.tracingHelper.AddResourceAttributes(apiSpan, namespace, "events", len(events.Items))
 
 	// Check if this is an SSE request (EventSource expects SSE format)
 	acceptHeader := c.GetHeader("Accept")
@@ -89,12 +106,18 @@ func (h *EventsHandler) GetEvents(c *gin.Context) {
 
 // GetEventsSSE returns events as Server-Sent Events with real-time updates
 func (h *EventsHandler) GetEventsSSE(c *gin.Context) {
+	// Start child span for client setup
+	_, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
+	defer clientSpan.End()
+
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get client for events SSE")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
 		h.sseHandler.SendSSEError(c, http.StatusBadRequest, err.Error())
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Successfully obtained Kubernetes client")
 
 	namespace := c.Query("namespace")
 

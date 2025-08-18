@@ -1,0 +1,170 @@
+/* Custom scrollbar styles for virtualized lists */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border)) transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 3px;
+  transition: background-color 0.2s ease;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--border) / 0.8);
+}
+
+.scrollbar-thumb-border {
+  scrollbar-color: hsl(var(--border)) transparent;
+}
+
+.scrollbar-track-transparent {
+  scrollbar-color: hsl(var(--border)) transparent;
+}
+
+/* Performance optimization classes */
+.dependency-card-optimized {
+  contain: layout style paint;
+  will-change: transform;
+}
+
+.dependency-list-container {
+  contain: layout;
+}
+
+/* Smooth transitions for large lists */
+.dependency-transition {
+  transition: all 0.15s ease-in-out;
+}
+
+/* Loading skeleton optimizations */
+.dependency-skeleton {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 25%,
+    hsl(var(--muted) / 0.5) 50%,
+    hsl(var(--muted)) 75%
+  );
+  background-size: 200% 100%;
+  animation: dependency-skeleton-loading 1.5s infinite;
+}
+
+@keyframes dependency-skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Virtual list optimizations */
+.virtual-list-container {
+  /* Enable hardware acceleration */
+  transform: translateZ(0);
+  /* Optimize for scrolling */
+  -webkit-overflow-scrolling: touch;
+  /* Contain layout calculations */
+  contain: strict;
+}
+
+.virtual-list-item {
+  /* Optimize individual items */
+  contain: layout style paint;
+  /* Prevent unnecessary repaints */
+  backface-visibility: hidden;
+  /* Optimize transforms */
+  transform: translateZ(0);
+}
+
+/* Progressive disclosure animations */
+.progressive-show-more {
+  animation: progressive-fade-in 0.3s ease-out;
+}
+
+@keyframes progressive-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Memory-efficient hover effects */
+.dependency-hover-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.dependency-hover-effect::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    hsl(var(--accent) / 0.1),
+    transparent
+  );
+  transition: left 0.5s ease;
+  pointer-events: none;
+}
+
+.dependency-hover-effect:hover::before {
+  left: 100%;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--foreground));
+  }
+  
+  .dependency-card-optimized {
+    border-width: 2px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .dependency-transition,
+  .progressive-show-more,
+  .dependency-hover-effect::before {
+    transition: none;
+    animation: none;
+  }
+  
+  .dependency-skeleton {
+    animation: none;
+    background: hsl(var(--muted));
+  }
+}
+
+/* Print styles */
+@media print {
+  .virtual-list-container {
+    overflow: visible !important;
+    height: auto !important;
+  }
+  
+  .dependency-card-optimized {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

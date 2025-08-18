@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { deploymentScale, resetDeploymentScale } from "@/data/Workloads/Deployments/DeploymentScaleSlice";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,8 @@ import { Loader } from "../../Loader";
 import { RootState } from "@/redux/store";
 import { SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
+import kwFetch from "@/data/kwFetch";
+import { API_VERSION } from "@/constants";
 
 type ScaleDeploymentsProps = {
   resourcename: string;
@@ -28,6 +30,38 @@ const ScaleDeployments = ({ resourcename, queryParams }: ScaleDeploymentsProps) 
   const [modalOpen, setModalOpen] = useState(false);
   const [value, setValue] = useState('');
   const dispatch = useAppDispatch();
+  // Parse config, cluster, namespace from provided queryParams string
+  const qp = useMemo(() => new URLSearchParams(queryParams), [queryParams]);
+  const config = qp.get('config') || '';
+  const cluster = qp.get('cluster') || '';
+  const namespaceFromQP = qp.get('namespace') || '';
+
+  const [canScale, setCanScale] = useState<boolean>(true);
+  const [checkingPermission, setCheckingPermission] = useState<boolean>(false);
+
+  const namespaceForCheck = useMemo(
+    () => namespaceFromQP || deploymentDetails?.metadata?.namespace || '',
+    [namespaceFromQP, deploymentDetails]
+  );
+
+  useEffect(() => {
+    const checkPermission = async () => {
+      if (!config || !cluster) return;
+      setCheckingPermission(true);
+      try {
+        const qp: Record<string, string> = { config, cluster, resourcekind: 'deployments', verb: 'update', subresource: 'scale' };
+        if (namespaceForCheck) qp['namespace'] = namespaceForCheck;
+        const url = `${API_VERSION}/permissions/check?${new URLSearchParams(qp).toString()}`;
+        const res = await kwFetch(url, { method: 'GET' });
+        setCanScale(Boolean((res as any)?.allowed));
+      } catch (_) {
+        setCanScale(false);
+      } finally {
+        setCheckingPermission(false);
+      }
+    };
+    checkPermission();
+  }, [config, cluster, namespaceForCheck]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let inputValue = e.target.value;
@@ -91,26 +125,37 @@ const ScaleDeployments = ({ resourcename, queryParams }: ScaleDeploymentsProps) 
       <TooltipProvider>
         <Tooltip delayDuration={0}>
           <TooltipTrigger asChild>
-            <DialogTrigger asChild>
-              <Button
-                disabled={loading}
-                variant='ghost'
-                size='icon'
-                className='right-0 mt-1 rounded z-10 border w-20 mr-1'
-                onClick={() => setModalOpen(true)}
-
-              >
-                {
-                  loading ?
-                    <Loader className='w-4 h-4 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600' /> :
+            {(() => {
+              const isDisabled = loading || checkingPermission || !canScale;
+              const buttonEl = (
+                <Button
+                  disabled={isDisabled}
+                  variant='ghost'
+                  size='icon'
+                  className='right-0 mt-1 rounded z-10 border w-20 mr-1'
+                  onClick={() => setModalOpen(true)}
+                >
+                  {loading ? (
+                    <Loader className='w-4 h-4 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600' />
+                  ) : (
                     <SlidersHorizontal className='h-4 w-4' />
-                }
-                <span className='text-xs'>Scale</span>
-              </Button>
-            </DialogTrigger>
+                  )}
+                  <span className='text-xs'>Scale</span>
+                </Button>
+              );
+              return isDisabled ? (
+                <span className="inline-flex" role="button" aria-disabled tabIndex={0}>
+                  {buttonEl}
+                </span>
+              ) : (
+                <DialogTrigger asChild>
+                  {buttonEl}
+                </DialogTrigger>
+              );
+            })()}
           </TooltipTrigger>
           <TooltipContent side="bottom">
-            Scale Deployment
+            {checkingPermission ? 'Checking permissions...' : (!canScale ? "You don't have permission to scale" : 'Scale Deployment')}
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>

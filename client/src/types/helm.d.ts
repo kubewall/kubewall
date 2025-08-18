@@ -81,4 +81,72 @@ export interface HelmReleaseResourcesResponse {
   resources: HelmReleaseResource[];
   total: number;
   summary: ResourceSummary;
-} 
+}
+
+export interface HelmChart {
+  id: string;
+  name: string;
+  description: string;
+  home: string;
+  keywords: string[];
+  maintainers: HelmChartMaintainer[];
+  sources: string[];
+  icon: string;
+  appVersion: string;
+  version: string;
+  created: string;
+  digest: string;
+  urls: string[];
+  repository: HelmChartRepository;
+}
+
+export interface HelmChartMaintainer {
+  name: string;
+  email?: string;
+  url?: string;
+}
+
+export interface HelmChartRepository {
+  name: string;
+  url: string;
+  official?: boolean;
+}
+
+export interface HelmChartVersion {
+  version: string;
+  appVersion: string;
+  created: string;
+  description: string;
+  digest: string;
+  urls: string[];
+}
+
+export interface HelmChartDetails {
+  chart: HelmChart;
+  versions: HelmChartVersion[];
+  readme?: string;
+  values?: string;
+  templates?: string[];
+}
+
+export interface HelmChartsSearchResponse {
+  data: HelmChart[];
+  total: number;
+  page: number;
+  size: number;
+}
+
+export interface HelmChartInstallRequest {
+  name: string;
+  namespace: string;
+  chart: string;
+  version?: string;
+  values?: string;
+  repository?: string;
+}
+
+export interface HelmChartInstallResponse {
+  success: boolean;
+  message: string;
+  release?: HelmRelease;
+}

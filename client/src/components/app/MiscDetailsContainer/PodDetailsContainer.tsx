@@ -7,12 +7,14 @@ import { CubeIcon } from "@radix-ui/react-icons";
 import { memo } from "react";
 import { useAppSelector } from "@/redux/hooks";
 
+
 const PodDetailsContainer = memo(function () {
   const {
     podDetails,
   } = useAppSelector((state) => state.podDetails);
   const containerCards = createContainerData(podDetails.spec, podDetails.status, "containers");
   const initContainerCards = createContainerData(podDetails.spec, podDetails.status, "initContainers");
+
   return (
     <>
       {
@@ -295,6 +297,7 @@ const PodDetailsContainer = memo(function () {
           </CardContent>
         </Card>
       </div>
+
     </>
   );
 });

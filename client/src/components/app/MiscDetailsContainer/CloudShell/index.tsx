@@ -2,7 +2,7 @@ import { useRef, useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Terminal } from "@xterm/xterm";
 import { SearchAddon } from "@xterm/addon-search";
-import XtermTerminal from "../Logs/Xtrem";
+import EnhancedTerminal from "../Terminal/EnhancedTerminal";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -321,7 +321,7 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
 
   // Handle terminal resize
   const handleTerminalResize = () => {
-    // Terminal resizing is handled by XtermTerminal component
+    // Terminal resizing is handled by EnhancedTerminal component
   };
 
   // Toggle terminal expansion
@@ -340,7 +340,7 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
             Cloud Shell
           </CardTitle>
           <CardDescription>
-            Interactive terminal with kubectl and helm access for cluster: {clusterName}
+            Interactive terminal with kubectl and helm access for cluster
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -540,16 +540,20 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
               </div>
             </div>
             <div 
-              className="bg-black transition-all duration-300 w-full"
+              className="bg-background border rounded-lg overflow-hidden transition-all duration-300 w-full"
               style={{ 
                 height: isExpanded ? '600px' : '400px',
                 minHeight: isExpanded ? '600px' : '400px'
               }}
             >
-              <XtermTerminal
+              <EnhancedTerminal
                 xterm={xterm}
                 searchAddonRef={searchAddonRef}
                 onInput={handleTerminalInput}
+                allowFullscreen={true}
+                initialRows={isExpanded ? 35 : 25}
+                initialCols={120}
+                enableWebGL={true}
               />
             </div>
           </div>
@@ -557,4 +561,4 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
       </Card>
     </div>
   );
-} 
+}

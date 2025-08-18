@@ -76,7 +76,12 @@ const getPodDetailsConfig = (details: PodDetails, loading: boolean) => ({
     { label: 'Scheduler Name', value: defaultOrValue(details.spec.schedulerName) },
     { label: 'Service Account', value: defaultOrValue(details.spec.serviceAccount) },
     { label: 'Service Account Name', value: defaultOrValue(details.spec.serviceAccountName) },
-    { label: 'Termination GracePeriod Seconds', value: defaultOrValue(details.spec.terminationGracePeriodSeconds) }
+    { label: 'Termination GracePeriod Seconds', value: defaultOrValue(details.spec.terminationGracePeriodSeconds) },
+    // Requests/Limits summary
+    { label: 'CPU Request (m)', value: defaultOrValue(details.spec.containers?.map((c: any) => (c.resources as any)?.requests?.cpu).filter(Boolean).join(', ')) },
+    { label: 'CPU Limit (m)', value: defaultOrValue(details.spec.containers?.map((c: any) => (c.resources as any)?.limits?.cpu).filter(Boolean).join(', ')) },
+    { label: 'Memory Request', value: defaultOrValue(details.spec.containers?.map((c: any) => (c.resources as any)?.requests?.memory).filter(Boolean).join(', ')) },
+    { label: 'Memory Limit', value: defaultOrValue(details.spec.containers?.map((c: any) => (c.resources as any)?.limits?.memory).filter(Boolean).join(', ')) }
   ],
   loading,
   ...getCommonCardConfig(details.metadata.annotations, details.metadata.labels, details.status.conditions)

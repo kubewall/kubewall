@@ -19,4 +19,5 @@ export * from './ServiceAccountDetailsContainer';
 export * from './RoleDetailsContainer';
 export * from './Logs';
 export * from './CustomResourceDetailsConainter';
+export * from './PortForward';
 export { default as HelmReleaseDetailsContainer } from './HelmReleaseDetailsContainer';

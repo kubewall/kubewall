@@ -11,10 +11,12 @@ import (
 	"github.com/Facets-cloud/kube-dash/internal/api/utils"
 	"github.com/Facets-cloud/kube-dash/internal/k8s"
 	"github.com/Facets-cloud/kube-dash/internal/storage"
+	"github.com/Facets-cloud/kube-dash/internal/tracing"
 	"github.com/Facets-cloud/kube-dash/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"go.opentelemetry.io/otel/attribute"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -41,6 +43,7 @@ type CloudShellHandler struct {
 	helmFactory   *k8s.HelmClientFactory
 	logger        *logger.Logger
 	upgrader      websocket.Upgrader
+	tracingHelper *tracing.TracingHelper
 }
 
 // CloudShellSession represents a cloud shell session
@@ -67,6 +70,7 @@ func NewCloudShellHandler(store *storage.KubeConfigStore, clientFactory *k8s.Cli
 				return true // Allow all origins for now
 			},
 		},
+		tracingHelper: tracing.GetTracingHelper(),
 	}
 }
 
@@ -246,6 +250,10 @@ func (h *CloudShellHandler) checkCloudShellConnectionPermissions(client *kuberne
 
 // CreateCloudShell creates a new cloud shell pod
 func (h *CloudShellHandler) CreateCloudShell(c *gin.Context) {
+	// Start main span for create cloud shell operation
+	ctx, span := h.tracingHelper.StartAuthSpan(c.Request.Context(), "create_session")
+	defer span.End()
+
 	configID := c.Query("config")
 	cluster := c.Query("cluster")
 	namespace := c.Query("namespace")
@@ -254,12 +262,28 @@ func (h *CloudShellHandler) CreateCloudShell(c *gin.Context) {
 		namespace = "default"
 	}
 
+	// Add resource attributes
+	span.SetAttributes(
+		attribute.String("cloudshell.config_id", configID),
+		attribute.String("cloudshell.cluster", cluster),
+		attribute.String("cloudshell.namespace", namespace),
+	)
+
+	// Child span for client acquisition
+	clientCtx, clientSpan := h.tracingHelper.StartAuthSpan(ctx, "client_acquisition")
 	client, _, err := h.getClientAndConfig(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get client config")
+		clientSpan.End()
+		h.tracingHelper.RecordError(span, err, "CloudShell creation failed")
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Kubernetes client acquired")
+	clientSpan.End()
 
+	// Child span for permission checking
+	permissionCtx, permissionSpan := h.tracingHelper.StartKubernetesAPISpan(clientCtx, "permission_check", "pods", namespace)
 	// Check permissions before proceeding
 	if err := h.checkCloudShellPermissions(client, namespace); err != nil {
 		h.logger.WithError(err).Error("Permission check failed for cloud shell creation")
@@ -271,9 +295,16 @@ func (h *CloudShellHandler) CreateCloudShell(c *gin.Context) {
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to check permissions: %v", err)})
 		}
+		h.tracingHelper.RecordError(permissionSpan, err, "Permission check failed")
+		permissionSpan.End()
+		h.tracingHelper.RecordError(span, err, "CloudShell creation failed")
 		return
 	}
+	h.tracingHelper.RecordSuccess(permissionSpan, "Permission check completed")
+	permissionSpan.End()
 
+	// Child span for session limit validation
+	validationCtx, validationSpan := h.tracingHelper.StartDataProcessingSpan(permissionCtx, "session_validation")
 	// Check for active sessions limit
 	activeSessions, err := h.getActiveSessions(client, configID, cluster, namespace)
 	if err != nil {
@@ -286,6 +317,9 @@ func (h *CloudShellHandler) CreateCloudShell(c *gin.Context) {
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to check session limit: %v", err)})
 		}
+		h.tracingHelper.RecordError(validationSpan, err, "Session validation failed")
+		validationSpan.End()
+		h.tracingHelper.RecordError(span, err, "CloudShell creation failed")
 		return
 	}
 
@@ -302,13 +336,24 @@ func (h *CloudShellHandler) CreateCloudShell(c *gin.Context) {
 			"limit":   MaxCloudShellSessions,
 			"current": len(activeSessions),
 		})
+		err := fmt.Errorf("session limit reached: %d/%d", len(activeSessions), MaxCloudShellSessions)
+		h.tracingHelper.RecordError(validationSpan, err, "Session limit exceeded")
+		validationSpan.End()
+		h.tracingHelper.RecordError(span, err, "CloudShell creation failed")
 		return
 	}
+	h.tracingHelper.RecordSuccess(validationSpan, "Session validation completed")
+	validationSpan.End()
 
+	// Child span for resource preparation
+	prepCtx, prepSpan := h.tracingHelper.StartDataProcessingSpan(validationCtx, "resource_preparation")
 	// Get the kubeconfig from store
 	kubeconfig, err := h.store.GetKubeConfig(configID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Failed to get kubeconfig: %v", err)})
+		h.tracingHelper.RecordError(prepSpan, err, "Failed to get kubeconfig")
+		prepSpan.End()
+		h.tracingHelper.RecordError(span, err, "CloudShell creation failed")
 		return
 	}
 
@@ -316,12 +361,17 @@ func (h *CloudShellHandler) CreateCloudShell(c *gin.Context) {
 	kubeconfigYAML, err := clientcmd.Write(*kubeconfig)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to serialize kubeconfig: %v", err)})
+		h.tracingHelper.RecordError(prepSpan, err, "Failed to serialize kubeconfig")
+		prepSpan.End()
+		h.tracingHelper.RecordError(span, err, "CloudShell creation failed")
 		return
 	}
 
 	// Generate unique pod name
 	podName := fmt.Sprintf("cloudshell-%s-%d", cluster, time.Now().Unix())
 	configMapName := fmt.Sprintf("kubeconfig-%s-%s", configID, cluster)
+	h.tracingHelper.RecordSuccess(prepSpan, "Resource preparation completed")
+	prepSpan.End()
 
 	// Create ConfigMap with kubeconfig
 	configMap := &v1.ConfigMap{
@@ -340,6 +390,8 @@ func (h *CloudShellHandler) CreateCloudShell(c *gin.Context) {
 		},
 	}
 
+	// Child span for ConfigMap creation
+	configMapCtx, configMapSpan := h.tracingHelper.StartKubernetesAPISpan(prepCtx, "create", "configmaps", namespace)
 	// Create or update the ConfigMap
 	_, err = client.CoreV1().ConfigMaps(namespace).Create(c.Request.Context(), configMap, metav1.CreateOptions{})
 	if err != nil {
@@ -355,9 +407,14 @@ func (h *CloudShellHandler) CreateCloudShell(c *gin.Context) {
 			} else {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to create kubeconfig ConfigMap: %v", err)})
 			}
+			h.tracingHelper.RecordError(configMapSpan, err, "Failed to create/update ConfigMap")
+			configMapSpan.End()
+			h.tracingHelper.RecordError(span, err, "CloudShell creation failed")
 			return
 		}
 	}
+	h.tracingHelper.RecordSuccess(configMapSpan, "ConfigMap created/updated successfully")
+	configMapSpan.End()
 
 	// Create cloud shell pod
 	pod := &v1.Pod{
@@ -388,6 +445,7 @@ func (h *CloudShellHandler) CreateCloudShell(c *gin.Context) {
 							v1.ResourceMemory: resource.MustParse("1Gi"),
 						},
 					},
+					Command: []string{"/bin/sh", "-c", "sleep infinity"},
 					Env: []v1.EnvVar{
 						{
 							Name:  "KUBECONFIG",
@@ -423,6 +481,8 @@ func (h *CloudShellHandler) CreateCloudShell(c *gin.Context) {
 		},
 	}
 
+	// Child span for Pod creation
+	_, podSpan := h.tracingHelper.StartKubernetesAPISpan(configMapCtx, "create", "pods", namespace)
 	// Create the pod
 	createdPod, err := client.CoreV1().Pods(namespace).Create(c.Request.Context(), pod, metav1.CreateOptions{})
 	if err != nil {
@@ -435,8 +495,13 @@ func (h *CloudShellHandler) CreateCloudShell(c *gin.Context) {
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to create cloud shell: %v", err)})
 		}
+		h.tracingHelper.RecordError(podSpan, err, "Failed to create pod")
+		podSpan.End()
+		h.tracingHelper.RecordError(span, err, "CloudShell creation failed")
 		return
 	}
+	h.tracingHelper.RecordSuccess(podSpan, "Pod created successfully")
+	podSpan.End()
 
 	h.logger.WithFields(map[string]interface{}{
 		"pod_name":  createdPod.Name,
@@ -463,6 +528,7 @@ func (h *CloudShellHandler) CreateCloudShell(c *gin.Context) {
 		"session": session,
 		"message": "Cloud shell created successfully",
 	})
+	h.tracingHelper.RecordSuccess(span, "Cloud shell creation operation completed")
 }
 
 // HandleCloudShellWebSocket handles WebSocket-based cloud shell terminal
@@ -471,13 +537,24 @@ func (h *CloudShellHandler) CreateCloudShell(c *gin.Context) {
 // 1. Permission to get the specific pod
 // 2. Permission to exec into the pod
 func (h *CloudShellHandler) HandleCloudShellWebSocket(c *gin.Context) {
+	// Start main span for cloud shell WebSocket operation
+	ctx, span := h.tracingHelper.StartAuthSpan(c.Request.Context(), "websocket_connection")
+	defer span.End()
+
+	// Child span for WebSocket connection setup
+	connCtx, connSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "connection_setup", "websocket", "")
 	// Upgrade HTTP connection to WebSocket
 	conn, err := h.upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to upgrade connection to WebSocket")
+		h.tracingHelper.RecordError(connSpan, err, "Failed to upgrade to WebSocket")
+		connSpan.End()
+		h.tracingHelper.RecordError(span, err, "CloudShell WebSocket connection failed")
 		return
 	}
 	defer conn.Close()
+	h.tracingHelper.RecordSuccess(connSpan, "WebSocket connection established")
+	connSpan.End()
 
 	// Get parameters
 	podName := c.Query("pod")
@@ -485,19 +562,36 @@ func (h *CloudShellHandler) HandleCloudShellWebSocket(c *gin.Context) {
 	configID := c.Query("config")
 	cluster := c.Query("cluster")
 
+	// Add resource attributes
+	span.SetAttributes(
+		attribute.String("cloudshell.pod", podName),
+		attribute.String("cloudshell.namespace", namespace),
+	)
+
 	if podName == "" || namespace == "" || configID == "" || cluster == "" {
-		h.sendWebSocketError(conn, "pod, namespace, config, and cluster parameters are required")
+		err := fmt.Errorf("pod, namespace, config, and cluster parameters are required")
+		h.sendWebSocketError(conn, err.Error())
+		h.tracingHelper.RecordError(span, err, "Missing required parameters")
 		return
 	}
 
+	// Child span for client acquisition
+	clientCtx, clientSpan := h.tracingHelper.StartAuthSpan(connCtx, "client_acquisition")
 	// Get Kubernetes client and config
 	client, restConfig, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get Kubernetes client for cloud shell")
 		h.sendWebSocketError(conn, err.Error())
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
+		clientSpan.End()
+		h.tracingHelper.RecordError(span, err, "Client acquisition failed")
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Kubernetes client acquired")
+	clientSpan.End()
 
+	// Child span for permission checks
+	permissionCtx, permissionSpan := h.tracingHelper.StartKubernetesAPISpan(clientCtx, "permission_check", "pods", namespace)
 	// Check permissions to connect to this specific cloud shell pod
 	if err := h.checkCloudShellConnectionPermissions(client, podName, namespace); err != nil {
 		h.logger.WithError(err).WithFields(map[string]interface{}{
@@ -513,28 +607,56 @@ func (h *CloudShellHandler) HandleCloudShellWebSocket(c *gin.Context) {
 		} else {
 			h.sendWebSocketError(conn, fmt.Sprintf("Failed to check permissions: %v", err))
 		}
+		h.tracingHelper.RecordError(permissionSpan, err, "Permission check failed")
+		permissionSpan.End()
+		h.tracingHelper.RecordError(span, err, "Permission denied")
 		return
 	}
+	h.tracingHelper.RecordSuccess(permissionSpan, "Permission check completed")
+	permissionSpan.End()
 
+	// Child span for pod validation
+	validationCtx, validationSpan := h.tracingHelper.StartKubernetesAPISpan(permissionCtx, "pod_validation", "pods", namespace)
 	// Verify pod exists and is running
 	pod, err := client.CoreV1().Pods(namespace).Get(c.Request.Context(), podName, metav1.GetOptions{})
 	if err != nil {
 		h.logger.WithError(err).WithField("pod", podName).WithField("namespace", namespace).Error("Failed to get cloud shell pod")
 		h.sendWebSocketError(conn, fmt.Sprintf("Pod not found: %v", err))
+		h.tracingHelper.RecordError(validationSpan, err, "Failed to get pod")
+		validationSpan.End()
+		h.tracingHelper.RecordError(span, err, "Pod validation failed")
 		return
 	}
 
 	// Check if pod is being terminated
 	if pod.DeletionTimestamp != nil {
-		h.sendWebSocketError(conn, "Pod is being terminated and cannot accept new connections")
+		err := fmt.Errorf("pod is being terminated and cannot accept new connections")
+		h.sendWebSocketError(conn, err.Error())
+		h.tracingHelper.RecordError(validationSpan, err, "Pod being terminated")
+		validationSpan.End()
+		h.tracingHelper.RecordError(span, err, "Pod not available")
 		return
 	}
 
 	// Check if pod is running
 	if pod.Status.Phase != v1.PodRunning {
-		h.sendWebSocketError(conn, fmt.Sprintf("Pod is not running. Current phase: %s", pod.Status.Phase))
+		err := fmt.Errorf("pod is not running, current phase: %s", pod.Status.Phase)
+		h.sendWebSocketError(conn, err.Error())
+		h.tracingHelper.RecordError(validationSpan, err, "Pod not running")
+		validationSpan.End()
+		h.tracingHelper.RecordError(span, err, "Pod not ready")
 		return
 	}
+	h.tracingHelper.RecordSuccess(validationSpan, "Pod validation completed")
+	validationSpan.End()
+
+	// Child span for interactive session management
+	_, sessionSpan := h.tracingHelper.StartKubernetesAPISpan(validationCtx, "session_management", "pods/exec", namespace)
+	defer func() {
+		h.tracingHelper.RecordSuccess(sessionSpan, "Interactive session completed")
+		sessionSpan.End()
+		h.tracingHelper.RecordSuccess(span, "Cloud shell WebSocket operation completed")
+	}()
 
 	// Create exec request
 	req := client.CoreV1().RESTClient().Post().
@@ -556,11 +678,14 @@ func (h *CloudShellHandler) HandleCloudShellWebSocket(c *gin.Context) {
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to create SPDY executor")
 		h.sendWebSocketError(conn, fmt.Sprintf("Failed to create executor: %v", err))
+		h.tracingHelper.RecordError(sessionSpan, err, "Failed to create SPDY executor")
+		sessionSpan.End()
+		h.tracingHelper.RecordError(span, err, "Executor creation failed")
 		return
 	}
 
-	// Create terminal session using shared implementation
-	session := shared.NewTerminalSession(conn, h.logger)
+	// Create enhanced terminal session for better performance
+	session := shared.NewEnhancedTerminalSession(conn, h.logger)
 
 	// Start the exec session
 	err = exec.Stream(remotecommand.StreamOptions{
@@ -573,6 +698,9 @@ func (h *CloudShellHandler) HandleCloudShellWebSocket(c *gin.Context) {
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to start cloud shell exec stream")
 		h.sendWebSocketError(conn, fmt.Sprintf("Failed to start exec: %v", err))
+		h.tracingHelper.RecordError(sessionSpan, err, "Failed to start exec stream")
+		sessionSpan.End()
+		h.tracingHelper.RecordError(span, err, "Exec stream failed")
 		return
 	}
 }
@@ -581,6 +709,10 @@ func (h *CloudShellHandler) HandleCloudShellWebSocket(c *gin.Context) {
 // This function checks if the user has permissions to list pods in the namespace
 // before returning the session list. Users must have permission to list pods.
 func (h *CloudShellHandler) ListCloudShellSessions(c *gin.Context) {
+	// Start main span for list cloud shell sessions operation
+	ctx, span := h.tracingHelper.StartAuthSpan(c.Request.Context(), "list_sessions")
+	defer span.End()
+
 	configID := c.Query("config")
 	cluster := c.Query("cluster")
 	namespace := c.Query("namespace")
@@ -589,12 +721,28 @@ func (h *CloudShellHandler) ListCloudShellSessions(c *gin.Context) {
 		namespace = "default"
 	}
 
+	// Add resource attributes
+	span.SetAttributes(
+		attribute.String("cloudshell.config_id", configID),
+		attribute.String("cloudshell.cluster", cluster),
+		attribute.String("cloudshell.namespace", namespace),
+	)
+
+	// Child span for client acquisition
+	clientCtx, clientSpan := h.tracingHelper.StartAuthSpan(ctx, "client_acquisition")
 	client, _, err := h.getClientAndConfig(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
+		clientSpan.End()
+		h.tracingHelper.RecordError(span, err, "Client acquisition failed")
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Kubernetes client acquired")
+	clientSpan.End()
 
+	// Child span for permission checking
+	_, permissionSpan := h.tracingHelper.StartKubernetesAPISpan(clientCtx, "permission_check", "pods", namespace)
 	// Check permissions to list pods in the namespace
 	if err := h.checkCloudShellPermissions(client, namespace); err != nil {
 		h.logger.WithError(err).Error("Permission check failed for listing cloud shell sessions")
@@ -606,9 +754,16 @@ func (h *CloudShellHandler) ListCloudShellSessions(c *gin.Context) {
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to check permissions: %v", err)})
 		}
+		h.tracingHelper.RecordError(permissionSpan, err, "Permission check failed")
+		permissionSpan.End()
+		h.tracingHelper.RecordError(span, err, "Permission denied")
 		return
 	}
+	h.tracingHelper.RecordSuccess(permissionSpan, "Permission check completed")
+	permissionSpan.End()
 
+	// Child span for pod listing
+	listCtx, listSpan := h.tracingHelper.StartKubernetesAPISpan(clientCtx, "list_pods", "pods", namespace)
 	// List pods with cloudshell label
 	pods, err := client.CoreV1().Pods(namespace).List(c.Request.Context(), metav1.ListOptions{
 		LabelSelector: "app=cloudshell",
@@ -623,9 +778,16 @@ func (h *CloudShellHandler) ListCloudShellSessions(c *gin.Context) {
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to list sessions: %v", err)})
 		}
+		h.tracingHelper.RecordError(listSpan, err, "Failed to list pods")
+		listSpan.End()
+		h.tracingHelper.RecordError(span, err, "Pod listing failed")
 		return
 	}
+	h.tracingHelper.RecordSuccess(listSpan, "Pods listed successfully")
+	listSpan.End()
 
+	// Child span for data processing
+	_, dataSpan := h.tracingHelper.StartDataProcessingSpan(listCtx, "process_sessions")
 	sessions := []*CloudShellSession{}
 	for _, pod := range pods.Items {
 		// Only include pods for the specified config and cluster
@@ -688,6 +850,8 @@ func (h *CloudShellHandler) ListCloudShellSessions(c *gin.Context) {
 			}).Debug("Cloud shell session status")
 		}
 	}
+	h.tracingHelper.RecordSuccess(dataSpan, "Sessions processed successfully")
+	dataSpan.End()
 
 	h.logger.WithFields(map[string]interface{}{
 		"config_id": configID,
@@ -701,12 +865,17 @@ func (h *CloudShellHandler) ListCloudShellSessions(c *gin.Context) {
 		"limit":    MaxCloudShellSessions,
 		"current":  len(sessions),
 	})
+	h.tracingHelper.RecordSuccess(span, "List cloud shell sessions operation completed")
 }
 
 // DeleteCloudShell deletes a cloud shell session
 // This function checks if the user has permissions to delete pods in the namespace
 // before allowing the deletion. Users must have permission to delete pods.
 func (h *CloudShellHandler) DeleteCloudShell(c *gin.Context) {
+	// Start main span for delete cloud shell operation
+	ctx, span := h.tracingHelper.StartAuthSpan(c.Request.Context(), "delete_session")
+	defer span.End()
+
 	podName := c.Param("name")
 	namespace := c.Query("namespace")
 	configID := c.Query("config")
@@ -716,12 +885,27 @@ func (h *CloudShellHandler) DeleteCloudShell(c *gin.Context) {
 		namespace = "default"
 	}
 
+	// Add resource attributes
+	span.SetAttributes(
+		attribute.String("cloudshell.pod", podName),
+		attribute.String("cloudshell.namespace", namespace),
+	)
+
+	// Child span for client acquisition
+	clientCtx, clientSpan := h.tracingHelper.StartAuthSpan(ctx, "client_acquisition")
 	client, _, err := h.getClientAndConfig(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
+		clientSpan.End()
+		h.tracingHelper.RecordError(span, err, "Client acquisition failed")
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Kubernetes client acquired")
+	clientSpan.End()
 
+	// Child span for permission checking
+	_, permissionSpan := h.tracingHelper.StartKubernetesAPISpan(clientCtx, "permission_check", "pods", namespace)
 	// Check permissions to delete pods in the namespace
 	if err := h.checkCloudShellPermissions(client, namespace); err != nil {
 		h.logger.WithError(err).Error("Permission check failed for deleting cloud shell")
@@ -733,9 +917,16 @@ func (h *CloudShellHandler) DeleteCloudShell(c *gin.Context) {
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to check permissions: %v", err)})
 		}
+		h.tracingHelper.RecordError(permissionSpan, err, "Permission check failed")
+		permissionSpan.End()
+		h.tracingHelper.RecordError(span, err, "Permission denied")
 		return
 	}
+	h.tracingHelper.RecordSuccess(permissionSpan, "Permission check completed")
+	permissionSpan.End()
 
+	// Child span for pod deletion
+	podDeleteCtx, podDeleteSpan := h.tracingHelper.StartKubernetesAPISpan(clientCtx, "delete_pod", "pods", namespace)
 	// Delete the pod
 	err = client.CoreV1().Pods(namespace).Delete(c.Request.Context(), podName, metav1.DeleteOptions{})
 	if err != nil {
@@ -748,9 +939,16 @@ func (h *CloudShellHandler) DeleteCloudShell(c *gin.Context) {
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to delete cloud shell: %v", err)})
 		}
+		h.tracingHelper.RecordError(podDeleteSpan, err, "Failed to delete pod")
+		podDeleteSpan.End()
+		h.tracingHelper.RecordError(span, err, "Pod deletion failed")
 		return
 	}
+	h.tracingHelper.RecordSuccess(podDeleteSpan, "Pod deleted successfully")
+	podDeleteSpan.End()
 
+	// Child span for ConfigMap cleanup
+	_, cleanupSpan := h.tracingHelper.StartKubernetesAPISpan(podDeleteCtx, "cleanup_configmap", "configmaps", namespace)
 	// Also clean up the associated ConfigMap if configID and cluster are provided
 	if configID != "" && cluster != "" {
 		configMapName := fmt.Sprintf("kubeconfig-%s-%s", configID, cluster)
@@ -763,6 +961,7 @@ func (h *CloudShellHandler) DeleteCloudShell(c *gin.Context) {
 				"cluster":         cluster,
 				"config_id":       configID,
 			}).Debug("Failed to delete cloud shell ConfigMap (this is usually not critical)")
+			h.tracingHelper.RecordSuccess(cleanupSpan, "ConfigMap cleanup attempted (not critical if failed)")
 		} else {
 			h.logger.WithFields(map[string]interface{}{
 				"config_map_name": configMapName,
@@ -770,12 +969,17 @@ func (h *CloudShellHandler) DeleteCloudShell(c *gin.Context) {
 				"cluster":         cluster,
 				"config_id":       configID,
 			}).Info("Successfully deleted cloud shell ConfigMap")
+			h.tracingHelper.RecordSuccess(cleanupSpan, "ConfigMap deleted successfully")
 		}
+	} else {
+		h.tracingHelper.RecordSuccess(cleanupSpan, "ConfigMap cleanup skipped (no config info provided)")
 	}
+	cleanupSpan.End()
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Cloud shell deleted successfully",
 	})
+	h.tracingHelper.RecordSuccess(span, "Delete cloud shell operation completed")
 }
 
 // sendWebSocketError sends an error message through the WebSocket

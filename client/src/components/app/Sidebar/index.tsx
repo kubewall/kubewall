@@ -1,18 +1,19 @@
 import './index.css';
 
-import { NAVIGATION_ROUTE } from "@/constants";
-import { ChevronRight, DatabaseIcon, LayersIcon, LayoutGridIcon, NetworkIcon, ShieldHalf, SlidersHorizontalIcon, UngroupIcon, Terminal } from "lucide-react";
+import { API_VERSION, CUSTOM_RESOURCES_ENDPOINT, getFilteredNavigationRoutes } from "@/constants";
+import { ChevronRight, DatabaseIcon, LayersIcon, LayoutGridIcon, NetworkIcon, ShieldHalf, SlidersHorizontalIcon, UngroupIcon, Terminal, Activity } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { SidebarContent, SidebarGroup, Sidebar as SidebarMainComponent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarRail, useSidebar } from "@/components/ui/sidebar";
+import { SidebarContent, SidebarGroup, SidebarGroupLabel, Sidebar as SidebarMainComponent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarRail, useSidebar } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { getSystemTheme } from "@/utils";
 import { memo, useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { useRuntimeFeatureFlags } from "@/hooks/useRuntimeFeatureFlags";
 import { useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 
 import { SidebarNavigator } from "./Navigator";
-// import { SvgRenderer } from '../Common/SvgRenderer';
+import { SvgRenderer } from '../Common/SvgRenderer';
 import { cn } from "@/lib/utils";
 import { fetchClusters } from "@/data/KwClusters/ClustersSlice";
 import kwLogoDark from '../../../assets/facets-dark-theme.svg';
@@ -20,16 +21,18 @@ import kwLogoDarkIcon from '../../../assets/facets-logo-light.svg';
 import kwLogoLight from '../../../assets/facets-light-theme.svg';
 import kwLogoLightIcon from '../../../assets/facets-logo-dark.svg';
 import helmLogo from '../../../assets/helm-logo.png';
-// import { resetCustomResourcesList } from "@/data/CustomResources/CustomResourcesListSlice";
+import { resetCustomResourcesList } from "@/data/CustomResources/CustomResourcesListSlice";
 import { resetListTableFilter } from "@/data/Misc/ListTableFilterSlice";
 import { clearPermissionError } from "@/data/PermissionErrors/PermissionErrorsSlice";
+import kwFetch from "@/data/kwFetch";
+import { updateCustomResources } from "@/data/CustomResources/CustomResourcesSlice";
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 
 const Sidebar = memo(function ({ className }: SidebarProps) {
-  // const [activeTab, setActiveTab] = useState('');
+  const [activeTab, setActiveTab] = useState('');
   const router = useRouterState();
   const navigate = useNavigate();
   const routerForce = useRouter();
@@ -40,11 +43,20 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
   const {
     clusters
   } = useAppSelector((state) => state.clusters);
-  // const {
-  //   customResourcesNavigation
-  // } = useAppSelector((state) => state.customResources);
+  const {
+    customResourcesNavigation
+  } = useAppSelector((state) => state.customResources);
   const { open, isMobile, openMobile } = useSidebar();
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
+  const { featureFlags, isLoading: featureFlagsLoading } = useRuntimeFeatureFlags();
+  const [navigationRoutes, setNavigationRoutes] = useState(() => getFilteredNavigationRoutes());
+
+  // Update navigation routes when feature flags change
+  useEffect(() => {
+    if (!featureFlagsLoading) {
+      setNavigationRoutes(getFilteredNavigationRoutes());
+    }
+  }, [featureFlags, featureFlagsLoading]);
 
   useEffect(() => {
     const currentRoute = new URL(location.href).searchParams.get('resourcekind') || '';
@@ -57,8 +69,8 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
       }
     }
     else if (currentRoute.toLowerCase() !== 'customresourcedefinitions') {
-      Object.keys(NAVIGATION_ROUTE).forEach((category) => {
-        if (NAVIGATION_ROUTE[category].some(({ route }) => route === currentRoute)) {
+      Object.keys(navigationRoutes).forEach((category) => {
+        if (navigationRoutes[category].some(({ route }) => route === currentRoute)) {
           setOpenMenus(() => ({
             [category]: true,
           }));
@@ -67,6 +79,23 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
       });
     }
   }, []);
+
+  // Background-load Custom Resource Definitions for sidebar (non-blocking)
+  useEffect(() => {
+    const shouldLoadCRDs = Boolean(configName) && Boolean(clusterName) && Object.keys(customResourcesNavigation || {}).length === 0;
+    if (!shouldLoadCRDs) return;
+    const params = new URLSearchParams({ config: configName, cluster: clusterName });
+    // Fire-and-forget load; do not block other page loads
+    kwFetch(`${API_VERSION}/${CUSTOM_RESOURCES_ENDPOINT}?${params.toString()}`)
+      .then((res) => {
+        if (Array.isArray(res)) {
+          dispatch(updateCustomResources(res));
+        }
+      })
+      .catch(() => {
+        // silently ignore; sidebar will still work without CRDs
+      });
+  }, [configName, clusterName, dispatch]);
 
 
   const toggleMenu = (route: string) => {
@@ -82,27 +111,39 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
     dispatch(clearPermissionError());
     // setActiveTab(routeValue);
     
-    // Handle cloud shell route differently
+    // Handle special routes differently
     if (routeValue === 'cloudshell') {
       navigate({ to: `/${configName}/cloudshell?cluster=${encodeURIComponent(clusterName)}` });
+    } else if (routeValue === 'helmcharts') {
+      navigate({ to: `/${configName}/helmcharts?cluster=${encodeURIComponent(clusterName)}` });
+    } else if (routeValue === 'settings') {
+      navigate({ to: `/${configName}/settings?cluster=${encodeURIComponent(clusterName)}` });
+    } else if (routeValue === 'overview') {
+      navigate({ to: `/${configName}/overview?cluster=${encodeURIComponent(clusterName)}` });
+    } else if (routeValue === 'tools/tracing') {
+      navigate({ to: `/${configName}/tools/tracing?cluster=${encodeURIComponent(clusterName)}` });
+    } else if (routeValue === 'tools/tracing/settings') {
+      navigate({ to: `/${configName}/tools/tracing/settings?cluster=${encodeURIComponent(clusterName)}` });
     } else {
       navigate({ to: `/${configName}/list?cluster=${encodeURIComponent(clusterName)}&resourcekind=${routeValue}` });
     }
     routerForce.invalidate();
   };
 
-  // const onCustomResourcesNavClick = (route: string, name: string) => {
-  //   dispatch(resetListTableFilter());
-  //   // Clear any existing permission errors when navigating to a different resource
-  //   dispatch(clearPermissionError());
-  //   const routeKeys = new URLSearchParams(route);
-  //   setActiveTab((routeKeys.get('kind') || '').toLowerCase());
-  //   if (activeTab.toLowerCase() !== name.toLowerCase()) {
-  //     dispatch(resetCustomResourcesList());
-  //   }
+  
 
-  //   navigate({ to: `/${configName}/list?cluster=${encodeURIComponent(clusterName)}&resourcekind=customresources&${route}` });
-  // };
+  const onCustomResourcesNavClick = (route: string, name: string) => {
+    dispatch(resetListTableFilter());
+    // Clear any existing permission errors when navigating to a different resource
+    dispatch(clearPermissionError());
+    const routeKeys = new URLSearchParams(route);
+    setActiveTab((routeKeys.get('kind') || '').toLowerCase());
+    if (activeTab.toLowerCase() !== name.toLowerCase()) {
+      dispatch(resetCustomResourcesList());
+    }
+
+    navigate({ to: `/${configName}/list?cluster=${encodeURIComponent(clusterName)}&resourcekind=customresources&${route}` });
+  };
 
   useEffect(() => {
     if (!clusters.kubeConfigs) {
@@ -128,14 +169,29 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
         return <img src={helmLogo} alt="Helm" width={16} height={16} />;
       case 'tools':
         return <Terminal width={16} />;
+      case 'tracing':
+        return <Activity width={16} />;
+      case 'preferences':
+        return <SlidersHorizontalIcon width={16} />;
       default:
         return <LayersIcon width={16} />;
     }
   };
 
   const getActiveNav = (route: string, check = false) => {
+    // For overview route, check if current pathname contains '/overview'
+    if (route === 'overview') {
+      return router.location.pathname.includes('/overview');
+    }
+    // For tracing routes, check if current pathname contains the route
+    if (route === 'tools/tracing') {
+      return router.location.pathname.includes(`/${route}`);
+    }
+    // For other routes, check resourcekind parameter
     return route === (!check ? queryParams.get('kind') : queryParams.get('resourcekind'));
   };
+
+  
   return (
     <div className={cn("col-span-1", className)}>
       <div className="h-screen space-y-4 py-1">
@@ -160,8 +216,9 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                       </SidebarMenuButton>
                       <SidebarNavigator setOpenMenus={setOpenMenus} />
                     </SidebarMenuItem>
+                    
                     {
-                      Object.keys(NAVIGATION_ROUTE).map((route) => (
+                      Object.keys(navigationRoutes).map((route) => (
                         <Collapsible
                           key={route}
                           asChild
@@ -182,7 +239,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                               <CollapsibleContent>
                                 <SidebarMenuSub>
                                   {
-                                    NAVIGATION_ROUTE[route].map(({ name, route: routeValue }) => {
+                                    navigationRoutes[route].map(({ name, route: routeValue }) => {
                                       return (
                                         <SidebarMenuSubItem key={routeValue} className="cursor-pointer">
                                           <TooltipProvider delayDuration={0}>
@@ -217,7 +274,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                                   <DropdownMenuSeparator />
                                   <DropdownMenuGroup className='overflow-auto max-h-64'>
                                     {
-                                      NAVIGATION_ROUTE[route].map(({ name, route: routeValue }) => {
+                                      navigationRoutes[route].map(({ name, route: routeValue }) => {
                                         return (
                                           <DropdownMenuItem
                                             key={routeValue}
@@ -242,7 +299,6 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                   </SidebarMenu>
                 </SidebarGroup>
 
-                {/* Custom Resources section commented out - will revisit when ready
                 <SidebarGroup>
                   <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">Custom Resources</SidebarGroupLabel>
                   <SidebarMenu>
@@ -252,7 +308,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                           <TooltipTrigger asChild>
                             <SidebarMenuButton className='group-data-[collapsible=icon]:justify-center' asChild tooltip='Definitions'>
                               <a onClick={() => onNavClick('customresourcedefinitions')}>
-                                {getResourceIcon('customesources')}
+                                {getResourceIcon('customresources')}
                                 <span className='truncate text-gray-800 dark:text-gray-200 group-data-[collapsible=icon]:hidden'>Definitions</span>
                               </a>
                             </SidebarMenuButton>
@@ -300,7 +356,10 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                                             <TooltipTrigger asChild>
                                               <SidebarMenuSubButton asChild isActive={getActiveNav(customResource.name)}>
                                                 <a onClick={() => onCustomResourcesNavClick(customResource.route, customResource.name)}>
-                                                  <span className="text-gray-600 dark:text-gray-400 group-data-[collapsible=icon]:hidden">{customResource.name}</span>
+                                                  <span className="text-gray-600 dark:text-gray-400 group-data-[collapsible=icon]:hidden flex items-center gap-2">
+                                                    <SvgRenderer name={customResource.icon} minWidth={16} />
+                                                    {customResource.name}
+                                                  </span>
                                                 </a>
                                               </SidebarMenuSubButton>
                                             </TooltipTrigger>
@@ -349,7 +408,6 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                     }
                   </SidebarMenu>
                 </SidebarGroup>
-                */}
               </SidebarContent>
               <SidebarRail />
             </SidebarMainComponent>

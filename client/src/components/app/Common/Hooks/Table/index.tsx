@@ -1,10 +1,12 @@
 import { ClusterDetails, HeaderList } from "@/types";
 import { defaultSkeletonRow, getEventStreamUrl } from "@/utils";
+import { PODS_ENDPOINT, HELM_RELEASES_ENDPOINT, NODES_ENDPOINT } from "@/constants";
 
 import { ActionCreatorWithPayload } from "@reduxjs/toolkit";
 import { DataTable } from "@/components/app/Table";
 import { cn } from "@/lib/utils";
-import { useAppDispatch } from "@/redux/hooks";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { RootState } from "@/redux/store";
 import { useEventSource } from "../EventSource";
 import useGenerateColumns from "../TableColumns";
 import { useSidebar } from "@/components/ui/sidebar";
@@ -81,14 +83,20 @@ const CreateTable = <T extends ClusterDetails, C extends HeaderList>({
     return () => clearTimeout(timer);
   }, [endpoint, dispatch]);
 
+  const refreshNonce = useAppSelector((state: RootState) => (state as any).listTableRefresh?.refreshNonce);
+
+  // Append refresh nonce to force SSE reconnect and reload data after deletes
+  const sseUrl = getEventStreamUrl(endpoint, queryParmObject, '', refreshNonce ? `&r=${refreshNonce}` : '');
+
   useEventSource<any[]>({
-    url: getEventStreamUrl(endpoint, queryParmObject),
+    url: sseUrl,
     sendMessage,
     onConnectionStatusChange: setConnectionStatus,
     onConfigError: handleConfigError,
     onPermissionError: handlePermissionError,
     setLoading,
   });
+
 
   const { open, isMobile } = useSidebar();
 
@@ -103,22 +111,28 @@ const CreateTable = <T extends ClusterDetails, C extends HeaderList>({
     }
   };
 
+  // Always generate columns to maintain consistent hook order across renders
+  const columns = useGenerateColumns<T, C>({
+    clusterName,
+    configName,
+    loading,
+    headersList,
+    instanceType,
+    count,
+    queryParams: new URLSearchParams(queryParmObject).toString()
+  });
+
   return (
-    <div className="col-span-7">
-      <div className="h-full">
+    <div className="col-span-7 h-full">
+      <div className="list-table-container">
         <DataTable<T, C>
-          columns={useGenerateColumns<T, C>({
-            clusterName,
-            configName,
-            loading,
-            headersList,
-            instanceType,
-            count,
-            queryParams: new URLSearchParams(queryParmObject).toString()
-          })}
+          columns={columns}
           data={loading ? defaultSkeletonRow() : data}
           showNamespaceFilter={showNamespaceFilter}
-          tableWidthCss={cn('list-table-max-width-height', 'h-screen', getTableClasses())}
+          showPodFilters={endpoint === PODS_ENDPOINT}
+          showStatusFilter={endpoint === HELM_RELEASES_ENDPOINT}
+          showNodeFilters={endpoint === NODES_ENDPOINT}
+          tableWidthCss={cn('list-table-max-width-height', getTableClasses())}
           instanceType={instanceType}
           loading={loading}
           connectionStatus={connectionStatus}

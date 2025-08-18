@@ -20,13 +20,20 @@ const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, on
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 3; // Reduced from 5 to 3 for better UX
   const baseReconnectDelay = 2000; // Increased from 1000 to 2000ms
+  const LARGE_EVENT_THRESHOLD = 256 * 1024; // ~256KB
+  const workerRef = useRef<Worker | null>(null);
+  const pendingParsesRef = useRef(new Map<number, (result: { ok: boolean; data?: any; error?: unknown }) => void>());
+  const nextParseIdRef = useRef(1);
   
-  // Determine if this is a Helm releases endpoint
+  // Determine if this is a Helm releases endpoint or configuration resource
   const isHelmReleases = url.includes('helmreleases');
   const isHelmReleaseDetails = url.includes('helmreleases') && !url.includes('history');
+  const isConfigResource = url.includes('secrets') || url.includes('configmaps') || url.includes('hpa') || 
+                           url.includes('limitranges') || url.includes('resourcequotas') || url.includes('priorityclasses') ||
+                           url.includes('runtimeclasses') || url.includes('poddisruptionbudgets');
   
   // Optimized timeouts based on Phase 2 server improvements
-  const connectionTimeout = isHelmReleases ? 90000 : 15000; // 90 seconds for Helm, 15 seconds for others
+  const connectionTimeout = isHelmReleases ? 90000 : (isConfigResource ? 60000 : 15000); // 90s for Helm, 60s for config resources, 15s for others
   const hasConfigErrorRef = useRef(false);
   const hasPermissionErrorRef = useRef(false); // New ref to track permission errors specifically
   const dispatch = useAppDispatch();
@@ -115,7 +122,48 @@ const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, on
       }
     };
 
-    // Handle incoming messages with improved error handling
+    // Create or reuse a JSON parser worker
+    const ensureWorker = () => {
+      if (workerRef.current) return workerRef.current;
+      const worker = new Worker(new URL('./jsonParser.ts', import.meta.url), { type: 'module' });
+      worker.onmessage = (e: MessageEvent) => {
+        const { id, ok, data, error } = e.data || {};
+        const resolver = pendingParsesRef.current.get(id);
+        if (resolver) {
+          pendingParsesRef.current.delete(id);
+          resolver({ ok, data, error });
+        }
+      };
+      worker.onerror = () => {
+        // On worker error, clear all pending promises
+        pendingParsesRef.current.forEach((resolve) => resolve({ ok: false, error: 'worker_error' }));
+        pendingParsesRef.current.clear();
+      };
+      workerRef.current = worker;
+      return worker;
+    };
+
+    const parseJSON = async (text: string): Promise<any> => {
+      if (!text) return undefined;
+      if (text.length < LARGE_EVENT_THRESHOLD) {
+        return JSON.parse(text);
+      }
+      try {
+        const worker = ensureWorker();
+        const id = nextParseIdRef.current++;
+        const result = await new Promise<{ ok: boolean; data?: any; error?: unknown }>((resolve) => {
+          pendingParsesRef.current.set(id, resolve);
+          worker.postMessage({ id, text });
+        });
+        if (result.ok) return result.data;
+        // Fallback to main-thread parse if worker failed
+        return JSON.parse(text);
+      } catch {
+        return JSON.parse(text);
+      }
+    };
+
+    // Handle incoming messages with improved error handling and off-main-thread JSON parsing for large payloads
     eventSource.onmessage = (event) => {
       try {
         // Skip empty messages (keep-alive comments)
@@ -123,100 +171,104 @@ const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, on
           // console.log('Received keep-alive message');
           return;
         }
-        
-        // console.log('Received SSE message:', event.data.substring(0, 100) + '...');
-        const eventData = JSON.parse(event.data);
-        
+        (async () => {
+          // console.log('Received SSE message:', event.data.substring(0, 100) + '...');
+          const eventData = await parseJSON(event.data);
+
         // Handle null or undefined data properly
-        if (eventData === null || eventData === undefined) {
-          // Send empty array for null/undefined data
-          sendMessage([] as T);
-          return;
-        }
-        
+          if (eventData === null || eventData === undefined) {
+            // Send empty array for null/undefined data
+            sendMessage([] as T);
+            return;
+          }
+
         // Check if this is a config error message
-        if (eventData.error && typeof eventData.error === 'string' && eventData.error.includes('config not found')) {
-          console.error('Config not found error received:', eventData.error);
-          console.log('Calling onConfigError callback...');
-          
-          // Mark that we've detected a config error to prevent reconnection
-          hasConfigErrorRef.current = true;
-          
-          // Close the connection immediately
-          eventSource.close();
-          
-          // Call the config error callback if provided
-          if (onConfigError) {
-            onConfigError();
-          } else {
-            console.warn('onConfigError callback not provided');
-          }
-          // Don't send the error message to the normal sendMessage handler
-          return;
-        }
-        
-        // Check if this is a permission error message
-        if (eventData.error && eventData.error.type === 'permission_error') {
-          console.error('Permission error received:', eventData.error);
-          
-          // Mark that we've detected a permission error to prevent reconnection
-          hasPermissionErrorRef.current = true;
-          
-          // Close the connection immediately
-          eventSource.close();
-          
-          // Call the permission error callback if provided
-          if (onPermissionError) {
-            onPermissionError(eventData.error);
-          } else {
-            console.warn('onPermissionError callback not provided');
-          }
-          // Don't send the error message to the normal sendMessage handler
-          return;
-        }
-        
-        // Check for permission errors in regular error messages (fallback)
-        if (eventData.error && typeof eventData.error === 'string') {
-          const errorMessage = eventData.error.toLowerCase();
-          if (errorMessage.includes('forbidden') || errorMessage.includes('unauthorized') || errorMessage.includes('permission denied')) {
-            console.error('Permission error detected in error message:', eventData.error);
-            
-            // Mark that we've detected a permission error to prevent reconnection
-            hasPermissionErrorRef.current = true;
-            
+          if (eventData.error && typeof eventData.error === 'string' && eventData.error.includes('config not found')) {
+            console.error('Config not found error received:', eventData.error);
+            console.log('Calling onConfigError callback...');
+
+            // Mark that we've detected a config error to prevent reconnection
+            hasConfigErrorRef.current = true;
+
             // Close the connection immediately
             eventSource.close();
-            
-            // Create a permission error object
-            const permissionError = {
-              type: 'permission_error',
-              message: eventData.error,
-              code: 403,
-              resource: 'unknown',
-              verb: 'access'
-            };
-            
+
+            // Call the config error callback if provided
+            if (onConfigError) {
+              onConfigError();
+            } else {
+              console.warn('onConfigError callback not provided');
+            }
+            // Don't send the error message to the normal sendMessage handler
+            return;
+          }
+
+        // Check if this is a permission error message
+          if (eventData.error && eventData.error.type === 'permission_error') {
+            console.error('Permission error received:', eventData.error);
+
+            // Mark that we've detected a permission error to prevent reconnection
+            hasPermissionErrorRef.current = true;
+
+            // Close the connection immediately
+            eventSource.close();
+
             // Call the permission error callback if provided
             if (onPermissionError) {
-              onPermissionError(permissionError);
+              onPermissionError(eventData.error);
             } else {
               console.warn('onPermissionError callback not provided');
             }
             // Don't send the error message to the normal sendMessage handler
             return;
           }
-        }
-        
+
+        // Check for permission errors in regular error messages (fallback)
+          if (eventData.error && typeof eventData.error === 'string') {
+            const errorMessage = eventData.error.toLowerCase();
+            if (errorMessage.includes('forbidden') || errorMessage.includes('unauthorized') || errorMessage.includes('permission denied')) {
+              console.error('Permission error detected in error message:', eventData.error);
+
+              // Mark that we've detected a permission error to prevent reconnection
+              hasPermissionErrorRef.current = true;
+
+              // Close the connection immediately
+              eventSource.close();
+
+              // Create a permission error object
+              const permissionError = {
+                type: 'permission_error',
+                message: eventData.error,
+                code: 403,
+                resource: 'unknown',
+                verb: 'access'
+              };
+
+              // Call the permission error callback if provided
+              if (onPermissionError) {
+                onPermissionError(permissionError);
+              } else {
+                console.warn('onPermissionError callback not provided');
+              }
+              // Don't send the error message to the normal sendMessage handler
+              return;
+            }
+          }
+
         // Ensure we're sending valid data
-        if (Array.isArray(eventData) || typeof eventData === 'object') {
-          sendMessage(eventData);
-        } else {
-          console.warn('Received invalid data format from EventSource:', eventData);
+          if (Array.isArray(eventData) || typeof eventData === 'object') {
+            sendMessage(eventData);
+          } else {
+            console.warn('Received invalid data format from EventSource:', eventData);
+            sendMessage([] as T);
+          }
+        })().catch((error) => {
+          console.warn('Failed to parse EventSource message:', error);
+          // Send empty array on parse error to prevent UI issues
           sendMessage([] as T);
-        }
+        });
       } catch (error) {
-        console.warn('Failed to parse EventSource message:', error);
-        // Send empty array on parse error to prevent UI issues
+        console.warn('Failed to handle EventSource message:', error);
         sendMessage([] as T);
       }
     };
@@ -424,6 +476,10 @@ const useEventSource = <T = any>({url, sendMessage, onConnectionStatusChange, on
         connectionTimeoutRef.current = null;
       }
       reconnectAttemptsRef.current = 0;
+      if (workerRef.current) {
+        try { workerRef.current.terminate(); } catch { /* ignore */ }
+        workerRef.current = null;
+      }
     };
   }, [url]);
 };

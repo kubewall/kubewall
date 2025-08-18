@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CopyToClipboard } from "../Common/CopyToClipboard";
 import { useAppSelector } from "@/redux/hooks";
+import { SecretDependenciesContainer } from "./SecretDependenciesContainer";
 
 const SecretDetailsContainer = memo(function () {
   const {
@@ -19,6 +20,7 @@ const SecretDetailsContainer = memo(function () {
   };
 
   return (
+    <>
     <div className={`mt-4`}>
       <Card className="shadow-none rounded-lg">
         <CardHeader className="p-4 ">
@@ -69,6 +71,8 @@ const SecretDetailsContainer = memo(function () {
         </CardContent>
       </Card>
     </div>
+    <SecretDependenciesContainer />
+    </>
   );
 });
 

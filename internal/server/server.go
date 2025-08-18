@@ -7,21 +7,28 @@ import (
 	"time"
 
 	"github.com/Facets-cloud/kube-dash/internal/api"
+	handlers "github.com/Facets-cloud/kube-dash/internal/api/handlers"
 	access_control "github.com/Facets-cloud/kube-dash/internal/api/handlers/access-control"
 	"github.com/Facets-cloud/kube-dash/internal/api/handlers/cloudshell"
 	"github.com/Facets-cloud/kube-dash/internal/api/handlers/cluster"
 	"github.com/Facets-cloud/kube-dash/internal/api/handlers/configurations"
 	custom_resources "github.com/Facets-cloud/kube-dash/internal/api/handlers/custom-resources"
 	"github.com/Facets-cloud/kube-dash/internal/api/handlers/helm"
+	metrics_handlers "github.com/Facets-cloud/kube-dash/internal/api/handlers/metrics"
 	"github.com/Facets-cloud/kube-dash/internal/api/handlers/networking"
+	"github.com/Facets-cloud/kube-dash/internal/api/handlers/portforward"
 	storage_handlers "github.com/Facets-cloud/kube-dash/internal/api/handlers/storage"
+	tracing_handlers "github.com/Facets-cloud/kube-dash/internal/api/handlers/tracing"
 	"github.com/Facets-cloud/kube-dash/internal/api/handlers/websocket"
+	"github.com/Facets-cloud/kube-dash/internal/api/handlers/websockets"
 	"github.com/Facets-cloud/kube-dash/internal/api/handlers/workloads"
 	"github.com/Facets-cloud/kube-dash/internal/config"
 	"github.com/Facets-cloud/kube-dash/internal/k8s"
 	"github.com/Facets-cloud/kube-dash/internal/storage"
+	"github.com/Facets-cloud/kube-dash/internal/tracing"
 	"github.com/Facets-cloud/kube-dash/pkg/logger"
 	"github.com/Facets-cloud/kube-dash/pkg/middleware"
+	pkg_tracing "github.com/Facets-cloud/kube-dash/pkg/tracing"
 
 	"github.com/gin-gonic/gin"
 )
@@ -35,6 +42,8 @@ type Server struct {
 	store         *storage.KubeConfigStore
 	clientFactory *k8s.ClientFactory
 	kubeHandler   *api.KubeConfigHandler
+	// Base resources handler for generic operations (delete, permission checks)
+	baseResourcesHandler *handlers.ResourcesHandler
 
 	// Configuration handlers
 	configMapsHandler           *configurations.ConfigMapsHandler
@@ -78,19 +87,31 @@ type Server struct {
 	ingressesHandler *networking.IngressesHandler
 	endpointsHandler *networking.EndpointsHandler
 
+	// Metrics handlers
+	prometheusHandler *metrics_handlers.PrometheusHandler
+
 	// Storage handlers
 	persistentVolumesHandler      *storage_handlers.PersistentVolumesHandler
 	persistentVolumeClaimsHandler *storage_handlers.PersistentVolumeClaimsHandler
 	storageClassesHandler         *storage_handlers.StorageClassesHandler
 
 	// WebSocket handlers
-	podExecHandler *websocket.PodExecHandler
+	podExecHandler     *websocket.PodExecHandler
+	podLogsHandler     *websockets.PodLogsHandler
+	portForwardHandler *portforward.PortForwardHandler
 
 	// Helm handlers
 	helmHandler *helm.HelmHandler
 
 	// Cloud Shell handlers
 	cloudShellHandler *cloudshell.CloudShellHandler
+
+	// Tracing handlers
+	tracingHandler *tracing_handlers.TracingHandler
+	traceStore     *tracing.TraceStore
+
+	// Feature flags handler
+	featureFlagsHandler *handlers.FeatureFlagsHandler
 }
 
 // New creates a new server instance
@@ -155,6 +176,9 @@ func New(cfg *config.Config) *Server {
 	ingressesHandler := networking.NewIngressesHandler(store, clientFactory, log)
 	endpointsHandler := networking.NewEndpointsHandler(store, clientFactory, log)
 
+	// Metrics handlers
+	prometheusHandler := metrics_handlers.NewPrometheusHandler(store, clientFactory, log)
+
 	// Create storage handlers
 	persistentVolumesHandler := storage_handlers.NewPersistentVolumesHandler(store, clientFactory, log)
 	persistentVolumeClaimsHandler := storage_handlers.NewPersistentVolumeClaimsHandler(store, clientFactory, log)
@@ -162,22 +186,48 @@ func New(cfg *config.Config) *Server {
 
 	// Create WebSocket handlers
 	podExecHandler := websocket.NewPodExecHandler(store, clientFactory, log)
+	podLogsHandler := websockets.NewPodLogsHandler(store, clientFactory, log)
+	portForwardHandler := portforward.NewPortForwardHandler(store, clientFactory, log)
 
 	// Create Helm handlers
 	helmFactory := k8s.NewHelmClientFactory()
 	helmHandler := helm.NewHelmHandler(store, clientFactory, helmFactory, log)
 
+	// Create base resources handler with helm handler dependency
+	baseResourcesHandler := handlers.NewResourcesHandler(store, clientFactory, log, helmHandler)
+
 	// Create Cloud Shell handlers
 	cloudShellHandler := cloudshell.NewCloudShellHandler(store, clientFactory, helmFactory, log)
 
+	// Initialize OpenTelemetry tracing service
+	var tracingService *tracing.TracingService
+	var traceStore *tracing.TraceStore
+	if cfg.Tracing.Enabled {
+		var err error
+		tracingService, err = tracing.NewTracingService(&cfg.Tracing, log)
+		if err != nil {
+			log.WithError(err).Fatal("Failed to initialize tracing service")
+		}
+		traceStore = tracingService.GetStore()
+	} else {
+		traceStore = tracing.NewTraceStore(&cfg.Tracing)
+	}
+
+	// Create tracing handlers
+	tracingHandler := tracing_handlers.NewTracingHandler(store, traceStore, log, &cfg.Tracing)
+
+	// Create feature flags handler
+	featureFlagsHandler := handlers.NewFeatureFlagsHandler(log)
+
 	// Create server
 	srv := &Server{
-		config:        cfg,
-		logger:        log,
-		router:        router,
-		store:         store,
-		clientFactory: clientFactory,
-		kubeHandler:   kubeHandler,
+		config:               cfg,
+		logger:               log,
+		router:               router,
+		store:                store,
+		clientFactory:        clientFactory,
+		kubeHandler:          kubeHandler,
+		baseResourcesHandler: baseResourcesHandler,
 
 		// Configuration handlers
 		configMapsHandler:           configMapsHandler,
@@ -221,19 +271,31 @@ func New(cfg *config.Config) *Server {
 		ingressesHandler: ingressesHandler,
 		endpointsHandler: endpointsHandler,
 
+		// Metrics handlers
+		prometheusHandler: prometheusHandler,
+
 		// Storage handlers
 		persistentVolumesHandler:      persistentVolumesHandler,
 		persistentVolumeClaimsHandler: persistentVolumeClaimsHandler,
 		storageClassesHandler:         storageClassesHandler,
 
 		// WebSocket handlers
-		podExecHandler: podExecHandler,
+		podExecHandler:     podExecHandler,
+		podLogsHandler:     podLogsHandler,
+		portForwardHandler: portForwardHandler,
 
 		// Helm handlers
 		helmHandler: helmHandler,
 
 		// Cloud Shell handlers
 		cloudShellHandler: cloudShellHandler,
+
+		// Tracing handlers
+		tracingHandler: tracingHandler,
+		traceStore:     traceStore,
+
+		// Feature flags handler
+		featureFlagsHandler: featureFlagsHandler,
 	}
 
 	// Setup middleware
@@ -265,6 +327,11 @@ func (s *Server) setupMiddleware() {
 	// CORS middleware
 	s.router.Use(middleware.CORS())
 
+	// OpenTelemetry tracing middleware
+	if s.config.Tracing.Enabled {
+		s.router.Use(tracing.TracingMiddleware(s.config.Tracing.ServiceName))
+	}
+
 	// Logging middleware
 	s.router.Use(middleware.Logger(s.logger.Logger))
 }
@@ -277,8 +344,18 @@ func (s *Server) setupRoutes() {
 	// API routes
 	api := s.router.Group("/api/v1")
 	{
+		// Metrics (Prometheus) endpoints
+		api.GET("/metrics/prometheus/availability", s.prometheusHandler.GetAvailability)
+		api.GET("/metrics/pods/:namespace/:name/prometheus", s.prometheusHandler.GetPodEnhancedMetricsSSE)
+		api.GET("/metrics/nodes/:name/prometheus", s.prometheusHandler.GetNodeMetricsSSE)
+		api.GET("/metrics/overview/prometheus", s.prometheusHandler.GetClusterOverviewSSE)
 		// API info
 		api.GET("/", s.apiInfo)
+
+		// Feature flags endpoint
+		api.GET("/feature-flags", s.featureFlagsHandler.GetFeatureFlags)
+
+
 
 		// Kubeconfig management
 		api.GET("/app/config", s.kubeHandler.GetConfigs)
@@ -291,6 +368,9 @@ func (s *Server) setupRoutes() {
 		api.GET("/app/config/validate-all", s.kubeHandler.ValidateAllKubeconfigs)
 		api.DELETE("/app/config/kubeconfigs/:id", s.kubeHandler.DeleteKubeconfig)
 
+		// Apply Kubernetes resources from YAML
+		api.POST("/app/apply", s.baseResourcesHandler.ApplyResources)
+
 		// Kubernetes Resources - Cluster-scoped resources (SSE)
 		api.GET("/namespaces", s.namespacesHandler.GetNamespacesSSE)
 		api.GET("/namespaces/:name", s.namespacesHandler.GetNamespace)
@@ -302,10 +382,30 @@ func (s *Server) setupRoutes() {
 		api.GET("/nodes/:name/yaml", s.nodesHandler.GetNodeYAML)
 		api.GET("/nodes/:name/events", s.nodesHandler.GetNodeEvents)
 		api.GET("/nodes/:name/pods", s.nodesHandler.GetNodePods)
+		// Node actions
+		api.POST("/nodes/:name/cordon", s.nodesHandler.CordonNode)
+		api.POST("/nodes/:name/uncordon", s.nodesHandler.UncordonNode)
+		api.POST("/nodes/:name/drain", s.nodesHandler.DrainNode)
+		api.GET("/nodes/actions/permissions", s.nodesHandler.CheckNodeActionPermission)
 		api.GET("/customresourcedefinitions", s.customResourceDefinitionsHandler.GetCustomResourceDefinitionsSSE)
 		api.GET("/customresourcedefinitions/:name", s.customResourceDefinitionsHandler.GetCustomResourceDefinition)
 		api.GET("/customresources", s.customResourcesHandler.GetCustomResourcesSSE)
 		api.GET("/customresources/:namespace/:name", s.customResourcesHandler.GetCustomResource)
+		api.GET("/customresources/:namespace/:name/yaml", s.customResourcesHandler.GetCustomResourceYAML)
+		api.GET("/customresources/:namespace/:name/events", s.customResourcesHandler.GetCustomResourceEvents)
+		// Cluster-scoped CR routes use singular base to avoid conflict with namespaced routes
+		api.GET("/customresource/:name", s.customResourcesHandler.GetCustomResource)
+		api.GET("/customresource/:name/yaml", s.customResourcesHandler.GetCustomResourceYAMLByName)
+		api.GET("/customresource/:name/events", s.customResourcesHandler.GetCustomResourceEventsByName)
+
+		// Generic delete endpoint (bulk)
+		api.DELETE("/:resourcekind", s.baseResourcesHandler.DeleteResources)
+		// Optimized bulk delete endpoint for 5+ items
+		api.DELETE("/bulk/:resourcekind", s.baseResourcesHandler.BulkDeleteResources)
+		// Permission check endpoint for actions like delete
+		api.GET("/permissions/check", s.baseResourcesHandler.CheckPermission)
+		// Permission check endpoint for YAML editing
+		api.GET("/permissions/yaml-edit", s.baseResourcesHandler.CheckYamlEditPermission)
 
 		// ConfigMaps endpoints
 		api.GET("/configmaps", s.configMapsHandler.GetConfigMapsSSE)
@@ -315,6 +415,7 @@ func (s *Server) setupRoutes() {
 		api.GET("/configmap/:name", s.configMapsHandler.GetConfigMapByName)
 		api.GET("/configmap/:name/yaml", s.configMapsHandler.GetConfigMapYAMLByName)
 		api.GET("/configmap/:name/events", s.configMapsHandler.GetConfigMapEventsByName)
+		api.GET("/configmap/:name/dependencies", s.resourceReferencesHandler.GetConfigMapDependencies)
 
 		// Secrets endpoints
 		api.GET("/secrets", s.secretsHandler.GetSecretsSSE)
@@ -324,6 +425,7 @@ func (s *Server) setupRoutes() {
 		api.GET("/secret/:name", s.secretsHandler.GetSecretByName)
 		api.GET("/secret/:name/yaml", s.secretsHandler.GetSecretYAMLByName)
 		api.GET("/secret/:name/events", s.secretsHandler.GetSecretEventsByName)
+		api.GET("/secret/:name/dependencies", s.resourceReferencesHandler.GetSecretDependencies)
 
 		// HPA endpoints
 		api.GET("/horizontalpodautoscalers", s.hpasHandler.GetHPAsSSE)
@@ -390,6 +492,11 @@ func (s *Server) setupRoutes() {
 		// Workload SSE endpoints
 		api.GET("/pods", s.podsHandler.GetPodsSSE)
 		api.GET("/deployments", s.deploymentsHandler.GetDeploymentsSSE)
+		api.POST("/deployments/:name/scale", s.deploymentsHandler.ScaleDeployment)
+		api.POST("/deployments/:name/restart", s.deploymentsHandler.RestartDeployment)
+		api.POST("/statefulsets/:name/scale", s.statefulSetsHandler.ScaleStatefulSet)
+		api.POST("/statefulsets/:name/restart", s.statefulSetsHandler.RestartStatefulSet)
+		api.POST("/daemonsets/:name/restart", s.daemonSetsHandler.RestartDaemonSet)
 		api.GET("/daemonsets", s.daemonSetsHandler.GetDaemonSetsSSE)
 		api.GET("/statefulsets", s.statefulSetsHandler.GetStatefulSetsSSE)
 		api.GET("/replicasets", s.replicaSetsHandler.GetReplicaSetsSSE)
@@ -400,15 +507,23 @@ func (s *Server) setupRoutes() {
 		api.GET("/pods/:namespace/:name", s.podsHandler.GetPod)
 		api.GET("/pods/:namespace/:name/yaml", s.podsHandler.GetPodYAML)
 		api.GET("/pods/:namespace/:name/events", s.podsHandler.GetPodEvents)
-		api.GET("/pods/:namespace/:name/logs", s.podsHandler.GetPodLogs)
+
+		api.GET("/pods/:namespace/:name/logs/ws", s.podLogsHandler.HandlePodLogs)
+		api.GET("/pods/:namespace/:name/metrics", s.podsHandler.GetPodMetricsHistory)
 		api.GET("/pod/:name", s.podsHandler.GetPodByName)
 		api.GET("/pod/:name/yaml", s.podsHandler.GetPodYAMLByName)
 		api.GET("/pod/:name/events", s.podsHandler.GetPodEventsByName)
-		api.GET("/pod/:name/logs", s.podsHandler.GetPodLogsByName)
+
+		api.GET("/pod/:name/logs/ws", s.podLogsHandler.HandlePodLogs)
 
 		// WebSocket routes for pod exec
 		api.GET("/pods/:namespace/:name/exec/ws", s.podExecHandler.HandlePodExec)
 		api.GET("/pod/:name/exec/ws", s.podExecHandler.HandlePodExecByName)
+
+		// Port Forward routes
+		api.GET("/portforward/ws", s.portForwardHandler.HandlePortForward)
+		api.GET("/portforward/sessions", s.portForwardHandler.GetActiveSessions)
+		api.DELETE("/portforward/sessions/:id", s.portForwardHandler.StopSession)
 
 		api.GET("/deployments/:namespace/:name", s.deploymentsHandler.GetDeployment)
 		api.GET("/deployments/:namespace/:name/yaml", s.deploymentsHandler.GetDeploymentYAML)
@@ -459,6 +574,7 @@ func (s *Server) setupRoutes() {
 		api.GET("/cronjobs/:namespace/:name/yaml", s.cronJobsHandler.GetCronJobYAML)
 		api.GET("/cronjobs/:namespace/:name/events", s.cronJobsHandler.GetCronJobEvents)
 		api.GET("/cronjobs/:namespace/:name/jobs", s.resourceReferencesHandler.GetCronJobJobs)
+		api.POST("/cronjobs/:namespace/:name/trigger", s.cronJobsHandler.TriggerCronJob)
 		api.GET("/cronjob/:name", s.cronJobsHandler.GetCronJobByName)
 		api.GET("/cronjob/:name/yaml", s.cronJobsHandler.GetCronJobYAMLByName)
 		api.GET("/cronjob/:name/events", s.cronJobsHandler.GetCronJobEventsByName)
@@ -550,6 +666,7 @@ func (s *Server) setupRoutes() {
 		api.GET("/persistentvolumeclaims/:namespace/:name", s.persistentVolumeClaimsHandler.GetPVC)
 		api.GET("/persistentvolumeclaims/:namespace/:name/yaml", s.persistentVolumeClaimsHandler.GetPVCYAML)
 		api.GET("/persistentvolumeclaims/:namespace/:name/events", s.persistentVolumeClaimsHandler.GetPVCEvents)
+		api.PATCH("/persistentvolumeclaims/:namespace/:name/scale", s.persistentVolumeClaimsHandler.ScalePVC)
 		api.GET("/persistentvolumeclaim/:name", s.persistentVolumeClaimsHandler.GetPVCByName)
 		api.GET("/persistentvolumeclaim/:name/yaml", s.persistentVolumeClaimsHandler.GetPVCYAMLByName)
 		api.GET("/persistentvolumeclaim/:name/events", s.persistentVolumeClaimsHandler.GetPVCEventsByName)
@@ -566,6 +683,15 @@ func (s *Server) setupRoutes() {
 		api.GET("/helmreleases/:name", s.helmHandler.GetHelmReleaseDetails)
 		api.GET("/helmreleases/:name/history", s.helmHandler.GetHelmReleaseHistory)
 		api.GET("/helmreleases/:name/resources", s.helmHandler.GetHelmReleaseResources)
+		api.POST("/helmreleases/:name/rollback", s.helmHandler.RollbackHelmRelease)
+
+		// Helm Charts endpoints
+		api.GET("/helmcharts", s.helmHandler.SearchHelmCharts)
+		api.GET("/helmcharts/:packageId", s.helmHandler.GetHelmChartDetails)
+		api.GET("/helmcharts/:packageId/versions", s.helmHandler.GetHelmChartVersions)
+		api.GET("/helmcharts/:packageId/:version/templates", s.helmHandler.GetHelmChartTemplates)
+		api.POST("/helmcharts/install", s.helmHandler.InstallHelmChart)
+		api.POST("/helmcharts/upgrade", s.helmHandler.UpgradeHelmChart)
 
 		// Cloud Shell endpoints
 		api.POST("/cloudshell", s.cloudShellHandler.CreateCloudShell)
@@ -573,6 +699,17 @@ func (s *Server) setupRoutes() {
 		api.GET("/cloudshell/ws", s.cloudShellHandler.HandleCloudShellWebSocket)
 		api.DELETE("/cloudshell/:name", s.cloudShellHandler.DeleteCloudShell)
 		api.POST("/cloudshell/cleanup", s.cloudShellHandler.ManualCleanup)
+
+		// Tracing endpoints
+		if s.config.Tracing.Enabled {
+			api.GET("/traces", s.tracingHandler.GetTraces)
+			api.GET("/traces/:traceId", s.tracingHandler.GetTrace)
+			api.GET("/traces/service-map", s.tracingHandler.GetServiceMap)
+			api.GET("/traces/export", s.tracingHandler.ExportTraces)
+			api.GET("/tracing/config", s.tracingHandler.GetTracingConfig)
+			api.PUT("/tracing/config", s.tracingHandler.UpdateTracingConfig)
+			api.GET("/tracing/stats", s.tracingHandler.GetTracingStats)
+		}
 	}
 
 	// Serve static files from the dist folder
@@ -635,6 +772,14 @@ func (s *Server) Start() error {
 // Stop gracefully stops the server
 func (s *Server) Stop(ctx context.Context) error {
 	s.logger.Info("Stopping server")
+	
+	// Shutdown tracing service
+	if s.config.Tracing.Enabled {
+		if err := pkg_tracing.Shutdown(ctx); err != nil {
+			s.logger.WithError(err).Warn("Failed to shutdown tracing service")
+		}
+	}
+	
 	return s.server.Shutdown(ctx)
 }
 

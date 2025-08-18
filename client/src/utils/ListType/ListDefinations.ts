@@ -471,16 +471,31 @@ const customResourceDefinitionsColumnConfig = (config: string, cluster: string) 
   showNamespaceFilter: false
 });
 
-const customResourcesColumnConfig = (additionalPrinterColumns: CustomResourcesPrinterColumns[] = [], config: string, cluster: string, loading: boolean, group?: string, kind?: string, resource?: string, version?: string) => ({
+const customResourcesColumnConfig = (
+  additionalPrinterColumns: CustomResourcesPrinterColumns[] = [],
+  config: string,
+  cluster: string,
+  loading: boolean,
+  group?: string,
+  kind?: string,
+  resource?: string,
+  version?: string
+) => ({
   headersList: [
-    { title: 'Select', accessorKey: 'select', enableSorting: false, },
-    ...additionalPrinterColumns.map((columns) => {
-      return {
+    { title: 'Select', accessorKey: 'select', enableSorting: false },
+    // Always include Namespace and Name for navigation, even if CRD doesn't define them
+    { title: 'Namespace', accessorKey: loading ? '' : 'metadata.namespace', enableGlobalFilter: true },
+    { title: 'Name', accessorKey: loading ? '' : 'metadata.name', enableGlobalFilter: true },
+    // Append CRD-provided additional printer columns, skipping duplicates
+    ...additionalPrinterColumns
+      .filter((c) => !['Name', 'Namespace', 'Age', 'AGE'].includes(c.name))
+      .map((columns) => ({
         title: columns.name,
         accessorKey: loading ? '' : columns.jsonPath.slice(1),
-        ...(columns.name === 'Name' || columns.name === 'Namespace' ? {enableGlobalFilter: true}: {})
-      };
-    })
+        ...(columns.name === 'Name' || columns.name === 'Namespace' ? { enableGlobalFilter: true } : {}),
+      })),
+    // Always include Age using creation timestamp for consistent UX
+    { title: 'Age', accessorKey: loading ? '' : 'metadata.creationTimestamp' },
   ],
   queryParams: {
     cluster,
@@ -490,7 +505,7 @@ const customResourcesColumnConfig = (additionalPrinterColumns: CustomResourcesPr
     resource,
     version
   },
-  showNamespaceFilter: additionalPrinterColumns.filter(({ name }) => name === 'Namespace').length > 0
+  showNamespaceFilter: true
 });
 
 // Helm
@@ -508,7 +523,8 @@ const helmReleasesColumnConfig = (config: string, cluster: string) => ({
     { title: 'Updated', accessorKey: 'updated' }
   ],
   queryParams: { config, cluster },
-  showNamespaceFilter: true
+  showNamespaceFilter: true,
+  showStatusFilter: true
 });
 
 export {

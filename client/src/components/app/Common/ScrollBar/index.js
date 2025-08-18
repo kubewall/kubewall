@@ -55,7 +55,6 @@ function initializeScrollbars() {
 // Initialize
 if (typeof window !== 'undefined') {
   window.addEventListener('DOMContentLoaded', initializeScrollbars);
-  window.addEventListener('unload', () => {
-    window.removeEventListener('scroll', handleScroll);
-  });
+  // Remove the problematic unload listener since handleScroll is scoped inside initializeScrollbars
+  // and we don't need to remove it from window as it's not added to window
 }

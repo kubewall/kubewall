@@ -2,6 +2,7 @@ import { ClusterDetails, HeaderList, TableColumns } from '@/types';
 
 import { ColumnDef } from '@tanstack/react-table';
 import { DefaultHeader } from '@/components/app/Table';
+import { SelectAllHeader } from '@/components/app/Table/TableHeaders/select-all-header';
 import { TableCells } from '@/components/app/Table/TableCells';
 import { useMemo } from 'react';
 
@@ -18,7 +19,10 @@ function GenerateColumns<T extends ClusterDetails, C extends HeaderList>({
     () =>
       headersList.map((headerList) => {
         return {
-          header: ({ column }) => <DefaultHeader column={column} title={headerList.title === 'Select' ? '' : headerList.title} />,
+          header: ({ column, table }) => 
+            headerList.title === 'Select' 
+              ? <SelectAllHeader table={table} />
+              : <DefaultHeader column={column} title={headerList.title} />,
           accessorKey: headerList.accessorKey,
           id: headerList.title,
           cell: ({ row, getValue, table }) => (
@@ -27,10 +31,20 @@ function GenerateColumns<T extends ClusterDetails, C extends HeaderList>({
               configName={configName}
               instanceType={instanceType}
               loading={loading}
+              // Use metadata.namespace when present; fall back to top-level namespace
               // eslint-disable-next-line  @typescript-eslint/no-explicit-any
-              namespace={ (row.original as any).metadata ? ((row.original as any).metadata).namespace : (row.original as any).namespace}
+              namespace={ (row.original as any)?.metadata?.namespace ?? (row.original as any)?.namespace ?? ''}
               type={headerList.title}
-              value={String(getValue())}
+              value={(() => {
+                try {
+                  const v = getValue();
+                  if (v === undefined || v === null) return '';
+                  if (typeof v === 'string') return v;
+                  return String(v);
+                } catch {
+                  return '';
+                }
+              })()}
               queryParams={queryParams}
               row={row}
               table={table}

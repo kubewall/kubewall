@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { CopyToClipboard } from "../Common/CopyToClipboard";
 import { memo } from "react";
 import { useAppSelector } from "@/redux/hooks";
+import { ConfigMapDependenciesContainer } from "./ConfigMapDependenciesContainer";
 
 const ConfigMapDetailsContainer = memo(function () {
   const {
@@ -13,6 +14,7 @@ const ConfigMapDetailsContainer = memo(function () {
   const { data } = configMapDetails;
 
   return (
+    <>
     <div className="mt-2">
       <Card className="shadow-none rounded-lg">
         <CardHeader className="p-4 ">
@@ -54,6 +56,8 @@ const ConfigMapDetailsContainer = memo(function () {
         </CardContent>
       </Card>
     </div>
+    <ConfigMapDependenciesContainer />
+    </>
   );
 });
 

@@ -8,6 +8,7 @@ import (
 	"github.com/Facets-cloud/kube-dash/internal/api/handlers/shared"
 	"github.com/Facets-cloud/kube-dash/internal/k8s"
 	"github.com/Facets-cloud/kube-dash/internal/storage"
+	"github.com/Facets-cloud/kube-dash/internal/tracing"
 	"github.com/Facets-cloud/kube-dash/pkg/logger"
 
 	"github.com/gin-gonic/gin"
@@ -27,6 +28,7 @@ type PodExecHandler struct {
 	clientFactory *k8s.ClientFactory
 	logger        *logger.Logger
 	upgrader      websocket.Upgrader
+	tracingHelper *tracing.TracingHelper
 }
 
 // NewPodExecHandler creates a new PodExecHandler
@@ -40,6 +42,7 @@ func NewPodExecHandler(store *storage.KubeConfigStore, clientFactory *k8s.Client
 				return true // Allow all origins for now
 			},
 		},
+		tracingHelper: tracing.GetTracingHelper(),
 	}
 }
 
@@ -93,17 +96,31 @@ func (h *PodExecHandler) getClientAndConfig(c *gin.Context) (*kubernetes.Clients
 
 // HandlePodExec handles WebSocket-based pod exec
 func (h *PodExecHandler) HandlePodExec(c *gin.Context) {
+	// Start main span for pod exec operation
+	ctx, span := h.tracingHelper.StartAuthSpan(c.Request.Context(), "websocket.pod_exec")
+	defer span.End()
+
+	// Add resource attributes
+	podName := c.Param("name")
+	namespace := c.Param("namespace")
+	h.tracingHelper.AddResourceAttributes(span, podName, "pod", 1)
+
+	// Child span for WebSocket connection setup
+	connCtx, connSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "connection_setup", "websocket", namespace)
 	// Upgrade HTTP connection to WebSocket
 	conn, err := h.upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to upgrade connection to WebSocket")
+		h.tracingHelper.RecordError(connSpan, err, "Failed to upgrade WebSocket connection")
+		connSpan.End()
+		h.tracingHelper.RecordError(span, err, "Pod exec operation failed")
 		return
 	}
 	defer conn.Close()
+	h.tracingHelper.RecordSuccess(connSpan, "WebSocket connection established")
+	connSpan.End()
 
 	// Get parameters
-	podName := c.Param("name")
-	namespace := c.Param("namespace")
 	container := c.Query("container")
 	command := c.Query("command")
 
@@ -111,33 +128,53 @@ func (h *PodExecHandler) HandlePodExec(c *gin.Context) {
 		command = "/bin/sh"
 	}
 
+	// Child span for client acquisition
+	clientCtx, clientSpan := h.tracingHelper.StartAuthSpan(connCtx, "client_acquisition")
 	// Get Kubernetes client and config
 	client, restConfig, err := h.getClientAndConfig(c)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to get Kubernetes client for pod exec")
 		h.sendWebSocketError(conn, err.Error())
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
+		clientSpan.End()
+		h.tracingHelper.RecordError(span, err, "Pod exec operation failed")
 		return
 	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Kubernetes client acquired")
+	clientSpan.End()
 
+	// Child span for pod validation
+	validationCtx, validationSpan := h.tracingHelper.StartKubernetesAPISpan(clientCtx, "pod_validation", "pod", namespace)
 	// Verify pod exists
 	pod, err := client.CoreV1().Pods(namespace).Get(c.Request.Context(), podName, metav1.GetOptions{})
 	if err != nil {
 		h.logger.WithError(err).WithField("pod", podName).WithField("namespace", namespace).Error("Failed to get pod for exec")
 		h.sendWebSocketError(conn, fmt.Sprintf("Pod not found: %v", err))
+		h.tracingHelper.RecordError(validationSpan, err, "Failed to get pod")
+		validationSpan.End()
+		h.tracingHelper.RecordError(span, err, "Pod exec operation failed")
 		return
 	}
 
 	// Check if pod is running
 	if pod.Status.Phase != v1.PodRunning {
-		h.sendWebSocketError(conn, fmt.Sprintf("Pod is not running. Current phase: %s", pod.Status.Phase))
+		err := fmt.Errorf("pod is not running, current phase: %s", pod.Status.Phase)
+		h.sendWebSocketError(conn, err.Error())
+		h.tracingHelper.RecordError(validationSpan, err, "Pod not running")
+		validationSpan.End()
+		h.tracingHelper.RecordError(span, err, "Pod exec operation failed")
 		return
 	}
+	h.tracingHelper.RecordSuccess(validationSpan, "Pod validation completed")
+	validationSpan.End()
 
 	// If no container specified, use the first one
 	if container == "" && len(pod.Spec.Containers) > 0 {
 		container = pod.Spec.Containers[0].Name
 	}
 
+	// Child span for stream processing
+	_, streamSpan := h.tracingHelper.StartKubernetesAPISpan(validationCtx, "stream_processing", "pod", namespace)
 	// Create exec request
 	req := client.CoreV1().RESTClient().Post().
 		Resource("pods").
@@ -158,11 +195,14 @@ func (h *PodExecHandler) HandlePodExec(c *gin.Context) {
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to create SPDY executor")
 		h.sendWebSocketError(conn, fmt.Sprintf("Failed to create executor: %v", err))
+		h.tracingHelper.RecordError(streamSpan, err, "Failed to create SPDY executor")
+		streamSpan.End()
+		h.tracingHelper.RecordError(span, err, "Pod exec operation failed")
 		return
 	}
 
-	// Create terminal session using shared implementation
-	session := shared.NewTerminalSession(conn, h.logger)
+	// Create enhanced terminal session for better performance
+	session := shared.NewEnhancedTerminalSession(conn, h.logger)
 
 	// Start the exec session
 	err = exec.Stream(remotecommand.StreamOptions{
@@ -175,31 +215,55 @@ func (h *PodExecHandler) HandlePodExec(c *gin.Context) {
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to start exec stream")
 		h.sendWebSocketError(conn, fmt.Sprintf("Failed to start exec: %v", err))
+		h.tracingHelper.RecordError(streamSpan, err, "Failed to start exec stream")
+		streamSpan.End()
+		h.tracingHelper.RecordError(span, err, "Pod exec operation failed")
 		return
 	}
+
+	h.tracingHelper.RecordSuccess(streamSpan, "Stream processing completed")
+	streamSpan.End()
+	h.tracingHelper.RecordSuccess(span, "Pod exec operation completed")
 }
 
 // HandlePodExecByName handles WebSocket-based pod exec by name using namespace from query parameters
 func (h *PodExecHandler) HandlePodExecByName(c *gin.Context) {
+	// Start main span for pod exec by name operation
+	ctx, span := h.tracingHelper.StartAuthSpan(c.Request.Context(), "websocket.pod_exec_by_name")
+	defer span.End()
+
+	// Add resource attributes
+	podName := c.Param("name")
+	namespace := c.Query("namespace")
+	h.tracingHelper.AddResourceAttributes(span, podName, "pod", 1)
+
+	// Child span for WebSocket connection setup
+	_, connSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "connection_setup", "websocket", namespace)
 	// Upgrade HTTP connection to WebSocket
 	conn, err := h.upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to upgrade connection to WebSocket")
+		h.tracingHelper.RecordError(connSpan, err, "Failed to upgrade WebSocket connection")
+		connSpan.End()
+		h.tracingHelper.RecordError(span, err, "Pod exec by name operation failed")
 		return
 	}
 	defer conn.Close()
+	h.tracingHelper.RecordSuccess(connSpan, "WebSocket connection established")
+	connSpan.End()
 
 	// Get parameters
-	namespace := c.Query("namespace")
-
 	if namespace == "" {
-		h.sendWebSocketError(conn, "namespace parameter is required")
+		err := fmt.Errorf("namespace parameter is required")
+		h.sendWebSocketError(conn, err.Error())
+		h.tracingHelper.RecordError(span, err, "Missing namespace parameter")
 		return
 	}
 
 	// Set the namespace in the context for the main handler
 	c.Params = append(c.Params, gin.Param{Key: "namespace", Value: namespace})
 	h.HandlePodExec(c)
+	h.tracingHelper.RecordSuccess(span, "Pod exec by name operation completed")
 }
 
 // sendWebSocketError sends an error message through the WebSocket

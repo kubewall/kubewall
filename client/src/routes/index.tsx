@@ -9,6 +9,13 @@ import { KubeWall } from '@/KubeWall';
 import { KwDetails } from '@/components/app/Common/Details';
 import { KwList } from '@/components/app/Common/List';
 import { CloudShellDetailsContainer } from '@/components/app/MiscDetailsContainer/CloudShellDetailsContainer';
+import { HelmChartsOverview } from '@/components/app/HelmCharts/HelmChartsOverview';
+import { Settings } from '@/components/app/Settings';
+import { ClusterOverview } from '@/components/app/Overview/ClusterOverview';
+import TracesDashboard from '@/components/app/Tracing/TracesDashboard';
+import TraceDetails from '@/components/app/Tracing/TraceDetails';
+
+
 
 
 
@@ -74,6 +81,59 @@ const cloudShellRoute = createRoute({
   })
 });
 
+const helmChartsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/helmcharts',
+  component: HelmChartsOverview,
+  validateSearch: (search: Record<string, unknown>) => ({
+    cluster: String(search.cluster) || '',
+    namespace: search.namespace ? String(search.namespace) : 'default',
+  })
+});
+
+const settingsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/settings',
+  component: Settings,
+  validateSearch: (search: Record<string, unknown>) => ({
+    cluster: String(search.cluster) || '',
+  })
+});
+
+const overviewRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/overview',
+  component: ClusterOverview,
+  validateSearch: (search: Record<string, unknown>) => ({
+    cluster: String(search.cluster) || '',
+  })
+});
+
+const tracesRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/tools/tracing',
+  component: TracesDashboard,
+  validateSearch: (search: Record<string, unknown>) => ({
+    cluster: String(search.cluster) || '',
+    service: search.service ? String(search.service) : undefined,
+    operation: search.operation ? String(search.operation) : undefined,
+    status: search.status ? String(search.status) : undefined,
+  })
+});
+
+const traceDetailsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/tools/tracing/$traceId',
+  component: TraceDetails,
+  validateSearch: (search: Record<string, unknown>) => ({
+    cluster: String(search.cluster) || '',
+  })
+});
+
+
+
+
+
 
 
 const kubeConfigurationRoute = createRoute({
@@ -88,7 +148,12 @@ const routeTree = rootRoute.addChildren([
   appRoute.addChildren([
     kwList,
     kwDetails,
-    cloudShellRoute
+    cloudShellRoute,
+    helmChartsRoute,
+    settingsRoute,
+    overviewRoute,
+    tracesRoute,
+    traceDetailsRoute
   ])
 ]);
 
@@ -107,10 +172,15 @@ declare module '@tanstack/react-router' {
   }
 }
 
-export {
+export { 
   router,
   kwList,
   kwDetails,
   cloudShellRoute,
-  appRoute
+  helmChartsRoute,
+  appRoute,
+  settingsRoute,
+  overviewRoute,
+  tracesRoute,
+  traceDetailsRoute
 };

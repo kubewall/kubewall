@@ -10,6 +10,7 @@ import (
 	"github.com/Facets-cloud/kube-dash/internal/config"
 	"github.com/Facets-cloud/kube-dash/internal/server"
 	"github.com/Facets-cloud/kube-dash/pkg/logger"
+	"github.com/Facets-cloud/kube-dash/pkg/tracing"
 )
 
 // Version information - set by ldflags during build
@@ -47,6 +48,11 @@ func main() {
 	// Create a deadline for server shutdown
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
+
+	// Shutdown tracing
+	if err := tracing.Shutdown(ctx); err != nil {
+		log.WithError(err).Error("Failed to shutdown tracing")
+	}
 
 	// Attempt graceful shutdown
 	if err := srv.Stop(ctx); err != nil {

@@ -1,5 +1,21 @@
 .list-table-max-height {
-  max-height: calc(100vh - 48px);
+  max-height: calc(100vh - 120px);
+}
+
+.list-table-max-height-with-toolbar {
+  max-height: calc(100vh - 140px);
+}
+
+.list-table-container {
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.list-table-scrollable {
+  flex: 1;
+  overflow: auto;
 }
 
 .list-table-max-width-expanded {
