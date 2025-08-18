@@ -5,13 +5,14 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	"log"
+
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/log"
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/labstack/echo/v4"
 )
@@ -25,7 +26,7 @@ func ProxyHandler(c echo.Context) error {
 
 	remoteURL, err := url.Parse(remoteURLPart)
 	if err != nil {
-		log.Printf("Error parsing remote URL: %v", err)
+		log.Error("Error parsing remote URL", "err", err)
 		return c.String(http.StatusBadRequest, "Invalid remote URL provided.")
 	}
 
@@ -35,14 +36,14 @@ func ProxyHandler(c echo.Context) error {
 				InsecureSkipVerify: true,
 			},
 		},
-		Timeout: 30 * time.Second,
+		Timeout: time.Second * 30,
 	}
 
 	var reqBody io.Reader
 	if c.Request().Body != nil {
 		bodyBytes, err := io.ReadAll(c.Request().Body)
 		if err != nil {
-			log.Printf("Error reading request body: %v", err)
+			log.Error("Error reading request body", "err", err)
 			return c.String(http.StatusInternalServerError, "Failed to read request body.")
 		}
 		reqBody = bytes.NewBuffer(bodyBytes)
@@ -51,7 +52,7 @@ func ProxyHandler(c echo.Context) error {
 
 	proxyReq, err := http.NewRequest(c.Request().Method, remoteURL.String(), reqBody)
 	if err != nil {
-		log.Printf("Error creating proxy request: %v", err)
+		log.Error("Error creating proxy request", "err", err)
 		return c.String(http.StatusInternalServerError, "Failed to create proxy request.")
 	}
 
@@ -72,8 +73,8 @@ func ProxyHandler(c echo.Context) error {
 
 	resp, err := client.Do(proxyReq)
 	if err != nil {
-		log.Printf("Error sending request to remote server %s: %v", remoteURL.String(), err)
-		return c.String(http.StatusBadGateway, "Failed to reach remote server.")
+		log.Error("Error sending request to remote server", "url", remoteURL.String(), "err", err)
+		return c.String(http.StatusBadGateway, err.Error())
 	}
 	defer resp.Body.Close()
 
@@ -90,8 +91,8 @@ func ProxyHandler(c echo.Context) error {
 
 	_, err = io.Copy(c.Response().Writer, resp.Body)
 	if err != nil {
-		log.Printf("Error copying response body: %v", err)
-		return c.String(http.StatusInternalServerError, "Failed to send response back to UI.")
+		log.Error("Error copying response body", "err", err)
+		return c.String(http.StatusInternalServerError, err.Error())
 	}
 
 	return nil
