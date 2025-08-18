@@ -83,3 +83,16 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+
+{{/*
+Return numeric port from service.listen (handles IPv4, IPv6, host:port, [::]:port).
+Falls back to service.port if listen is empty.
+*/}}
+{{- define "kubewall.listenPort" -}}
+{{- if .Values.service.listen -}}
+{{ regexReplaceAll ".*:(\\d+)$" .Values.service.listen "${1}" }}
+{{- else -}}
+{{ .Values.service.port }}
+{{- end -}}
+{{- end -}}

@@ -31,20 +31,22 @@ spec:
           args:
            - --certFile=/etc/ssl/certs/tls.crt
            - --keyFile=/etc/ssl/certs/tls.key
-           - --port={{ .Values.service.port }}
-           {{- if .Values.k8s_client_burst }}
+            {{- if .Values.service.listen }}
+           - --listen={{ .Values.service.listen }}
+            {{- end }}
+            {{- if .Values.k8s_client_burst }}
            - --k8s-client-burst={{ .Values.k8s_client_burst }}
-           {{- end }}
-           {{- if .Values.k8s_client_qps }}
+            {{- end }}
+            {{- if .Values.k8s_client_qps }}
            - --k8s-client-qps={{ .Values.k8s_client_qps }}
-           {{- end }}
+            {{- end }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: https
-              containerPort: {{ .Values.service.port }}
+              containerPort: {{ include "kubewall.listenPort" . | int }}
               protocol: TCP
           livenessProbe:
             httpGet:

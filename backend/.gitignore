@@ -42,3 +42,4 @@ resources/node_modules/
 resources/static/
 resources/views/*.go
 resources/views/*/*.go
+routes/static/*

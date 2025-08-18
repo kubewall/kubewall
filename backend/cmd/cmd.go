@@ -20,7 +20,7 @@ func init() {
 	rootCmd.PersistentFlags().String("certFile", "", "absolute path to certificate file")
 	rootCmd.PersistentFlags().String("keyFile", "", "absolute path to key file")
 	rootCmd.PersistentFlags().StringP("port", "p", ":7080", "port to listen on [deprecated, use --listen instead]")
-	rootCmd.PersistentFlags().StringP("listen", "l", "localhost:7080", "IP and port to listen on (e.g., localhost:7080 or :7080)")
+	rootCmd.PersistentFlags().StringP("listen", "l", "[::]:7080", "IP and port to listen on (e.g., localhost:7080, :7080, or [::]:7080)")
 	rootCmd.PersistentFlags().Int("k8s-client-qps", 100, "maximum QPS to the master from client")
 	rootCmd.PersistentFlags().Int("k8s-client-burst", 200, "Maximum burst for throttle")
 	rootCmd.PersistentFlags().Bool("no-open-browser", false, "Do not open the default browser")
@@ -101,7 +101,7 @@ func Serve(cmd *cobra.Command) error {
 		openDefaultBrowser(c.Config().IsSecure, c.Config().ListenAddr)
 	}
 
-	if !isSecure && !strings.Contains(c.Config().ListenAddr, "localhost") {
+	if !isSecure && !strings.Contains(c.Config().ListenAddr, "[::]:7080") && !strings.Contains(c.Config().ListenAddr, "localhost") {
 		log.Warn("SSE may not work properly without TLS. Use --certFile and --keyFile for HTTPS, or bind to localhost with --listen localhost:7080 to avoid issues.")
 	}
 

@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"bytes"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"log"
@@ -9,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/labstack/echo/v4"
@@ -27,7 +29,14 @@ func ProxyHandler(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Invalid remote URL provided.")
 	}
 
-	client := &http.Client{}
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+		Timeout: 30 * time.Second,
+	}
 
 	var reqBody io.Reader
 	if c.Request().Body != nil {
