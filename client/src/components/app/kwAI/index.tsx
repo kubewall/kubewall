@@ -57,7 +57,7 @@ export function AiChat({ isFullscreen = false, onToggleFullscreen, customHeight,
   const [currentChatKey, setCurrentChatKey] = useState<string>(getLatestChat);
 
   useEffect(() => {
-    dispatch(fetchKwAiTools({isDev: clusters.version === 'dev'}));
+    dispatch(fetchKwAiTools({isDev: clusters.version === 'dev', config, cluster}));
     const kwAIStoredModels = JSON.parse(localStorage.getItem('kwAIStoredModels') || '{}') as kwAIStoredModels;
     setKwAIStoredModelsCollection(() => kwAIStoredModels);
   }, []);
