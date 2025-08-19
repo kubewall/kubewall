@@ -19,12 +19,13 @@ const initialState: InitialState = {
   error: null,
 };
 
-const fetchKwAiTools = createAsyncThunk('kwAiTools', async (_, thunkAPI) => {
+const fetchKwAiTools = createAsyncThunk('kwAiTools', async ({isDev}: {isDev: boolean}, thunkAPI) => {
   try {
+    const hostName = isDev ? 'http://localhost:7080' : window.location.origin;
     const client = await experimental_createMCPClient({
       transport: {
         type: 'sse',
-        url: 'http://localhost:7080/api/v1/mcp/sse?cluster=orbstack&config=config',
+        url: `${hostName}/api/v1/mcp/sse?cluster=orbstack&config=config`,
       },
     });
     const tools = await client.tools();
