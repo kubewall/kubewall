@@ -116,16 +116,33 @@ func (h *CloudShellHandler) getClientAndConfig(c *gin.Context) (*kubernetes.Clie
 	cluster := c.Query("cluster")
 
 	if configID == "" {
+		h.logger.WithFields(map[string]interface{}{
+			"request_path": c.Request.URL.Path,
+			"query_params": c.Request.URL.RawQuery,
+			"client_ip":    c.ClientIP(),
+		}).Warn("CloudShell request missing required config parameter")
 		return nil, nil, fmt.Errorf("config parameter is required")
 	}
 
 	config, err := h.store.GetKubeConfig(configID)
 	if err != nil {
+		h.logger.WithFields(map[string]interface{}{
+			"config_id":    configID,
+			"cluster":      cluster,
+			"error":        err.Error(),
+			"client_ip":    c.ClientIP(),
+		}).Error("CloudShell config not found in store")
 		return nil, nil, fmt.Errorf("config not found: %w", err)
 	}
 
 	client, err := h.clientFactory.GetClientForConfig(config, cluster)
 	if err != nil {
+		h.logger.WithFields(map[string]interface{}{
+			"config_id":    configID,
+			"cluster":      cluster,
+			"error":        err.Error(),
+			"client_ip":    c.ClientIP(),
+		}).Error("CloudShell failed to create Kubernetes client")
 		return nil, nil, fmt.Errorf("failed to get Kubernetes client: %w", err)
 	}
 
@@ -732,6 +749,18 @@ func (h *CloudShellHandler) ListCloudShellSessions(c *gin.Context) {
 	clientCtx, clientSpan := h.tracingHelper.StartAuthSpan(ctx, "client_acquisition")
 	client, _, err := h.getClientAndConfig(c)
 	if err != nil {
+		// Enhanced error logging for 400 errors
+		h.logger.WithFields(map[string]interface{}{
+			"config_id":    configID,
+			"cluster":      cluster,
+			"namespace":    namespace,
+			"error":        err.Error(),
+			"user_agent":   c.GetHeader("User-Agent"),
+			"client_ip":    c.ClientIP(),
+			"request_path": c.Request.URL.Path,
+			"query_params": c.Request.URL.RawQuery,
+		}).Error("CloudShell client acquisition failed - returning 400")
+		
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		h.tracingHelper.RecordError(clientSpan, err, "Failed to get Kubernetes client")
 		clientSpan.End()

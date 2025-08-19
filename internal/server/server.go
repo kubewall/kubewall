@@ -108,7 +108,7 @@ type Server struct {
 
 	// Tracing handlers
 	tracingHandler *tracing_handlers.TracingHandler
-	traceStore     *tracing.TraceStore
+	traceStore     tracing.TraceStoreInterface
 
 	// Feature flags handler
 	featureFlagsHandler *handlers.FeatureFlagsHandler
@@ -130,7 +130,15 @@ func New(cfg *config.Config) *Server {
 	router := gin.New()
 
 	// Create storage and client factory
-	store := storage.NewKubeConfigStore()
+	// Try to create store with database backend, fallback to in-memory if it fails
+	var store *storage.KubeConfigStore
+	if storeWithDB, err := storage.NewKubeConfigStoreWithDB(&cfg.Database); err != nil {
+		log.WithError(err).Warn("Failed to initialize database storage, falling back to in-memory storage")
+		store = storage.NewKubeConfigStore()
+	} else {
+		log.Info("Successfully initialized database storage backend")
+		store = storeWithDB
+	}
 	clientFactory := k8s.NewClientFactory()
 	kubeHandler := api.NewKubeConfigHandler(store, clientFactory, log)
 
@@ -201,7 +209,7 @@ func New(cfg *config.Config) *Server {
 
 	// Initialize OpenTelemetry tracing service
 	var tracingService *tracing.TracingService
-	var traceStore *tracing.TraceStore
+	var traceStore tracing.TraceStoreInterface
 	if cfg.Tracing.Enabled {
 		var err error
 		tracingService, err = tracing.NewTracingService(&cfg.Tracing, log)
@@ -210,7 +218,14 @@ func New(cfg *config.Config) *Server {
 		}
 		traceStore = tracingService.GetStore()
 	} else {
-		traceStore = tracing.NewTraceStore(&cfg.Tracing)
+		// Try to use database-backed trace store if database is available
+		if store.HasDatabase() {
+			log.Info("Using database-backed trace storage")
+			traceStore = tracing.NewDatabaseTraceStore(store.GetDatabase(), &cfg.Tracing)
+		} else {
+			log.Info("Using in-memory trace storage")
+			traceStore = tracing.NewTraceStore(&cfg.Tracing)
+		}
 	}
 
 	// Create tracing handlers
@@ -772,6 +787,11 @@ func (s *Server) Start() error {
 // Stop gracefully stops the server
 func (s *Server) Stop(ctx context.Context) error {
 	s.logger.Info("Stopping server")
+	
+	// Close database connection if using persistent storage
+	if err := s.store.Close(); err != nil {
+		s.logger.WithError(err).Warn("Failed to close database connection")
+	}
 	
 	// Shutdown tracing service
 	if s.config.Tracing.Enabled {

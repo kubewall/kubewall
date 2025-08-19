@@ -12,6 +12,7 @@ type Config struct {
 	K8s         K8sConfig
 	StaticFiles StaticFilesConfig
 	Tracing     TracingConfig
+	Database    DatabaseConfig
 }
 
 // ServerConfig holds server-specific configuration
@@ -50,6 +51,13 @@ type TracingConfig struct {
 	ServiceVersion  string  `json:"serviceVersion"`
 }
 
+// DatabaseConfig holds database-specific configuration
+type DatabaseConfig struct {
+	Type string // "sqlite" or "postgres"
+	URL  string // PostgreSQL connection string
+	Path string // SQLite database file path
+}
+
 // Load loads configuration from environment variables
 func Load() *Config {
 	return &Config{
@@ -78,6 +86,11 @@ func Load() *Config {
 			JaegerEndpoint:  getEnv("JAEGER_ENDPOINT", "http://localhost:14268/api/traces"),
 			ServiceName:     getEnv("TRACING_SERVICE_NAME", "kube-dash"),
 			ServiceVersion:  getEnv("TRACING_SERVICE_VERSION", "1.0.0"),
+		},
+		Database: DatabaseConfig{
+			Type: getEnv("DATABASE_TYPE", "sqlite"),
+			URL:  getEnv("DATABASE_URL", ""),
+			Path: getEnv("DATABASE_PATH", "./kube-dash.db"),
 		},
 	}
 }

@@ -14,14 +14,14 @@ import (
 
 // TracingHandler handles tracing-related API requests
 type TracingHandler struct {
-	store       *storage.KubeConfigStore
-	traceStore  *tracing.TraceStore
-	logger      *logger.Logger
-	config      *config.TracingConfig
+	store      *storage.KubeConfigStore
+	traceStore tracing.TraceStoreInterface
+	logger     *logger.Logger
+	config     *config.TracingConfig
 }
 
 // NewTracingHandler creates a new tracing handler
-func NewTracingHandler(store *storage.KubeConfigStore, traceStore *tracing.TraceStore, logger *logger.Logger, config *config.TracingConfig) *TracingHandler {
+func NewTracingHandler(store *storage.KubeConfigStore, traceStore tracing.TraceStoreInterface, logger *logger.Logger, config *config.TracingConfig) *TracingHandler {
 	return &TracingHandler{
 		store:      store,
 		traceStore: traceStore,

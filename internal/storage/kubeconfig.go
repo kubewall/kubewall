@@ -7,6 +7,8 @@ import (
 
 	"github.com/google/uuid"
 	"k8s.io/client-go/tools/clientcmd/api"
+
+	"github.com/Facets-cloud/kube-dash/internal/config"
 )
 
 // KubeConfig represents a kubeconfig configuration
@@ -32,14 +34,107 @@ type KubeConfigStore struct {
 	mu       sync.RWMutex
 	configs  map[string]*api.Config
 	metadata map[string]*KubeConfig
+	db       DatabaseStorage // persistent storage backend
+	useDB    bool            // whether to use persistent storage
 }
 
-// NewKubeConfigStore creates a new kubeconfig store
+// NewKubeConfigStore creates a new kubeconfig store with in-memory storage
 func NewKubeConfigStore() *KubeConfigStore {
 	return &KubeConfigStore{
 		configs:  make(map[string]*api.Config),
 		metadata: make(map[string]*KubeConfig),
+		useDB:    false,
 	}
+}
+
+// NewKubeConfigStoreWithDB creates a new kubeconfig store with persistent storage
+func NewKubeConfigStoreWithDB(dbConfig *config.DatabaseConfig) (*KubeConfigStore, error) {
+	factory := NewStorageFactory(dbConfig)
+	
+	// Validate configuration
+	if err := factory.ValidateConfig(); err != nil {
+		return nil, fmt.Errorf("invalid database configuration: %w", err)
+	}
+
+	// Create storage backend
+	db, err := factory.CreateStorage()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create storage backend: %w", err)
+	}
+
+	// Initialize the database
+	if err := db.Initialize(); err != nil {
+		return nil, fmt.Errorf("failed to initialize database: %w", err)
+	}
+
+	store := &KubeConfigStore{
+		configs:  make(map[string]*api.Config),
+		metadata: make(map[string]*KubeConfig),
+		db:       db,
+		useDB:    true,
+	}
+
+	// Load existing data from database into memory cache
+	if err := store.loadFromDB(); err != nil {
+		return nil, fmt.Errorf("failed to load existing data: %w", err)
+	}
+
+	return store, nil
+}
+
+// Close closes the database connection if using persistent storage
+func (s *KubeConfigStore) Close() error {
+	if s.useDB && s.db != nil {
+		return s.db.Close()
+	}
+	return nil
+}
+
+// HasDatabase returns true if the store is using database storage
+func (s *KubeConfigStore) HasDatabase() bool {
+	return s.useDB && s.db != nil
+}
+
+// GetDatabase returns the underlying database storage interface
+func (s *KubeConfigStore) GetDatabase() DatabaseStorage {
+	if s.useDB && s.db != nil {
+		return s.db
+	}
+	return nil
+}
+
+// loadFromDB loads existing kubeconfigs from the database into memory cache
+func (s *KubeConfigStore) loadFromDB() error {
+	if !s.useDB || s.db == nil {
+		return nil
+	}
+
+	// Load metadata
+	metadata, err := s.db.ListKubeConfigs()
+	if err != nil {
+		return fmt.Errorf("failed to load kubeconfig metadata: %w", err)
+	}
+
+	// Load configs and populate cache
+	for id, meta := range metadata {
+		config, err := s.db.GetKubeConfig(id)
+		if err != nil {
+			// Log error but continue loading other configs
+			continue
+		}
+		s.configs[id] = config
+		s.metadata[id] = meta
+	}
+
+	return nil
+}
+
+// HealthCheck verifies the storage backend is healthy
+func (s *KubeConfigStore) HealthCheck() error {
+	if s.useDB && s.db != nil {
+		return s.db.HealthCheck()
+	}
+	return nil // In-memory storage is always healthy
 }
 
 // AddKubeConfig adds a kubeconfig to the store
@@ -63,7 +158,14 @@ func (s *KubeConfigStore) AddKubeConfig(config *api.Config, name string) (string
 		clusters[clusterName] = clusterName
 	}
 
-	// Store the config
+	// Store in persistent storage if available
+	if s.useDB && s.db != nil {
+		if err := s.db.AddKubeConfig(id, name, config, clusters, now, now); err != nil {
+			return "", fmt.Errorf("failed to store kubeconfig in database: %w", err)
+		}
+	}
+
+	// Store in memory cache
 	s.configs[id] = config
 	s.metadata[id] = &KubeConfig{
 		ID:       id,
@@ -81,12 +183,23 @@ func (s *KubeConfigStore) GetKubeConfig(id string) (*api.Config, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
+	// Try memory cache first
 	config, exists := s.configs[id]
-	if !exists {
-		return nil, fmt.Errorf("kubeconfig not found: %s", id)
+	if exists {
+		return config, nil
 	}
 
-	return config, nil
+	// If using database and not in cache, try database
+	if s.useDB && s.db != nil {
+		dbConfig, err := s.db.GetKubeConfig(id)
+		if err == nil {
+			// Cache the result
+			s.configs[id] = dbConfig
+			return dbConfig, nil
+		}
+	}
+
+	return nil, fmt.Errorf("kubeconfig not found: %s", id)
 }
 
 // GetKubeConfigMetadata retrieves kubeconfig metadata by ID
@@ -94,18 +207,39 @@ func (s *KubeConfigStore) GetKubeConfigMetadata(id string) (*KubeConfig, error) 
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
+	// Try memory cache first
 	metadata, exists := s.metadata[id]
-	if !exists {
-		return nil, fmt.Errorf("kubeconfig not found: %s", id)
+	if exists {
+		return metadata, nil
 	}
 
-	return metadata, nil
+	// If using database and not in cache, try database
+	if s.useDB && s.db != nil {
+		dbMetadata, err := s.db.GetKubeConfigMetadata(id)
+		if err == nil {
+			// Cache the result
+			s.metadata[id] = dbMetadata
+			return dbMetadata, nil
+		}
+	}
+
+	return nil, fmt.Errorf("kubeconfig not found: %s", id)
 }
 
 // ListKubeConfigs returns all kubeconfig metadata
 func (s *KubeConfigStore) ListKubeConfigs() map[string]*KubeConfig {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+
+	// If using database, ensure we have the latest data
+	if s.useDB && s.db != nil {
+		if dbMetadata, err := s.db.ListKubeConfigs(); err == nil {
+			// Update memory cache with database data
+			for id, metadata := range dbMetadata {
+				s.metadata[id] = metadata
+			}
+		}
+	}
 
 	result := make(map[string]*KubeConfig)
 	for id, metadata := range s.metadata {
@@ -120,10 +254,27 @@ func (s *KubeConfigStore) DeleteKubeConfig(id string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if _, exists := s.configs[id]; !exists {
+	// Check if exists in memory cache or database
+	_, existsInMemory := s.configs[id]
+	existsInDB := false
+	if s.useDB && s.db != nil {
+		if _, err := s.db.GetKubeConfigMetadata(id); err == nil {
+			existsInDB = true
+		}
+	}
+
+	if !existsInMemory && !existsInDB {
 		return fmt.Errorf("kubeconfig not found: %s", id)
 	}
 
+	// Delete from database if using persistent storage
+	if s.useDB && s.db != nil && existsInDB {
+		if err := s.db.DeleteKubeConfig(id); err != nil {
+			return fmt.Errorf("failed to delete kubeconfig from database: %w", err)
+		}
+	}
+
+	// Delete from memory cache
 	delete(s.configs, id)
 	delete(s.metadata, id)
 
@@ -135,7 +286,16 @@ func (s *KubeConfigStore) UpdateKubeConfig(id string, config *api.Config, name s
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if _, exists := s.configs[id]; !exists {
+	// Check if exists in memory cache or database
+	_, existsInMemory := s.configs[id]
+	existsInDB := false
+	if s.useDB && s.db != nil {
+		if _, err := s.db.GetKubeConfigMetadata(id); err == nil {
+			existsInDB = true
+		}
+	}
+
+	if !existsInMemory && !existsInDB {
 		return fmt.Errorf("kubeconfig not found: %s", id)
 	}
 
@@ -150,11 +310,31 @@ func (s *KubeConfigStore) UpdateKubeConfig(id string, config *api.Config, name s
 		clusters[clusterName] = clusterName
 	}
 
-	// Update the config
+	now := time.Now()
+
+	// Update in database if using persistent storage
+	if s.useDB && s.db != nil {
+		if err := s.db.UpdateKubeConfig(id, name, config, clusters, now); err != nil {
+			return fmt.Errorf("failed to update kubeconfig in database: %w", err)
+		}
+	}
+
+	// Update in memory cache
 	s.configs[id] = config
-	s.metadata[id].Name = name
-	s.metadata[id].Clusters = clusters
-	s.metadata[id].Updated = time.Now()
+	if s.metadata[id] == nil {
+		// Create metadata if it doesn't exist in memory
+		s.metadata[id] = &KubeConfig{
+			ID:       id,
+			Name:     name,
+			Clusters: clusters,
+			Created:  now, // We don't know the original created time
+			Updated:  now,
+		}
+	} else {
+		s.metadata[id].Name = name
+		s.metadata[id].Clusters = clusters
+		s.metadata[id].Updated = now
+	}
 
 	return nil
 }

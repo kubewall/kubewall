@@ -63,6 +63,11 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
   const [sessionMessage, setSessionMessage] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isSessionsCollapsed, setIsSessionsCollapsed] = useState(false);
+  
+  // Error handling and backoff state
+  const [retryCount, setRetryCount] = useState(0);
+  const [lastErrorType, setLastErrorType] = useState<string | null>(null);
+  const [isPollingDisabled, setIsPollingDisabled] = useState(false);
 
   // Check if error is a permission error
   const isPermissionError = (errorMessage: string): boolean => {
@@ -76,6 +81,32 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
            errorMessage.toLowerCase().includes('cannot exec into pod');
   };
 
+  // Check if error is a configuration error (400 errors)
+  const isConfigurationError = (errorMessage: string): boolean => {
+    if (!errorMessage) return false;
+    return errorMessage.toLowerCase().includes('config parameter is required') ||
+           errorMessage.toLowerCase().includes('config not found') ||
+           errorMessage.toLowerCase().includes('failed to get kubernetes client') ||
+           errorMessage.toLowerCase().includes('invalid response format');
+  };
+
+  // Check if error is a network/temporary error
+  const isTemporaryError = (errorMessage: string): boolean => {
+    if (!errorMessage) return false;
+    return errorMessage.toLowerCase().includes('network') ||
+           errorMessage.toLowerCase().includes('timeout') ||
+           errorMessage.toLowerCase().includes('connection') ||
+           errorMessage.toLowerCase().includes('temporary');
+  };
+
+  // Calculate exponential backoff delay
+  const getBackoffDelay = (retryCount: number): number => {
+    const baseDelay = 5000; // 5 seconds
+    const maxDelay = 60000; // 60 seconds
+    const delay = Math.min(baseDelay * Math.pow(2, retryCount), maxDelay);
+    return delay;
+  };
+
   // Terminal initialization is now handled by SharedTerminal component
 
   // Load sessions on mount
@@ -83,18 +114,87 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
     dispatch(listCloudShellSessions({ config: configName, cluster: clusterName, namespace }));
   }, [dispatch, configName, clusterName, namespace]);
 
-  // Poll for session updates every 5 seconds, but stop if there's a persistent permission error
+  // Poll for session updates with intelligent error handling and backoff
   useEffect(() => {
-    const pollInterval = setInterval(() => {
-      // Don't poll if there's a permission error - these won't resolve themselves
-      if (error && isPermissionError(error)) {
+    let pollTimeout: NodeJS.Timeout;
+
+    const pollSessions = async () => {
+      // Don't poll if polling is disabled due to persistent errors
+      if (isPollingDisabled) {
         return;
       }
-      dispatch(listCloudShellSessions({ config: configName, cluster: clusterName, namespace }));
-    }, 5000);
 
-    return () => clearInterval(pollInterval);
-  }, [dispatch, configName, clusterName, namespace, error]);
+      // Don't poll if there's a persistent permission or configuration error
+      if (error) {
+        if (isPermissionError(error) || isConfigurationError(error)) {
+          console.warn('CloudShell polling stopped due to persistent error:', error);
+          setIsPollingDisabled(true);
+          return;
+        }
+      }
+
+      try {
+        await dispatch(listCloudShellSessions({ config: configName, cluster: clusterName, namespace })).unwrap();
+        // Reset retry count on successful request
+        setRetryCount(0);
+        setLastErrorType(null);
+        
+        // Schedule next poll with normal interval
+        pollTimeout = setTimeout(pollSessions, 5000);
+      } catch (error: any) {
+        const errorMessage = error?.message || String(error);
+        console.error('CloudShell polling error:', errorMessage);
+        
+        // Determine error type
+        let errorType = 'unknown';
+        if (isPermissionError(errorMessage)) {
+          errorType = 'permission';
+        } else if (isConfigurationError(errorMessage)) {
+          errorType = 'configuration';
+        } else if (isTemporaryError(errorMessage)) {
+          errorType = 'temporary';
+        }
+        
+        setLastErrorType(errorType);
+        
+        // Stop polling for persistent errors
+        if (errorType === 'permission' || errorType === 'configuration') {
+          console.warn('CloudShell polling stopped due to persistent error type:', errorType);
+          setIsPollingDisabled(true);
+          return;
+        }
+        
+        // For temporary errors, implement exponential backoff
+        const newRetryCount = retryCount + 1;
+        setRetryCount(newRetryCount);
+        
+        // Stop polling after 5 consecutive failures
+        if (newRetryCount >= 5) {
+          console.warn('CloudShell polling stopped after 5 consecutive failures');
+          setIsPollingDisabled(true);
+          setSessionMessage({ 
+            type: 'error', 
+            message: 'Unable to connect to CloudShell service. Please refresh the page or check your connection.' 
+          });
+          return;
+        }
+        
+        // Schedule retry with exponential backoff
+        const backoffDelay = getBackoffDelay(newRetryCount);
+        console.log(`CloudShell polling retry ${newRetryCount} scheduled in ${backoffDelay}ms`);
+        pollTimeout = setTimeout(pollSessions, backoffDelay);
+      }
+    };
+
+    // Start initial poll
+    pollSessions();
+
+    return () => {
+      if (pollTimeout) {
+        clearTimeout(pollTimeout);
+      }
+    };
+  }, [dispatch, configName, clusterName, namespace, retryCount, isPollingDisabled]);
 
   // Clear session messages after 5 seconds
   useEffect(() => {
@@ -108,8 +208,15 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
 
   // Handle manual refresh - clears error state to allow polling to resume
   const handleRefresh = () => {
+    // Reset polling state
+    setIsPollingDisabled(false);
+    setRetryCount(0);
+    setLastErrorType(null);
+    setSessionMessage(null);
+    
     // Clear any existing error to allow polling to resume
     dispatch(clearError());
+    
     // Immediately fetch sessions
     dispatch(listCloudShellSessions({ config: configName, cluster: clusterName, namespace }));
   };
@@ -393,10 +500,16 @@ export function CloudShell({ configName, clusterName, namespace = "default" }: C
                   onClick={handleRefresh}
                   disabled={loading}
                   className="flex items-center gap-2"
-                  title={error && isPermissionError(error) ? "Click to retry - polling stopped due to permission error" : "Refresh sessions"}
+                  title={
+                    isPollingDisabled 
+                      ? `Polling stopped due to ${lastErrorType || 'persistent'} errors - click to retry`
+                      : error && isPermissionError(error) 
+                        ? "Click to retry - polling stopped due to permission error" 
+                        : "Refresh sessions"
+                  }
                 >
                   <RefreshCw className="h-4 w-4" />
-                  Refresh
+                  {isPollingDisabled ? 'Retry' : 'Refresh'}
                 </Button>
                 <Button 
                   onClick={handleCreateShell} 
