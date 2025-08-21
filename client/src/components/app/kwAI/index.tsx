@@ -5,6 +5,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { kwAIStoredChatHistory, kwAIStoredModels } from '@/types/kwAI/addConfiguration';
 import { kwDetails, kwList } from '@/routes';
+import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useEffect, useState } from 'react';
 
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,6 @@ import { Configuration } from './Configuration';
 import { TabsContent } from '@radix-ui/react-tabs';
 import { cn } from '@/lib/utils';
 import { fetchKwAiTools } from '@/data/KwAi/KwAiToolsSlice';
-import { useAppDispatch } from '@/redux/hooks';
 import { useSidebarSize } from '@/hooks/use-get-sidebar-size';
 
 interface AiChatProps {
@@ -39,6 +39,9 @@ export function AiChat({ isFullscreen = false, onToggleFullscreen, customHeight,
     config = kwDetails.useParams().config;
     cluster = kwDetails.useSearch().cluster;
   }
+  const {
+    clusters,
+  } = useAppSelector((state) => state.clusters);
   const clusterConfigKey = `cluster=${cluster}&config=${config}`;
   const getLatestChat = () => {
     const kwAIStoredChatHistory = JSON.parse(localStorage.getItem('kwAIStoredChatHistory') || '{}') as kwAIStoredChatHistory;
@@ -54,7 +57,7 @@ export function AiChat({ isFullscreen = false, onToggleFullscreen, customHeight,
   const [currentChatKey, setCurrentChatKey] = useState<string>(getLatestChat);
 
   useEffect(() => {
-    dispatch(fetchKwAiTools());
+    dispatch(fetchKwAiTools({isDev: clusters.version === 'dev', config, cluster}));
     const kwAIStoredModels = JSON.parse(localStorage.getItem('kwAIStoredModels') || '{}') as kwAIStoredModels;
     setKwAIStoredModelsCollection(() => kwAIStoredModels);
   }, []);
@@ -178,7 +181,7 @@ export function AiChat({ isFullscreen = false, onToggleFullscreen, customHeight,
         <TabsContent value='chat' className={cn(isDetailsPage ? 'chatbot-details-inner-container' : 'chatbot-list-inner-container')}>
           {
             kwAIStoredModelsCollection.providerCollection && Object.keys(kwAIStoredModelsCollection.providerCollection)?.length > 0 ?
-              <ChatWindow currentChatKey={currentChatKey || ''} cluster={cluster} config={config} isDetailsPage={isDetailsPage} kwAIStoredModels={kwAIStoredModelsCollection} resetChat={resetChat}/>
+              <ChatWindow currentChatKey={currentChatKey || ''} cluster={cluster} config={config} isDetailsPage={isDetailsPage} kwAIStoredModels={kwAIStoredModelsCollection} resetChat={resetChat} />
               :
               <div className={cn("flex items-center justify-center", isDetailsPage ? 'chatbot-details-inner-container' : 'chatbot-list-inner-container')}>
                 <p className="w-3/4 p-4 rounded text-center text-muted-foreground">
@@ -194,10 +197,10 @@ export function AiChat({ isFullscreen = false, onToggleFullscreen, customHeight,
 
         </TabsContent>
         <TabsContent value="history" className={cn(isDetailsPage ? 'chatbot-details-inner-container' : 'chatbot-list-inner-container')}>
-          <ChatHistory resumeChat={resumeChat} cluster={cluster} config={config} isDetailsPage={isDetailsPage}/>
+          <ChatHistory resumeChat={resumeChat} cluster={cluster} config={config} isDetailsPage={isDetailsPage} />
         </TabsContent>
         <TabsContent value="configuration" className={cn(isDetailsPage ? 'chatbot-details-inner-container' : 'chatbot-list-inner-container')}>
-          <Configuration cluster={cluster} config={config} setKwAIStoredModelsCollection={setKwAIStoredModelsCollection} isDetailsPage={isDetailsPage}/>
+          <Configuration cluster={cluster} config={config} setKwAIStoredModelsCollection={setKwAIStoredModelsCollection} isDetailsPage={isDetailsPage} />
         </TabsContent>
       </Tabs>
     </div>

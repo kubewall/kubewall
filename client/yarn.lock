@@ -139,7 +139,7 @@
     "@ai-sdk/provider" "2.0.0"
     "@ai-sdk/provider-utils" "3.0.1"
 
-"@ai-sdk/provider-utils@3.0.1", "@ai-sdk/provider-utils@^3.0.1":
+"@ai-sdk/provider-utils@3.0.1":
   version "3.0.1"
   resolved "https://registry.yarnpkg.com/@ai-sdk/provider-utils/-/provider-utils-3.0.1.tgz#f1c229506420c3eaa60df15c9fc9a15b0b75d516"
   integrity sha512-/iP1sKc6UdJgGH98OCly7sWJKv+J9G47PnTjIj40IJMUQKwDrUMyf7zOOfRtPwSuNifYhSoJQ4s1WltI65gJ/g==
@@ -149,7 +149,7 @@
     eventsource-parser "^3.0.3"
     zod-to-json-schema "^3.24.1"
 
-"@ai-sdk/provider@2.0.0", "@ai-sdk/provider@^2.0.0":
+"@ai-sdk/provider@2.0.0":
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/@ai-sdk/provider/-/provider-2.0.0.tgz#b853c739d523b33675bc74b6c506b2c690bc602b"
   integrity sha512-6o7Y2SeO9vFKB8lArHXehNuusnpddKPk7xqL7T2/b+OvXMRIXUO1rR4wcv1hAFUAT9avGZshty3Wlua/XA7TvA==
@@ -2396,17 +2396,7 @@ agent-base@^7.1.2:
   resolved "https://registry.yarnpkg.com/agent-base/-/agent-base-7.1.3.tgz#29435eb821bc4194633a5b89e5bc4703bafc25a1"
   integrity sha512-jRR5wdylq8CkOe6hei19GGZnxM6rBGwFl3Bg0YItGDimvjGtAvdZk4Pu6Cl4u4Igsws4a1fd1Vq3ezrhn4KmFw==
 
-ai-sdk-ollama@^0.4.0:
-  version "0.4.0"
-  resolved "https://registry.yarnpkg.com/ai-sdk-ollama/-/ai-sdk-ollama-0.4.0.tgz#2402315b78e16120d6cff9288900c860b0724d3d"
-  integrity sha512-7cD9ew3pmKaPst8pL7XUJsqPnzY+3sVkSzCQNeAEZHJmUoPKuZQSdjRXhUsFMfaHGKc2cTVSerEbEz6caO/SkA==
-  dependencies:
-    "@ai-sdk/provider" "^2.0.0"
-    "@ai-sdk/provider-utils" "^3.0.1"
-    ai "^5.0.5"
-    ollama "^0.5.16"
-
-ai@^5.0.5, ai@^5.0.8:
+ai@^5.0.8:
   version "5.0.9"
   resolved "https://registry.yarnpkg.com/ai/-/ai-5.0.9.tgz#fc32c41b92b73c53c99273917782bae915c91623"
   integrity sha512-l7YdzsCTId7CDNNQ+roC0m4uDMmVIO9NpDC3bI2RxNDss3XpGIvsbHq7bT+IZzMYIqGbHK17HI0eiOOvtwzN6Q==
@@ -4716,13 +4706,6 @@ object.assign@^4.1.4:
     has-symbols "^1.0.3"
     object-keys "^1.1.1"
 
-ollama@^0.5.16:
-  version "0.5.17"
-  resolved "https://registry.yarnpkg.com/ollama/-/ollama-0.5.17.tgz#3217b93c6b72a0e7ca98776ea8a5695de9e61d44"
-  integrity sha512-q5LmPtk6GLFouS+3aURIVl+qcAOPC4+Msmx7uBb3pd+fxI55WnGjmLZ0yijI/CYy79x0QPGx3BwC3u5zv9fBvQ==
-  dependencies:
-    whatwg-fetch "^3.6.20"
-
 once@^1.3.0:
   version "1.4.0"
   resolved "https://registry.yarnpkg.com/once/-/once-1.4.0.tgz#583b1aa775961d4b113ac17d9c50baef9dd76bd1"
@@ -5814,11 +5797,6 @@ webidl-conversions@^3.0.0:
   version "3.0.1"
   resolved "https://registry.yarnpkg.com/webidl-conversions/-/webidl-conversions-3.0.1.tgz#24534275e2a7bc6be7bc86611cc16ae0a5654871"
   integrity sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ==
-
-whatwg-fetch@^3.6.20:
-  version "3.6.20"
-  resolved "https://registry.yarnpkg.com/whatwg-fetch/-/whatwg-fetch-3.6.20.tgz#580ce6d791facec91d37c72890995a0b48d31c70"
-  integrity sha512-EqhiFU6daOA8kpjOWTL0olhVOF3i7OrFzSYiGsEMB8GcXS+RrzauAERX65xMeNWVqxA6HXH2m69Z9LaKKdisfg==
 
 whatwg-url@^5.0.0:
   version "5.0.0"

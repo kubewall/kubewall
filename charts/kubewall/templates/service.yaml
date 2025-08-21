@@ -7,7 +7,7 @@ metadata:
 spec:
   type: {{ .Values.service.type }}
   ports:
-    - port: {{ .Values.service.port }}
+    - port: {{ include "kubewall.listenPort" . | int }}
       targetPort: https
       protocol: TCP
       name: https

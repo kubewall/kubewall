@@ -35,7 +35,6 @@ func Server(e *echo.Echo, appContainer container.Container) {
 			return "api/v1/mcp"
 		}),
 		server.WithKeepAlive(true),
-		server.WithBaseURL(baseURL(appContainer)),
 		server.WithAppendQueryToMessageEndpoint(),
 		server.WithUseFullURLForMessageEndpoint(true),
 	)
