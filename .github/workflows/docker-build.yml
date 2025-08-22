@@ -5,6 +5,13 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      custom_tag:
+        description: 'Custom Docker image tag (e.g., v1.0.0, staging, dev)'
+        required: false
+        default: ''
+        type: string
 
 
 jobs:
@@ -34,5 +41,5 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            facetscloud/kube-dash:${{ github.run_number }}
+            ${{ github.event.inputs.custom_tag && format('facetscloud/kube-dash:{0}', github.event.inputs.custom_tag) || format('facetscloud/kube-dash:{0}', github.run_number) }}
             facetscloud/kube-dash:latest
