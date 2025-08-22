@@ -192,7 +192,10 @@ export function KubeConfiguration() {
         description: deleteConfigResponse.message,
       });
       dispatch(resetDeleteConfig());
-      dispatch(fetchClusters());
+      // Add a small delay before fetching clusters to prevent race conditions
+      setTimeout(() => {
+        dispatch(fetchClusters());
+      }, 100);
     }
   }, [deleteConfigResponse, error, dispatch]);
 

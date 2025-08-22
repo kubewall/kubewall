@@ -59,6 +59,7 @@ import nodePodsSlice from '@/data/Clusters/Nodes/NodePodsSlice';
 import nodeMetricsSlice from '@/data/Clusters/Nodes/NodeMetricsSlice';
 import persistentVolumeClaimsDetailsSlice from '@/data/Storages/PersistentVolumeClaims/PersistentVolumeClaimDetailsSlice';
 import persistentVolumeClaimsListSlice from '@/data/Storages/PersistentVolumeClaims/PersistentVolumeClaimsListSlice';
+import persistentVolumeClaimPodsSlice from '@/data/Storages/PersistentVolumeClaims/PersistentVolumeClaimPodsSlice';
 import persistentVolumeDetailsSlice from '@/data/Storages/PersistentVolumes/PersistentVolumeDetailsSlice';
 import persistentVolumesListSlice from '@/data/Storages/PersistentVolumes/PersistentVolumesListSlice';
 import podDetailsSlice from '@/data/Workloads/Pods/PodDetailsSlice';
@@ -176,6 +177,7 @@ const store = configureStore({
     endpointDetails: endpointDetailsSlice,
     ingressDetails: ingressDetailsSlice,
     persistentVolumeClaimDetails: persistentVolumeClaimsDetailsSlice,
+    persistentVolumeClaimPods: persistentVolumeClaimPodsSlice,
     persistentVolumeDetails: persistentVolumeDetailsSlice,
     customResources: customResourcesSlice,
     customResourcesList: customResourcesListSlice,

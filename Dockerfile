@@ -6,19 +6,14 @@ WORKDIR /app/client
 # Copy package files
 COPY client/package*.json ./
 
-# Install dependencies and fix Rollup optional dependencies issue
-RUN npm ci && \
-    if [ "$(uname -m)" = "x86_64" ]; then \
-        npm install @rollup/rollup-linux-x64-gnu; \
-    elif [ "$(uname -m)" = "aarch64" ]; then \
-        npm install @rollup/rollup-linux-arm64-gnu; \
-    fi
+# Install dependencies with Rollup native binaries disabled
+RUN yarn install
 
 # Copy source code
 COPY client/ ./
 
 # Build the frontend with environment variable to disable native binaries
-RUN ROLLUP_SKIP_NATIVE=true npm run build
+RUN yarn build
 
 # Stage 2: Build the Go backend
 FROM golang:1.24-alpine AS backend-builder
@@ -61,4 +56,4 @@ EXPOSE 7080
 ENV STATIC_FILES_PATH=./static
 
 # Run the binary
-CMD ["./kube-dash"] 
+CMD ["./kube-dash"]

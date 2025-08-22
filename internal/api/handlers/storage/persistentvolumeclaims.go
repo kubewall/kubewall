@@ -457,3 +457,200 @@ func (h *PersistentVolumeClaimsHandler) ScalePVC(c *gin.Context) {
 		"pvc":     updatedPVC,
 	})
 }
+
+// podUsesPVC checks if a pod uses the specified PVC
+func (h *PersistentVolumeClaimsHandler) podUsesPVC(pod *corev1.Pod, pvcName string) bool {
+	// Check volumes in pod spec
+	for _, volume := range pod.Spec.Volumes {
+		if volume.PersistentVolumeClaim != nil && volume.PersistentVolumeClaim.ClaimName == pvcName {
+			return true
+		}
+	}
+	return false
+}
+
+// GetPVCPods returns pods for a specific persistent volume claim
+func (h *PersistentVolumeClaimsHandler) GetPVCPods(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client")
+	defer clientSpan.End()
+
+	client, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for PVC pods")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get client for PVC pods")
+		// For EventSource, send error as SSE
+		if c.GetHeader("Accept") == "text/event-stream" {
+			h.sseHandler.SendSSEError(c, http.StatusBadRequest, err.Error())
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		}
+		return
+	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Client setup completed for PVC pods")
+
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+
+	// Function to fetch pods that use this PVC
+	fetchPods := func() (interface{}, error) {
+		// Start child span for Kubernetes API call
+		_, k8sSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "list", "pods", namespace)
+		defer k8sSpan.End()
+
+		// Get all pods in the namespace
+		podList, err := client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+		if err != nil {
+			h.tracingHelper.RecordError(k8sSpan, err, "Failed to list pods for PVC")
+			return nil, err
+		}
+		h.tracingHelper.AddResourceAttributes(k8sSpan, "", "pods", len(podList.Items))
+		h.tracingHelper.RecordSuccess(k8sSpan, "Successfully listed pods for PVC")
+
+		// Start child span for data processing
+		_, processSpan := h.tracingHelper.StartDataProcessingSpan(ctx, "filter-pods")
+		defer processSpan.End()
+
+		// Filter pods that use this PVC
+		configID := c.Query("config")
+		clusterName := c.Query("cluster")
+		var response []types.PodListResponse
+		for _, pod := range podList.Items {
+			if h.podUsesPVC(&pod, name) {
+				response = append(response, transformers.TransformPodToResponse(&pod, configID, clusterName))
+			}
+		}
+		h.tracingHelper.RecordSuccess(processSpan, "Successfully filtered pods for PVC")
+
+		return response, nil
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// Get initial data
+		initialData, err := fetchPods()
+		if err != nil {
+			h.logger.WithError(err).WithField("pvc", name).WithField("namespace", namespace).Error("Failed to get PVC pods for SSE")
+			// Check if this is a permission error
+			if utils.IsPermissionError(err) {
+				h.sseHandler.SendSSEPermissionError(c, err)
+			} else {
+				h.sseHandler.SendSSEError(c, http.StatusInternalServerError, err.Error())
+			}
+			return
+		}
+
+		// Send SSE response with periodic updates
+		h.sseHandler.SendSSEResponseWithUpdates(c, initialData, fetchPods)
+		return
+	}
+
+	// For non-SSE requests, return JSON
+	data, err := fetchPods()
+	if err != nil {
+		h.logger.WithError(err).WithField("pvc", name).WithField("namespace", namespace).Error("Failed to get PVC pods")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, data)
+}
+
+// GetPVCPodsByName returns pods for a specific persistent volume claim by name
+func (h *PersistentVolumeClaimsHandler) GetPVCPodsByName(c *gin.Context) {
+	// Start child span for client setup
+	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client")
+	defer clientSpan.End()
+
+	client, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for PVC pods by name")
+		h.tracingHelper.RecordError(clientSpan, err, "Failed to get client for PVC pods by name")
+		// For EventSource, send error as SSE
+		if c.GetHeader("Accept") == "text/event-stream" {
+			h.sseHandler.SendSSEError(c, http.StatusBadRequest, err.Error())
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		}
+		return
+	}
+	h.tracingHelper.RecordSuccess(clientSpan, "Client setup completed for PVC pods by name")
+
+	name := c.Param("name")
+	namespace := c.Query("namespace")
+
+	if namespace == "" {
+		h.logger.WithField("pvc", name).Error("Namespace is required for PVC pods lookup")
+		if c.GetHeader("Accept") == "text/event-stream" {
+			h.sseHandler.SendSSEError(c, http.StatusBadRequest, "namespace parameter is required")
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "namespace parameter is required"})
+		}
+		return
+	}
+
+	// Function to fetch pods that use this PVC
+	fetchPods := func() (interface{}, error) {
+		// Start child span for Kubernetes API call
+		_, k8sSpan := h.tracingHelper.StartKubernetesAPISpan(ctx, "list", "pods", namespace)
+		defer k8sSpan.End()
+
+		// Get all pods in the namespace
+		podList, err := client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+		if err != nil {
+			h.tracingHelper.RecordError(k8sSpan, err, "Failed to list pods for PVC by name")
+			return nil, err
+		}
+		h.tracingHelper.AddResourceAttributes(k8sSpan, "", "pods", len(podList.Items))
+		h.tracingHelper.RecordSuccess(k8sSpan, "Successfully listed pods for PVC by name")
+
+		// Start child span for data processing
+		_, processSpan := h.tracingHelper.StartDataProcessingSpan(ctx, "filter-pods")
+		defer processSpan.End()
+
+		// Filter pods that use this PVC
+		configID := c.Query("config")
+		clusterName := c.Query("cluster")
+		var response []types.PodListResponse
+		for _, pod := range podList.Items {
+			if h.podUsesPVC(&pod, name) {
+				response = append(response, transformers.TransformPodToResponse(&pod, configID, clusterName))
+			}
+		}
+		h.tracingHelper.RecordSuccess(processSpan, "Successfully filtered pods for PVC by name")
+
+		return response, nil
+	}
+
+	// Check if this is an SSE request (EventSource expects SSE format)
+	acceptHeader := c.GetHeader("Accept")
+	if acceptHeader == "text/event-stream" {
+		// Get initial data
+		initialData, err := fetchPods()
+		if err != nil {
+			h.logger.WithError(err).WithField("pvc", name).WithField("namespace", namespace).Error("Failed to get PVC pods by name for SSE")
+			// Check if this is a permission error
+			if utils.IsPermissionError(err) {
+				h.sseHandler.SendSSEPermissionError(c, err)
+			} else {
+				h.sseHandler.SendSSEError(c, http.StatusInternalServerError, err.Error())
+			}
+			return
+		}
+
+		// Send SSE response with periodic updates
+		h.sseHandler.SendSSEResponseWithUpdates(c, initialData, fetchPods)
+		return
+	}
+
+	// For non-SSE requests, return JSON
+	data, err := fetchPods()
+	if err != nil {
+		h.logger.WithError(err).WithField("pvc", name).WithField("namespace", namespace).Error("Failed to get PVC pods by name")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, data)
+}

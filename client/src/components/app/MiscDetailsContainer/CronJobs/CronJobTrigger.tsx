@@ -8,7 +8,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Loader } from "../../Loader";
 import { RootState } from "@/redux/store";
-import { Play } from "lucide-react";
+import { Play, PlayIcon, PauseIcon } from "lucide-react";
 import { toast } from "sonner";
 import kwFetch from "@/data/kwFetch";
 import { API_VERSION } from "@/constants";
@@ -40,29 +40,52 @@ const CronJobTrigger = ({ resourcename, queryParams }: CronJobTriggerProps) => {
 
   const [canTrigger, setCanTrigger] = useState<boolean>(true);
   const [checkingPermission, setCheckingPermission] = useState<boolean>(false);
+  const [canSuspend, setCanSuspend] = useState<boolean>(true);
+  const [checkingSuspendPermission, setCheckingSuspendPermission] = useState<boolean>(false);
+  const [isSuspendLoading, setIsSuspendLoading] = useState<boolean>(false);
+  const [localSuspendState, setLocalSuspendState] = useState<boolean>(false);
 
   const namespaceForCheck = useMemo(
     () => namespaceFromQP || cronJobDetails?.metadata?.namespace || '',
     [namespaceFromQP, cronJobDetails]
   );
 
+  // Initialize local suspend state from cronJobDetails
   useEffect(() => {
-    const checkPermission = async () => {
+    if (cronJobDetails?.spec?.suspend !== undefined) {
+      setLocalSuspendState(cronJobDetails.spec.suspend || false);
+    }
+  }, [cronJobDetails?.spec?.suspend]);
+
+  useEffect(() => {
+    const checkPermissions = async () => {
       if (!config || !cluster) return;
       setCheckingPermission(true);
+      setCheckingSuspendPermission(true);
+      
       try {
-        const qp: Record<string, string> = { config, cluster, resourcekind: 'cronjobs', verb: 'create', subresource: 'jobs' };
-        if (namespaceForCheck) qp['namespace'] = namespaceForCheck;
-        const url = `${API_VERSION}/permissions/check?${new URLSearchParams(qp).toString()}`;
-        const res = await kwFetch(url, { method: 'GET' });
-        setCanTrigger(Boolean((res as any)?.allowed));
+        // Check trigger permission
+        const triggerQp: Record<string, string> = { config, cluster, resourcekind: 'cronjobs', verb: 'create', subresource: 'jobs' };
+        if (namespaceForCheck) triggerQp['namespace'] = namespaceForCheck;
+        const triggerUrl = `${API_VERSION}/permissions/check?${new URLSearchParams(triggerQp).toString()}`;
+        const triggerRes = await kwFetch(triggerUrl, { method: 'GET' });
+        setCanTrigger(Boolean((triggerRes as any)?.allowed));
+        
+        // Check suspend permission
+        const suspendQp: Record<string, string> = { config, cluster, resourcekind: 'cronjobs', verb: 'patch' };
+        if (namespaceForCheck) suspendQp['namespace'] = namespaceForCheck;
+        const suspendUrl = `${API_VERSION}/permissions/check?${new URLSearchParams(suspendQp).toString()}`;
+        const suspendRes = await kwFetch(suspendUrl, { method: 'GET' });
+        setCanSuspend(Boolean((suspendRes as any)?.allowed));
       } catch (_) {
         setCanTrigger(false);
+        setCanSuspend(false);
       } finally {
         setCheckingPermission(false);
+        setCheckingSuspendPermission(false);
       }
     };
-    checkPermission();
+    checkPermissions();
   }, [config, cluster, namespaceForCheck]);
 
   const triggerCronJob = () => {
@@ -71,6 +94,42 @@ const CronJobTrigger = ({ resourcename, queryParams }: CronJobTriggerProps) => {
       namespace: namespaceForCheck,
       queryParams
     }));
+  };
+
+  const handleSuspendToggle = async () => {
+    setIsSuspendLoading(true);
+    const newSuspendState = !localSuspendState;
+    
+    try {
+      const queryParams = new URLSearchParams({
+        config,
+        cluster,
+      }).toString();
+      
+      const url = `${API_VERSION}/cronjobs/${namespaceForCheck}/${resourcename}/suspend?${queryParams}`;
+      
+      await kwFetch(url, {
+        method: 'PATCH',
+        body: JSON.stringify({ suspend: newSuspendState }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      // Update local state immediately for instant UI feedback
+      setLocalSuspendState(newSuspendState);
+      
+      const action = newSuspendState ? 'suspended' : 'resumed';
+      toast.success('Success', {
+        description: `CronJob ${action} successfully`,
+      });
+    } catch (error: any) {
+      toast.error('Error', {
+        description: error?.message || 'Failed to update CronJob suspend state',
+      });
+    } finally {
+      setIsSuspendLoading(false);
+    }
   };
 
   const resetDialog = () => {
@@ -104,45 +163,78 @@ const CronJobTrigger = ({ resourcename, queryParams }: CronJobTriggerProps) => {
     }
   }, [message, error, jobName, dispatch, navigate, config, cluster, namespaceForCheck, queryParams]);
 
+  const suspendButtonText = localSuspendState ? 'Resume' : 'Suspend';
+  const SuspendIcon = localSuspendState ? PlayIcon : PauseIcon;
+  const suspendTooltipText = localSuspendState 
+    ? 'Resume this CronJob to allow scheduled executions' 
+    : 'Suspend this CronJob to prevent scheduled executions';
+
   return (
-    <Dialog open={modalOpen} onOpenChange={(open: boolean) => setModalOpen(open)}>
+    <div className="flex items-center gap-2">
+      {/* Suspend/Resume Button */}
       <TooltipProvider>
         <Tooltip delayDuration={0}>
           <TooltipTrigger asChild>
-            {(() => {
-              const isDisabled = loading || checkingPermission || !canTrigger;
-              const buttonEl = (
-                <Button
-                  disabled={isDisabled}
-                  variant='ghost'
-                  size='icon'
-                  className='right-0 mt-1 rounded z-10 border w-20 mr-1'
-                  onClick={() => setModalOpen(true)}
-                >
-                  {loading ? (
-                    <Loader className='w-4 h-4 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600' />
-                  ) : (
-                    <Play className='h-4 w-4' />
-                  )}
-                  <span className='text-xs'>Trigger</span>
-                </Button>
-              );
-              return isDisabled ? (
-                <span className="inline-flex" role="button" aria-disabled tabIndex={0}>
-                  {buttonEl}
-                </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleSuspendToggle}
+              disabled={isSuspendLoading || checkingSuspendPermission || !canSuspend}
+              className="right-0 mt-1 rounded z-10 border w-20 mr-1"
+            >
+              {isSuspendLoading ? (
+                <Loader className='w-4 h-4 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600' />
               ) : (
-                <DialogTrigger asChild>
-                  {buttonEl}
-                </DialogTrigger>
-              );
-            })()}
+                <SuspendIcon className="h-4 w-4" />
+              )}
+              <span className='text-xs'>{suspendButtonText}</span>
+            </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom">
-            {checkingPermission ? 'Checking permissions...' : (!canTrigger ? "You don't have permission to trigger" : 'Trigger CronJob')}
+            {checkingSuspendPermission ? 'Checking permissions...' : (!canSuspend ? "You don't have permission to suspend/resume" : suspendTooltipText)}
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
+
+      {/* Trigger Button */}
+      <Dialog open={modalOpen} onOpenChange={(open: boolean) => setModalOpen(open)}>
+        <TooltipProvider>
+          <Tooltip delayDuration={0}>
+            <TooltipTrigger asChild>
+              {(() => {
+                const isDisabled = loading || checkingPermission || !canTrigger;
+                const buttonEl = (
+                  <Button
+                    disabled={isDisabled}
+                    variant='ghost'
+                    size='icon'
+                    className='right-0 mt-1 rounded z-10 border w-20 mr-1'
+                    onClick={() => setModalOpen(true)}
+                  >
+                    {loading ? (
+                      <Loader className='w-4 h-4 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600' />
+                    ) : (
+                      <Play className='h-4 w-4' />
+                    )}
+                    <span className='text-xs'>Trigger</span>
+                  </Button>
+                );
+                return isDisabled ? (
+                  <span className="inline-flex" role="button" aria-disabled tabIndex={0}>
+                    {buttonEl}
+                  </span>
+                ) : (
+                  <DialogTrigger asChild>
+                    {buttonEl}
+                  </DialogTrigger>
+                );
+              })()} 
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              {checkingPermission ? 'Checking permissions...' : (!canTrigger ? "You don't have permission to trigger" : 'Trigger CronJob')}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Trigger CronJob</DialogTitle>
@@ -184,6 +276,7 @@ const CronJobTrigger = ({ resourcename, queryParams }: CronJobTriggerProps) => {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    </div>
   );
 };
 

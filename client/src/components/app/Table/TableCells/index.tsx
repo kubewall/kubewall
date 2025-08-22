@@ -2,6 +2,7 @@ import { CUSTOM_RESOURCES_ENDPOINT, CUSTOM_RESOURCES_LIST_ENDPOINT, ENDPOINTS_EN
 import { Row, Table } from '@tanstack/react-table';
 
 import { ClusterDetails } from '@/types';
+
 import { ConditionCell } from './conditionCell';
 import { CurrentByDesiredCell } from './currentByDesiredCell';
 import { DefaultCell } from './defaultCell';
@@ -154,6 +155,7 @@ const TableCells = <T extends ClusterDetails>({
   ) {
     return <MultiValueCell cellValue={value} />;
   }
+
   return <DefaultCell cellValue={value === '' ? '—' : value} />;
 };
 

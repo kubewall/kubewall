@@ -377,3 +377,56 @@ func (h *CronJobsHandler) TriggerCronJob(c *gin.Context) {
 		},
 	})
 }
+
+// SuspendCronJob toggles the suspend state of a CronJob
+func (h *CronJobsHandler) SuspendCronJob(c *gin.Context) {
+	client, err := h.getClientAndConfig(c)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get client for cronjob suspend")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+
+	// Parse request body
+	var req struct {
+		Suspend bool `json:"suspend"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.logger.WithError(err).Error("Failed to parse suspend request")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	// Get the current CronJob
+	cronJob, err := client.BatchV1().CronJobs(namespace).Get(c.Request.Context(), name, metav1.GetOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("cronjob", name).WithField("namespace", namespace).Error("Failed to get cronjob for suspend")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Update the suspend field
+	cronJob.Spec.Suspend = &req.Suspend
+
+	// Update the CronJob
+	updatedCronJob, err := client.BatchV1().CronJobs(namespace).Update(c.Request.Context(), cronJob, metav1.UpdateOptions{})
+	if err != nil {
+		h.logger.WithError(err).WithField("cronjob", name).WithField("namespace", namespace).WithField("suspend", req.Suspend).Error("Failed to update cronjob suspend state")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	action := "resumed"
+	if req.Suspend {
+		action = "suspended"
+	}
+
+	h.logger.WithField("cronjob", name).WithField("namespace", namespace).WithField("suspend", req.Suspend).Info(fmt.Sprintf("Successfully %s cronjob", action))
+	c.JSON(http.StatusOK, gin.H{
+		"message": fmt.Sprintf("CronJob %s successfully", action),
+		"suspend": *updatedCronJob.Spec.Suspend,
+	})
+}
