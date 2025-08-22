@@ -7,13 +7,19 @@ WORKDIR /app/client
 COPY client/package*.json ./
 
 # Install dependencies with Rollup native binaries disabled
-RUN yarn install
+# Install dependencies and fix Rollup optional dependencies issue
+RUN npm ci && \
+    if [ "$(uname -m)" = "x86_64" ]; then \
+        npm install @rollup/rollup-linux-x64-gnu; \
+    elif [ "$(uname -m)" = "aarch64" ]; then \
+        npm install @rollup/rollup-linux-arm64-gnu; \
+    fi
 
 # Copy source code
 COPY client/ ./
 
 # Build the frontend with environment variable to disable native binaries
-RUN yarn build
+RUN ROLLUP_SKIP_NATIVE=true npm run build
 
 # Stage 2: Build the Go backend
 FROM golang:1.24-alpine AS backend-builder
