@@ -40,6 +40,7 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
+          no-cache: true
           tags: |
             ${{ github.event.inputs.custom_tag && format('facetscloud/kube-dash:{0}', github.event.inputs.custom_tag) || format('facetscloud/kube-dash:{0}', github.run_number) }}
             facetscloud/kube-dash:latest
