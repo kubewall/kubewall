@@ -55,15 +55,12 @@ func (h *PortForwardHandler) StartPortForwarding(c echo.Context) error {
 	// Note: Start signature changed to accept config and cluster strings first
 	id, actualLocal, err := h.container.PortForwarder().Start(h.container.RestConfig(config, cluster), h.container.ClientSet(config, cluster), config, cluster, req.Namespace, req.Pod, req.LocalPort, req.RemotePort)
 	if err != nil {
-		return c.String(http.StatusInternalServerError, fmt.Sprintf("failed to start port forward: %v", err))
+		return c.JSON(http.StatusBadRequest, map[string]any{
+			"failures": fmt.Sprintf("failed to start port forward: %v", err),
+		})
 	}
 
-	streamId := fmt.Sprint("%s-%s-portForwarder", config, cluster)
-	list := h.container.PortForwarder().List(h.container.RestConfig(config, cluster), h.container.ClientSet(config, cluster), config, cluster)
-	b, _ := json.Marshal(list)
-	go h.container.SSE().Publish(streamId, &sse.Event{
-		Data: b,
-	})
+	h.publishList(config, cluster)
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"id":        id,
@@ -75,14 +72,10 @@ func (h *PortForwardHandler) ListPortForwarding(c echo.Context) error {
 	config := c.QueryParam("config")
 	cluster := c.QueryParam("cluster")
 
-	streamId := fmt.Sprint("%s-%s-portForwarder", config, cluster)
-	list := h.container.PortForwarder().List(h.container.RestConfig(config, cluster), h.container.ClientSet(config, cluster), config, cluster)
-	b, _ := json.Marshal(list)
-	go h.container.SSE().Publish(streamId, &sse.Event{
-		Data: b,
-	})
+	streamID := fmt.Sprintf("%s-%s-portForwarder", config, cluster)
+	h.publishList(config, cluster)
 
-	h.container.SSE().ServeHTTP(streamId, c.Response(), c.Request())
+	h.container.SSE().ServeHTTP(streamID, c.Response(), c.Request())
 
 	return nil
 }
@@ -113,14 +106,15 @@ func (h *PortForwardHandler) RemovePortForwarding(c echo.Context) error {
 		}
 	}
 
-	streamId := fmt.Sprint("%s-%s-portForwarder", config, cluster)
-	list := h.container.PortForwarder().List(h.container.RestConfig(config, cluster), h.container.ClientSet(config, cluster), config, cluster)
-	b, _ := json.Marshal(list)
-	go h.container.SSE().Publish(streamId, &sse.Event{
-		Data: b,
-	})
-
+	h.publishList(config, cluster)
 	return c.JSON(http.StatusOK, map[string]any{
 		"failures": failures,
 	})
+}
+
+func (h *PortForwardHandler) publishList(config, cluster string) {
+	list := h.container.PortForwarder().List(h.container.RestConfig(config, cluster), h.container.ClientSet(config, cluster), config, cluster)
+	streamID := fmt.Sprintf("%s-%s-portForwarder", config, cluster)
+	b, _ := json.Marshal(list)
+	go h.container.SSE().Publish(streamID, &sse.Event{Data: b})
 }
