@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/kubewall/kubewall/backend/event"
+	portforward "github.com/kubewall/kubewall/backend/portfoward"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/dynamicinformer"
@@ -39,6 +40,7 @@ type Container interface {
 	SSE() *sse.Server
 	SocketUpgrader() *websocket.Upgrader
 	EventProcessor() *event.EventProcessor
+	PortForwarder() *portforward.PortForwarder
 }
 
 // container struct is for sharing data which such as database setting, the setting of application and logger in overall this application.
@@ -49,6 +51,7 @@ type container struct {
 	sseServer      *sse.Server
 	eventProcessor *event.EventProcessor
 	socketUpgrader *websocket.Upgrader
+	portForwarder  *portforward.PortForwarder
 	mu             sync.Mutex
 }
 
@@ -67,6 +70,8 @@ func NewContainer(env *config.Env, cfg *config.AppConfig) Container {
 		// "Cache-Control":"no-cache"
 	}
 
+	pf := portforward.NewPortForwarder()
+
 	e := event.NewEventCounter(time.Millisecond * 250)
 	go e.Run()
 	return &container{
@@ -75,6 +80,7 @@ func NewContainer(env *config.Env, cfg *config.AppConfig) Container {
 		cache:          cache,
 		sseServer:      s,
 		eventProcessor: e,
+		portForwarder:  pf,
 		socketUpgrader: &websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool {
 				return true
@@ -187,4 +193,11 @@ func (c *container) SocketUpgrader() *websocket.Upgrader {
 	defer c.mu.Unlock()
 
 	return c.socketUpgrader
+}
+
+func (c *container) PortForwarder() *portforward.PortForwarder {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.portForwarder
 }

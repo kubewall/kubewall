@@ -25,6 +25,7 @@ import (
 	"github.com/kubewall/kubewall/backend/handlers/network/ingresses"
 	"github.com/kubewall/kubewall/backend/handlers/network/services"
 	"github.com/kubewall/kubewall/backend/handlers/nodes"
+	"github.com/kubewall/kubewall/backend/handlers/portforward"
 	"github.com/kubewall/kubewall/backend/handlers/storage/persistentvolumeclaims"
 	"github.com/kubewall/kubewall/backend/handlers/storage/persistentvolumes"
 	"github.com/kubewall/kubewall/backend/handlers/storage/storageclasses"
@@ -99,6 +100,10 @@ func ConfigureRoutes(e *echo.Echo, appContainer container.Container) {
 
 	e.GET("api/v1/events", events.NewEventsRouteHandler(appContainer, base.GetList)).Name = "eventsList"
 	e.DELETE("api/v1/events", events.NewEventsRouteHandler(appContainer, base.Delete)).Name = "eventsDelete"
+
+	e.GET("api/v1/portforwards", portforward.NewPortForwardingHandler(appContainer, base.GetList))
+	e.POST("api/v1/portforwards", portforward.NewPortForwardingHandler(appContainer, base.Create))
+	e.DELETE("api/v1/portforwards", portforward.NewPortForwardingHandler(appContainer, base.Delete))
 
 	accessControlRoutes(e, appContainer)
 	workloadRoutes(e, appContainer)
