@@ -64,6 +64,21 @@ func (h *ReplicaSetsHandler) getClientAndConfig(c *gin.Context) (*kubernetes.Cli
 }
 
 // GetReplicaSetsSSE returns replicasets as Server-Sent Events with real-time updates
+// @Summary Get ReplicaSets (SSE)
+// @Description Streams ReplicaSets data in real-time using Server-Sent Events. Supports namespace filtering and multi-cluster configurations.
+// @Tags Workloads
+// @Accept text/event-stream
+// @Produce text/event-stream,application/json
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param namespace query string false "Kubernetes namespace to filter resources"
+// @Success 200 {array} types.ReplicaSetListResponse "Streaming ReplicaSets data"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 403 {object} map[string]string "Forbidden - insufficient permissions"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/replicasets [get]
 func (h *ReplicaSetsHandler) GetReplicaSetsSSE(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client-for-sse")
@@ -136,6 +151,22 @@ func (h *ReplicaSetsHandler) GetReplicaSetsSSE(c *gin.Context) {
 }
 
 // GetReplicaSet returns a specific replicaset
+// @Summary Get ReplicaSet by namespace and name
+// @Description Retrieves detailed information about a specific ReplicaSet in a given namespace
+// @Tags Workloads
+// @Accept json
+// @Produce json,text/event-stream
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param namespace path string true "Kubernetes namespace"
+// @Param name path string true "ReplicaSet name"
+// @Success 200 {object} object "ReplicaSet details"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "ReplicaSet not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/replicasets/{namespace}/{name} [get]
 func (h *ReplicaSetsHandler) GetReplicaSet(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -188,6 +219,22 @@ func (h *ReplicaSetsHandler) GetReplicaSet(c *gin.Context) {
 }
 
 // GetReplicaSetByName returns a specific replicaset by name
+// @Summary Get ReplicaSet by name
+// @Description Retrieves detailed information about a specific ReplicaSet by name with namespace as query parameter
+// @Tags Workloads
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param namespace query string true "Kubernetes namespace"
+// @Param name path string true "ReplicaSet name"
+// @Success 200 {object} object "ReplicaSet details"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "ReplicaSet not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/replicaset/{name} [get]
 func (h *ReplicaSetsHandler) GetReplicaSetByName(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -228,6 +275,22 @@ func (h *ReplicaSetsHandler) GetReplicaSetByName(c *gin.Context) {
 }
 
 // GetReplicaSetYAMLByName returns the YAML representation of a specific replicaset by name
+// @Summary Get ReplicaSet YAML by name
+// @Description Retrieves the YAML representation of a specific ReplicaSet by name
+// @Tags Workloads
+// @Accept json
+// @Produce text/plain
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param namespace query string true "Kubernetes namespace"
+// @Param name path string true "ReplicaSet name"
+// @Success 200 {string} string "ReplicaSet YAML representation"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "ReplicaSet not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/replicaset/{name}/yaml [get]
 func (h *ReplicaSetsHandler) GetReplicaSetYAMLByName(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -273,6 +336,22 @@ func (h *ReplicaSetsHandler) GetReplicaSetYAMLByName(c *gin.Context) {
 }
 
 // GetReplicaSetYAML returns the YAML representation of a specific replicaset
+// @Summary Get ReplicaSet YAML by namespace and name
+// @Description Retrieves the YAML representation of a specific ReplicaSet in a given namespace
+// @Tags Workloads
+// @Accept json
+// @Produce text/plain
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param namespace path string true "Kubernetes namespace"
+// @Param name path string true "ReplicaSet name"
+// @Success 200 {string} string "ReplicaSet YAML representation"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "ReplicaSet not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/replicasets/{namespace}/{name}/yaml [get]
 func (h *ReplicaSetsHandler) GetReplicaSetYAML(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -313,6 +392,22 @@ func (h *ReplicaSetsHandler) GetReplicaSetYAML(c *gin.Context) {
 }
 
 // GetReplicaSetEventsByName returns events for a specific replicaset by name
+// @Summary Get ReplicaSet events by name
+// @Description Retrieves events related to a specific ReplicaSet by name
+// @Tags Workloads
+// @Accept json
+// @Produce json,text/event-stream
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param namespace query string true "Kubernetes namespace"
+// @Param name path string true "ReplicaSet name"
+// @Success 200 {array} object "ReplicaSet events"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "ReplicaSet not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/replicaset/{name}/events [get]
 func (h *ReplicaSetsHandler) GetReplicaSetEventsByName(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -334,6 +429,21 @@ func (h *ReplicaSetsHandler) GetReplicaSetEventsByName(c *gin.Context) {
 }
 
 // GetReplicaSetEvents returns events for a specific replicaset
+// @Summary Get ReplicaSet events by namespace and name
+// @Description Retrieves events related to a specific ReplicaSet in a given namespace
+// @Tags Workloads
+// @Accept json
+// @Produce json,text/event-stream
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param name path string true "ReplicaSet name"
+// @Success 200 {array} object "ReplicaSet events"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "ReplicaSet not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/replicasets/{namespace}/{name}/events [get]
 func (h *ReplicaSetsHandler) GetReplicaSetEvents(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -347,6 +457,22 @@ func (h *ReplicaSetsHandler) GetReplicaSetEvents(c *gin.Context) {
 }
 
 // GetReplicaSetPods returns pods for a specific replicaset
+// @Summary Get ReplicaSet pods by namespace and name
+// @Description Retrieves all pods managed by a specific ReplicaSet in a given namespace
+// @Tags Workloads
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param namespace path string true "Kubernetes namespace"
+// @Param name path string true "ReplicaSet name"
+// @Success 200 {array} types.PodListResponse "ReplicaSet pods"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "ReplicaSet not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/replicasets/{namespace}/{name}/pods [get]
 func (h *ReplicaSetsHandler) GetReplicaSetPods(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -394,6 +520,22 @@ func (h *ReplicaSetsHandler) GetReplicaSetPods(c *gin.Context) {
 }
 
 // GetReplicaSetPodsByName returns pods for a specific replicaset by name
+// @Summary Get ReplicaSet pods by name
+// @Description Retrieves all pods managed by a specific ReplicaSet by name with namespace as query parameter
+// @Tags Workloads
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param namespace query string true "Kubernetes namespace"
+// @Param name path string true "ReplicaSet name"
+// @Success 200 {array} types.PodListResponse "ReplicaSet pods"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "ReplicaSet not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/replicaset/{name}/pods [get]
 func (h *ReplicaSetsHandler) GetReplicaSetPodsByName(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {

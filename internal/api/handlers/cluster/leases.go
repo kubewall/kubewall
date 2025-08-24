@@ -62,6 +62,20 @@ func (h *LeasesHandler) getClientAndConfig(c *gin.Context) (*kubernetes.Clientse
 }
 
 // GetLeases returns all leases in a namespace
+// @Summary Get all leases in a namespace
+// @Description Retrieves all leases in the specified namespace
+// @Tags Leases
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace query string true "Namespace name"
+// @Success 200 {array} object "List of leases"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/leases [get]
 func (h *LeasesHandler) GetLeases(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -96,6 +110,21 @@ func (h *LeasesHandler) GetLeases(c *gin.Context) {
 }
 
 // GetLeasesSSE returns leases as Server-Sent Events with real-time updates
+// @Summary Get leases with real-time updates
+// @Description Retrieves leases in the specified namespace with Server-Sent Events for real-time updates
+// @Tags Leases
+// @Accept json
+// @Produce text/event-stream
+// @Produce json
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace query string true "Namespace name"
+// @Success 200 {array} object "Stream of leases or JSON array"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/leases/sse [get]
 func (h *LeasesHandler) GetLeasesSSE(c *gin.Context) {
 	// Start child span for client setup
 	_, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -147,6 +176,22 @@ func (h *LeasesHandler) GetLeasesSSE(c *gin.Context) {
 }
 
 // GetLease returns a specific lease
+// @Summary Get a specific lease
+// @Description Retrieves a specific lease by name and namespace
+// @Tags Leases
+// @Accept json
+// @Produce json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace path string true "Namespace name"
+// @Param name path string true "Lease name"
+// @Success 200 {object} object "Lease details"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 404 {object} map[string]string "Lease not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/leases/{namespace}/{name} [get]
 func (h *LeasesHandler) GetLease(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -189,6 +234,21 @@ func (h *LeasesHandler) GetLease(c *gin.Context) {
 }
 
 // GetLeaseYAML returns the YAML representation of a specific lease
+// @Summary Get lease YAML
+// @Description Retrieves the YAML representation of a specific lease
+// @Tags Leases
+// @Accept json
+// @Produce text/plain
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace query string true "Namespace name"
+// @Param name path string true "Lease name"
+// @Success 200 {string} string "Lease YAML"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 404 {object} map[string]string "Lease not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/leases/{name}/yaml [get]
 func (h *LeasesHandler) GetLeaseYAML(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -229,6 +289,21 @@ func (h *LeasesHandler) GetLeaseYAML(c *gin.Context) {
 }
 
 // GetLeaseEvents returns events for a specific lease
+// @Summary Get lease events
+// @Description Retrieves events related to a specific lease
+// @Tags Leases
+// @Accept json
+// @Produce json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param name path string true "Lease name"
+// @Success 200 {array} object "List of events"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/leases/{name}/events [get]
 func (h *LeasesHandler) GetLeaseEvents(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")

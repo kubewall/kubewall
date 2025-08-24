@@ -66,6 +66,20 @@ func (h *ConfigMapsHandler) getClientAndConfig(c *gin.Context) (*kubernetes.Clie
 }
 
 // GetConfigMaps returns all configmaps in a namespace
+// @Summary Get all ConfigMaps in a namespace
+// @Description Retrieves all ConfigMaps in the specified namespace with transformed response format
+// @Tags ConfigMaps
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace query string true "Namespace name"
+// @Success 200 {array} types.ConfigMapListResponse "List of transformed ConfigMaps"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/configmaps [get]
 func (h *ConfigMapsHandler) GetConfigMaps(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client")
@@ -111,6 +125,21 @@ func (h *ConfigMapsHandler) GetConfigMaps(c *gin.Context) {
 }
 
 // GetConfigMapsSSE returns configmaps as Server-Sent Events with real-time updates
+// @Summary Get ConfigMaps with real-time updates
+// @Description Retrieves ConfigMaps in the specified namespace with Server-Sent Events for real-time updates
+// @Tags ConfigMaps
+// @Accept json
+// @Produce text/event-stream
+// @Produce json
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace query string true "Namespace name"
+// @Success 200 {array} types.ConfigMapListResponse "Stream of transformed ConfigMaps or JSON array"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/configmaps/sse [get]
 func (h *ConfigMapsHandler) GetConfigMapsSSE(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client-for-sse")
@@ -186,6 +215,22 @@ func (h *ConfigMapsHandler) GetConfigMapsSSE(c *gin.Context) {
 }
 
 // GetConfigMap returns a specific configmap
+// @Summary Get a specific ConfigMap
+// @Description Retrieves a specific ConfigMap by name and namespace
+// @Tags ConfigMaps
+// @Accept json
+// @Produce json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace path string true "Namespace name"
+// @Param name path string true "ConfigMap name"
+// @Success 200 {object} object "ConfigMap details"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 404 {object} map[string]string "ConfigMap not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/configmaps/{namespace}/{name} [get]
 func (h *ConfigMapsHandler) GetConfigMap(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client")
@@ -222,6 +267,22 @@ func (h *ConfigMapsHandler) GetConfigMap(c *gin.Context) {
 }
 
 // GetConfigMapByName returns a specific configmap by name using namespace from query parameters
+// @Summary Get a specific ConfigMap by name
+// @Description Retrieves a specific ConfigMap by name with namespace from query parameters
+// @Tags ConfigMaps
+// @Accept json
+// @Produce json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace query string true "Namespace name"
+// @Param name path string true "ConfigMap name"
+// @Success 200 {object} object "ConfigMap details"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 404 {object} map[string]string "ConfigMap not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/configmaps/{name} [get]
 func (h *ConfigMapsHandler) GetConfigMapByName(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client")
@@ -264,6 +325,21 @@ func (h *ConfigMapsHandler) GetConfigMapByName(c *gin.Context) {
 }
 
 // GetConfigMapYAMLByName returns the YAML representation of a specific configmap by name using namespace from query parameters
+// @Summary Get ConfigMap YAML by name
+// @Description Retrieves the YAML representation of a specific ConfigMap by name with namespace from query parameters
+// @Tags ConfigMaps
+// @Accept json
+// @Produce text/plain
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace query string true "Namespace name"
+// @Param name path string true "ConfigMap name"
+// @Success 200 {string} string "ConfigMap YAML"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 404 {object} map[string]string "ConfigMap not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/configmaps/{name}/yaml [get]
 func (h *ConfigMapsHandler) GetConfigMapYAMLByName(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client")
@@ -310,6 +386,21 @@ func (h *ConfigMapsHandler) GetConfigMapYAMLByName(c *gin.Context) {
 }
 
 // GetConfigMapYAML returns the YAML representation of a specific configmap
+// @Summary Get ConfigMap YAML
+// @Description Retrieves the YAML representation of a specific ConfigMap
+// @Tags ConfigMaps
+// @Accept json
+// @Produce text/plain
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace path string true "Namespace name"
+// @Param name path string true "ConfigMap name"
+// @Success 200 {string} string "ConfigMap YAML"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 404 {object} map[string]string "ConfigMap not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/configmaps/{namespace}/{name}/yaml [get]
 func (h *ConfigMapsHandler) GetConfigMapYAML(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client")
@@ -350,6 +441,22 @@ func (h *ConfigMapsHandler) GetConfigMapYAML(c *gin.Context) {
 }
 
 // GetConfigMapEventsByName returns events for a specific configmap by name using namespace from query parameters
+// @Summary Get ConfigMap events by name
+// @Description Retrieves events related to a specific ConfigMap by name with namespace from query parameters
+// @Tags ConfigMaps
+// @Accept json
+// @Produce json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace query string true "Namespace name"
+// @Param name path string true "ConfigMap name"
+// @Success 200 {array} object "List of events"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/configmaps/{name}/events [get]
 func (h *ConfigMapsHandler) GetConfigMapEventsByName(c *gin.Context) {
 	name := c.Param("name")
 	namespace := c.Query("namespace")
@@ -382,6 +489,22 @@ func (h *ConfigMapsHandler) GetConfigMapEventsByName(c *gin.Context) {
 }
 
 // GetConfigMapEvents returns events for a specific configmap
+// @Summary Get ConfigMap events
+// @Description Retrieves events related to a specific ConfigMap
+// @Tags ConfigMaps
+// @Accept json
+// @Produce json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace path string true "Namespace name"
+// @Param name path string true "ConfigMap name"
+// @Success 200 {array} object "List of events"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/configmaps/{namespace}/{name}/events [get]
 func (h *ConfigMapsHandler) GetConfigMapEvents(c *gin.Context) {
 	name := c.Param("name")
 	namespace := c.Param("namespace")

@@ -138,6 +138,22 @@ func (h *PodsHandler) GetPods(c *gin.Context) {
 }
 
 // GetPodsSSE returns pods as Server-Sent Events with real-time updates
+// @Summary Get Pods (SSE)
+// @Description Get all pods with real-time updates via Server-Sent Events
+// @Tags Workloads
+// @Accept json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace query string false "Namespace filter"
+// @Param node query string false "Node name filter"
+// @Param owner query string false "Owner type (deployment, daemonset, etc.)"
+// @Param ownerName query string false "Owner name"
+// @Success 200 {array} types.PodListResponse "Stream of pod data"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security KubeConfig
+// @Router /api/v1/pods [get]
 func (h *PodsHandler) GetPodsSSE(c *gin.Context) {
 	// Start child span for client setup with HTTP context
 	ctx, clientSpan := h.tracingHelper.StartAuthSpanWithHTTP(c, "setup-client-for-sse")

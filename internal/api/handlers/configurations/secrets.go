@@ -66,6 +66,20 @@ func (h *SecretsHandler) getClientAndConfig(c *gin.Context) (*kubernetes.Clients
 }
 
 // GetSecrets returns all secrets in a namespace
+// @Summary Get all secrets in a namespace
+// @Description Retrieves all secrets in the specified namespace with transformed response format
+// @Tags Secrets
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace query string true "Namespace name"
+// @Success 200 {array} types.SecretListResponse "List of transformed secrets"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/secrets [get]
 func (h *SecretsHandler) GetSecrets(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -112,6 +126,21 @@ func (h *SecretsHandler) GetSecrets(c *gin.Context) {
 }
 
 // GetSecretsSSE returns secrets as Server-Sent Events with real-time updates
+// @Summary Get secrets with real-time updates
+// @Description Retrieves secrets in the specified namespace with Server-Sent Events for real-time updates
+// @Tags Secrets
+// @Accept json
+// @Produce text/event-stream
+// @Produce json
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace query string true "Namespace name"
+// @Success 200 {array} types.SecretListResponse "Stream of transformed secrets or JSON array"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/secrets/sse [get]
 func (h *SecretsHandler) GetSecretsSSE(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client-for-sse")
@@ -188,6 +217,22 @@ func (h *SecretsHandler) GetSecretsSSE(c *gin.Context) {
 }
 
 // GetSecret returns a specific secret
+// @Summary Get a specific secret
+// @Description Retrieves a specific secret by name and namespace
+// @Tags Secrets
+// @Accept json
+// @Produce json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace path string true "Namespace name"
+// @Param name path string true "Secret name"
+// @Success 200 {object} map[string]interface{} "Secret details"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 404 {object} map[string]string "Secret not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/secrets/{namespace}/{name} [get]
 func (h *SecretsHandler) GetSecret(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -230,6 +275,22 @@ func (h *SecretsHandler) GetSecret(c *gin.Context) {
 }
 
 // GetSecretByName returns a specific secret by name using namespace from query parameters
+// @Summary Get a specific secret by name
+// @Description Retrieves a specific secret by name with namespace from query parameters
+// @Tags Secrets
+// @Accept json
+// @Produce json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace query string true "Namespace name"
+// @Param name path string true "Secret name"
+// @Success 200 {object} map[string]interface{} "Secret details"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 404 {object} map[string]string "Secret not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/secrets/{name} [get]
 func (h *SecretsHandler) GetSecretByName(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -278,6 +339,21 @@ func (h *SecretsHandler) GetSecretByName(c *gin.Context) {
 }
 
 // GetSecretYAMLByName returns the YAML representation of a specific secret by name using namespace from query parameters
+// @Summary Get secret YAML by name
+// @Description Retrieves the YAML representation of a specific secret by name with namespace from query parameters
+// @Tags Secrets
+// @Accept json
+// @Produce text/plain
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace query string true "Namespace name"
+// @Param name path string true "Secret name"
+// @Success 200 {string} string "Secret YAML"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 404 {object} map[string]string "Secret not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/secrets/{name}/yaml [get]
 func (h *SecretsHandler) GetSecretYAMLByName(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -324,6 +400,21 @@ func (h *SecretsHandler) GetSecretYAMLByName(c *gin.Context) {
 }
 
 // GetSecretYAML returns the YAML representation of a specific secret
+// @Summary Get secret YAML
+// @Description Retrieves the YAML representation of a specific secret
+// @Tags Secrets
+// @Accept json
+// @Produce text/plain
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace path string true "Namespace name"
+// @Param name path string true "Secret name"
+// @Success 200 {string} string "Secret YAML"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 404 {object} map[string]string "Secret not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/secrets/{namespace}/{name}/yaml [get]
 func (h *SecretsHandler) GetSecretYAML(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -364,6 +455,22 @@ func (h *SecretsHandler) GetSecretYAML(c *gin.Context) {
 }
 
 // GetSecretEventsByName returns events for a specific secret by name using namespace from query parameters
+// @Summary Get secret events by name
+// @Description Retrieves events related to a specific secret by name with namespace from query parameters
+// @Tags Secrets
+// @Accept json
+// @Produce json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace query string true "Namespace name"
+// @Param name path string true "Secret name"
+// @Success 200 {array} map[string]interface{} "List of events"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/secrets/{name}/events [get]
 func (h *SecretsHandler) GetSecretEventsByName(c *gin.Context) {
 	name := c.Param("name")
 	namespace := c.Query("namespace")
@@ -397,6 +504,22 @@ func (h *SecretsHandler) GetSecretEventsByName(c *gin.Context) {
 }
 
 // GetSecretEvents returns events for a specific secret
+// @Summary Get secret events
+// @Description Retrieves events related to a specific secret
+// @Tags Secrets
+// @Accept json
+// @Produce json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace path string true "Namespace name"
+// @Param name path string true "Secret name"
+// @Success 200 {array} map[string]interface{} "List of events"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/secrets/{namespace}/{name}/events [get]
 func (h *SecretsHandler) GetSecretEvents(c *gin.Context) {
 	name := c.Param("name")
 	namespace := c.Param("namespace")

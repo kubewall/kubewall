@@ -64,6 +64,18 @@ func (h *PersistentVolumesHandler) getClientAndConfig(c *gin.Context) (*kubernet
 }
 
 // GetPersistentVolumesSSE returns persistent volumes as Server-Sent Events with real-time updates
+// @Summary Get Persistent Volumes (SSE)
+// @Description Get all persistent volumes with real-time updates via Server-Sent Events
+// @Tags Storage
+// @Accept json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name"
+// @Success 200 {array} types.PersistentVolumeListResponse "Stream of PV data"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security KubeConfig
+// @Router /api/v1/persistentvolumes [get]
 func (h *PersistentVolumesHandler) GetPersistentVolumesSSE(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client-for-sse")

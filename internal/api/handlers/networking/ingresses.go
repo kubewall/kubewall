@@ -64,6 +64,21 @@ func (h *IngressesHandler) getClientAndConfig(c *gin.Context) (*kubernetes.Clien
 }
 
 // GetIngressesSSE returns ingresses as Server-Sent Events with real-time updates
+// @Summary Get Ingresses (SSE)
+// @Description Retrieve all ingresses with real-time updates via Server-Sent Events
+// @Tags Networking
+// @Accept json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param namespace query string false "Namespace to filter ingresses (empty for all namespaces)"
+// @Success 200 {array} types.IngressListResponse "Stream of ingress data"
+// @Failure 400 {object} map[string]string "Bad request - invalid parameters"
+// @Failure 403 {object} map[string]string "Forbidden - insufficient permissions"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/ingresses [get]
 func (h *IngressesHandler) GetIngressesSSE(c *gin.Context) {
 	// Client setup span
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -127,6 +142,21 @@ func (h *IngressesHandler) GetIngressesSSE(c *gin.Context) {
 }
 
 // GetIngress returns a specific ingress
+// @Summary Get Ingress by Namespace and Name
+// @Description Retrieve a specific ingress by namespace and name
+// @Tags Networking
+// @Accept json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param namespace path string true "Namespace name"
+// @Param name path string true "Ingress name"
+// @Success 200 {object} object "Ingress details"
+// @Failure 400 {object} map[string]string "Bad request - invalid parameters"
+// @Failure 404 {object} map[string]string "Ingress not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/ingresses/{namespace}/{name} [get]
 func (h *IngressesHandler) GetIngress(c *gin.Context) {
 	// Client setup span
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -180,6 +210,21 @@ func (h *IngressesHandler) GetIngress(c *gin.Context) {
 }
 
 // GetIngressByName returns a specific ingress by name
+// @Summary Get Ingress by Name
+// @Description Retrieve a specific ingress by name with namespace as query parameter
+// @Tags Networking
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param name path string true "Ingress name"
+// @Param namespace query string true "Namespace name"
+// @Success 200 {object} object "Ingress details"
+// @Failure 400 {object} map[string]string "Bad request - missing namespace parameter"
+// @Failure 404 {object} map[string]string "Ingress not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/ingress/{name} [get]
 func (h *IngressesHandler) GetIngressByName(c *gin.Context) {
 	name := c.Param("name")
 	namespace := c.Query("namespace")
@@ -220,6 +265,21 @@ func (h *IngressesHandler) GetIngressByName(c *gin.Context) {
 }
 
 // GetIngressYAMLByName returns the YAML representation of a specific ingress by name
+// @Summary Get Ingress YAML by Name
+// @Description Retrieve the YAML representation of a specific ingress by name
+// @Tags Networking
+// @Accept json
+// @Produce text/plain
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param name path string true "Ingress name"
+// @Param namespace query string true "Namespace name"
+// @Success 200 {string} string "Ingress YAML"
+// @Failure 400 {object} map[string]string "Bad request - missing namespace parameter"
+// @Failure 404 {object} map[string]string "Ingress not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/ingress/{name}/yaml [get]
 func (h *IngressesHandler) GetIngressYAMLByName(c *gin.Context) {
 	name := c.Param("name")
 	namespace := c.Query("namespace")
@@ -265,6 +325,21 @@ func (h *IngressesHandler) GetIngressYAMLByName(c *gin.Context) {
 }
 
 // GetIngressYAML returns the YAML representation of a specific ingress
+// @Summary Get Ingress YAML by Namespace and Name
+// @Description Retrieve the YAML representation of a specific ingress by namespace and name
+// @Tags Networking
+// @Accept json
+// @Produce text/plain
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param namespace path string true "Namespace name"
+// @Param name path string true "Ingress name"
+// @Success 200 {string} string "Ingress YAML"
+// @Failure 400 {object} map[string]string "Bad request - invalid parameters"
+// @Failure 404 {object} map[string]string "Ingress not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/ingresses/{namespace}/{name}/yaml [get]
 func (h *IngressesHandler) GetIngressYAML(c *gin.Context) {
 	namespace := c.Param("namespace")
 	name := c.Param("name")
@@ -305,6 +380,20 @@ func (h *IngressesHandler) GetIngressYAML(c *gin.Context) {
 }
 
 // GetIngressEventsByName returns events for a specific ingress by name
+// @Summary Get Ingress Events by Name
+// @Description Retrieve events for a specific ingress by name
+// @Tags Networking
+// @Accept json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param name path string true "Ingress name"
+// @Param namespace query string true "Namespace name"
+// @Success 200 {array} object "Ingress events"
+// @Failure 400 {object} map[string]string "Bad request - missing namespace parameter"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/ingress/{name}/events [get]
 func (h *IngressesHandler) GetIngressEventsByName(c *gin.Context) {
 	name := c.Param("name")
 	namespace := c.Query("namespace")
@@ -338,6 +427,20 @@ func (h *IngressesHandler) GetIngressEventsByName(c *gin.Context) {
 }
 
 // GetIngressEvents returns events for a specific ingress
+// @Summary Get Ingress Events by Namespace and Name
+// @Description Retrieve events for a specific ingress by namespace and name
+// @Tags Networking
+// @Accept json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param namespace path string true "Namespace name"
+// @Param name path string true "Ingress name"
+// @Success 200 {array} object "Ingress events"
+// @Failure 400 {object} map[string]string "Bad request - invalid parameters"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/ingresses/{namespace}/{name}/events [get]
 func (h *IngressesHandler) GetIngressEvents(c *gin.Context) {
 	name := c.Param("name")
 

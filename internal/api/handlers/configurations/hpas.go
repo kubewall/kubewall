@@ -66,6 +66,22 @@ func (h *HPAsHandler) getClientAndConfig(c *gin.Context) (*kubernetes.Clientset,
 }
 
 // GetHPA returns a specific HPA
+// @Summary Get a specific HPA
+// @Description Retrieves a specific HorizontalPodAutoscaler by name and namespace
+// @Tags HPAs
+// @Accept json
+// @Produce json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace path string true "Namespace name"
+// @Param name path string true "HPA name"
+// @Success 200 {object} map[string]interface{} "HPA details"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 404 {object} map[string]string "HPA not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/hpas/{namespace}/{name} [get]
 func (h *HPAsHandler) GetHPA(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -108,6 +124,22 @@ func (h *HPAsHandler) GetHPA(c *gin.Context) {
 }
 
 // GetHPAByName returns a specific HPA by name using namespace from query parameters
+// @Summary Get a specific HPA by name
+// @Description Retrieves a specific HorizontalPodAutoscaler by name with namespace from query parameters
+// @Tags HPAs
+// @Accept json
+// @Produce json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace query string true "Namespace name"
+// @Param name path string true "HPA name"
+// @Success 200 {object} map[string]interface{} "HPA details"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 404 {object} map[string]string "HPA not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/hpas/{name} [get]
 func (h *HPAsHandler) GetHPAByName(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -157,6 +189,21 @@ func (h *HPAsHandler) GetHPAByName(c *gin.Context) {
 }
 
 // GetHPAYAMLByName returns the YAML representation of a specific HPA by name using namespace from query parameters
+// @Summary Get HPA YAML by name
+// @Description Retrieves the YAML representation of a specific HorizontalPodAutoscaler by name with namespace from query parameters
+// @Tags HPAs
+// @Accept json
+// @Produce text/plain
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace query string true "Namespace name"
+// @Param name path string true "HPA name"
+// @Success 200 {string} string "HPA YAML"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 404 {object} map[string]string "HPA not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/hpas/{name}/yaml [get]
 func (h *HPAsHandler) GetHPAYAMLByName(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -204,6 +251,21 @@ func (h *HPAsHandler) GetHPAYAMLByName(c *gin.Context) {
 }
 
 // GetHPAYAML returns the YAML representation of a specific HPA
+// @Summary Get HPA YAML
+// @Description Retrieves the YAML representation of a specific HorizontalPodAutoscaler
+// @Tags HPAs
+// @Accept json
+// @Produce text/plain
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace path string true "Namespace name"
+// @Param name path string true "HPA name"
+// @Success 200 {string} string "HPA YAML"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 404 {object} map[string]string "HPA not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/hpas/{namespace}/{name}/yaml [get]
 func (h *HPAsHandler) GetHPAYAML(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -244,6 +306,22 @@ func (h *HPAsHandler) GetHPAYAML(c *gin.Context) {
 }
 
 // GetHPAEventsByName returns events for a specific HPA by name using namespace from query parameters
+// @Summary Get HPA events by name
+// @Description Retrieves events related to a specific HorizontalPodAutoscaler by name with namespace from query parameters
+// @Tags HPAs
+// @Accept json
+// @Produce json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace query string true "Namespace name"
+// @Param name path string true "HPA name"
+// @Success 200 {array} map[string]interface{} "List of events"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/hpas/{name}/events [get]
 func (h *HPAsHandler) GetHPAEventsByName(c *gin.Context) {
 	name := c.Param("name")
 	namespace := c.Query("namespace")
@@ -277,6 +355,22 @@ func (h *HPAsHandler) GetHPAEventsByName(c *gin.Context) {
 }
 
 // GetHPAEvents returns events for a specific HPA
+// @Summary Get HPA events
+// @Description Retrieves events related to a specific HorizontalPodAutoscaler
+// @Tags HPAs
+// @Accept json
+// @Produce json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace path string true "Namespace name"
+// @Param name path string true "HPA name"
+// @Success 200 {array} map[string]interface{} "List of events"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/hpas/{namespace}/{name}/events [get]
 func (h *HPAsHandler) GetHPAEvents(c *gin.Context) {
 	name := c.Param("name")
 	namespace := c.Param("namespace")
@@ -304,6 +398,20 @@ func (h *HPAsHandler) GetHPAEvents(c *gin.Context) {
 }
 
 // GetHPAs returns all HPAs in a namespace
+// @Summary Get all HPAs in a namespace
+// @Description Retrieves all HorizontalPodAutoscalers in the specified namespace with transformed response format
+// @Tags HPAs
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace query string true "Namespace name"
+// @Success 200 {array} types.HPAListResponse "List of transformed HPAs"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/hpas [get]
 func (h *HPAsHandler) GetHPAs(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -350,6 +458,21 @@ func (h *HPAsHandler) GetHPAs(c *gin.Context) {
 }
 
 // GetHPAsSSE returns HPAs as Server-Sent Events with real-time updates
+// @Summary Get HPAs with real-time updates
+// @Description Retrieves HorizontalPodAutoscalers in the specified namespace with Server-Sent Events for real-time updates
+// @Tags HPAs
+// @Accept json
+// @Produce text/event-stream
+// @Produce json
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace query string true "Namespace name"
+// @Success 200 {array} types.HPAListResponse "Stream of transformed HPAs or JSON array"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/hpas/sse [get]
 func (h *HPAsHandler) GetHPAsSSE(c *gin.Context) {
 	// Start child span for client setup with HTTP context
 	ctx, clientSpan := h.tracingHelper.StartAuthSpanWithHTTP(c, "setup-client-for-sse")

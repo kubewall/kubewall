@@ -65,6 +65,21 @@ func (h *CronJobsHandler) getClientAndConfig(c *gin.Context) (*kubernetes.Client
 }
 
 // GetCronJobsSSE returns cronjobs as Server-Sent Events with real-time updates
+// @Summary Get CronJobs (SSE)
+// @Description Streams CronJobs data in real-time using Server-Sent Events. Supports namespace filtering and multi-cluster configurations.
+// @Tags Workloads
+// @Accept text/event-stream
+// @Produce text/event-stream,application/json
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param namespace query string false "Kubernetes namespace to filter resources"
+// @Success 200 {array} types.CronJobListResponse "Streaming CronJobs data"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 403 {object} map[string]string "Forbidden - insufficient permissions"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/cronjobs [get]
 func (h *CronJobsHandler) GetCronJobsSSE(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client-for-sse")
@@ -137,6 +152,22 @@ func (h *CronJobsHandler) GetCronJobsSSE(c *gin.Context) {
 }
 
 // GetCronJob returns a specific cronjob
+// @Summary Get CronJob by namespace and name
+// @Description Retrieves detailed information about a specific CronJob in a given namespace
+// @Tags Workloads
+// @Accept json
+// @Produce json,text/event-stream
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param namespace path string true "Kubernetes namespace"
+// @Param name path string true "CronJob name"
+// @Success 200 {object} object "CronJob details"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "CronJob not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/cronjobs/{namespace}/{name} [get]
 func (h *CronJobsHandler) GetCronJob(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -189,6 +220,22 @@ func (h *CronJobsHandler) GetCronJob(c *gin.Context) {
 }
 
 // GetCronJobByName returns a specific cronjob by name
+// @Summary Get CronJob by name
+// @Description Retrieves detailed information about a specific CronJob by name with namespace as query parameter
+// @Tags Workloads
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param namespace query string true "Kubernetes namespace"
+// @Param name path string true "CronJob name"
+// @Success 200 {object} object "CronJob details"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "CronJob not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/cronjob/{name} [get]
 func (h *CronJobsHandler) GetCronJobByName(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -216,6 +263,22 @@ func (h *CronJobsHandler) GetCronJobByName(c *gin.Context) {
 }
 
 // GetCronJobYAMLByName returns the YAML representation of a specific cronjob by name
+// @Summary Get CronJob YAML by name
+// @Description Retrieves the YAML representation of a specific CronJob by name
+// @Tags Workloads
+// @Accept json
+// @Produce text/plain
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param namespace query string true "Kubernetes namespace"
+// @Param name path string true "CronJob name"
+// @Success 200 {string} string "CronJob YAML representation"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "CronJob not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/cronjob/{name}/yaml [get]
 func (h *CronJobsHandler) GetCronJobYAMLByName(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -243,6 +306,22 @@ func (h *CronJobsHandler) GetCronJobYAMLByName(c *gin.Context) {
 }
 
 // GetCronJobYAML returns the YAML representation of a specific cronjob
+// @Summary Get CronJob YAML by namespace and name
+// @Description Retrieves the YAML representation of a specific CronJob in a given namespace
+// @Tags Workloads
+// @Accept json
+// @Produce text/plain
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param namespace path string true "Kubernetes namespace"
+// @Param name path string true "CronJob name"
+// @Success 200 {string} string "CronJob YAML representation"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "CronJob not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/cronjobs/{namespace}/{name}/yaml [get]
 func (h *CronJobsHandler) GetCronJobYAML(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -265,6 +344,22 @@ func (h *CronJobsHandler) GetCronJobYAML(c *gin.Context) {
 }
 
 // GetCronJobEventsByName returns events for a specific cronjob by name
+// @Summary Get CronJob events by name
+// @Description Retrieves events related to a specific CronJob by name
+// @Tags Workloads
+// @Accept json
+// @Produce json,text/event-stream
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param namespace query string true "Kubernetes namespace"
+// @Param name path string true "CronJob name"
+// @Success 200 {array} object "CronJob events"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "CronJob not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/cronjob/{name}/events [get]
 func (h *CronJobsHandler) GetCronJobEventsByName(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -286,6 +381,21 @@ func (h *CronJobsHandler) GetCronJobEventsByName(c *gin.Context) {
 }
 
 // GetCronJobEvents returns events for a specific cronjob
+// @Summary Get CronJob events by namespace and name
+// @Description Retrieves events related to a specific CronJob in a given namespace
+// @Tags Workloads
+// @Accept json
+// @Produce json,text/event-stream
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param name path string true "CronJob name"
+// @Success 200 {array} object "CronJob events"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "CronJob not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/cronjobs/{namespace}/{name}/events [get]
 func (h *CronJobsHandler) GetCronJobEvents(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -299,6 +409,22 @@ func (h *CronJobsHandler) GetCronJobEvents(c *gin.Context) {
 }
 
 // GetCronJobJobsByName returns jobs for a specific cronjob by name
+// @Summary Get CronJob jobs by name
+// @Description Retrieves all jobs created by a specific CronJob by name
+// @Tags Workloads
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param namespace query string true "Kubernetes namespace"
+// @Param name path string true "CronJob name"
+// @Success 200 {object} object "CronJob jobs"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "CronJob not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/cronjob/{name}/jobs [get]
 func (h *CronJobsHandler) GetCronJobJobsByName(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -329,6 +455,22 @@ func (h *CronJobsHandler) GetCronJobJobsByName(c *gin.Context) {
 }
 
 // TriggerCronJob manually triggers a CronJob by creating a job from it
+// @Summary Trigger CronJob manually
+// @Description Manually triggers a CronJob by creating a new job from its template
+// @Tags Workloads
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param namespace path string true "Kubernetes namespace"
+// @Param name path string true "CronJob name"
+// @Success 200 {object} map[string]interface{} "Trigger success response with created job details"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "CronJob not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/cronjobs/{namespace}/{name}/trigger [post]
 func (h *CronJobsHandler) TriggerCronJob(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -379,6 +521,23 @@ func (h *CronJobsHandler) TriggerCronJob(c *gin.Context) {
 }
 
 // SuspendCronJob toggles the suspend state of a CronJob
+// @Summary Suspend or resume CronJob
+// @Description Toggles the suspend state of a CronJob to pause or resume its execution
+// @Tags Workloads
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param namespace path string true "Kubernetes namespace"
+// @Param name path string true "CronJob name"
+// @Param suspend body object true "Suspend request body" example({"suspend": true})
+// @Success 200 {object} map[string]interface{} "Suspend operation success response"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "CronJob not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/cronjobs/{namespace}/{name}/suspend [post]
 func (h *CronJobsHandler) SuspendCronJob(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {

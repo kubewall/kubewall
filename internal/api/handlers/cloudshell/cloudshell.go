@@ -266,6 +266,23 @@ func (h *CloudShellHandler) checkCloudShellConnectionPermissions(client *kuberne
 }
 
 // CreateCloudShell creates a new cloud shell pod
+// CreateCloudShell creates a new cloud shell session
+// @Summary Create Cloud Shell Session
+// @Description Create a new cloud shell session with kubectl and helm access
+// @Tags Cloud Shell
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace query string false "Namespace (default: default)"
+// @Success 201 {object} map[string]interface{} "Cloud shell session created"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 403 {object} map[string]string "Forbidden - insufficient permissions"
+// @Failure 429 {object} map[string]string "Too many requests - session limit reached"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /api/v1/cloudshell [post]
+// @Security BearerAuth
+// @Security KubeConfig
 func (h *CloudShellHandler) CreateCloudShell(c *gin.Context) {
 	// Start main span for create cloud shell operation
 	ctx, span := h.tracingHelper.StartAuthSpan(c.Request.Context(), "create_session")
@@ -553,6 +570,23 @@ func (h *CloudShellHandler) CreateCloudShell(c *gin.Context) {
 // before allowing the WebSocket connection. Users must have:
 // 1. Permission to get the specific pod
 // 2. Permission to exec into the pod
+// @Summary Connect to Cloud Shell via WebSocket
+// @Description Connect to an interactive cloud shell terminal via WebSocket
+// @Tags WebSocket
+// @Accept json
+// @Produce json
+// @Param pod query string true "Cloud shell pod name"
+// @Param namespace query string true "Namespace name"
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string true "Cluster name"
+// @Success 101 {string} string "WebSocket connection established"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 403 {object} map[string]string "Forbidden - insufficient permissions"
+// @Failure 404 {object} map[string]string "Pod not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /api/v1/cloudshell/ws [get]
+// @Security BearerAuth
+// @Security KubeConfig
 func (h *CloudShellHandler) HandleCloudShellWebSocket(c *gin.Context) {
 	// Start main span for cloud shell WebSocket operation
 	ctx, span := h.tracingHelper.StartAuthSpan(c.Request.Context(), "websocket_connection")
@@ -725,6 +759,21 @@ func (h *CloudShellHandler) HandleCloudShellWebSocket(c *gin.Context) {
 // ListCloudShellSessions lists all cloud shell sessions
 // This function checks if the user has permissions to list pods in the namespace
 // before returning the session list. Users must have permission to list pods.
+// @Summary List Cloud Shell Sessions
+// @Description List all active cloud shell sessions for a specific configuration and cluster
+// @Tags Cloud Shell
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace query string false "Namespace (default: default)"
+// @Success 200 {object} map[string]interface{} "List of cloud shell sessions with limits"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 403 {object} map[string]string "Forbidden - insufficient permissions"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /api/v1/cloudshell [get]
+// @Security BearerAuth
+// @Security KubeConfig
 func (h *CloudShellHandler) ListCloudShellSessions(c *gin.Context) {
 	// Start main span for list cloud shell sessions operation
 	ctx, span := h.tracingHelper.StartAuthSpan(c.Request.Context(), "list_sessions")
@@ -900,6 +949,23 @@ func (h *CloudShellHandler) ListCloudShellSessions(c *gin.Context) {
 // DeleteCloudShell deletes a cloud shell session
 // This function checks if the user has permissions to delete pods in the namespace
 // before allowing the deletion. Users must have permission to delete pods.
+// @Summary Delete Cloud Shell Session
+// @Description Delete a specific cloud shell session by name
+// @Tags Cloud Shell
+// @Accept json
+// @Produce json
+// @Param name path string true "Cloud shell session name"
+// @Param namespace query string false "Namespace (default: default)"
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name"
+// @Success 200 {object} map[string]string "Session deleted successfully"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 403 {object} map[string]string "Forbidden - insufficient permissions"
+// @Failure 404 {object} map[string]string "Session not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /api/v1/cloudshell/{name} [delete]
+// @Security BearerAuth
+// @Security KubeConfig
 func (h *CloudShellHandler) DeleteCloudShell(c *gin.Context) {
 	// Start main span for delete cloud shell operation
 	ctx, span := h.tracingHelper.StartAuthSpan(c.Request.Context(), "delete_session")
@@ -1240,6 +1306,14 @@ func (h *CloudShellHandler) StartCleanupRoutine() {
 }
 
 // ManualCleanup allows manual triggering of the cleanup routine
+// @Summary Manual Cloud Shell Cleanup
+// @Description Manually trigger cleanup of old cloud shell sessions and orphaned resources
+// @Tags Cloud Shell
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]string "Cleanup initiated successfully"
+// @Router /api/v1/cloudshell/cleanup [post]
+// @Security BearerAuth
 func (h *CloudShellHandler) ManualCleanup(c *gin.Context) {
 	h.logger.Info("Manual cloud shell cleanup triggered")
 

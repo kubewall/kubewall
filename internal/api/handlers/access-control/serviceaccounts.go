@@ -62,6 +62,21 @@ func (h *ServiceAccountsHandler) getClientAndConfig(c *gin.Context) (*kubernetes
 }
 
 // GetServiceAccountsSSE returns service accounts as Server-Sent Events with real-time updates
+// @Summary Get Service Accounts with real-time updates
+// @Description Retrieves Service Accounts in the specified namespace with Server-Sent Events for real-time updates
+// @Tags ServiceAccounts
+// @Accept json
+// @Produce text/event-stream
+// @Produce json
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace query string false "Namespace name (empty for all namespaces)"
+// @Success 200 {array} types.ServiceAccountListResponse "Stream of transformed Service Accounts or JSON array"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/serviceaccounts/sse [get]
 func (h *ServiceAccountsHandler) GetServiceAccountsSSE(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -121,6 +136,22 @@ func (h *ServiceAccountsHandler) GetServiceAccountsSSE(c *gin.Context) {
 }
 
 // GetServiceAccount returns a specific service account
+// @Summary Get a specific Service Account
+// @Description Retrieves a specific Service Account by name and namespace
+// @Tags ServiceAccounts
+// @Accept json
+// @Produce json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace path string true "Namespace name"
+// @Param name path string true "Service Account name"
+// @Success 200 {object} object "Service Account details"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 404 {object} map[string]string "Service Account not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/serviceaccounts/{namespace}/{name} [get]
 func (h *ServiceAccountsHandler) GetServiceAccount(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -149,6 +180,21 @@ func (h *ServiceAccountsHandler) GetServiceAccount(c *gin.Context) {
 }
 
 // GetServiceAccountByName returns a specific service account by name
+// @Summary Get a specific Service Account by name
+// @Description Retrieves a specific Service Account by name with namespace from query parameters
+// @Tags ServiceAccounts
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace query string true "Namespace name"
+// @Param name path string true "Service Account name"
+// @Success 200 {object} object "Service Account details"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 404 {object} map[string]string "Service Account not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/serviceaccounts/{name} [get]
 func (h *ServiceAccountsHandler) GetServiceAccountByName(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -176,6 +222,21 @@ func (h *ServiceAccountsHandler) GetServiceAccountByName(c *gin.Context) {
 }
 
 // GetServiceAccountYAMLByName returns YAML representation of a service account by name
+// @Summary Get Service Account YAML by name
+// @Description Retrieves the YAML representation of a specific Service Account by name with namespace from query parameters
+// @Tags ServiceAccounts
+// @Accept json
+// @Produce text/plain
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace query string true "Namespace name"
+// @Param name path string true "Service Account name"
+// @Success 200 {string} string "Service Account YAML"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 404 {object} map[string]string "Service Account not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/serviceaccounts/{name}/yaml [get]
 func (h *ServiceAccountsHandler) GetServiceAccountYAMLByName(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -203,6 +264,21 @@ func (h *ServiceAccountsHandler) GetServiceAccountYAMLByName(c *gin.Context) {
 }
 
 // GetServiceAccountYAML returns YAML representation of a service account
+// @Summary Get Service Account YAML
+// @Description Retrieves the YAML representation of a specific Service Account
+// @Tags ServiceAccounts
+// @Accept json
+// @Produce text/plain
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace path string true "Namespace name"
+// @Param name path string true "Service Account name"
+// @Success 200 {string} string "Service Account YAML"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 404 {object} map[string]string "Service Account not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/serviceaccounts/{namespace}/{name}/yaml [get]
 func (h *ServiceAccountsHandler) GetServiceAccountYAML(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -224,6 +300,22 @@ func (h *ServiceAccountsHandler) GetServiceAccountYAML(c *gin.Context) {
 }
 
 // GetServiceAccountEventsByName returns events for a specific service account by name
+// @Summary Get Service Account events by name
+// @Description Retrieves events related to a specific Service Account by name with namespace from query parameters
+// @Tags ServiceAccounts
+// @Accept json
+// @Produce json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace query string true "Namespace name"
+// @Param name path string true "Service Account name"
+// @Success 200 {array} object "List of events"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/serviceaccounts/{name}/events [get]
 func (h *ServiceAccountsHandler) GetServiceAccountEventsByName(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -244,6 +336,21 @@ func (h *ServiceAccountsHandler) GetServiceAccountEventsByName(c *gin.Context) {
 }
 
 // GetServiceAccountEvents returns events for a specific service account
+// @Summary Get Service Account events
+// @Description Retrieves events related to a specific Service Account
+// @Tags ServiceAccounts
+// @Accept json
+// @Produce json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param name path string true "Service Account name"
+// @Success 200 {array} object "List of events"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/serviceaccounts/{name}/events [get]
 func (h *ServiceAccountsHandler) GetServiceAccountEvents(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {

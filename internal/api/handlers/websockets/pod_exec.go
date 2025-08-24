@@ -95,6 +95,24 @@ func (h *PodExecHandler) getClientAndConfig(c *gin.Context) (*kubernetes.Clients
 }
 
 // HandlePodExec handles WebSocket-based pod exec
+// @Summary Execute Commands in Pod via WebSocket
+// @Description Execute interactive commands in a pod container via WebSocket connection
+// @Tags WebSocket
+// @Accept json
+// @Produce json
+// @Param namespace path string true "Namespace name"
+// @Param name path string true "Pod name"
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name"
+// @Param container query string false "Container name (defaults to first container)"
+// @Param command query string false "Command to execute (default: /bin/sh)"
+// @Success 101 {string} string "WebSocket connection established"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 404 {object} map[string]string "Pod not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /api/v1/pods/{namespace}/{name}/exec/ws [get]
+// @Security BearerAuth
+// @Security KubeConfig
 func (h *PodExecHandler) HandlePodExec(c *gin.Context) {
 	// Start main span for pod exec operation
 	ctx, span := h.tracingHelper.StartAuthSpan(c.Request.Context(), "websocket.pod_exec")
@@ -227,6 +245,24 @@ func (h *PodExecHandler) HandlePodExec(c *gin.Context) {
 }
 
 // HandlePodExecByName handles WebSocket-based pod exec by name using namespace from query parameters
+// @Summary Execute Commands in Pod by Name via WebSocket
+// @Description Execute interactive commands in a pod container by name via WebSocket connection
+// @Tags WebSocket
+// @Accept json
+// @Produce json
+// @Param name path string true "Pod name"
+// @Param namespace query string true "Namespace name"
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name"
+// @Param container query string false "Container name (defaults to first container)"
+// @Param command query string false "Command to execute (default: /bin/sh)"
+// @Success 101 {string} string "WebSocket connection established"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 404 {object} map[string]string "Pod not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /api/v1/pod/{name}/exec/ws [get]
+// @Security BearerAuth
+// @Security KubeConfig
 func (h *PodExecHandler) HandlePodExecByName(c *gin.Context) {
 	// Start main span for pod exec by name operation
 	ctx, span := h.tracingHelper.StartAuthSpan(c.Request.Context(), "websocket.pod_exec_by_name")

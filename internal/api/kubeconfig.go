@@ -35,12 +35,32 @@ func NewKubeConfigHandler(store *storage.KubeConfigStore, clientFactory *k8s.Cli
 }
 
 // GetConfigs returns all kubeconfigs
+// @Summary Get all kubeconfigs
+// @Description Retrieve all stored kubeconfig configurations with cluster information
+// @Tags Configuration
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{} "List of kubeconfig configurations"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /api/v1/app/config [get]
 func (h *KubeConfigHandler) GetConfigs(c *gin.Context) {
 	response := h.store.GetClustersResponse()
 	c.JSON(http.StatusOK, response)
 }
 
 // AddKubeconfig handles kubeconfig file upload
+// @Summary Upload kubeconfig file
+// @Description Upload and store a kubeconfig file for cluster access. Supports both file upload and text content.
+// @Tags Configuration
+// @Accept multipart/form-data
+// @Produce json
+// @Param kubeconfig formData file false "Kubeconfig file to upload"
+// @Param file formData string false "Kubeconfig content as text"
+// @Param filename formData string false "Filename for the kubeconfig"
+// @Success 200 {object} map[string]interface{} "Kubeconfig uploaded successfully"
+// @Failure 400 {object} map[string]interface{} "Bad request - invalid file or format"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /api/v1/app/config/kubeconfigs [post]
 func (h *KubeConfigHandler) AddKubeconfig(c *gin.Context) {
 	var content []byte
 	var filename string
@@ -106,6 +126,19 @@ func (h *KubeConfigHandler) AddKubeconfig(c *gin.Context) {
 }
 
 // AddBearerKubeconfig handles bearer token kubeconfig creation
+// @Summary Create kubeconfig with bearer token
+// @Description Create and store a kubeconfig using bearer token authentication
+// @Tags Configuration
+// @Accept multipart/form-data
+// @Produce json
+// @Param name formData string true "Configuration name"
+// @Param serverIP formData string true "Kubernetes API server URL"
+// @Param token formData string true "Bearer token for authentication"
+// @Param cluster formData string false "Cluster name (defaults to name if not provided)"
+// @Success 200 {object} map[string]interface{} "Bearer kubeconfig created successfully"
+// @Failure 400 {object} map[string]interface{} "Bad request - missing required fields"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /api/v1/app/config/bearer [post]
 func (h *KubeConfigHandler) AddBearerKubeconfig(c *gin.Context) {
 	// Get form data
 	name := c.PostForm("name")
@@ -157,6 +190,21 @@ func (h *KubeConfigHandler) AddBearerKubeconfig(c *gin.Context) {
 }
 
 // AddCertificateKubeconfig handles certificate-based kubeconfig creation
+// @Summary Create kubeconfig with client certificates
+// @Description Create and store a kubeconfig using client certificate authentication
+// @Tags Configuration
+// @Accept multipart/form-data
+// @Produce json
+// @Param name formData string true "Configuration name"
+// @Param serverIP formData string true "Kubernetes API server URL"
+// @Param clientCertData formData string true "Client certificate data (PEM format)"
+// @Param clientKeyData formData string true "Client private key data (PEM format)"
+// @Param cluster formData string false "Cluster name (defaults to name if not provided)"
+// @Param ca formData string false "Certificate Authority data (PEM format)"
+// @Success 200 {object} map[string]interface{} "Certificate kubeconfig created successfully"
+// @Failure 400 {object} map[string]interface{} "Bad request - missing required fields"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /api/v1/app/config/certificate [post]
 func (h *KubeConfigHandler) AddCertificateKubeconfig(c *gin.Context) {
 	// Get form data
 	name := c.PostForm("name")
@@ -216,6 +264,16 @@ func (h *KubeConfigHandler) AddCertificateKubeconfig(c *gin.Context) {
 }
 
 // DeleteKubeconfig removes a kubeconfig
+// @Summary Delete kubeconfig
+// @Description Remove a stored kubeconfig configuration by ID
+// @Tags Configuration
+// @Accept json
+// @Produce json
+// @Param id path string true "Kubeconfig ID to delete"
+// @Success 200 {object} map[string]interface{} "Kubeconfig deleted successfully"
+// @Failure 404 {object} map[string]interface{} "Kubeconfig not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /api/v1/app/config/kubeconfigs/{id} [delete]
 func (h *KubeConfigHandler) DeleteKubeconfig(c *gin.Context) {
 	configID := c.Param("id")
 
@@ -233,6 +291,18 @@ func (h *KubeConfigHandler) DeleteKubeconfig(c *gin.Context) {
 }
 
 // ValidateKubeconfig handles kubeconfig validation and connectivity testing
+// @Summary Validate kubeconfig file
+// @Description Validate a kubeconfig file format and test connectivity to all clusters. Supports both file upload and text content.
+// @Tags Configuration
+// @Accept multipart/form-data
+// @Produce json
+// @Param kubeconfig formData file false "Kubeconfig file to validate"
+// @Param file formData string false "Kubeconfig content as text"
+// @Param filename formData string false "Filename for the kubeconfig"
+// @Success 200 {object} map[string]interface{} "Validation results with cluster connectivity status"
+// @Failure 400 {object} map[string]interface{} "Bad request - invalid file or format"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /api/v1/app/config/validate [post]
 func (h *KubeConfigHandler) ValidateKubeconfig(c *gin.Context) {
 	var content []byte
 	var filename string
@@ -363,6 +433,19 @@ func (h *KubeConfigHandler) ValidateKubeconfig(c *gin.Context) {
 }
 
 // ValidateBearerToken handles bearer token validation and connectivity testing
+// @Summary Validate bearer token configuration
+// @Description Validate bearer token credentials and test connectivity to the Kubernetes cluster
+// @Tags Configuration
+// @Accept multipart/form-data
+// @Produce json
+// @Param name formData string true "Configuration name"
+// @Param serverIP formData string true "Kubernetes API server URL"
+// @Param token formData string true "Bearer token for authentication"
+// @Param cluster formData string false "Cluster name (defaults to name if not provided)"
+// @Success 200 {object} map[string]interface{} "Validation results with connectivity status"
+// @Failure 400 {object} map[string]interface{} "Bad request - missing required fields"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /api/v1/app/config/validate-bearer [post]
 func (h *KubeConfigHandler) ValidateBearerToken(c *gin.Context) {
 	// Get form data
 	name := c.PostForm("name")
@@ -475,6 +558,21 @@ func (h *KubeConfigHandler) ValidateBearerToken(c *gin.Context) {
 }
 
 // ValidateCertificate handles certificate validation and connectivity testing
+// @Summary Validate certificate configuration
+// @Description Validate client certificate credentials and test connectivity to the Kubernetes cluster
+// @Tags Configuration
+// @Accept multipart/form-data
+// @Produce json
+// @Param name formData string true "Configuration name"
+// @Param serverIP formData string true "Kubernetes API server URL"
+// @Param clientCertData formData string true "Client certificate data (PEM format)"
+// @Param clientKeyData formData string true "Client private key data (PEM format)"
+// @Param cluster formData string false "Cluster name (defaults to name if not provided)"
+// @Param ca formData string false "Certificate Authority data (PEM format)"
+// @Success 200 {object} map[string]interface{} "Validation results with connectivity status"
+// @Failure 400 {object} map[string]interface{} "Bad request - missing required fields"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /api/v1/app/config/validate-certificate [post]
 func (h *KubeConfigHandler) ValidateCertificate(c *gin.Context) {
 	// Get form data
 	name := c.PostForm("name")
@@ -595,6 +693,14 @@ func (h *KubeConfigHandler) ValidateCertificate(c *gin.Context) {
 }
 
 // ValidateAllKubeconfigs validates all existing kubeconfigs and returns their current status
+// @Summary Validate all stored kubeconfigs
+// @Description Validate connectivity for all stored kubeconfig configurations and return their current status
+// @Tags Configuration
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{} "Validation results for all kubeconfigs with connectivity status"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /api/v1/app/config/validate-all [get]
 func (h *KubeConfigHandler) ValidateAllKubeconfigs(c *gin.Context) {
 	// Get all existing kubeconfigs
 	allConfigs := h.store.ListKubeConfigs()

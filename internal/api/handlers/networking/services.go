@@ -64,6 +64,19 @@ func (h *ServicesHandler) getClientAndConfig(c *gin.Context) (*kubernetes.Client
 }
 
 // GetServicesSSE returns services as Server-Sent Events with real-time updates
+// @Summary Get Services (SSE)
+// @Description Get all services with real-time updates via Server-Sent Events
+// @Tags Networking
+// @Accept json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace query string false "Namespace filter"
+// @Success 200 {array} types.ServiceListResponse "Stream of service data"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security KubeConfig
+// @Router /api/v1/services [get]
 func (h *ServicesHandler) GetServicesSSE(c *gin.Context) {
 	// Client setup span
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")

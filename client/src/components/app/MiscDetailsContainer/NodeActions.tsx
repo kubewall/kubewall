@@ -275,7 +275,7 @@ const NodeActions: React.FC<NodeActionsProps> = ({
                   variant="outline"
                   size="sm"
                   disabled={loading || checkingPermissions || !drainPermission?.allowed}
-                  className="h-8 px-2 gap-1 text-destructive hover:text-destructive border-destructive hover:border-destructive"
+                  className="h-8 px-2 gap-1 text-destructive hover:text-destructive border-destructive hover:border-destructive dark:text-red-400 dark:border-red-400 dark:hover:text-red-300 dark:hover:border-red-300"
                 >
                   {loading ? (
                     <Loader2Icon className="h-3 w-3 animate-spin" />

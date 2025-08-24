@@ -66,6 +66,21 @@ func (h *StatefulSetsHandler) getClientAndConfig(c *gin.Context) (*kubernetes.Cl
 }
 
 // GetStatefulSetsSSE returns statefulsets as Server-Sent Events with real-time updates
+// @Summary Get StatefulSets (SSE)
+// @Description Retrieve all statefulsets with real-time updates via Server-Sent Events
+// @Tags Workloads
+// @Accept json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param namespace query string false "Namespace to filter statefulsets (empty for all namespaces)"
+// @Success 200 {array} types.StatefulSetListResponse "Stream of statefulset data"
+// @Failure 400 {object} map[string]string "Bad request - invalid parameters"
+// @Failure 403 {object} map[string]string "Forbidden - insufficient permissions"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/statefulsets [get]
 func (h *StatefulSetsHandler) GetStatefulSetsSSE(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client-for-sse")
@@ -138,6 +153,21 @@ func (h *StatefulSetsHandler) GetStatefulSetsSSE(c *gin.Context) {
 }
 
 // GetStatefulSet returns a specific statefulset
+// @Summary Get StatefulSet by Namespace and Name
+// @Description Retrieve a specific statefulset by namespace and name
+// @Tags Workloads
+// @Accept json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param namespace path string true "Namespace name"
+// @Param name path string true "StatefulSet name"
+// @Success 200 {object} object "StatefulSet details"
+// @Failure 400 {object} map[string]string "Bad request - invalid parameters"
+// @Failure 404 {object} map[string]string "StatefulSet not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/statefulsets/{namespace}/{name} [get]
 func (h *StatefulSetsHandler) GetStatefulSet(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -190,6 +220,21 @@ func (h *StatefulSetsHandler) GetStatefulSet(c *gin.Context) {
 }
 
 // GetStatefulSetByName returns a specific statefulset by name
+// @Summary Get StatefulSet by Name
+// @Description Retrieve a specific statefulset by name with namespace as query parameter
+// @Tags Workloads
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param name path string true "StatefulSet name"
+// @Param namespace query string true "Namespace name"
+// @Success 200 {object} object "StatefulSet details"
+// @Failure 400 {object} map[string]string "Bad request - missing namespace parameter"
+// @Failure 404 {object} map[string]string "StatefulSet not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/statefulset/{name} [get]
 func (h *StatefulSetsHandler) GetStatefulSetByName(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -230,6 +275,21 @@ func (h *StatefulSetsHandler) GetStatefulSetByName(c *gin.Context) {
 }
 
 // GetStatefulSetYAMLByName returns the YAML representation of a specific statefulset by name
+// @Summary Get StatefulSet YAML by Name
+// @Description Retrieve the YAML representation of a specific statefulset by name
+// @Tags Workloads
+// @Accept json
+// @Produce text/plain
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param name path string true "StatefulSet name"
+// @Param namespace query string true "Namespace name"
+// @Success 200 {string} string "StatefulSet YAML"
+// @Failure 400 {object} map[string]string "Bad request - missing namespace parameter"
+// @Failure 404 {object} map[string]string "StatefulSet not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/statefulset/{name}/yaml [get]
 func (h *StatefulSetsHandler) GetStatefulSetYAMLByName(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -275,6 +335,21 @@ func (h *StatefulSetsHandler) GetStatefulSetYAMLByName(c *gin.Context) {
 }
 
 // GetStatefulSetYAML returns the YAML representation of a specific statefulset
+// @Summary Get StatefulSet YAML by Namespace and Name
+// @Description Retrieve the YAML representation of a specific statefulset by namespace and name
+// @Tags Workloads
+// @Accept json
+// @Produce text/plain
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param namespace path string true "Namespace name"
+// @Param name path string true "StatefulSet name"
+// @Success 200 {string} string "StatefulSet YAML"
+// @Failure 400 {object} map[string]string "Bad request - invalid parameters"
+// @Failure 404 {object} map[string]string "StatefulSet not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/statefulsets/{namespace}/{name}/yaml [get]
 func (h *StatefulSetsHandler) GetStatefulSetYAML(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -315,6 +390,20 @@ func (h *StatefulSetsHandler) GetStatefulSetYAML(c *gin.Context) {
 }
 
 // GetStatefulSetEventsByName returns events for a specific statefulset by name
+// @Summary Get StatefulSet Events by Name
+// @Description Retrieve events for a specific statefulset by name
+// @Tags Workloads
+// @Accept json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param name path string true "StatefulSet name"
+// @Param namespace query string true "Namespace name"
+// @Success 200 {array} object "StatefulSet events"
+// @Failure 400 {object} map[string]string "Bad request - missing namespace parameter"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/statefulset/{name}/events [get]
 func (h *StatefulSetsHandler) GetStatefulSetEventsByName(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -336,6 +425,20 @@ func (h *StatefulSetsHandler) GetStatefulSetEventsByName(c *gin.Context) {
 }
 
 // GetStatefulSetEvents returns events for a specific statefulset
+// @Summary Get StatefulSet Events by Namespace and Name
+// @Description Retrieve events for a specific statefulset by namespace and name
+// @Tags Workloads
+// @Accept json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param namespace path string true "Namespace name"
+// @Param name path string true "StatefulSet name"
+// @Success 200 {array} object "StatefulSet events"
+// @Failure 400 {object} map[string]string "Bad request - invalid parameters"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/statefulsets/{namespace}/{name}/events [get]
 func (h *StatefulSetsHandler) GetStatefulSetEvents(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -349,6 +452,22 @@ func (h *StatefulSetsHandler) GetStatefulSetEvents(c *gin.Context) {
 }
 
 // GetStatefulSetPods returns pods for a specific statefulset
+// @Summary Get StatefulSet Pods by Namespace and Name
+// @Description Retrieve all pods belonging to a specific statefulset by namespace and name
+// @Tags Workloads
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param namespace path string true "Namespace name"
+// @Param name path string true "StatefulSet name"
+// @Success 200 {array} types.PodListResponse "StatefulSet pods"
+// @Failure 400 {object} map[string]string "Bad request - invalid parameters"
+// @Failure 404 {object} map[string]string "StatefulSet not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/statefulsets/{namespace}/{name}/pods [get]
 func (h *StatefulSetsHandler) GetStatefulSetPods(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -396,6 +515,22 @@ func (h *StatefulSetsHandler) GetStatefulSetPods(c *gin.Context) {
 }
 
 // GetStatefulSetPodsByName returns pods for a specific statefulset by name
+// @Summary Get StatefulSet Pods by Name
+// @Description Retrieve all pods belonging to a specific statefulset by name with namespace as query parameter
+// @Tags Workloads
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param name path string true "StatefulSet name"
+// @Param namespace query string true "Namespace name"
+// @Success 200 {array} types.PodListResponse "StatefulSet pods"
+// @Failure 400 {object} map[string]string "Bad request - missing namespace parameter"
+// @Failure 404 {object} map[string]string "StatefulSet not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/statefulset/{name}/pods [get]
 func (h *StatefulSetsHandler) GetStatefulSetPodsByName(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -448,6 +583,21 @@ func (h *StatefulSetsHandler) GetStatefulSetPodsByName(c *gin.Context) {
 }
 
 // ScaleStatefulSet updates the replicas of a StatefulSet via the scale subresource
+// @Summary Scale StatefulSet
+// @Description Update the number of replicas for a specific statefulset
+// @Tags Workloads
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param name path string true "StatefulSet name"
+// @Param namespace query string true "Namespace name"
+// @Param body body object{replicas=int32} true "Scale request body"
+// @Success 200 {object} map[string]string "StatefulSet scaled successfully"
+// @Failure 400 {object} map[string]string "Bad request - invalid parameters or request body"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/statefulset/{name}/scale [post]
 func (h *StatefulSetsHandler) ScaleStatefulSet(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -515,6 +665,21 @@ func (h *StatefulSetsHandler) ScaleStatefulSet(c *gin.Context) {
 }
 
 // RestartStatefulSet restarts all pods in a statefulset by adding a restart annotation
+// @Summary Restart StatefulSet
+// @Description Restart all pods in a statefulset using rolling or recreate strategy
+// @Tags Workloads
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param name path string true "StatefulSet name"
+// @Param namespace query string true "Namespace name"
+// @Param body body object{restartType=string} false "Restart request body (restartType: 'rolling' or 'recreate', defaults to 'rolling')"
+// @Success 200 {object} map[string]string "StatefulSet restart initiated successfully"
+// @Failure 400 {object} map[string]string "Bad request - invalid parameters or restart type"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/statefulset/{name}/restart [post]
 func (h *StatefulSetsHandler) RestartStatefulSet(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")

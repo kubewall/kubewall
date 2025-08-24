@@ -112,6 +112,19 @@ func (h *CustomResourceDefinitionsHandler) getDynamicClient(c *gin.Context) (dyn
 }
 
 // GetCustomResourceDefinitions returns all CRDs
+// @Summary Get Custom Resource Definitions
+// @Description Get all Custom Resource Definitions (CRDs) in the cluster
+// @Tags Custom Resources
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name"
+// @Success 200 {array} map[string]interface{} "List of Custom Resource Definitions"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /api/v1/customresourcedefinitions [get]
+// @Security BearerAuth
+// @Security KubeConfig
 func (h *CustomResourceDefinitionsHandler) GetCustomResourceDefinitions(c *gin.Context) {
 	// Start main span for CRD list operation
 	ctx, span := h.tracingHelper.StartAuthSpan(c.Request.Context(), "crd.list_definitions")
@@ -173,6 +186,19 @@ func (h *CustomResourceDefinitionsHandler) GetCustomResourceDefinitions(c *gin.C
 }
 
 // GetCustomResourceDefinitionsSSE returns CRDs as Server-Sent Events with real-time updates
+// @Summary Get Custom Resource Definitions (SSE)
+// @Description Get all Custom Resource Definitions with real-time updates via Server-Sent Events
+// @Tags Custom Resources
+// @Accept json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name"
+// @Success 200 {array} map[string]interface{} "Stream of Custom Resource Definitions data"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /api/v1/customresourcedefinitions/sse [get]
+// @Security BearerAuth
+// @Security KubeConfig
 func (h *CustomResourceDefinitionsHandler) GetCustomResourceDefinitionsSSE(c *gin.Context) {
 	// Start main span for CRD SSE operation
 	ctx, span := h.tracingHelper.StartAuthSpan(c.Request.Context(), "crd.list_definitions_sse")
@@ -260,6 +286,22 @@ func (h *CustomResourceDefinitionsHandler) GetCustomResourceDefinitionsSSE(c *gi
 }
 
 // GetCustomResourceDefinition returns a specific CRD
+// GetCustomResourceDefinition returns a specific CRD by name
+// @Summary Get Custom Resource Definition by Name
+// @Description Get a specific Custom Resource Definition by its name
+// @Tags Custom Resources
+// @Accept json
+// @Produce json
+// @Param name path string true "CRD name"
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name"
+// @Success 200 {object} map[string]interface{} "Custom Resource Definition details"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 404 {object} map[string]string "CRD not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /api/v1/customresourcedefinitions/{name} [get]
+// @Security BearerAuth
+// @Security KubeConfig
 func (h *CustomResourceDefinitionsHandler) GetCustomResourceDefinition(c *gin.Context) {
 	// Start main span for single CRD retrieval operation
 	ctx, span := h.tracingHelper.StartAuthSpan(c.Request.Context(), "crd.get_definition")

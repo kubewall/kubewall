@@ -46,6 +46,21 @@ func NewDeploymentsHandler(store *storage.KubeConfigStore, clientFactory *k8s.Cl
 }
 
 // ScaleDeployment updates the replicas of a Deployment via the scale subresource
+// @Summary Scale Deployment
+// @Description Update the number of replicas for a specific deployment
+// @Tags Workloads
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param name path string true "Deployment name"
+// @Param namespace query string true "Namespace name"
+// @Param body body object{replicas=int32} true "Scale request body"
+// @Success 200 {object} map[string]string "Deployment scaled successfully"
+// @Failure 400 {object} map[string]string "Bad request - invalid parameters or request body"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/deployment/{name}/scale [post]
 func (h *DeploymentsHandler) ScaleDeployment(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -114,6 +129,21 @@ func (h *DeploymentsHandler) ScaleDeployment(c *gin.Context) {
 }
 
 // RestartDeployment restarts all pods in a deployment by adding a restart annotation
+// @Summary Restart Deployment
+// @Description Restart all pods in a deployment using rolling or recreate strategy
+// @Tags Workloads
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param name path string true "Deployment name"
+// @Param namespace query string true "Namespace name"
+// @Param body body object{restartType=string} false "Restart request body (restartType: 'rolling' or 'recreate', defaults to 'rolling')"
+// @Success 200 {object} map[string]string "Deployment restart initiated successfully"
+// @Failure 400 {object} map[string]string "Bad request - invalid parameters or restart type"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/deployment/{name}/restart [post]
 func (h *DeploymentsHandler) RestartDeployment(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -333,6 +363,20 @@ func (h *DeploymentsHandler) getClientAndConfig(c *gin.Context) (*kubernetes.Cli
 }
 
 // GetDeployments returns all deployments
+// @Summary Get Deployments (JSON)
+// @Description Retrieve all deployments in JSON format (non-streaming)
+// @Tags Workloads
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param namespace query string false "Namespace to filter deployments (empty for all namespaces)"
+// @Success 200 {array} object "List of deployments"
+// @Failure 400 {object} map[string]string "Bad request - invalid parameters"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/deployments/json [get]
 func (h *DeploymentsHandler) GetDeployments(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -380,6 +424,21 @@ func (h *DeploymentsHandler) GetDeployments(c *gin.Context) {
 }
 
 // GetDeploymentsSSE returns deployments as Server-Sent Events with real-time updates
+// @Summary Get Deployments (SSE)
+// @Description Retrieve all deployments with real-time updates via Server-Sent Events
+// @Tags Workloads
+// @Accept json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param namespace query string false "Namespace to filter deployments (empty for all namespaces)"
+// @Success 200 {array} types.DeploymentListResponse "Stream of deployment data"
+// @Failure 400 {object} map[string]string "Bad request - invalid parameters"
+// @Failure 403 {object} map[string]string "Forbidden - insufficient permissions"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/deployments [get]
 func (h *DeploymentsHandler) GetDeploymentsSSE(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client-for-sse")
@@ -461,6 +520,21 @@ func (h *DeploymentsHandler) GetDeploymentsSSE(c *gin.Context) {
 }
 
 // GetDeployment returns a specific deployment
+// @Summary Get Deployment by Namespace and Name
+// @Description Retrieve a specific deployment by namespace and name
+// @Tags Workloads
+// @Accept json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param namespace path string true "Namespace name"
+// @Param name path string true "Deployment name"
+// @Success 200 {object} object "Deployment details"
+// @Failure 400 {object} map[string]string "Bad request - invalid parameters"
+// @Failure 404 {object} map[string]string "Deployment not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/deployments/{namespace}/{name} [get]
 func (h *DeploymentsHandler) GetDeployment(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -498,6 +572,21 @@ func (h *DeploymentsHandler) GetDeployment(c *gin.Context) {
 }
 
 // GetDeploymentByName returns a specific deployment by name using namespace from query parameters
+// @Summary Get Deployment by Name
+// @Description Retrieve a specific deployment by name with namespace as query parameter
+// @Tags Workloads
+// @Accept json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param name path string true "Deployment name"
+// @Param namespace query string true "Namespace name"
+// @Success 200 {object} object "Deployment details"
+// @Failure 400 {object} map[string]string "Bad request - missing namespace parameter"
+// @Failure 404 {object} map[string]string "Deployment not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/deployment/{name} [get]
 func (h *DeploymentsHandler) GetDeploymentByName(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -541,6 +630,21 @@ func (h *DeploymentsHandler) GetDeploymentByName(c *gin.Context) {
 }
 
 // GetDeploymentYAMLByName returns the YAML representation of a specific deployment by name
+// @Summary Get Deployment YAML by Name
+// @Description Retrieve the YAML representation of a specific deployment by name
+// @Tags Workloads
+// @Accept json
+// @Produce text/plain
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param name path string true "Deployment name"
+// @Param namespace query string true "Namespace name"
+// @Success 200 {string} string "Deployment YAML"
+// @Failure 400 {object} map[string]string "Bad request - missing namespace parameter"
+// @Failure 404 {object} map[string]string "Deployment not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/deployment/{name}/yaml [get]
 func (h *DeploymentsHandler) GetDeploymentYAMLByName(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -588,6 +692,21 @@ func (h *DeploymentsHandler) GetDeploymentYAMLByName(c *gin.Context) {
 }
 
 // GetDeploymentYAML returns the YAML representation of a specific deployment
+// @Summary Get Deployment YAML by Namespace and Name
+// @Description Retrieve the YAML representation of a specific deployment by namespace and name
+// @Tags Workloads
+// @Accept json
+// @Produce text/plain
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param namespace path string true "Namespace name"
+// @Param name path string true "Deployment name"
+// @Success 200 {string} string "Deployment YAML"
+// @Failure 400 {object} map[string]string "Bad request - invalid parameters"
+// @Failure 404 {object} map[string]string "Deployment not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/deployments/{namespace}/{name}/yaml [get]
 func (h *DeploymentsHandler) GetDeploymentYAML(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -629,6 +748,21 @@ func (h *DeploymentsHandler) GetDeploymentYAML(c *gin.Context) {
 }
 
 // GetDeploymentEventsByName returns events for a specific deployment by name
+// @Summary Get Deployment Events by Name
+// @Description Retrieve events for a specific deployment by name
+// @Tags Workloads
+// @Accept json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param name path string true "Deployment name"
+// @Param namespace query string true "Namespace name"
+// @Success 200 {array} object "Deployment events"
+// @Failure 400 {object} map[string]string "Bad request - missing namespace parameter"
+// @Failure 404 {object} map[string]string "Deployment not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/deployment/{name}/events [get]
 func (h *DeploymentsHandler) GetDeploymentEventsByName(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -662,6 +796,21 @@ func (h *DeploymentsHandler) GetDeploymentEventsByName(c *gin.Context) {
 }
 
 // GetDeploymentEvents returns events for a specific deployment
+// @Summary Get Deployment Events by Namespace and Name
+// @Description Retrieve events for a specific deployment by namespace and name
+// @Tags Workloads
+// @Accept json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param namespace path string true "Namespace name"
+// @Param name path string true "Deployment name"
+// @Success 200 {array} object "Deployment events"
+// @Failure 400 {object} map[string]string "Bad request - invalid parameters"
+// @Failure 404 {object} map[string]string "Deployment not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/deployments/{namespace}/{name}/events [get]
 func (h *DeploymentsHandler) GetDeploymentEvents(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -688,6 +837,22 @@ func (h *DeploymentsHandler) GetDeploymentEvents(c *gin.Context) {
 }
 
 // GetDeploymentPods returns pods for a specific deployment
+// @Summary Get Deployment Pods by Namespace and Name
+// @Description Retrieve all pods belonging to a specific deployment by namespace and name
+// @Tags Workloads
+// @Accept json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param namespace path string true "Namespace name"
+// @Param name path string true "Deployment name"
+// @Success 200 {array} object "Deployment pods"
+// @Failure 400 {object} map[string]string "Bad request - invalid parameters"
+// @Failure 404 {object} map[string]string "Deployment not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/deployments/{namespace}/{name}/pods [get]
 func (h *DeploymentsHandler) GetDeploymentPods(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -744,6 +909,22 @@ func (h *DeploymentsHandler) GetDeploymentPods(c *gin.Context) {
 }
 
 // GetDeploymentPodsByName returns pods for a specific deployment by name using namespace from query parameters
+// @Summary Get Deployment Pods by Name
+// @Description Retrieve all pods belonging to a specific deployment by name with namespace as query parameter
+// @Tags Workloads
+// @Accept json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param name path string true "Deployment name"
+// @Param namespace query string true "Namespace name"
+// @Success 200 {array} object "Deployment pods"
+// @Failure 400 {object} map[string]string "Bad request - missing namespace parameter"
+// @Failure 404 {object} map[string]string "Deployment not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/deployment/{name}/pods [get]
 func (h *DeploymentsHandler) GetDeploymentPodsByName(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")

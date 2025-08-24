@@ -1,169 +1,29 @@
-# kube-dash
+<div align="center">
+  <img src="https://raw.githubusercontent.com/kubernetes/kubernetes/master/logo/logo.png" alt="Kubernetes" width="100" height="100">
+  <h1>🚀 KubeDash</h1>
+  <p><strong>Modern Kubernetes Dashboard with Real-time Monitoring</strong></p>
+  
+  [![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)](https://golang.org)
+  [![React](https://img.shields.io/badge/React-18+-61DAFB?style=flat&logo=react)](https://reactjs.org)
+  [![TypeScript](https://img.shields.io/badge/TypeScript-5+-3178C6?style=flat&logo=typescript)](https://www.typescriptlang.org)
+  [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+  [![Build Status](https://img.shields.io/github/workflow/status/username/kube-dash/CI)](https://github.com/username/kube-dash/actions)
+</div>
 
-A Kubernetes dashboard application with a Go backend and React frontend.
+---
 
-## Features
+## 📋 Overview
 
-- Kubernetes resource management
-- Real-time resource monitoring
-- Multi-cluster support
-- Modern web interface
+KubeDash is a lightweight, modern Kubernetes dashboard built with Go and React. It provides real-time monitoring and management capabilities for your Kubernetes clusters with an intuitive web interface.
 
-## Architecture
+## 🚀 Quick Start
 
-The application consists of:
-- **Backend**: Go server with Gin framework
-- **Frontend**: React application with TypeScript
-- **Static File Serving**: The Go backend serves the built React application
+### Prerequisites
+- Go 1.21+
+- Node.js 18+
+- Kubernetes cluster access
 
-## Development
-
-### Using Makefile (Recommended)
-
-The project includes a comprehensive Makefile that simplifies common development tasks:
-
-```bash
-# Show all available commands
-make help
-
-# Setup development environment
-make setup
-
-# Build the entire application
-make build
-
-# Run in development mode
-make dev
-
-# Run tests
-make test-all
-
-# Format code
-make fmt-all
-
-# Clean build artifacts
-make clean
-```
-
-### Manual Development
-
-#### Backend
-
-The Go backend is located in the `cmd/server` directory and serves both the API and the static frontend files.
-
-##### Building the Backend
-
-```bash
-cd cmd/server
-go build -o ../../kube-dash-server
-```
-
-##### Running the Backend
-
-```bash
-./kube-dash-server
-```
-
-The server will:
-- Start on the configured host and port (default: `0.0.0.0:7080`)
-- Serve API endpoints under `/api/v1/`
-- Serve static files from `client/dist/` (configurable via `STATIC_FILES_PATH` environment variable)
-- Handle SPA routing for the React application
-
-#### Frontend
-
-The React frontend is located in the `client` directory.
-
-##### Building the Frontend
-
-```bash
-cd client
-npm install
-npm run build
-```
-
-This will create the `dist` folder with the built application that the Go backend serves.
-
-##### Development Server
-
-For development, you can run the frontend separately:
-
-```bash
-cd client
-npm run dev
-```
-
-## Configuration
-
-### Environment Variables
-
-- `PORT`: Server port (default: `7080`)
-- `HOST`: Server host (default: `0.0.0.0`)
-- `LOG_LEVEL`: Logging level (default: `info`)
-- `K8S_DEFAULT_NAMESPACE`: Default Kubernetes namespace (default: `default`)
-- `STATIC_FILES_PATH`: Path to static files (default: `client/dist`)
-
-## Static File Serving
-
-The Go backend automatically serves the React application from the `client/dist` directory. The setup includes:
-
-1. **Static Assets**: All files in `client/dist/assets/` are served under `/assets/`
-2. **SPA Routing**: All non-API routes serve the main `index.html` file for client-side routing
-3. **API Routes**: All `/api/*` routes are handled by the backend API
-
-### File Structure
-
-```
-client/dist/
-├── index.html          # Main HTML file
-└── assets/
-    ├── index-*.js      # Main JavaScript bundle
-    ├── index-*.css     # Main CSS bundle
-    ├── favicon-*.ico   # Favicon
-    └── *.js            # Other JavaScript modules
-```
-
-## API Endpoints
-
-- `GET /health` - Health check
-- `GET /api/v1/` - API information
-- `GET /api/v1/app/config` - Get Kubernetes configurations
-- `POST /api/v1/app/config/kubeconfigs` - Add kubeconfig
-- `GET /api/v1/namespaces` - Get namespaces (SSE)
-- `GET /api/v1/pods` - Get pods (SSE)
-- And many more Kubernetes resource endpoints...
-
-## Deployment
-
-### Using Makefile
-
-```bash
-# Build for current platform
-make build
-
-# Build for specific platforms
-make build-linux
-make build-windows
-make build-darwin
-
-# Create release builds
-make release
-make release-linux
-make release-windows
-make release-darwin
-```
-
-### Manual Deployment
-
-1. Build the frontend: `cd client && npm run build`
-2. Build the backend: `cd cmd/server && go build -o ../../kube-dash-server`
-3. Run the server: `./kube-dash-server`
-
-The application will be available at `http://localhost:7080` (or your configured host/port).
-
-## Development Workflow
-
-### Quick Start
+### Installation
 
 ```bash
 # Clone the repository
@@ -173,74 +33,97 @@ cd kube-dash
 # Setup development environment
 make setup
 
-# Run in development mode
-make dev
-```
-
-### Common Commands
-
-```bash
-# Development
-make dev              # Run in development mode
-make build            # Build the application
-make test-all         # Run all tests
-make lint-all         # Run all linters
-make fmt-all          # Format all code
-
-# Cleaning
-make clean            # Clean build artifacts
-make clean-all        # Clean everything
-
-# Platform-specific builds
-make build-linux      # Build for Linux
-make build-windows    # Build for Windows
-make build-darwin     # Build for macOS
-
-# CI/CD
-make ci               # Run CI pipeline (lint + test + build)
-make check            # Run all checks (lint + test)
-```
-
-### Cross-Platform Building
-
-The Makefile supports building for different platforms:
-
-```bash
-# Build for current platform
+# Build the application
 make build
 
-# Build for specific platforms
-make build-linux      # Linux AMD64
-make build-windows    # Windows AMD64
-make build-darwin     # macOS AMD64
-
-# Create release builds
-make release-linux    # Frontend + Linux backend
-make release-windows  # Frontend + Windows backend
-make release-darwin   # Frontend + macOS backend
+# Run the application
+make run
 ```
 
-## Troubleshooting
+The application will be available at `http://localhost:7080`
 
-### Common Issues
-
-1. **Node.js not found**: Install Node.js from [nodejs.org](https://nodejs.org/)
-2. **Go not found**: Install Go from [golang.org](https://golang.org/)
-3. **Build fails**: Run `make clean-all` and then `make build`
-4. **Port already in use**: Change the port using `PORT=8080 make run`
-
-### Getting Help
+### Development
 
 ```bash
-# Show all available commands
-make help
+# Run in development mode
+make dev
 
-# Check project status
-make status
+# Run tests
+make test-all
 
-# Show version information
-make version
-
-# Check dependencies
-make check-deps
+# Format code
+make fmt-all
 ```
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|----------|
+| `PORT` | Server port | `7080` |
+| `HOST` | Server host | `0.0.0.0` |
+| `LOG_LEVEL` | Logging level | `info` |
+| `K8S_DEFAULT_NAMESPACE` | Default Kubernetes namespace | `default` |
+| `STATIC_FILES_PATH` | Path to static files | `client/dist` |
+
+## 🔌 API Endpoints
+
+### Core Endpoints
+- `GET /health` - Health check
+- `GET /api/v1/` - API information
+- `GET /api/v1/app/config` - Get Kubernetes configurations
+- `POST /api/v1/app/config/kubeconfigs` - Add kubeconfig
+
+### Resource Endpoints (Server-Sent Events)
+- `GET /api/v1/namespaces` - Get namespaces
+- `GET /api/v1/pods` - Get pods
+- `GET /api/v1/deployments` - Get deployments
+- `GET /api/v1/services` - Get services
+
+## 🚀 Deployment
+
+### Production Build
+
+```bash
+# Build for production
+make build
+
+# Cross-platform builds
+make build-linux    # Linux
+make build-windows  # Windows
+make build-darwin   # macOS
+```
+
+### Docker Deployment
+
+```bash
+# Build Docker image
+docker build -t kube-dash .
+
+# Run container
+docker run -p 7080:7080 kube-dash
+```
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+### Development Commands
+
+```bash
+make help        # Show all available commands
+make test-all    # Run all tests
+make lint-all    # Run all linters
+make clean       # Clean build artifacts
+```
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+<div align="center">
+  <p>Made with ❤️ for the Kubernetes community</p>
+</div>

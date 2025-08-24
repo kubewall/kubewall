@@ -64,6 +64,21 @@ func (h *JobsHandler) getClientAndConfig(c *gin.Context) (*kubernetes.Clientset,
 }
 
 // GetJobsSSE returns jobs as Server-Sent Events with real-time updates
+// @Summary Get Jobs (SSE)
+// @Description Streams Jobs data in real-time using Server-Sent Events. Supports namespace filtering and multi-cluster configurations.
+// @Tags Workloads
+// @Accept text/event-stream
+// @Produce text/event-stream,application/json
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param namespace query string false "Kubernetes namespace to filter resources"
+// @Success 200 {array} types.JobListResponse "Streaming Jobs data"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 403 {object} map[string]string "Forbidden - insufficient permissions"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/jobs [get]
 func (h *JobsHandler) GetJobsSSE(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client-for-sse")
@@ -136,6 +151,22 @@ func (h *JobsHandler) GetJobsSSE(c *gin.Context) {
 }
 
 // GetJob returns a specific job
+// @Summary Get Job by namespace and name
+// @Description Retrieves detailed information about a specific Job in a given namespace
+// @Tags Workloads
+// @Accept json
+// @Produce json,text/event-stream
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param namespace path string true "Kubernetes namespace"
+// @Param name path string true "Job name"
+// @Success 200 {object} object "Job details"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "Job not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/jobs/{namespace}/{name} [get]
 func (h *JobsHandler) GetJob(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -188,6 +219,22 @@ func (h *JobsHandler) GetJob(c *gin.Context) {
 }
 
 // GetJobByName returns a specific job by name
+// @Summary Get Job by name
+// @Description Retrieves detailed information about a specific Job by name with namespace as query parameter
+// @Tags Workloads
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param namespace query string true "Kubernetes namespace"
+// @Param name path string true "Job name"
+// @Success 200 {object} object "Job details"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "Job not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/job/{name} [get]
 func (h *JobsHandler) GetJobByName(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -228,6 +275,22 @@ func (h *JobsHandler) GetJobByName(c *gin.Context) {
 }
 
 // GetJobYAMLByName returns the YAML representation of a specific job by name
+// @Summary Get Job YAML by name
+// @Description Retrieves the YAML representation of a specific Job by name
+// @Tags Workloads
+// @Accept json
+// @Produce text/plain
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param namespace query string true "Kubernetes namespace"
+// @Param name path string true "Job name"
+// @Success 200 {string} string "Job YAML representation"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "Job not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/job/{name}/yaml [get]
 func (h *JobsHandler) GetJobYAMLByName(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -273,6 +336,22 @@ func (h *JobsHandler) GetJobYAMLByName(c *gin.Context) {
 }
 
 // GetJobYAML returns the YAML representation of a specific job
+// @Summary Get Job YAML by namespace and name
+// @Description Retrieves the YAML representation of a specific Job in a given namespace
+// @Tags Workloads
+// @Accept json
+// @Produce text/plain
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param namespace path string true "Kubernetes namespace"
+// @Param name path string true "Job name"
+// @Success 200 {string} string "Job YAML representation"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "Job not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/jobs/{namespace}/{name}/yaml [get]
 func (h *JobsHandler) GetJobYAML(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -313,6 +392,22 @@ func (h *JobsHandler) GetJobYAML(c *gin.Context) {
 }
 
 // GetJobEventsByName returns events for a specific job by name
+// @Summary Get Job events by name
+// @Description Retrieves events related to a specific Job by name
+// @Tags Workloads
+// @Accept json
+// @Produce json,text/event-stream
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param namespace query string true "Kubernetes namespace"
+// @Param name path string true "Job name"
+// @Success 200 {array} object "Job events"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "Job not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/job/{name}/events [get]
 func (h *JobsHandler) GetJobEventsByName(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -334,6 +429,21 @@ func (h *JobsHandler) GetJobEventsByName(c *gin.Context) {
 }
 
 // GetJobEvents returns events for a specific job
+// @Summary Get Job events by namespace and name
+// @Description Retrieves events related to a specific Job in a given namespace
+// @Tags Workloads
+// @Accept json
+// @Produce json,text/event-stream
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param name path string true "Job name"
+// @Success 200 {array} object "Job events"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "Job not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/jobs/{namespace}/{name}/events [get]
 func (h *JobsHandler) GetJobEvents(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -347,6 +457,22 @@ func (h *JobsHandler) GetJobEvents(c *gin.Context) {
 }
 
 // GetJobPodsByName returns pods for a specific job by name
+// @Summary Get Job pods by name
+// @Description Retrieves all pods managed by a specific Job by name with namespace as query parameter
+// @Tags Workloads
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param namespace query string true "Kubernetes namespace"
+// @Param name path string true "Job name"
+// @Success 200 {array} types.PodListResponse "Job pods"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "Job not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/job/{name}/pods [get]
 func (h *JobsHandler) GetJobPodsByName(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {

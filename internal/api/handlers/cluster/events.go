@@ -58,6 +58,21 @@ func (h *EventsHandler) getClientAndConfig(c *gin.Context) (*kubernetes.Clientse
 }
 
 // GetEvents returns all events in a namespace
+// @Summary Get Events
+// @Description Retrieves all events in a specific namespace or cluster-wide if no namespace is specified
+// @Tags Cluster
+// @Accept json
+// @Produce json,text/event-stream
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param namespace query string false "Kubernetes namespace to filter events (empty for cluster-wide)"
+// @Success 200 {array} object "List of events"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 403 {object} map[string]string "Forbidden - insufficient permissions"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/events [get]
 func (h *EventsHandler) GetEvents(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -105,6 +120,21 @@ func (h *EventsHandler) GetEvents(c *gin.Context) {
 }
 
 // GetEventsSSE returns events as Server-Sent Events with real-time updates
+// @Summary Get Events (SSE)
+// @Description Streams Events data in real-time using Server-Sent Events. Provides live updates of cluster events.
+// @Tags Cluster
+// @Accept text/event-stream
+// @Produce text/event-stream,application/json
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param namespace query string false "Kubernetes namespace to filter events (empty for cluster-wide)"
+// @Success 200 {array} object "Streaming Events data"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 403 {object} map[string]string "Forbidden - insufficient permissions"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/events [get]
 func (h *EventsHandler) GetEventsSSE(c *gin.Context) {
 	// Start child span for client setup
 	_, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")

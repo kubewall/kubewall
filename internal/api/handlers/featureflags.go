@@ -29,6 +29,14 @@ func NewFeatureFlagsHandler(log *logger.Logger) *FeatureFlagsHandler {
 }
 
 // GetFeatureFlags returns the current feature flag configuration
+// @Summary Get Feature Flags
+// @Description Get the current feature flag configuration including tracing and cloud shell enablement
+// @Tags System
+// @Accept json
+// @Produce json
+// @Success 200 {object} FeatureFlagsResponse "Feature flags configuration"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /api/v1/feature-flags [get]
 func (h *FeatureFlagsHandler) GetFeatureFlags(c *gin.Context) {
 	// Read runtime environment variables
 	enableTracing := h.getBoolEnvVar("ENABLE_TRACING", false)

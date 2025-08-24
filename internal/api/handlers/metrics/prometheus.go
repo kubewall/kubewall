@@ -341,6 +341,18 @@ func (h *PrometheusHandler) verifyPrometheusService(ctx context.Context, client 
 }
 
 // GetAvailability returns whether Prometheus is installed and reachable
+// @Summary Check Prometheus availability
+// @Description Checks if Prometheus is installed and reachable in the cluster
+// @Tags Metrics
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Success 200 {object} map[string]interface{} "Prometheus availability status"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/metrics/prometheus/availability [get]
 func (h *PrometheusHandler) GetAvailability(c *gin.Context) {
 	client, err := h.getClient(c)
 	if err != nil {
@@ -503,6 +515,24 @@ func strconvParseFloat(s string) (float64, error) { return json.Number(s).Float6
 // ---------- Pod metrics ----------
 
 // GetPodMetricsSSE streams Prometheus-based pod metrics as SSE
+// @Summary Get pod metrics with real-time updates
+// @Description Streams Prometheus-based pod metrics (CPU, memory, network) via Server-Sent Events
+// @Tags Metrics
+// @Accept json
+// @Produce text/event-stream
+// @Produce json
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace path string true "Namespace name"
+// @Param name path string true "Pod name"
+// @Param range query string false "Time range for metrics" default(15m)
+// @Param step query string false "Step interval for metrics" default(15s)
+// @Success 200 {object} map[string]interface{} "Stream of pod metrics"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 404 {object} map[string]string "Prometheus not available"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/metrics/pods/{namespace}/{name}/sse [get]
 func (h *PrometheusHandler) GetPodMetricsSSE(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")

@@ -64,6 +64,19 @@ func (h *NamespacesHandler) getClientAndConfig(c *gin.Context) (*kubernetes.Clie
 }
 
 // GetNamespaces returns all namespaces
+// @Summary Get all Namespaces
+// @Description Retrieves a list of all namespaces in the Kubernetes cluster
+// @Tags Cluster
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Success 200 {object} object "List of namespaces"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/namespaces [get]
 func (h *NamespacesHandler) GetNamespaces(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -96,6 +109,20 @@ func (h *NamespacesHandler) GetNamespaces(c *gin.Context) {
 }
 
 // GetNamespacesSSE returns namespaces as Server-Sent Events with real-time updates
+// @Summary Get Namespaces (SSE)
+// @Description Streams Namespaces data in real-time using Server-Sent Events. Provides live updates of namespace status.
+// @Tags Cluster
+// @Accept text/event-stream
+// @Produce text/event-stream,application/json
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Success 200 {array} object "Streaming Namespaces data"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 403 {object} map[string]string "Forbidden - insufficient permissions"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/namespaces [get]
 func (h *NamespacesHandler) GetNamespacesSSE(c *gin.Context) {
 	// Start child span for client setup
 	_, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -146,6 +173,21 @@ func (h *NamespacesHandler) GetNamespacesSSE(c *gin.Context) {
 }
 
 // GetNamespace returns a specific namespace
+// @Summary Get Namespace by name
+// @Description Retrieves detailed information about a specific namespace
+// @Tags Cluster
+// @Accept json
+// @Produce json,text/event-stream
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param name path string true "Namespace name"
+// @Success 200 {object} object "Namespace details"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "Namespace not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/namespaces/{name} [get]
 func (h *NamespacesHandler) GetNamespace(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -187,6 +229,21 @@ func (h *NamespacesHandler) GetNamespace(c *gin.Context) {
 }
 
 // GetNamespaceYAML returns the YAML representation of a specific namespace
+// @Summary Get Namespace YAML
+// @Description Retrieves the YAML representation of a specific namespace
+// @Tags Cluster
+// @Accept json
+// @Produce text/plain
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param name path string true "Namespace name"
+// @Success 200 {string} string "Namespace YAML representation"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "Namespace not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/namespaces/{name}/yaml [get]
 func (h *NamespacesHandler) GetNamespaceYAML(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -226,6 +283,21 @@ func (h *NamespacesHandler) GetNamespaceYAML(c *gin.Context) {
 }
 
 // GetNamespaceEvents returns events for a specific namespace
+// @Summary Get Namespace events
+// @Description Retrieves events related to a specific namespace
+// @Tags Cluster
+// @Accept json
+// @Produce json,text/event-stream
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param name path string true "Namespace name"
+// @Success 200 {array} object "Namespace events"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "Namespace not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/namespaces/{name}/events [get]
 func (h *NamespacesHandler) GetNamespaceEvents(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -252,6 +324,21 @@ func (h *NamespacesHandler) GetNamespaceEvents(c *gin.Context) {
 }
 
 // GetNamespacePods returns pods for a specific namespace with SSE support
+// @Summary Get Namespace pods
+// @Description Retrieves all pods in a specific namespace with real-time updates
+// @Tags Cluster
+// @Accept json,text/event-stream
+// @Produce json,text/event-stream
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param name path string true "Namespace name"
+// @Success 200 {array} types.PodListResponse "Namespace pods"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "Namespace not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/namespaces/{name}/pods [get]
 func (h *NamespacesHandler) GetNamespacePods(c *gin.Context) {
 	// Start child span for client setup
 	_, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")

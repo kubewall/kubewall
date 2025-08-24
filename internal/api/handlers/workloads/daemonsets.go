@@ -66,6 +66,21 @@ func (h *DaemonSetsHandler) getClientAndConfig(c *gin.Context) (*kubernetes.Clie
 }
 
 // GetDaemonSetsSSE returns daemonsets as Server-Sent Events with real-time updates
+// @Summary Get DaemonSets (SSE)
+// @Description Retrieve all daemonsets with real-time updates via Server-Sent Events
+// @Tags Workloads
+// @Accept json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param namespace query string false "Namespace to filter daemonsets (empty for all namespaces)"
+// @Success 200 {array} types.DaemonSetListResponse "Stream of daemonset data"
+// @Failure 400 {object} map[string]string "Bad request - invalid parameters"
+// @Failure 403 {object} map[string]string "Forbidden - insufficient permissions"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/daemonsets [get]
 func (h *DaemonSetsHandler) GetDaemonSetsSSE(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client-for-sse")
@@ -138,6 +153,21 @@ func (h *DaemonSetsHandler) GetDaemonSetsSSE(c *gin.Context) {
 }
 
 // GetDaemonSet returns a specific daemonset
+// @Summary Get DaemonSet by Namespace and Name
+// @Description Retrieve a specific daemonset by namespace and name
+// @Tags Workloads
+// @Accept json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param namespace path string true "Namespace name"
+// @Param name path string true "DaemonSet name"
+// @Success 200 {object} object "DaemonSet details"
+// @Failure 400 {object} map[string]string "Bad request - invalid parameters"
+// @Failure 404 {object} map[string]string "DaemonSet not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/daemonsets/{namespace}/{name} [get]
 func (h *DaemonSetsHandler) GetDaemonSet(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -191,6 +221,21 @@ func (h *DaemonSetsHandler) GetDaemonSet(c *gin.Context) {
 }
 
 // GetDaemonSetByName returns a specific daemonset by name
+// @Summary Get DaemonSet by Name
+// @Description Retrieve a specific daemonset by name with namespace as query parameter
+// @Tags Workloads
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param name path string true "DaemonSet name"
+// @Param namespace query string true "Namespace name"
+// @Success 200 {object} object "DaemonSet details"
+// @Failure 400 {object} map[string]string "Bad request - missing namespace parameter"
+// @Failure 404 {object} map[string]string "DaemonSet not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/daemonset/{name} [get]
 func (h *DaemonSetsHandler) GetDaemonSetByName(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -232,6 +277,21 @@ func (h *DaemonSetsHandler) GetDaemonSetByName(c *gin.Context) {
 }
 
 // GetDaemonSetYAMLByName returns the YAML representation of a specific daemonset by name
+// @Summary Get DaemonSet YAML by Name
+// @Description Retrieve the YAML representation of a specific daemonset by name
+// @Tags Workloads
+// @Accept json
+// @Produce text/plain
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param name path string true "DaemonSet name"
+// @Param namespace query string true "Namespace name"
+// @Success 200 {string} string "DaemonSet YAML"
+// @Failure 400 {object} map[string]string "Bad request - missing namespace parameter"
+// @Failure 404 {object} map[string]string "DaemonSet not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/daemonset/{name}/yaml [get]
 func (h *DaemonSetsHandler) GetDaemonSetYAMLByName(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -278,6 +338,21 @@ func (h *DaemonSetsHandler) GetDaemonSetYAMLByName(c *gin.Context) {
 }
 
 // GetDaemonSetYAML returns the YAML representation of a specific daemonset
+// @Summary Get DaemonSet YAML by Namespace and Name
+// @Description Retrieve the YAML representation of a specific daemonset by namespace and name
+// @Tags Workloads
+// @Accept json
+// @Produce text/plain
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param namespace path string true "Namespace name"
+// @Param name path string true "DaemonSet name"
+// @Success 200 {string} string "DaemonSet YAML"
+// @Failure 400 {object} map[string]string "Bad request - invalid parameters"
+// @Failure 404 {object} map[string]string "DaemonSet not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/daemonsets/{namespace}/{name}/yaml [get]
 func (h *DaemonSetsHandler) GetDaemonSetYAML(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -319,6 +394,20 @@ func (h *DaemonSetsHandler) GetDaemonSetYAML(c *gin.Context) {
 }
 
 // GetDaemonSetEventsByName returns events for a specific daemonset by name
+// @Summary Get DaemonSet Events by Name
+// @Description Retrieve events for a specific daemonset by name
+// @Tags Workloads
+// @Accept json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param name path string true "DaemonSet name"
+// @Param namespace query string true "Namespace name"
+// @Success 200 {array} object "DaemonSet events"
+// @Failure 400 {object} map[string]string "Bad request - missing namespace parameter"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/daemonset/{name}/events [get]
 func (h *DaemonSetsHandler) GetDaemonSetEventsByName(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -340,6 +429,20 @@ func (h *DaemonSetsHandler) GetDaemonSetEventsByName(c *gin.Context) {
 }
 
 // GetDaemonSetEvents returns events for a specific daemonset
+// @Summary Get DaemonSet Events by Namespace and Name
+// @Description Retrieve events for a specific daemonset by namespace and name
+// @Tags Workloads
+// @Accept json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param namespace path string true "Namespace name"
+// @Param name path string true "DaemonSet name"
+// @Success 200 {array} object "DaemonSet events"
+// @Failure 400 {object} map[string]string "Bad request - invalid parameters"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/daemonsets/{namespace}/{name}/events [get]
 func (h *DaemonSetsHandler) GetDaemonSetEvents(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -353,6 +456,22 @@ func (h *DaemonSetsHandler) GetDaemonSetEvents(c *gin.Context) {
 }
 
 // GetDaemonSetPods returns pods for a specific daemonset
+// @Summary Get DaemonSet Pods by Namespace and Name
+// @Description Retrieve all pods belonging to a specific daemonset by namespace and name
+// @Tags Workloads
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param namespace path string true "Namespace name"
+// @Param name path string true "DaemonSet name"
+// @Success 200 {array} types.PodListResponse "DaemonSet pods"
+// @Failure 400 {object} map[string]string "Bad request - invalid parameters"
+// @Failure 404 {object} map[string]string "DaemonSet not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/daemonsets/{namespace}/{name}/pods [get]
 func (h *DaemonSetsHandler) GetDaemonSetPods(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -400,6 +519,20 @@ func (h *DaemonSetsHandler) GetDaemonSetPods(c *gin.Context) {
 }
 
 // RestartDaemonSet restarts a daemonset using rolling restart
+// @Summary Restart DaemonSet
+// @Description Restart all pods in a daemonset using rolling restart strategy
+// @Tags Workloads
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param name path string true "DaemonSet name"
+// @Param namespace query string true "Namespace name"
+// @Success 200 {object} map[string]string "DaemonSet restart initiated successfully"
+// @Failure 400 {object} map[string]string "Bad request - invalid parameters"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/daemonset/{name}/restart [post]
 func (h *DaemonSetsHandler) RestartDaemonSet(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -464,6 +597,22 @@ func (h *DaemonSetsHandler) performRollingRestart(client *kubernetes.Clientset, 
 }
 
 // GetDaemonSetPodsByName returns pods for a specific daemonset by name
+// @Summary Get DaemonSet Pods by Name
+// @Description Retrieve all pods belonging to a specific daemonset by name with namespace as query parameter
+// @Tags Workloads
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name (for multi-cluster configs)"
+// @Param name path string true "DaemonSet name"
+// @Param namespace query string true "Namespace name"
+// @Success 200 {array} types.PodListResponse "DaemonSet pods"
+// @Failure 400 {object} map[string]string "Bad request - missing namespace parameter"
+// @Failure 404 {object} map[string]string "DaemonSet not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/daemonset/{name}/pods [get]
 func (h *DaemonSetsHandler) GetDaemonSetPodsByName(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {

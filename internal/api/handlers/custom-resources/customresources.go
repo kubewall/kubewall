@@ -116,6 +116,23 @@ func (h *CustomResourcesHandler) getDynamicClient(c *gin.Context) (dynamic.Inter
 }
 
 // GetCustomResources returns custom resources for a specific CRD
+// @Summary Get Custom Resources
+// @Description Get all custom resources for a specific Custom Resource Definition
+// @Tags Custom Resources
+// @Accept json
+// @Produce json
+// @Param group query string true "Resource group"
+// @Param version query string true "Resource version"
+// @Param resource query string true "Resource name"
+// @Param namespace query string false "Namespace (if empty, returns cluster-wide resources)"
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name"
+// @Success 200 {array} map[string]interface{} "List of custom resources"
+// @Failure 400 {object} map[string]string "Bad request - missing required parameters"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /api/v1/customresources [get]
+// @Security BearerAuth
+// @Security KubeConfig
 func (h *CustomResourcesHandler) GetCustomResources(c *gin.Context) {
 	// Start main span for custom resources list operation
 	ctx, span := h.tracingHelper.StartAuthSpan(c.Request.Context(), "custom_resource.list")
@@ -198,6 +215,23 @@ func (h *CustomResourcesHandler) GetCustomResources(c *gin.Context) {
 }
 
 // GetCustomResourcesSSE returns custom resources as Server-Sent Events
+// @Summary Get Custom Resources (SSE)
+// @Description Get custom resources for a specific CRD with real-time updates via Server-Sent Events
+// @Tags Custom Resources
+// @Accept json
+// @Produce text/event-stream
+// @Param group query string true "Resource group"
+// @Param version query string true "Resource version"
+// @Param resource query string true "Resource name"
+// @Param namespace query string false "Namespace (if empty, returns cluster-wide resources)"
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name"
+// @Success 200 {object} map[string]interface{} "Stream of custom resources data with additional printer columns"
+// @Failure 400 {object} map[string]string "Bad request - missing required parameters"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /api/v1/customresources/sse [get]
+// @Security BearerAuth
+// @Security KubeConfig
 func (h *CustomResourcesHandler) GetCustomResourcesSSE(c *gin.Context) {
 	// Start main span for custom resources SSE operation
 	ctx, span := h.tracingHelper.StartAuthSpan(c.Request.Context(), "custom_resource.list_sse")
@@ -306,6 +340,24 @@ func (h *CustomResourcesHandler) GetCustomResourcesSSE(c *gin.Context) {
 }
 
 // GetCustomResource returns a specific custom resource
+// @Summary Get Custom Resource by Name
+// @Description Get a specific custom resource by name and namespace
+// @Tags Custom Resources
+// @Accept json
+// @Produce json
+// @Param namespace path string true "Namespace"
+// @Param name path string true "Resource name"
+// @Param group query string true "Resource group"
+// @Param version query string true "Resource version"
+// @Param resource query string true "Resource type"
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name"
+// @Success 200 {object} map[string]interface{} "Custom resource details"
+// @Failure 400 {object} map[string]string "Bad request - missing required parameters"
+// @Failure 404 {object} map[string]string "Custom resource not found"
+// @Router /api/v1/customresources/{namespace}/{name} [get]
+// @Security BearerAuth
+// @Security KubeConfig
 func (h *CustomResourcesHandler) GetCustomResource(c *gin.Context) {
 	// Start main span for single custom resource retrieval operation
 	ctx, span := h.tracingHelper.StartAuthSpan(c.Request.Context(), "custom_resource.get")
@@ -382,6 +434,24 @@ func (h *CustomResourcesHandler) GetCustomResource(c *gin.Context) {
 }
 
 // GetCustomResourceYAML returns the YAML for a specific custom resource (namespaced path)
+// @Summary Get Custom Resource YAML
+// @Description Get the YAML representation of a specific custom resource
+// @Tags Custom Resources
+// @Accept json
+// @Produce text/plain
+// @Param namespace path string true "Namespace"
+// @Param name path string true "Resource name"
+// @Param group query string true "Resource group"
+// @Param version query string true "Resource version"
+// @Param resource query string true "Resource type"
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name"
+// @Success 200 {string} string "Custom resource YAML"
+// @Failure 400 {object} map[string]string "Bad request - missing required parameters"
+// @Failure 404 {object} map[string]string "Custom resource not found"
+// @Router /api/v1/customresources/{namespace}/{name}/yaml [get]
+// @Security BearerAuth
+// @Security KubeConfig
 func (h *CustomResourcesHandler) GetCustomResourceYAML(c *gin.Context) {
 	// Start main span for custom resource YAML operation
 	ctx, span := h.tracingHelper.StartAuthSpan(c.Request.Context(), "custom_resource.get_yaml")
@@ -442,6 +512,24 @@ func (h *CustomResourcesHandler) GetCustomResourceYAML(c *gin.Context) {
 }
 
 // GetCustomResourceYAMLByName returns the YAML for a specific custom resource (cluster-scoped path with optional namespace via query)
+// @Summary Get Custom Resource YAML by Name
+// @Description Get the YAML representation of a specific custom resource (cluster-scoped or with optional namespace)
+// @Tags Custom Resources
+// @Accept json
+// @Produce text/plain
+// @Param name path string true "Resource name"
+// @Param group query string true "Resource group"
+// @Param version query string true "Resource version"
+// @Param resource query string true "Resource type"
+// @Param namespace query string false "Namespace (optional for namespaced resources)"
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name"
+// @Success 200 {string} string "Custom resource YAML"
+// @Failure 400 {object} map[string]string "Bad request - missing required parameters"
+// @Failure 404 {object} map[string]string "Custom resource not found"
+// @Router /api/v1/customresources/{name}/yaml [get]
+// @Security BearerAuth
+// @Security KubeConfig
 func (h *CustomResourcesHandler) GetCustomResourceYAMLByName(c *gin.Context) {
 	// Start main span for custom resource YAML by name operation
 	ctx, span := h.tracingHelper.StartAuthSpan(c.Request.Context(), "custom_resource.get_yaml_by_name")
@@ -508,6 +596,24 @@ func (h *CustomResourcesHandler) GetCustomResourceYAMLByName(c *gin.Context) {
 }
 
 // GetCustomResourceEvents returns events for a specific custom resource (namespaced path)
+// @Summary Get Custom Resource Events
+// @Description Get events for a specific custom resource in a namespace
+// @Tags Custom Resources
+// @Accept json
+// @Produce text/event-stream
+// @Param namespace path string true "Namespace"
+// @Param name path string true "Resource name"
+// @Param group query string true "Resource group"
+// @Param version query string true "Resource version"
+// @Param resource query string true "Resource type"
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name"
+// @Success 200 {array} map[string]interface{} "Stream of events for the custom resource"
+// @Failure 400 {object} map[string]string "Bad request - missing required parameters"
+// @Failure 404 {object} map[string]string "Custom resource not found"
+// @Router /api/v1/customresources/{namespace}/{name}/events [get]
+// @Security BearerAuth
+// @Security KubeConfig
 func (h *CustomResourcesHandler) GetCustomResourceEvents(c *gin.Context) {
 	// Start main span for custom resource events operation
 	ctx, span := h.tracingHelper.StartAuthSpan(c.Request.Context(), "custom_resource.get_events")
@@ -590,6 +696,24 @@ func (h *CustomResourcesHandler) GetCustomResourceEvents(c *gin.Context) {
 }
 
 // GetCustomResourceEventsByName returns events for a specific custom resource (cluster-scoped path, optional namespace via query)
+// @Summary Get Custom Resource Events by Name
+// @Description Get events for a specific custom resource (cluster-scoped or with optional namespace)
+// @Tags Custom Resources
+// @Accept json
+// @Produce text/event-stream
+// @Param name path string true "Resource name"
+// @Param group query string true "Resource group"
+// @Param version query string true "Resource version"
+// @Param resource query string true "Resource type"
+// @Param namespace query string false "Namespace (optional for namespaced resources)"
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name"
+// @Success 200 {array} map[string]interface{} "Stream of events for the custom resource"
+// @Failure 400 {object} map[string]string "Bad request - missing required parameters"
+// @Failure 404 {object} map[string]string "Custom resource not found"
+// @Router /api/v1/customresources/{name}/events [get]
+// @Security BearerAuth
+// @Security KubeConfig
 func (h *CustomResourcesHandler) GetCustomResourceEventsByName(c *gin.Context) {
 	// Start main span for custom resource events by name operation
 	ctx, span := h.tracingHelper.StartAuthSpan(c.Request.Context(), "custom_resource.get_events_by_name")

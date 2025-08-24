@@ -189,6 +189,21 @@ func (h *HelmHandler) getClientAndConfig(c *gin.Context) (*api.Config, error) {
 }
 
 // GetHelmReleasesSSE returns Helm releases via Server-Sent Events
+// @Summary Get Helm releases with real-time updates
+// @Description Retrieves Helm releases in the specified namespace with Server-Sent Events for real-time updates
+// @Tags Helm
+// @Accept json
+// @Produce text/event-stream
+// @Produce json
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace query string false "Namespace name (empty for all namespaces)"
+// @Success 200 {array} types.HelmReleaseResponse "Stream of Helm releases or JSON array"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/helm/releases/sse [get]
 func (h *HelmHandler) GetHelmReleasesSSE(c *gin.Context) {
 	// Create main span for the operation
 	ctx, span := h.tracingHelper.StartAuthSpan(c.Request.Context(), "helm.get_releases_sse")
@@ -368,6 +383,22 @@ func (h *HelmHandler) fetchHelmReleasesOptimized(config *api.Config, cluster, na
 }
 
 // GetHelmReleaseDetails returns detailed information about a specific Helm release
+// @Summary Get Helm release details
+// @Description Retrieves detailed information about a specific Helm release including status, values, and metadata
+// @Tags Helm
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace query string true "Namespace name"
+// @Param name path string true "Release name"
+// @Success 200 {object} map[string]interface{} "Helm release details"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 404 {object} map[string]string "Release not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/helm/releases/{name}/details [get]
 func (h *HelmHandler) GetHelmReleaseDetails(c *gin.Context) {
 	// Start main span for Helm release details operation
 	ctx, span := h.tracingHelper.StartAuthSpan(c.Request.Context(), "helm.get_release_details")

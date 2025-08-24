@@ -189,6 +189,19 @@ func (h *NodesHandler) transformNodeToResponse(node *v1.Node) NodeListResponse {
 }
 
 // GetNodes returns all nodes
+// @Summary Get all Nodes
+// @Description Retrieves a list of all nodes in the Kubernetes cluster
+// @Tags Cluster
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Success 200 {array} cluster.NodeListResponse "List of nodes"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/nodes [get]
 func (h *NodesHandler) GetNodes(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -233,6 +246,20 @@ func (h *NodesHandler) GetNodes(c *gin.Context) {
 }
 
 // GetNodesSSE returns nodes as Server-Sent Events with real-time updates
+// @Summary Get Nodes (SSE)
+// @Description Streams Nodes data in real-time using Server-Sent Events. Provides live updates of cluster node status.
+// @Tags Cluster
+// @Accept text/event-stream
+// @Produce text/event-stream,application/json
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Success 200 {array} cluster.NodeListResponse "Streaming Nodes data"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 403 {object} map[string]string "Forbidden - insufficient permissions"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/nodes [get]
 func (h *NodesHandler) GetNodesSSE(c *gin.Context) {
 	// Start child span for client setup
 	_, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client-for-sse")
@@ -289,6 +316,21 @@ func (h *NodesHandler) GetNodesSSE(c *gin.Context) {
 }
 
 // GetNode returns a specific node
+// @Summary Get Node by name
+// @Description Retrieves detailed information about a specific node in the cluster
+// @Tags Cluster
+// @Accept json
+// @Produce json,text/event-stream
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param name path string true "Node name"
+// @Success 200 {object} object "Node details"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "Node not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/nodes/{name} [get]
 func (h *NodesHandler) GetNode(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -330,6 +372,21 @@ func (h *NodesHandler) GetNode(c *gin.Context) {
 }
 
 // GetNodeYAML returns the YAML representation of a specific node
+// @Summary Get Node YAML
+// @Description Retrieves the YAML representation of a specific node
+// @Tags Cluster
+// @Accept json
+// @Produce text/plain
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param name path string true "Node name"
+// @Success 200 {string} string "Node YAML representation"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "Node not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/nodes/{name}/yaml [get]
 func (h *NodesHandler) GetNodeYAML(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -369,6 +426,21 @@ func (h *NodesHandler) GetNodeYAML(c *gin.Context) {
 }
 
 // GetNodeEvents returns events for a specific node
+// @Summary Get Node events
+// @Description Retrieves events related to a specific node
+// @Tags Cluster
+// @Accept json
+// @Produce json,text/event-stream
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param name path string true "Node name"
+// @Success 200 {array} object "Node events"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "Node not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/nodes/{name}/events [get]
 func (h *NodesHandler) GetNodeEvents(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -395,6 +467,21 @@ func (h *NodesHandler) GetNodeEvents(c *gin.Context) {
 }
 
 // GetNodePods returns pods for a specific node with SSE support
+// @Summary Get Node pods
+// @Description Retrieves all pods running on a specific node with real-time updates
+// @Tags Cluster
+// @Accept json,text/event-stream
+// @Produce json,text/event-stream
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param name path string true "Node name"
+// @Success 200 {array} types.PodListResponse "Node pods"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "Node not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/nodes/{name}/pods [get]
 func (h *NodesHandler) GetNodePods(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -455,6 +542,21 @@ type NodeActionRequest struct {
 }
 
 // CordonNode marks a node as unschedulable
+// @Summary Cordon Node
+// @Description Marks a node as unschedulable, preventing new pods from being scheduled on it
+// @Tags Cluster
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param name path string true "Node name"
+// @Success 200 {object} map[string]string "Cordon operation success"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "Node not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/nodes/{name}/cordon [post]
 func (h *NodesHandler) CordonNode(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -519,6 +621,21 @@ func (h *NodesHandler) CordonNode(c *gin.Context) {
 }
 
 // UncordonNode marks a node as schedulable
+// @Summary Uncordon Node
+// @Description Marks a node as schedulable, allowing new pods to be scheduled on it
+// @Tags Cluster
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param name path string true "Node name"
+// @Success 200 {object} map[string]string "Uncordon operation success"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "Node not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/nodes/{name}/uncordon [post]
 func (h *NodesHandler) UncordonNode(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -563,6 +680,23 @@ func (h *NodesHandler) UncordonNode(c *gin.Context) {
 }
 
 // DrainNode evicts all pods from a node
+// @Summary Drain Node
+// @Description Evicts all pods from a node and marks it as unschedulable for maintenance
+// @Tags Cluster
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param name path string true "Node name"
+// @Param drainOptions body cluster.NodeActionRequest true "Drain options" example({"force": false, "ignoreDaemonSets": true, "deleteEmptyDirData": false, "gracePeriod": 30})
+// @Success 200 {object} map[string]interface{} "Drain operation success with eviction details"
+// @Success 206 {object} map[string]interface{} "Partial success - some pods failed to evict"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 404 {object} map[string]string "Node not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/nodes/{name}/drain [post]
 func (h *NodesHandler) DrainNode(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {
@@ -670,6 +804,21 @@ func (h *NodesHandler) DrainNode(c *gin.Context) {
 }
 
 // CheckNodeActionPermission checks if the user has permission to perform node actions
+// @Summary Check Node action permissions
+// @Description Checks if the current user has permission to perform specific actions on a node (cordon, uncordon, drain)
+// @Tags Cluster
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name for multi-cluster setups"
+// @Param action query string true "Action to check permissions for" Enums(cordon, uncordon, drain)
+// @Param nodeName query string true "Node name to check permissions for"
+// @Success 200 {object} map[string]interface{} "Permission check results"
+// @Failure 400 {object} map[string]string "Bad request - missing or invalid parameters"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/nodes/permissions [get]
 func (h *NodesHandler) CheckNodeActionPermission(c *gin.Context) {
 	client, err := h.getClientAndConfig(c)
 	if err != nil {

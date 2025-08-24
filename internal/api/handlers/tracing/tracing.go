@@ -31,6 +31,24 @@ func NewTracingHandler(store *storage.KubeConfigStore, traceStore tracing.TraceS
 }
 
 // GetTraces handles GET /api/traces
+// @Summary Get Traces
+// @Description Get traces with filtering and pagination support
+// @Tags Tracing
+// @Accept json
+// @Produce json
+// @Param service query string false "Filter by service name"
+// @Param operation query string false "Filter by operation name"
+// @Param status query string false "Filter by trace status"
+// @Param startTime query string false "Start time filter (RFC3339 format)"
+// @Param endTime query string false "End time filter (RFC3339 format)"
+// @Param minDuration query string false "Minimum duration filter (e.g., '100ms', '1s')"
+// @Param maxDuration query string false "Maximum duration filter (e.g., '5s', '1m')"
+// @Param limit query integer false "Maximum number of traces to return (default: 100)"
+// @Param offset query integer false "Number of traces to skip (default: 0)"
+// @Success 200 {object} map[string]interface{} "Traces with pagination info"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /api/v1/traces [get]
+// @Security BearerAuth
 func (h *TracingHandler) GetTraces(c *gin.Context) {
 	// Parse query parameters
 	filter := tracing.TraceFilter{
@@ -99,6 +117,17 @@ func (h *TracingHandler) GetTraces(c *gin.Context) {
 }
 
 // GetTrace handles GET /api/traces/:traceId
+// @Summary Get Trace by ID
+// @Description Get a specific trace by its trace ID including all spans
+// @Tags Tracing
+// @Accept json
+// @Produce json
+// @Param traceId path string true "Trace ID"
+// @Success 200 {object} map[string]interface{} "Trace details with spans"
+// @Failure 400 {object} map[string]string "Bad request - missing trace ID"
+// @Failure 404 {object} map[string]string "Trace not found"
+// @Router /api/v1/traces/{traceId} [get]
+// @Security BearerAuth
 func (h *TracingHandler) GetTrace(c *gin.Context) {
 	traceID := c.Param("traceId")
 	if traceID == "" {
@@ -120,6 +149,16 @@ func (h *TracingHandler) GetTrace(c *gin.Context) {
 }
 
 // GetServiceMap handles GET /api/traces/service-map
+// @Summary Get Service Map
+// @Description Get service dependency map showing connections between services
+// @Tags Tracing
+// @Accept json
+// @Produce json
+// @Param timeRange query string false "Time range for service map (default: '1h')"
+// @Success 200 {object} map[string]interface{} "Service map with nodes and connections"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /api/v1/traces/service-map [get]
+// @Security BearerAuth
 func (h *TracingHandler) GetServiceMap(c *gin.Context) {
 	timeRange := c.DefaultQuery("timeRange", "1h")
 
@@ -143,11 +182,29 @@ func (h *TracingHandler) GetServiceMap(c *gin.Context) {
 }
 
 // GetTracingConfig handles GET /api/tracing/config
+// @Summary Get Tracing Configuration
+// @Description Get the current tracing configuration settings
+// @Tags Tracing
+// @Accept json
+// @Produce json
+// @Success 200 {object} config.TracingConfig "Tracing configuration"
+// @Router /api/v1/tracing/config [get]
+// @Security BearerAuth
 func (h *TracingHandler) GetTracingConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, h.config)
 }
 
 // UpdateTracingConfig handles PUT /api/tracing/config
+// @Summary Update Tracing Configuration
+// @Description Update the tracing configuration settings
+// @Tags Tracing
+// @Accept json
+// @Produce json
+// @Param config body config.TracingConfig true "Tracing configuration"
+// @Success 200 {object} config.TracingConfig "Updated tracing configuration"
+// @Failure 400 {object} map[string]string "Bad request - invalid configuration"
+// @Router /api/v1/tracing/config [put]
+// @Security BearerAuth
 func (h *TracingHandler) UpdateTracingConfig(c *gin.Context) {
 	var newConfig config.TracingConfig
 	if err := c.ShouldBindJSON(&newConfig); err != nil {
@@ -183,6 +240,15 @@ func (h *TracingHandler) UpdateTracingConfig(c *gin.Context) {
 }
 
 // ExportTraces handles GET /api/traces/export
+// @Summary Export Traces
+// @Description Export all traces as JSON file download
+// @Tags Tracing
+// @Accept json
+// @Produce application/json
+// @Success 200 {file} file "Traces export file"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /api/v1/traces/export [get]
+// @Security BearerAuth
 func (h *TracingHandler) ExportTraces(c *gin.Context) {
 	data, err := h.traceStore.ExportTraces(c.Request.Context())
 	if err != nil {
@@ -197,6 +263,15 @@ func (h *TracingHandler) ExportTraces(c *gin.Context) {
 }
 
 // GetTracingStats handles GET /api/tracing/stats
+// @Summary Get Tracing Statistics
+// @Description Get statistics about stored traces including counts, averages, and error rates
+// @Tags Tracing
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{} "Tracing statistics"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /api/v1/tracing/stats [get]
+// @Security BearerAuth
 func (h *TracingHandler) GetTracingStats(c *gin.Context) {
 	// Get basic statistics about stored traces
 	filter := tracing.TraceFilter{

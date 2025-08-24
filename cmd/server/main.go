@@ -1,3 +1,39 @@
+// Package main KubeDash API Server
+//
+// Modern Kubernetes Dashboard API with real-time monitoring and management capabilities.
+// Provides comprehensive access to Kubernetes resources including workloads, networking,
+// storage, and configuration management.
+//
+// Terms Of Service: https://github.com/Facets-cloud/kube-dash
+// Schemes: http, https
+// Host: localhost:7080
+// BasePath: /api/v1
+// Version: 1.0.0
+// License: MIT https://github.com/Facets-cloud/kube-dash/blob/main/LICENSE
+// Contact: KubeDash API Support <support@facets.cloud> https://github.com/Facets-cloud/kube-dash
+//
+// Consumes:
+// - application/json
+// - text/event-stream
+//
+// Produces:
+// - application/json
+// - text/event-stream
+// - application/yaml
+//
+// SecurityDefinitions:
+// BearerAuth:
+//   type: apiKey
+//   name: Authorization
+//   in: header
+//   description: Enter the token with the 'Bearer ' prefix, e.g. 'Bearer abcde12345'
+// KubeConfig:
+//   type: apiKey
+//   name: X-Kube-Config
+//   in: header
+//   description: Kubernetes configuration identifier
+//
+// swagger:meta
 package main
 
 import (
@@ -11,6 +47,7 @@ import (
 	"github.com/Facets-cloud/kube-dash/internal/server"
 	"github.com/Facets-cloud/kube-dash/pkg/logger"
 	"github.com/Facets-cloud/kube-dash/pkg/tracing"
+	_ "github.com/Facets-cloud/kube-dash/docs" // Import generated docs
 )
 
 // Version information - set by ldflags during build

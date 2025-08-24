@@ -66,6 +66,20 @@ func (h *PodDisruptionBudgetsHandler) getClientAndConfig(c *gin.Context) (*kuber
 }
 
 // GetPodDisruptionBudgets returns all pod disruption budgets in a namespace
+// @Summary Get all Pod Disruption Budgets in a namespace
+// @Description Retrieves all Pod Disruption Budgets in the specified namespace with transformed response format
+// @Tags PodDisruptionBudgets
+// @Accept json
+// @Produce json
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace query string true "Namespace name"
+// @Success 200 {array} types.PodDisruptionBudgetListResponse "List of transformed Pod Disruption Budgets"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/poddisruptionbudgets [get]
 func (h *PodDisruptionBudgetsHandler) GetPodDisruptionBudgets(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")
@@ -112,6 +126,21 @@ func (h *PodDisruptionBudgetsHandler) GetPodDisruptionBudgets(c *gin.Context) {
 }
 
 // GetPodDisruptionBudgetsSSE returns pod disruption budgets as Server-Sent Events with real-time updates
+// @Summary Get Pod Disruption Budgets with real-time updates
+// @Description Retrieves Pod Disruption Budgets in the specified namespace with Server-Sent Events for real-time updates
+// @Tags PodDisruptionBudgets
+// @Accept json
+// @Produce text/event-stream
+// @Produce json
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace query string true "Namespace name"
+// @Success 200 {array} types.PodDisruptionBudgetListResponse "Stream of transformed Pod Disruption Budgets or JSON array"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/poddisruptionbudgets/sse [get]
 func (h *PodDisruptionBudgetsHandler) GetPodDisruptionBudgetsSSE(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client-for-sse")
@@ -179,6 +208,22 @@ func (h *PodDisruptionBudgetsHandler) GetPodDisruptionBudgetsSSE(c *gin.Context)
 }
 
 // GetPodDisruptionBudget returns a specific pod disruption budget
+// @Summary Get a specific Pod Disruption Budget
+// @Description Retrieves a specific Pod Disruption Budget by name and namespace
+// @Tags PodDisruptionBudgets
+// @Accept json
+// @Produce json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes config ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace path string true "Namespace name"
+// @Param name path string true "Pod Disruption Budget name"
+// @Success 200 {object} map[string]interface{} "Pod Disruption Budget details"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 404 {object} map[string]string "Pod Disruption Budget not found"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/poddisruptionbudgets/{namespace}/{name} [get]
 func (h *PodDisruptionBudgetsHandler) GetPodDisruptionBudget(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "get-client-config")

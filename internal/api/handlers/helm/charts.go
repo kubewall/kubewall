@@ -193,6 +193,22 @@ func (h *HelmHandler) resolveRepoPathFromPackageOrName(c *gin.Context, packageOr
 }
 
 // SearchHelmCharts searches for Helm charts using Artifact Hub API
+// SearchHelmCharts searches for Helm charts in Artifact Hub
+// @Summary Search Helm charts
+// @Description Searches for Helm charts in Artifact Hub based on query parameters
+// @Tags Helm
+// @Accept json
+// @Produce json
+// @Param q query string false "Search query"
+// @Param limit query int false "Maximum number of results" default(20)
+// @Param offset query int false "Offset for pagination" default(0)
+// @Param repository query string false "Repository filter"
+// @Success 200 {object} map[string]interface{} "Search results"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Security KubeConfig
+// @Router /api/v1/helm/charts/search [get]
 func (h *HelmHandler) SearchHelmCharts(c *gin.Context) {
 	// Start main span for Helm charts search operation
 	ctx, span := h.tracingHelper.StartAuthSpan(c.Request.Context(), "helm.search_charts")

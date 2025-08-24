@@ -31,6 +31,8 @@ import (
 	pkg_tracing "github.com/Facets-cloud/kube-dash/pkg/tracing"
 
 	"github.com/gin-gonic/gin"
+	ginSwagger "github.com/swaggo/gin-swagger"
+	swaggerFiles "github.com/swaggo/files"
 )
 
 // Server represents the HTTP server
@@ -730,6 +732,9 @@ func (s *Server) setupRoutes() {
 		}
 	}
 
+	// Swagger documentation endpoint
+	s.router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	// Serve static files from the dist folder
 	s.router.Static("/assets", s.config.StaticFiles.Path+"/assets")
 
@@ -738,6 +743,13 @@ func (s *Server) setupRoutes() {
 }
 
 // healthCheck handles health check requests
+// @Summary Health Check
+// @Description Get the health status of the API
+// @Tags System
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{} "Health status"
+// @Router /health [get]
 func (s *Server) healthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status":    "healthy",
@@ -747,6 +759,13 @@ func (s *Server) healthCheck(c *gin.Context) {
 }
 
 // apiInfo returns API information
+// @Summary API Information
+// @Description Get general information about the KubeDash API
+// @Tags System
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{} "API information"
+// @Router /api/v1/ [get]
 func (s *Server) apiInfo(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"name":        "kube-dash API",
@@ -769,6 +788,12 @@ func (s *Server) serveSPA(c *gin.Context) {
 
 	// Skip health check
 	if path == "/health" {
+		c.Status(http.StatusNotFound)
+		return
+	}
+
+	// Skip Swagger documentation
+	if len(path) >= 8 && path[:8] == "/swagger" {
 		c.Status(http.StatusNotFound)
 		return
 	}

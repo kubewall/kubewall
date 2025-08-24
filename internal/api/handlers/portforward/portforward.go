@@ -259,6 +259,26 @@ func (h *PortForwardHandler) getClientAndConfig(c *gin.Context) (*kubernetes.Cli
 }
 
 // HandlePortForward handles WebSocket-based port forward
+// @Summary Port Forward via WebSocket
+// @Description Create a port forward connection to a Kubernetes resource via WebSocket
+// @Tags WebSocket
+// @Accept json
+// @Produce json
+// @Param resourceType query string true "Resource type (pod, service)"
+// @Param resourceName query string true "Resource name"
+// @Param namespace query string true "Namespace name"
+// @Param remotePort query integer true "Remote port to forward to"
+// @Param localPort query integer false "Local port to bind (auto-assigned if not specified)"
+// @Param protocol query string false "Protocol (default: TCP)"
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name"
+// @Success 101 {string} string "WebSocket connection established"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 404 {object} map[string]string "Resource not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /api/v1/portforward/ws [get]
+// @Security BearerAuth
+// @Security KubeConfig
 func (h *PortForwardHandler) HandlePortForward(c *gin.Context) {
 	// Start main span for port forward operation
 	ctx, span := h.tracingHelper.StartAuthSpan(c.Request.Context(), "portforward.websocket_connection")
@@ -623,6 +643,14 @@ func (h *PortForwardHandler) startServicePortForward(session *PortForwardSession
 }
 
 // GetActiveSessions returns all active port forward sessions
+// @Summary Get Active Port Forward Sessions
+// @Description Get a list of all currently active port forward sessions
+// @Tags Port Forward
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{} "List of active sessions with count"
+// @Router /api/v1/portforward/sessions [get]
+// @Security BearerAuth
 func (h *PortForwardHandler) GetActiveSessions(c *gin.Context) {
 	// Start main span for get active sessions operation
 	ctx, span := h.tracingHelper.StartAuthSpan(c.Request.Context(), "portforward.get_active_sessions")
@@ -650,6 +678,16 @@ func (h *PortForwardHandler) GetActiveSessions(c *gin.Context) {
 }
 
 // StopSession stops a specific port forward session
+// @Summary Stop Port Forward Session
+// @Description Stop a specific port forward session by ID
+// @Tags Port Forward
+// @Accept json
+// @Produce json
+// @Param id path string true "Session ID"
+// @Success 200 {object} map[string]string "Session stopped successfully"
+// @Failure 404 {object} map[string]string "Session not found"
+// @Router /api/v1/portforward/sessions/{id} [delete]
+// @Security BearerAuth
 func (h *PortForwardHandler) StopSession(c *gin.Context) {
 	// Start main span for stop session operation
 	ctx, span := h.tracingHelper.StartAuthSpan(c.Request.Context(), "portforward.stop_session")

@@ -187,6 +187,28 @@ func (h *PodLogsHandler) detectLogLevel(logLine string) string {
 }
 
 // HandlePodLogs handles WebSocket-based pod logs streaming
+// @Summary Stream Pod Logs via WebSocket
+// @Description Stream real-time pod logs via WebSocket connection with support for multiple containers, previous logs, and filtering
+// @Tags WebSocket
+// @Accept json
+// @Produce json
+// @Param namespace path string true "Namespace name"
+// @Param name path string true "Pod name"
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name"
+// @Param container query string false "Container name (defaults to first container)"
+// @Param all-containers query boolean false "Stream logs from all containers"
+// @Param previous query boolean false "Include logs from previous pod instance"
+// @Param all-logs query boolean false "Get all logs (ignores tail-lines)"
+// @Param tail-lines query integer false "Number of lines to tail (default: 100)"
+// @Param since-time query string false "Start time for logs (RFC3339 format)"
+// @Success 101 {string} string "WebSocket connection established"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 404 {object} map[string]string "Pod not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /api/v1/pod/{name}/logs/ws [get]
+// @Security BearerAuth
+// @Security KubeConfig
 func (h *PodLogsHandler) HandlePodLogs(c *gin.Context) {
 	// Start main span for pod logs operation
 	ctx, span := h.tracingHelper.StartAuthSpan(c.Request.Context(), "websocket.pod_logs")

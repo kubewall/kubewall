@@ -66,6 +66,19 @@ func (h *PersistentVolumeClaimsHandler) getClientAndConfig(c *gin.Context) (*kub
 }
 
 // GetPersistentVolumeClaimsSSE returns persistent volume claims as Server-Sent Events with real-time updates
+// @Summary Get Persistent Volume Claims (SSE)
+// @Description Get all persistent volume claims with real-time updates via Server-Sent Events
+// @Tags Storage
+// @Accept json
+// @Produce text/event-stream
+// @Param config query string true "Kubernetes configuration ID"
+// @Param cluster query string false "Cluster name"
+// @Param namespace query string false "Namespace filter"
+// @Success 200 {array} types.PersistentVolumeClaimListResponse "Stream of PVC data"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security KubeConfig
+// @Router /api/v1/persistentvolumeclaims [get]
 func (h *PersistentVolumeClaimsHandler) GetPersistentVolumeClaimsSSE(c *gin.Context) {
 	// Start child span for client setup
 	ctx, clientSpan := h.tracingHelper.StartAuthSpan(c.Request.Context(), "setup-client-for-sse")
