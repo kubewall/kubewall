@@ -59,8 +59,6 @@ nfpms:
 
 homebrew_casks:
   - name: kubewall
-    conflicts:
-      - formula: kubewall
     homepage: "https://github.com/kubewall/kubewall"
     description: "kubewall is a single binary to manage multiple clusters."
     repository:
@@ -76,26 +74,12 @@ homebrew_casks:
     custom_block: |
       def caveats
         <<~EOS
-          \e[1mTo run kubewall cli:\e[0m
+          \e[1mTo run kubewall cli simply run:\e[0m
             \e[32mkubewall\e[0m
 
-          \e[1mTo run kubewall as a background service:\e[0m
-            \e[32mbrew services start kubewall\e[0m
-
-          \e[1mTo manage the background service:\e[0m
-            \e[33mbrew services stop kubewall\e[0m
-            \e[33mbrew services restart kubewall\e[0m
-
-          \e[1mLog files are available at:\e[0m
-            \e[34m/opt/homebrew/var/log/kubewall.log\e[0m
+          \e[1mTo run kubewall on specific ip and port:\e[0m
+            \e[32mkubewall --listen :7080\e[0m
         EOS
-      end
-      service do
-        run [opt_bin/"dagu", "start-all"]
-        keep_alive true
-        error_log_path var/"log/dagu.log"
-        log_path var/"log/dagu.log"
-        working_dir var
       end
 
 scoops:
