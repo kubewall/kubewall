@@ -84,7 +84,7 @@ func (p *PortForwarder) Start(cfg *rest.Config, clientset kubernetes.Interface, 
 		addr := fmt.Sprintf(":%d", localPort)
 		listener, err := net.Listen("tcp", addr)
 		if err != nil {
-			return "", 0, fmt.Errorf("local port %d is not available: %w", localPort, err)
+			return "", 0, fmt.Errorf("local port %d is not available: %s", localPort, err.Error())
 		}
 		listener.Close()
 	}
@@ -97,7 +97,7 @@ func (p *PortForwarder) Start(cfg *rest.Config, clientset kubernetes.Interface, 
 
 	transport, upgrader, err := spdy.RoundTripperFor(cfg)
 	if err != nil {
-		return "", 0, fmt.Errorf("failed to create SPDY round tripper: %w", err)
+		return "", 0, fmt.Errorf("failed to create SPDY round tripper: %s", err.Error())
 	}
 
 	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, "POST", req.URL())
@@ -107,7 +107,7 @@ func (p *PortForwarder) Start(cfg *rest.Config, clientset kubernetes.Interface, 
 
 	fw, err := portforward.New(dialer, []string{fmt.Sprintf("%d:%d", localPort, remotePort)}, stopCh, readyCh, os.Stdout, os.Stderr)
 	if err != nil {
-		return "", 0, fmt.Errorf("failed to create port forwarder: %w", err)
+		return "", 0, fmt.Errorf("failed to create port forwarder: %s", err.Error())
 	}
 
 	go func() {
@@ -129,7 +129,7 @@ func (p *PortForwarder) Start(cfg *rest.Config, clientset kubernetes.Interface, 
 		if err == nil {
 			err = fmt.Errorf("no ports forwarded")
 		}
-		return "", 0, fmt.Errorf("failed to get forwarded ports: %w", err)
+		return "", 0, fmt.Errorf("failed to get forwarded ports: %s", err.Error())
 	}
 	actualLocal := int(ports[0].Local)
 

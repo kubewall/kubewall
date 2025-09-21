@@ -12,10 +12,10 @@ import (
 )
 
 type PortForwardRequest struct {
-	Namespace  string `json:"namespace"`
-	Pod        string `json:"pod"`
-	LocalPort  int    `json:"localPort"`
-	RemotePort int    `json:"remotePort"`
+	Namespace     string `json:"namespace"`
+	Pod           string `json:"pod"`
+	LocalPort     int    `json:"localPort"`
+	ContainerPort int    `json:"containerPort"`
 }
 
 type PortForwardHandler struct {
@@ -48,12 +48,12 @@ func (h *PortForwardHandler) StartPortForwarding(c echo.Context) error {
 	if err := c.Bind(req); err != nil {
 		return c.String(http.StatusBadRequest, fmt.Sprintf("invalid request: %v", err))
 	}
-	if req.Namespace == "" || req.Pod == "" || req.RemotePort == 0 {
+	if req.Namespace == "" || req.Pod == "" || req.ContainerPort == 0 {
 		return c.String(http.StatusBadRequest, "missing required fields")
 	}
 
 	// Note: Start signature changed to accept config and cluster strings first
-	id, actualLocal, err := h.container.PortForwarder().Start(h.container.RestConfig(config, cluster), h.container.ClientSet(config, cluster), config, cluster, req.Namespace, req.Pod, req.LocalPort, req.RemotePort)
+	id, actualLocal, err := h.container.PortForwarder().Start(h.container.RestConfig(config, cluster), h.container.ClientSet(config, cluster), config, cluster, req.Namespace, req.Pod, req.LocalPort, req.ContainerPort)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]any{
 			"failures": fmt.Sprintf("failed to start port forward: %v", err),
