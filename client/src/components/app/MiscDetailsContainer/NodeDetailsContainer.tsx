@@ -18,6 +18,9 @@ const NodeDetailsContainer = memo(function () {
 
   return (
     <div className="mt-2">
+      <div className="mb-2">
+        <NodePodsList />
+      </div>
       {
         images && <Card className="shadow-none rounded-lg">
           <CardHeader className="p-4 ">
@@ -172,7 +175,6 @@ const NodeDetailsContainer = memo(function () {
           </CardContent>
         </Card>
       }
-      <NodePodsList />
     </div>
   );
 });

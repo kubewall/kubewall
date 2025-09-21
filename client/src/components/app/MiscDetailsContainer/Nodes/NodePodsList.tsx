@@ -43,9 +43,8 @@ const NodePodsList = memo(function () {
   });
 
   return (
-
     <div className="mt-2">
-      <Card className="rounded-lg">
+      <Card className="rounded-lg shadow-none">
         <CardHeader className="p-4">
           <CardTitle className="text-sm font-medium">Pods <span className="text-xs">({nodePodDetails.length})</span></CardTitle>
         </CardHeader>
@@ -76,7 +75,6 @@ const NodePodsList = memo(function () {
         </CardContent>
       </Card>
     </div>
-
   );
 });
 
