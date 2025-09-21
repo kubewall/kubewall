@@ -16,6 +16,7 @@ type PortForwardRequest struct {
 	Pod           string `json:"pod"`
 	LocalPort     int    `json:"localPort"`
 	ContainerPort int    `json:"containerPort"`
+	ContainerName string `json:"containerName"`
 }
 
 type PortForwardHandler struct {
@@ -53,7 +54,7 @@ func (h *PortForwardHandler) StartPortForwarding(c echo.Context) error {
 	}
 
 	// Note: Start signature changed to accept config and cluster strings first
-	id, actualLocal, err := h.container.PortForwarder().Start(h.container.RestConfig(config, cluster), h.container.ClientSet(config, cluster), config, cluster, req.Namespace, req.Pod, req.LocalPort, req.ContainerPort)
+	id, actualLocal, err := h.container.PortForwarder().Start(h.container.RestConfig(config, cluster), h.container.ClientSet(config, cluster), config, cluster, req.Namespace, req.Pod, req.ContainerName, req.LocalPort, req.ContainerPort)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]any{
 			"failures": fmt.Sprintf("failed to start port forward: %v", err),
@@ -82,7 +83,7 @@ func (h *PortForwardHandler) ListPortForwarding(c echo.Context) error {
 
 func (h *PortForwardHandler) RemovePortForwarding(c echo.Context) error {
 	type RemovePortForwardingRequest struct {
-		Id string `json:"id"`
+		ID string `json:"id"`
 	}
 	type Failures struct {
 		Message string `json:"message"`
@@ -98,7 +99,7 @@ func (h *PortForwardHandler) RemovePortForwarding(c echo.Context) error {
 	failures := make([]Failures, 0)
 
 	for _, v := range *req {
-		err := h.container.PortForwarder().Stop(config, cluster, h.container.RestConfig(config, cluster), h.container.ClientSet(config, cluster), v.Id)
+		err := h.container.PortForwarder().Stop(config, cluster, h.container.RestConfig(config, cluster), h.container.ClientSet(config, cluster), v.ID)
 		if err != nil {
 			failures = append(failures, Failures{
 				Message: err.Error(),

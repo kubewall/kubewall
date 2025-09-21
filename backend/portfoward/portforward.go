@@ -22,24 +22,26 @@ type Forwarder interface {
 }
 
 type PortForward struct {
-	ID         string `json:"id"`
-	Namespace  string `json:"namespace"`
-	Pod        string `json:"pod"`
-	LocalPort  int    `json:"localPort"`
-	RemotePort int    `json:"reportPort"`
-	Config     string `json:"-"`
-	Cluster    string `json:"-"`
-	stopCh     chan struct{}
+	ID            string `json:"id"`
+	Namespace     string `json:"namespace"`
+	Pod           string `json:"pod"`
+	LocalPort     int    `json:"localPort"`
+	ContainerPort int    `json:"containerPort"`
+	ContainerName string `json:"containerName"`
+	Config        string `json:"-"`
+	Cluster       string `json:"-"`
+	stopCh        chan struct{}
 }
 
 type PortForwardInfo struct {
-	ID         string `json:"id"`
-	Namespace  string `json:"namespace"`
-	Pod        string `json:"pod"`
-	LocalPort  int    `json:"localPort"`
-	RemotePort int    `json:"reportPort"`
-	Config     string `json:"-"`
-	Cluster    string `json:"-"`
+	ID            string `json:"id"`
+	Namespace     string `json:"namespace"`
+	Pod           string `json:"pod"`
+	LocalPort     int    `json:"localPort"`
+	ContainerPort int    `json:"containerPort"`
+	ContainerName string `json:"containerName"`
+	Config        string `json:"-"`
+	Cluster       string `json:"-"`
 }
 
 type PortForwarder struct {
@@ -71,9 +73,9 @@ func (p *PortForwarder) isLocalPortInUse(localPort int) bool {
 	return false
 }
 
-func (p *PortForwarder) Start(cfg *rest.Config, clientset kubernetes.Interface, configName, clusterName string, namespace, pod string, localPort, remotePort int) (string, int, error) {
-	if namespace == "" || pod == "" || remotePort <= 0 {
-		return "", 0, fmt.Errorf("invalid parameters: namespace, pod, and remotePort are required")
+func (p *PortForwarder) Start(cfg *rest.Config, clientset kubernetes.Interface, configName, clusterName, namespace, pod, containerName string, localPort, containerPort int) (string, int, error) {
+	if namespace == "" || pod == "" || containerPort <= 0 {
+		return "", 0, fmt.Errorf("invalid parameters: namespace, pod, and containerPort are required")
 	}
 
 	if localPort != 0 {
@@ -105,7 +107,7 @@ func (p *PortForwarder) Start(cfg *rest.Config, clientset kubernetes.Interface, 
 	stopCh := make(chan struct{})
 	readyCh := make(chan struct{})
 
-	fw, err := portforward.New(dialer, []string{fmt.Sprintf("%d:%d", localPort, remotePort)}, stopCh, readyCh, os.Stdout, os.Stderr)
+	fw, err := portforward.New(dialer, []string{fmt.Sprintf("%d:%d", localPort, containerPort)}, stopCh, readyCh, os.Stdout, os.Stderr)
 	if err != nil {
 		return "", 0, fmt.Errorf("failed to create port forwarder: %s", err.Error())
 	}
@@ -142,14 +144,15 @@ func (p *PortForwarder) Start(cfg *rest.Config, clientset kubernetes.Interface, 
 		p.active[key] = make(map[string]*PortForward)
 	}
 	p.active[key][id] = &PortForward{
-		ID:         id,
-		Namespace:  namespace,
-		Pod:        pod,
-		LocalPort:  actualLocal,
-		RemotePort: remotePort,
-		Config:     configName,
-		Cluster:    clusterName,
-		stopCh:     stopCh,
+		ID:            id,
+		Namespace:     namespace,
+		Pod:           pod,
+		LocalPort:     actualLocal,
+		ContainerPort: containerPort,
+		ContainerName: containerName,
+		Config:        configName,
+		Cluster:       clusterName,
+		stopCh:        stopCh,
 	}
 
 	return id, actualLocal, nil
@@ -168,13 +171,14 @@ func (p *PortForwarder) List(cfg *rest.Config, clientset kubernetes.Interface, q
 
 	for _, pf := range inner {
 		list = append(list, PortForwardInfo{
-			ID:         pf.ID,
-			Namespace:  pf.Namespace,
-			Pod:        pf.Pod,
-			LocalPort:  pf.LocalPort,
-			RemotePort: pf.RemotePort,
-			Config:     pf.Config,
-			Cluster:    pf.Cluster,
+			ID:            pf.ID,
+			Namespace:     pf.Namespace,
+			Pod:           pf.Pod,
+			LocalPort:     pf.LocalPort,
+			ContainerName: pf.ContainerName,
+			ContainerPort: pf.ContainerPort,
+			Config:        pf.Config,
+			Cluster:       pf.Cluster,
 		})
 	}
 	return list
