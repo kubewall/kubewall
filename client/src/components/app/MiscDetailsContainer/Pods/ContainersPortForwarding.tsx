@@ -1,7 +1,7 @@
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { PlugZap, UnplugIcon, XIcon } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { UnplugIcon, XIcon } from "lucide-react";
 import { portForwarding, resetPortForwarding } from "@/data/Workloads/Pods/PortForwardingSlice";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { useEffect, useState } from "react";
@@ -135,7 +135,7 @@ const ContainersPortForwarding = ({ resourcename, queryParams, config, cluster }
                 {
                   loading ?
                     <Loader className='w-4 h-4 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600' /> :
-                    <UnplugIcon className='h-4 w-4' />
+                    portForwardingList.filter(item => item.pod === resourcename).length > 0 ? <PlugZap className='h-4 w-4' /> : <UnplugIcon className='h-4 w-4' />
                 }
                 {/* <span className='text-xs'>Port Forwarding</span> */}
               </Button>

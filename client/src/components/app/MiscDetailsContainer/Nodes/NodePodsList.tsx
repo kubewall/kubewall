@@ -44,7 +44,7 @@ const NodePodsList = memo(function () {
 
   return (
 
-    nodePodDetails.length > 0 && <div className="mt-2">
+    <div className="mt-2">
       <Card className="rounded-lg">
         <CardHeader className="p-4">
           <CardTitle className="text-sm font-medium">Pods <span className="text-xs">({nodePodDetails.length})</span></CardTitle>
