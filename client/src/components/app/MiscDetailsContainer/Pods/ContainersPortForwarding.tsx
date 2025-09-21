@@ -78,6 +78,7 @@ const ContainersPortForwarding = ({ resourcename, queryParams, config, cluster }
       namespace: podDetails.metadata.namespace,
       containerName: containerPort.split(': ')[0]
     }));
+     setModalOpen(false);
   };
 
   const resetDialog = () => {
