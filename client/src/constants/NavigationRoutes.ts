@@ -118,6 +118,10 @@ const NAVIGATION_ROUTE: NavigationRoutes = {
       name: 'Endpoints',
       route: 'endpoints'
     },
+    {
+      name: 'Port Forwarding',
+      route: 'portforwards'
+    },
   ],
   'Storage' :[
     {

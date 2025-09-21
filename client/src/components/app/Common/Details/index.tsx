@@ -1,3 +1,4 @@
+import { ContainersPortForwarding, PodLogs, ScaleDeployments } from "../../MiscDetailsContainer";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
@@ -15,10 +16,8 @@ import FourOFourError from "../../Errors/404Error";
 import { Loader } from "../../Loader";
 import { Overview } from "../../Details/Overview";
 import { PODS_ENDPOINT } from "@/constants";
-import { PodLogs } from "../../MiscDetailsContainer";
 import { RootState } from "@/redux/store";
 import { Row } from "@tanstack/react-table";
-import { ScaleDeployments } from "../../MiscDetailsContainer/Deployments/ScaleDeployments";
 import { Separator } from "@/components/ui/separator";
 import { Sparkles } from "lucide-react";
 import { TableDelete } from "../../Table/TableDelete";
@@ -140,6 +139,10 @@ const KwDetails = () => {
                   {
                     resourcekind === 'deployments' &&
                     <ScaleDeployments resourcename={resourcename} queryParams={new URLSearchParams(queryParamsObj).toString()} />
+                  }
+                  {
+                    resourcekind === 'pods' &&
+                    <ContainersPortForwarding resourcename={resourcename} queryParams={new URLSearchParams(queryParamsObj).toString()} config={config} cluster={cluster} />
                   }
                   <TableDelete selectedRows={selectedRows} postDeleteCallback={redirectToListPage} />
                   <ThemeModeSelector />
