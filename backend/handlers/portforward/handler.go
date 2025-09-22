@@ -50,15 +50,13 @@ func (h *PortForwardHandler) StartPortForwarding(c echo.Context) error {
 		return c.String(http.StatusBadRequest, fmt.Sprintf("invalid request: %v", err))
 	}
 	if req.Namespace == "" || req.Pod == "" || req.ContainerPort == 0 {
-		return c.String(http.StatusBadRequest, "missing required fields")
+		return c.JSON(http.StatusBadRequest, echo.Map{"message": "missing required fields"})
 	}
 
 	// Note: Start signature changed to accept config and cluster strings first
 	id, actualLocal, err := h.container.PortForwarder().Start(h.container.RestConfig(config, cluster), h.container.ClientSet(config, cluster), config, cluster, req.Namespace, req.Pod, req.ContainerName, req.LocalPort, req.ContainerPort)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]any{
-			"failures": fmt.Sprintf("failed to start port forward: %v", err),
-		})
+		return c.JSON(http.StatusBadRequest, echo.Map{"message": err.Error()})
 	}
 
 	h.publishList(config, cluster)
@@ -91,7 +89,7 @@ func (h *PortForwardHandler) RemovePortForwarding(c echo.Context) error {
 
 	req := new([]RemovePortForwardingRequest)
 	if err := c.Bind(req); err != nil {
-		return c.String(http.StatusBadRequest, fmt.Sprintf("invalid request: %v", err))
+		return c.JSON(http.StatusBadRequest, echo.Map{"message": err})
 	}
 	config := c.QueryParam("config")
 	cluster := c.QueryParam("cluster")
@@ -108,9 +106,7 @@ func (h *PortForwardHandler) RemovePortForwarding(c echo.Context) error {
 	}
 
 	h.publishList(config, cluster)
-	return c.JSON(http.StatusOK, map[string]any{
-		"failures": failures,
-	})
+	return c.JSON(http.StatusOK, echo.Map{"message": failures})
 }
 
 func (h *PortForwardHandler) publishList(config, cluster string) {
