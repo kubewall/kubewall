@@ -106,7 +106,7 @@ func (h *PortForwardHandler) RemovePortForwarding(c echo.Context) error {
 	}
 
 	h.publishList(config, cluster)
-	return c.JSON(http.StatusOK, echo.Map{"message": failures})
+	return c.JSON(http.StatusOK, echo.Map{"failures": failures})
 }
 
 func (h *PortForwardHandler) publishList(config, cluster string) {
