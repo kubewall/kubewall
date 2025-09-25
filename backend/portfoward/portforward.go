@@ -211,6 +211,7 @@ func (p *PortForwarder) List(cfg *rest.Config, clientset kubernetes.Interface, q
 			ID:            pf.ID,
 			Namespace:     pf.Namespace,
 			Pod:           pf.Pod,
+			Name:          pf.Name,
 			Kind:          pf.Kind,
 			LocalPort:     pf.LocalPort,
 			ContainerPort: pf.ContainerPort,
