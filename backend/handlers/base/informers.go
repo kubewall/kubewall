@@ -19,7 +19,10 @@ type Resource interface {
 
 func ResourceEventHandler[T Resource](handler *BaseHandler, additionalEvents ...map[string]func()) cache.ResourceEventHandlerFuncs {
 	handleEvent := func(obj any) {
-		resource := obj.(T)
+		resource, ok := obj.(T)
+		if !ok {
+			return
+		}
 		// GetList
 		go handler.Container.EventProcessor().AddEvent(handler.Kind, handler.processListEvents(resource.GetName()))
 

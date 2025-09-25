@@ -20,6 +20,7 @@ import {
   PERSISTENT_VOLUME_CLAIMS_ENDPOINT,
   PODS_ENDPOINT,
   POD_DISRUPTION_BUDGETS_ENDPOINT,
+  PORT_FORWARDING_ENDPOINT,
   PRIORITY_CLASSES_ENDPOINT,
   REPLICA_SETS_ENDPOINT,
   RESOURCE_QUOTAS_ENDPOINT,
@@ -56,6 +57,7 @@ import {
   PersistentVolumesHeaders,
   PodDisruptionBudgetsHeader,
   PodsHeaders,
+  PortForwardingListHeaders,
   PriorityClassesHeaders,
   ReplicaSetsHeader,
   ResourceQuotasHeaders,
@@ -91,6 +93,7 @@ import {
   persistentVolumesColumnConfig,
   podDisruptionBudgetsColumnConfig,
   podsColumnConfig,
+  portForwardingColumnConfig,
   priorityClassesColumnConfig,
   replicaSetsColumnConfig,
   resourceQuotasColumnConfig,
@@ -129,6 +132,7 @@ import { updatePersistentVolumeClaimsList } from "@/data/Storages/PersistentVolu
 import { updatePersistentVolumesList } from "@/data/Storages/PersistentVolumes/PersistentVolumesListSlice";
 import { updatePodDisruptionBudgetsList } from "@/data/Configurations/PodDisruptionBudgets/PodDisruptionBudgetsListSlice";
 import { updatePodsList } from "@/data/Workloads/Pods/PodsSlice";
+import { updatePortForwardingList } from "@/data/Workloads/Pods/PortForwardingListSlice";
 import { updatePriorityClassesList } from "@/data/Configurations/PriorityClasses/PriorityClassesListSlice";
 import { updateReplicaSets } from "@/data/Workloads/ReplicaSets/ReplicaSetsSlice";
 import { updateResourceQuotasList } from "@/data/Configurations/ResourceQuotas/ResourceQuotasListSlice";
@@ -165,6 +169,7 @@ export function KwList() {
   const { endpoints, loading: endpointsLoading } = useAppSelector((state: RootState) => state.endpoints);
   const { ingresses, loading: ingressesLoading } = useAppSelector((state: RootState) => state.ingresses);
   const { services, loading: servicesLoading } = useAppSelector((state: RootState) => state.services);
+  const { portForwardingList, loading: portForwardingLoading } = useAppSelector((state: RootState) => state.portForwardingList);
   const { persistentVolumes, loading: persistentVolumesLoading } = useAppSelector((state: RootState) => state.persistentVolumes);
   const { persistentVolumeClaims, loading: persistentVolumeClaimsLoading } = useAppSelector((state: RootState) => state.persistentVolumeClaims);
   const { storageClasses, loading: storageClassesLoading } = useAppSelector((state: RootState) => state.storageClasses);
@@ -223,6 +228,8 @@ export function KwList() {
       return getTableConfig<IngressesHeaders>(ingresses, INGRESSES_ENDPOINT, updateIngressesList, ingressesLoading, ingressesColumnConfig(config, cluster));
     } if (resourcekind === SERVICES_ENDPOINT) {
       return getTableConfig<ServicesListHeaders>(services, SERVICES_ENDPOINT, updateServicesList, servicesLoading, servicesColumnConfig(config, cluster));
+    } if (resourcekind === PORT_FORWARDING_ENDPOINT) {
+      return getTableConfig<PortForwardingListHeaders>(portForwardingList, PORT_FORWARDING_ENDPOINT, updatePortForwardingList, portForwardingLoading, portForwardingColumnConfig(config, cluster));
     } if (resourcekind === PERSISTENT_VOLUMES_ENDPOINT) {
       return getTableConfig<PersistentVolumesHeaders>(persistentVolumes, PERSISTENT_VOLUMES_ENDPOINT, updatePersistentVolumesList, persistentVolumesLoading, persistentVolumesColumnConfig(config, cluster));
     } if (resourcekind === PERSISTENT_VOLUME_CLAIMS_ENDPOINT) {
