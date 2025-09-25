@@ -1,15 +1,18 @@
 package portforward
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/portforward"
@@ -25,9 +28,10 @@ type PortForward struct {
 	ID            string `json:"id"`
 	Namespace     string `json:"namespace"`
 	Pod           string `json:"pod"`
+	Kind          string `json:"kind"`
+	Name          string `json:"name"`
 	LocalPort     int    `json:"localPort"`
 	ContainerPort int    `json:"containerPort"`
-	ContainerName string `json:"containerName"`
 	Config        string `json:"-"`
 	Cluster       string `json:"-"`
 	stopCh        chan struct{}
@@ -37,9 +41,10 @@ type PortForwardInfo struct {
 	ID            string `json:"id"`
 	Namespace     string `json:"namespace"`
 	Pod           string `json:"pod"`
+	Kind          string `json:"kind"`
+	Name          string `json:"name"`
 	LocalPort     int    `json:"localPort"`
 	ContainerPort int    `json:"containerPort"`
-	ContainerName string `json:"containerName"`
 	Config        string `json:"-"`
 	Cluster       string `json:"-"`
 }
@@ -73,9 +78,40 @@ func (p *PortForwarder) isLocalPortInUse(localPort int) bool {
 	return false
 }
 
-func (p *PortForwarder) Start(cfg *rest.Config, clientset kubernetes.Interface, configName, clusterName, namespace, pod, containerName string, localPort, containerPort int) (string, int, error) {
-	if namespace == "" || pod == "" || containerPort <= 0 {
-		return "", 0, fmt.Errorf("invalid parameters: namespace, pod, and containerPort are required")
+func (p *PortForwarder) Start(cfg *rest.Config, clientset kubernetes.Interface, configName, clusterName, namespace, kind, name string, localPort, containerPort int) (string, int, error) {
+	if namespace == "" || containerPort <= 0 {
+		return "", 0, fmt.Errorf("invalid parameters: namespace and containerPort are required")
+	}
+	if kind == "" && name == "" {
+		return "", 0, fmt.Errorf("kind and name is require")
+	}
+
+	if strings.EqualFold("Service", kind) {
+		kind = "Service"
+	} else {
+		kind = "Pod"
+	}
+
+	targetPod := name
+	if strings.EqualFold("Service", kind) {
+		kind = "Service"
+		svc, err := clientset.CoreV1().Services(namespace).Get(context.Background(), name, metav1.GetOptions{})
+		if err != nil {
+			return "", 0, fmt.Errorf("failed to get service %s: %s", name, err.Error())
+		}
+		if len(svc.Spec.Selector) == 0 {
+			return "", 0, fmt.Errorf("service %s has no selector", name)
+		}
+		pods, err := clientset.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{
+			LabelSelector: metav1.FormatLabelSelector(&metav1.LabelSelector{MatchLabels: svc.Spec.Selector}),
+		})
+		if err != nil {
+			return "", 0, fmt.Errorf("failed to list pods for service %s: %s", name, err.Error())
+		}
+		if len(pods.Items) == 0 {
+			return "", 0, fmt.Errorf("no pods found for service %s", name)
+		}
+		targetPod = pods.Items[0].Name
 	}
 
 	if localPort != 0 {
@@ -94,7 +130,7 @@ func (p *PortForwarder) Start(cfg *rest.Config, clientset kubernetes.Interface, 
 	req := clientset.CoreV1().RESTClient().Post().
 		Resource("pods").
 		Namespace(namespace).
-		Name(pod).
+		Name(targetPod).
 		SubResource("portforward")
 
 	transport, upgrader, err := spdy.RoundTripperFor(cfg)
@@ -114,7 +150,7 @@ func (p *PortForwarder) Start(cfg *rest.Config, clientset kubernetes.Interface, 
 
 	go func() {
 		if err := fw.ForwardPorts(); err != nil {
-			log.Printf("Port forward error for %s/%s: %v", namespace, pod, err)
+			log.Printf("Port forward error for namespace:%s kind:%s name:%s err:%s", namespace, kind, name, err.Error())
 		}
 	}()
 
@@ -146,10 +182,11 @@ func (p *PortForwarder) Start(cfg *rest.Config, clientset kubernetes.Interface, 
 	p.active[key][id] = &PortForward{
 		ID:            id,
 		Namespace:     namespace,
-		Pod:           pod,
+		Name:          name,
+		Kind:          kind,
+		Pod:           targetPod,
 		LocalPort:     actualLocal,
 		ContainerPort: containerPort,
-		ContainerName: containerName,
 		Config:        configName,
 		Cluster:       clusterName,
 		stopCh:        stopCh,
@@ -174,8 +211,8 @@ func (p *PortForwarder) List(cfg *rest.Config, clientset kubernetes.Interface, q
 			ID:            pf.ID,
 			Namespace:     pf.Namespace,
 			Pod:           pf.Pod,
+			Kind:          pf.Kind,
 			LocalPort:     pf.LocalPort,
-			ContainerName: pf.ContainerName,
 			ContainerPort: pf.ContainerPort,
 			Config:        pf.Config,
 			Cluster:       pf.Cluster,
