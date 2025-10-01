@@ -10,48 +10,38 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link } from "@tanstack/react-router";
 import { Loader } from "../../Loader";
-import { PodDetailsContainer } from "@/types";
 import { RootState } from "@/redux/store";
 import { toast } from "sonner";
 
-type ContainersPortForwardingProps = {
+type ServicesPortForwardingProps = {
   resourcename: string;
   queryParams: string;
   config: string;
   cluster: string;
 }
 
-const ContainersPortForwarding = ({ resourcename, queryParams, config, cluster }: ContainersPortForwardingProps) => {
+const ServicesPortForwarding = ({ resourcename, queryParams, config, cluster }: ServicesPortForwardingProps) => {
   const {
     loading,
     error,
     message
   } = useAppSelector((state: RootState) => state.portForwarding);
   const {
-    podDetails
-  } = useAppSelector((state: RootState) => state.podDetails);
+    serviceDetails
+  } = useAppSelector((state: RootState) => state.serviceDetails);
   const {
     portForwardingList
   } = useAppSelector((state: RootState) => state.portForwardingList);
   const [modalOpen, setModalOpen] = useState(false);
   const [value, setValue] = useState('');
   const [containerPort, setContainerPort] = useState('');
-  const [customContainerPort, setCustomContainerPort] = useState('');
-  const [isCustomPort, setIsCustomPort] = useState(false);
   const dispatch = useAppDispatch();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let inputValue = e.target.value;
-    const id = e.target.id;
     // Allow empty input so user can clear
     if (inputValue === '') {
-      if (id === 'localPort') {
-        setValue('');
-      }
-      else if (id === 'defaultPort') {
-        setCustomContainerPort('')
-      }
-      // setContainerPort('');
+      setValue('');
       return;
     }
 
@@ -62,23 +52,19 @@ const ContainersPortForwarding = ({ resourcename, queryParams, config, cluster }
         inputValue = inputValue.replace(/^0+/, '0');
       }
     }
-    if (id === 'localPort') {
-      setValue(inputValue);
-    } else if (id === 'defaultPort') {
-      setCustomContainerPort(inputValue);
-    }
+    setValue(inputValue);
   };
 
   const savePortForwarding = () => {
     dispatch(portForwarding({
       queryParams,
-      name: podDetails.metadata.name,
-      containerPort: isCustomPort ? Number(customContainerPort) : Number(containerPort.split(': ')[1]),
+      name: serviceDetails.metadata.name || "",
+      containerPort: Number(containerPort.split('/')[1]),
       localPort: Number(value),
-      namespace: podDetails.metadata.namespace,
-      kind: "pod"
+      namespace: serviceDetails.metadata.namespace || "",
+      kind: "service"
     }));
-     setModalOpen(false);
+    setModalOpen(false);
   };
 
   const resetDialog = () => {
@@ -103,22 +89,11 @@ const ContainersPortForwarding = ({ resourcename, queryParams, config, cluster }
     }
   }, [message, error]);
 
-  const getPortNumber = (container: PodDetailsContainer) => {
-    const containerPort = (container?.ports?.filter(({ protocol }) => protocol === "TCP"));
-    return containerPort ? `: ${containerPort[0]?.containerPort}` : '';
-  }
-
   const setContainerPortSelection = (val: string) => {
     setContainerPort(val);
-    const currentPort = val.split(': ')[1];
-    if (currentPort) {
-      setIsCustomPort(false);
-    } else {
-      setIsCustomPort(true);
-    }
   };
 
-  const isPortForwardDisabled =  !value || !containerPort || (isCustomPort && !customContainerPort);
+  const isPortForwardDisabled = !value || !containerPort;
 
   return (
     <Dialog open={modalOpen} onOpenChange={(open: boolean) => setModalOpen(open)}>
@@ -136,7 +111,7 @@ const ContainersPortForwarding = ({ resourcename, queryParams, config, cluster }
                 {
                   loading ?
                     <Loader className='w-4 h-4 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600' /> :
-                    portForwardingList.filter(item => item.kind === "Pod" && item.name === resourcename).length > 0 ? <PlugZap className='h-4 w-4' /> : <UnplugIcon className='h-4 w-4' />
+                    portForwardingList.filter(item => item.kind === "Service" && item.name === resourcename).length > 0 ? <PlugZap className='h-4 w-4' /> : <UnplugIcon className='h-4 w-4' />
                 }
                 {/* <span className='text-xs'>Port Forwarding</span> */}
               </Button>
@@ -151,7 +126,7 @@ const ContainersPortForwarding = ({ resourcename, queryParams, config, cluster }
         <DialogHeader>
           <DialogTitle>Port Forwarding</DialogTitle>
           <DialogDescription className="text-sm">
-            Update the port forwarding settings for the pod.
+            Update the port forwarding settings for the service.
           </DialogDescription>
         </DialogHeader>
         <div className="mt-3 space-y-4 text-sm text-muted-foreground">
@@ -170,80 +145,36 @@ const ContainersPortForwarding = ({ resourcename, queryParams, config, cluster }
               value={value}
             />
           </div>
-          {/* <div className="flex items-center gap-2">
-            <span className="font-medium text-foreground">Local Port:</span>
-            <span className="px-2 py-1 rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
-              {deploymentDetails.status.replicas}
-            </span>
-          </div> */}
           <div className="flex items-center gap-2">
             <label className="font-medium text-foreground">
               Container:
             </label>
-            {/* <Input
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && value) {
-                  e.preventDefault();
-                  savePortForwarding();
-                }
-              }}
-              id="desired-replicas"
-              type="number"
-              min="0"
-              className="flex-1 rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
-              placeholder="e.g. 5"
-              onChange={handleChange}
-              value={value}
-            /> */}
             <Select onValueChange={setContainerPortSelection} value={containerPort}>
               <SelectTrigger className="text-foreground">
-                <SelectValue placeholder="Select Container" />
+                <SelectValue placeholder="Select Service Port" />
               </SelectTrigger>
               <SelectContent>
                 {
-                  [...(podDetails.spec.initContainers || []), ...(podDetails.spec.containers || [])].map((container) => {
-                    const portNumber = getPortNumber(container);
+                  serviceDetails.spec.ports?.map((portObj) => {
+                    if (!portObj || portObj.protocol?.toLowerCase() !== 'tcp') return null;
+                    const protocol = portObj.protocol ? portObj.protocol + '/' : '';
+                    const port = portObj.port;
                     return (
-                      <SelectItem key={container.name} value={`${container.name}${portNumber}`}>
-                        {container.name}{portNumber}
+                      <SelectItem key={`${protocol}${port}`} value={`${protocol}${port}`}>
+                        {protocol}{port}
                       </SelectItem>
                     );
                   })
                 }
-                {/* <SelectItem value="light">Light</SelectItem>
-                <SelectItem value="dark">Dark</SelectItem>
-                <SelectItem value="system">System</SelectItem> */}
               </SelectContent>
             </Select>
           </div>
-          {
-            isCustomPort &&
-            <div className="flex items-center gap-2">
-              <label htmlFor="defaultPort" className="font-medium text-foreground">
-                Specify Port:
-              </label>
-              <Input
-                defaultValue={0}
-                id="defaultPort"
-                type="number"
-                min="0"
-                className="flex-1 rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm "
-                placeholder="e.g. 8080"
-                onChange={handleChange}
-                value={customContainerPort}
-              />
-            </div>
-          }
 
-          <div className="mt-2 flex items-center gap-2">
-            {/* <span><strong>Note: </strong></span> */}
-            <span className="text-sm">Set the local port to <strong>0</strong> to allow Kubernetes to assign a random port automatically.</span>
-          </div>
           {
-            portForwardingList.filter(item => item.name === resourcename).length > 0 &&  (
+            portForwardingList.filter(item => item.name === resourcename).length > 0 && (
               <div>
-                <span className="text-xs">You have <strong>{portForwardingList.filter(item => item.kind === "Pod" && item.name === resourcename).length}</strong> port forwarding rules for this pod.
-                Click <Link className="text-blue-600" to={`/${config}/list?cluster=${cluster}&resourcekind=portforwards`}>here</Link> to view them.
+                <span className="text-xs">You have <strong>{portForwardingList.filter(item => item.kind === "Service" && item.name === resourcename).length}</strong> port forwarding rules for this pod.
+                  Click <Link className="text-blue-600" to={`/${config}/list?cluster=${cluster}&resourcekind=portforwards`}>here</Link> to view them.
                 </span>
               </div>
             )
@@ -262,5 +193,5 @@ const ContainersPortForwarding = ({ resourcename, queryParams, config, cluster }
 };
 
 export {
-  ContainersPortForwarding
+  ServicesPortForwarding
 };

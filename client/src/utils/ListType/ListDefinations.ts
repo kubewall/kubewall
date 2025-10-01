@@ -299,8 +299,9 @@ const portForwardingColumnConfig = (config: string, cluster: string) => ({
   headersList: [
     { title: 'Select', accessorKey: 'select', enableSorting: false, },
     { title: 'Namespace', accessorKey: 'namespace', enableGlobalFilter: true },
+    { title: 'Kind', accessorKey: 'kind', enableGlobalFilter: true },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
     { title: 'Pod', accessorKey: 'pod', enableGlobalFilter: true },
-    { title: 'Container', accessorKey: 'containerName', enableGlobalFilter: true },
     { title: 'Container Port', accessorKey: 'containerPort' },
     { title: 'Local Port', accessorKey: 'localPort' },
   ],

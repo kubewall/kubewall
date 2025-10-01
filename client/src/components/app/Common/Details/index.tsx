@@ -16,9 +16,11 @@ import FourOFourError from "../../Errors/404Error";
 import { Loader } from "../../Loader";
 import { Overview } from "../../Details/Overview";
 import { PODS_ENDPOINT } from "@/constants";
+import { PortForwardingDialog } from "../../MiscDetailsContainer/PortForwarding";
 import { RootState } from "@/redux/store";
 import { Row } from "@tanstack/react-table";
 import { Separator } from "@/components/ui/separator";
+import { ServicesPortForwarding } from "../../MiscDetailsContainer/Services/ServicesPortForwarding";
 import { Sparkles } from "lucide-react";
 import { TableDelete } from "../../Table/TableDelete";
 import { ThemeModeSelector } from "../ThemeModeSelector";
@@ -40,6 +42,9 @@ const KwDetails = () => {
   const { config } = kwDetails.useParams();
   const { cluster, resourcekind, resourcename, group = '', kind = '', resource = '', version = '', namespace } = kwDetails.useSearch();
   const { podDetails } = useAppSelector((state: RootState) => state.podDetails);
+  const { serviceDetails } = useAppSelector((state: RootState) => state.serviceDetails);
+  const { portForwardingList } = useAppSelector((state: RootState) => state.portForwardingList);
+  const { loading, error, message } = useAppSelector((state: RootState) => state.portForwarding);
   const queryParamsObj: Record<string, string> = { config, cluster, namespace: namespace || '' };
   const resourceInitialData = useFetchDataForDetails({ cluster, config, group, kind, namespace, resource, resourcekind, resourcename, version });
   const resourceData = useDetailsWrapper({ loading: !!resourceInitialData?.loading, resourcekind });
@@ -142,7 +147,55 @@ const KwDetails = () => {
                   }
                   {
                     resourcekind === 'pods' &&
-                    <ContainersPortForwarding resourcename={resourcename} queryParams={new URLSearchParams(queryParamsObj).toString()} config={config} cluster={cluster} />
+                    // <ContainersPortForwarding resourcename={resourcename} queryParams={new URLSearchParams(queryParamsObj).toString()} config={config} cluster={cluster} />
+                    <PortForwardingDialog
+                      resourcename={resourcename}
+                      queryParams={new URLSearchParams(queryParamsObj).toString()}
+                      config={config}
+                      cluster={cluster}
+                      resourceKind="pod"
+                      details={podDetails}
+                      portForwardingList={portForwardingList}
+                      loading={loading}
+                      error={error}
+                      message={message}
+                      getPortOptions={() =>
+                        [...(podDetails.spec.initContainers || []), ...(podDetails.spec.containers || [])].map(container => {
+                          const portObj = container.ports?.find(p => p.protocol?.toLowerCase() === 'tcp');
+                          return {
+                            value: `${container.name}${portObj ? `: ${portObj.containerPort}` : ""}`,
+                            label: `${container.name}${portObj ? `: ${portObj.containerPort}` : ""}`,
+                          };
+                        })
+                      }
+                      getPortValue={(selected, custom) =>
+                        custom ? Number(custom) : Number(selected.split(": ")[1])
+                      }
+                      showCustomPortInput={true}
+                    />
+                  }
+                  {
+                    resourcekind === 'services' &&
+                    // <ServicesPortForwarding resourcename={resourcename} queryParams={new URLSearchParams(queryParamsObj).toString()} config={config} cluster={cluster} />
+                    <PortForwardingDialog
+                      resourcename={resourcename}
+                      queryParams={new URLSearchParams(queryParamsObj).toString()}
+                      config={config}
+                      cluster={cluster}
+                      resourceKind="service"
+                      details={serviceDetails}
+                      portForwardingList={portForwardingList}
+                      loading={loading}
+                      error={error}
+                      message={message}
+                      getPortOptions={() =>
+                        serviceDetails.spec.ports?.filter(portObj => portObj?.protocol?.toLowerCase() === 'tcp').map(portObj => ({
+                          value: `${portObj?.protocol}/${portObj?.port}`,
+                          label: `${portObj?.protocol}/${portObj?.port}`,
+                        })) || []
+                      }
+                      getPortValue={selected => Number(selected.split('/')[1])}
+                    />
                   }
                   <TableDelete selectedRows={selectedRows} postDeleteCallback={redirectToListPage} />
                   <ThemeModeSelector />
