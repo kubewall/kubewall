@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useMemo, useState } from "react";
 import { kwAIConfigurations, kwAIStoredModels } from "@/types/kwAI/addConfiguration";
 import { kwAiModels, resetKwAiModels } from "@/data/KwClusters/kwAiModelsSlice";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
@@ -40,6 +40,7 @@ const AddConfiguration = ({ uuid, setShowAddConfiguration, config, cluster, setK
       model: '',
       url: '',
       apiKey: '',
+      apiVersion: '',
       alias: '', // Default alias is an empty string
     };
     if (uuid) {
@@ -83,7 +84,14 @@ const AddConfiguration = ({ uuid, setShowAddConfiguration, config, cluster, setK
     });
   };
 
-  const isInvalid = (Object.keys(formData) as kwAIConfigurations[]).some((key) => key === 'apiKey' && ['lmstudio'].includes(formData.provider) ? false : formData[key] === '');
+  const isInvalid = useMemo(() => {
+    return (Object.keys(formData) as Array<keyof typeof formData>).some((key) => {
+      if (key === 'apiKey' && ['lmstudio'].includes(formData.provider)) return false;
+      if (key === 'apiVersion' && formData.provider === 'azure') return formData.apiVersion === '';
+      if (key === 'apiVersion') return false;
+      return formData[key] === '';
+    });
+  }, [formData]);
 
   // Modified handleProviderChange to include alias autofill logic, respecting existing alias value
   const handleProviderChange = (name: string, providerValue: string | boolean) => {
@@ -107,11 +115,18 @@ const AddConfiguration = ({ uuid, setShowAddConfiguration, config, cluster, setK
       url,
       apiKey,
       provider,
+      apiVersion,
     } = formData;
-    if (provider && url && (['lmstudio'].includes(provider) || apiKey)) {
-      dispatch(kwAiModels({ apiKey, url, queryParams }));
+    const params: Record<string, string> = { config, cluster };
+    if (provider === 'azure' && apiVersion) {
+      params['api-version'] = apiVersion;
     }
-  }, [formData.apiKey, formData.url, formData.provider, queryParams, dispatch]);
+    const dynamicQueryParams = new URLSearchParams(params).toString();
+
+    if (provider && url && (['lmstudio'].includes(provider) || apiKey)) {
+      dispatch(kwAiModels({ apiKey, url, queryParams: dynamicQueryParams }));
+    }
+  }, [formData.apiKey, formData.url, formData.provider, formData.apiVersion, config, cluster, dispatch])
 
   const resetAddConfiguration = () => {
     dispatch(resetKwAiModels());
@@ -121,7 +136,7 @@ const AddConfiguration = ({ uuid, setShowAddConfiguration, config, cluster, setK
   };
 
   const storeConfigToLocalStorage = () => {
-    const currentUUID = uuid || crypto.randomUUID();
+    const currentUUID = uuid || `kw_provider_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`;
 
     try {
       const raw = localStorage.getItem('kwAIStoredModels');
@@ -175,6 +190,15 @@ const AddConfiguration = ({ uuid, setShowAddConfiguration, config, cluster, setK
           <div>
             <Label>API Key</Label>
             <Input placeholder="Secret Key" id="addKwAiConfigApiKey" className={cn('shadow-none', error && 'border-destructive focus-visible:ring-destructive')} value={formData.apiKey} onChange={(e) => handleChange('apiKey', e.target.value)} />
+          </div>
+        }
+
+
+        {
+          formData.provider === 'azure' &&
+          <div>
+            <Label>API Version</Label>
+            <Input placeholder="API Version" id="addKwAiConfigApiVersion" className={cn('shadow-none', error && 'border-destructive focus-visible:ring-destructive')} value={formData.apiVersion} onChange={(e) => handleChange('apiVersion', e.target.value)} />
           </div>
         }
 

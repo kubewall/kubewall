@@ -1,5 +1,5 @@
-import { ContainersPortForwarding, PodLogs, ScaleDeployments } from "../../MiscDetailsContainer";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { PodLogs, PortForwardingDialog, ScaleDeployments } from "../../MiscDetailsContainer";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,11 +16,9 @@ import FourOFourError from "../../Errors/404Error";
 import { Loader } from "../../Loader";
 import { Overview } from "../../Details/Overview";
 import { PODS_ENDPOINT } from "@/constants";
-import { PortForwardingDialog } from "../../MiscDetailsContainer/PortForwarding";
 import { RootState } from "@/redux/store";
 import { Row } from "@tanstack/react-table";
 import { Separator } from "@/components/ui/separator";
-import { ServicesPortForwarding } from "../../MiscDetailsContainer/Services/ServicesPortForwarding";
 import { Sparkles } from "lucide-react";
 import { TableDelete } from "../../Table/TableDelete";
 import { ThemeModeSelector } from "../ThemeModeSelector";
@@ -147,7 +145,6 @@ const KwDetails = () => {
                   }
                   {
                     resourcekind === 'pods' &&
-                    // <ContainersPortForwarding resourcename={resourcename} queryParams={new URLSearchParams(queryParamsObj).toString()} config={config} cluster={cluster} />
                     <PortForwardingDialog
                       resourcename={resourcename}
                       queryParams={new URLSearchParams(queryParamsObj).toString()}
@@ -176,7 +173,6 @@ const KwDetails = () => {
                   }
                   {
                     resourcekind === 'services' &&
-                    // <ServicesPortForwarding resourcename={resourcename} queryParams={new URLSearchParams(queryParamsObj).toString()} config={config} cluster={cluster} />
                     <PortForwardingDialog
                       resourcename={resourcename}
                       queryParams={new URLSearchParams(queryParamsObj).toString()}
