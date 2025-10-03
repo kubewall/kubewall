@@ -42,39 +42,31 @@ type PodDetailsMetadata = {
   finalizers?: string[],
 };
 
+type PodDetailsContainer = {
+  name: string,
+  image: string,
+  command: [],
+  resources: {
+    [key: string]: string,
+  },
+  ports: {
+    name: string,
+    containerPort: number,
+    protocol: string
+  }[],
+  volumeMounts: {
+    name: string,
+    readOnly: boolean,
+    mountPath: string
+  }[],
+  terminationMessagePath: string,
+  terminationMessagePolicy: string,
+  imagePullPolicy: string
+};
+
 type PodDetailsSpec = {
-  containers: {
-    name: string,
-    image: string,
-    command: [],
-    resources: {
-      [key: string]: string,
-    },
-    volumeMounts:{
-        name: string,
-        readOnly: boolean,
-        mountPath: string
-      }[],
-    terminationMessagePath: string,
-    terminationMessagePolicy: string,
-    imagePullPolicy: string
-  }[],
-  initContainers?: {
-    name: string,
-    image: string,
-    command: [],
-    resources: {
-      [key: string]: string,
-    },
-    volumeMounts:{
-        name: string,
-        readOnly: boolean,
-        mountPath: string
-      }[],
-    terminationMessagePath: string,
-    terminationMessagePolicy: string,
-    imagePullPolicy: string
-  }[],
+  containers: PodDetailsContainer[],
+  initContainers?: PodDetailsContainer[],
   restartPolicy: string,
   terminationGracePeriodSeconds: number,
   dnsPolicy: string,
@@ -181,10 +173,12 @@ type PodSocketResponse = {
 export {
   ContainerCardProps,
   PodDetails,
+  PodDetailsContainer,
   PodDetailsMetadata,
   PodDetailsSpec,
   PodDetailsStatus,
   Pods,
   PodsHeaders,
-  PodSocketResponse
+  PodSocketResponse,
+  PortForwardingList
 };

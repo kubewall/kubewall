@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Loader } from "../../Loader";
+import { PORT_FORWARDING_ENDPOINT } from "@/constants";
 import { RootState } from "@/redux/store";
 import { Row } from "@tanstack/react-table";
 import { toast } from "sonner";
@@ -89,6 +90,11 @@ const TableDelete = ({ selectedRows, toggleAllRowsSelected, postDeleteCallback }
 
   const deleteResource = () => {
     const data = selectedRows.map(({ original }) => {
+      if(resourcekind === PORT_FORWARDING_ENDPOINT) {
+        return {
+          'id': original.id,
+        }
+      }
       return {
         'name': original.name || original.metadata.name,
         'namespace': original.namespace || original.metadata?.namespace

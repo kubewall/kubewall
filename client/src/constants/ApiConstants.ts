@@ -29,6 +29,7 @@ const POD_DISRUPTION_BUDGETS_ENDPOINT = 'poddisruptionbudgets';
 const SERVICES_ENDPOINT = 'services';
 const INGRESSES_ENDPOINT = 'ingresses';
 const ENDPOINTS_ENDPOINT = 'endpoints';
+const PORT_FORWARDING_ENDPOINT = 'portforwards';
 const CUSTOM_RESOURCES_ENDPOINT = 'customresourcedefinitions';
 const CUSTOM_RESOURCES_LIST_ENDPOINT = 'customresources';
 const KUBECONFIGS_BEARER_URL = 'kubeconfigs-bearer';
@@ -71,6 +72,7 @@ export {
   SERVICES_ENDPOINT,
   INGRESSES_ENDPOINT,
   ENDPOINTS_ENDPOINT,
+  PORT_FORWARDING_ENDPOINT,
   CUSTOM_RESOURCES_ENDPOINT,
   CUSTOM_RESOURCES_LIST_ENDPOINT,
   KUBECONFIGS_URL,

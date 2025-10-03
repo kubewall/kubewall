@@ -13,6 +13,7 @@ type kwAIStoredModel = {
   url: string;
   apiKey: string;
   model: string;
+  apiVersion: string;
   alias: string;
 }
 

@@ -82,6 +82,7 @@ func NewPodsHandler(c echo.Context, container container.Container) *PodsHandler 
 		{
 			"pods-deployments": func() {
 				handler.DeploymentsPods(c)
+				handler.NodePods(c)
 			},
 		},
 	}

@@ -1,4 +1,4 @@
-import { CUSTOM_RESOURCES_LIST_ENDPOINT, ENDPOINTS_ENDPOINT, HPA_ENDPOINT, INGRESSES_ENDPOINT, NODES_ENDPOINT, ROLE_BINDINGS_ENDPOINT, SECRETS_ENDPOINT, SERVICES_ENDPOINT } from '@/constants';
+import { CUSTOM_RESOURCES_LIST_ENDPOINT, ENDPOINTS_ENDPOINT, HPA_ENDPOINT, INGRESSES_ENDPOINT, NODES_ENDPOINT, PORT_FORWARDING_ENDPOINT, ROLE_BINDINGS_ENDPOINT, SECRETS_ENDPOINT, SERVICES_ENDPOINT } from '@/constants';
 import { Row, Table } from '@tanstack/react-table';
 
 import { ClusterDetails } from '@/types';
@@ -101,8 +101,9 @@ const TableCells = <T extends ClusterDetails>({
   }
   if (type === 'Name') {
     let link = '';
+    const { kind } = (row.original as any);
     const defaultQueryParams: Record<string,string> = {
-      resourcekind: instanceType.toLowerCase(),
+      resourcekind: instanceType === PORT_FORWARDING_ENDPOINT && kind ? kind === "Pod" ? 'pods' : 'services' : instanceType.toLowerCase(),
       resourcename: value,
       ...(namespace ? {namespace:namespace} :  {})
     };

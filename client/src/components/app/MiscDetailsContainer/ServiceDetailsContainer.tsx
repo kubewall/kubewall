@@ -1,9 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { createEventStreamQueryObject, defaultOrValue, getEventStreamUrl } from "@/utils";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
 import { CopyToClipboard } from "@/components/app/Common/CopyToClipboard";
-import { defaultOrValue } from "@/utils";
+import { PORT_FORWARDING_ENDPOINT } from "@/constants";
+import { PortForwardingListResponse } from "@/types";
 import { memo } from "react";
-import { useAppSelector } from "@/redux/hooks";
+import { updatePortForwardingList } from "@/data/Workloads/Pods/PortForwardingListSlice";
+import { useEventSource } from "../Common/Hooks/EventSource";
+import { useRouterState } from "@tanstack/react-router";
 
 const ServiceDetailsContainer = memo(function () {
   const {
@@ -13,6 +18,26 @@ const ServiceDetailsContainer = memo(function () {
       }
     }
   } = useAppSelector((state) => state.serviceDetails);
+  const dispatch = useAppDispatch();
+  const router = useRouterState();
+  const pathname = router.location.pathname;
+  const configName = pathname.split('/')[1];
+  const queryParams = new URLSearchParams(router.location.search);
+  const clusterName = queryParams.get('cluster') || '';
+  const sendMessage = (message: PortForwardingListResponse[]) => {
+    dispatch(updatePortForwardingList(message));
+  };
+
+  useEventSource({
+    url: getEventStreamUrl(
+      PORT_FORWARDING_ENDPOINT,
+      createEventStreamQueryObject(
+        configName,
+        clusterName
+      )),
+    sendMessage
+  });
+
   return (
     <div className="mt-2">
       <Card className="shadow-none rounded-lg">
