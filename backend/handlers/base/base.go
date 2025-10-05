@@ -20,6 +20,7 @@ const (
 	GetYaml
 	Delete
 	GetLogs
+	Create
 )
 
 type BaseHandler struct {

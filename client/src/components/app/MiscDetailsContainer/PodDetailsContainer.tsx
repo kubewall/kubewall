@@ -1,18 +1,43 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { createContainerData, defaultOrValue } from "@/utils";
+import { createContainerData, createEventStreamQueryObject, defaultOrValue, getEventStreamUrl } from "@/utils";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
 import { Badge } from "@/components/ui/badge";
 import { CopyToClipboard } from "@/components/app/Common/CopyToClipboard";
 import { CubeIcon } from "@radix-ui/react-icons";
+import { PORT_FORWARDING_ENDPOINT } from "@/constants";
+import { PortForwardingListResponse } from "@/types";
 import { memo } from "react";
-import { useAppSelector } from "@/redux/hooks";
+import { updatePortForwardingList } from "@/data/Workloads/Pods/PortForwardingListSlice";
+import { useEventSource } from "../Common/Hooks/EventSource";
+import { useRouterState } from "@tanstack/react-router";
 
 const PodDetailsContainer = memo(function () {
+  const router = useRouterState();
+  const pathname = router.location.pathname;
+  const configName = pathname.split('/')[1];
+  const queryParams = new URLSearchParams(router.location.search);
+  const clusterName = queryParams.get('cluster') || '';
+  const dispatch = useAppDispatch();
   const {
     podDetails,
   } = useAppSelector((state) => state.podDetails);
   const containerCards = createContainerData(podDetails.spec, podDetails.status, "containers");
   const initContainerCards = createContainerData(podDetails.spec, podDetails.status, "initContainers");
+  const sendMessage = (message: PortForwardingListResponse[]) => {
+    dispatch(updatePortForwardingList(message));
+  };
+
+  useEventSource({
+    url: getEventStreamUrl(
+      PORT_FORWARDING_ENDPOINT,
+      createEventStreamQueryObject(
+        configName,
+        clusterName
+      )),
+    sendMessage
+  });
+
   return (
     <>
       {

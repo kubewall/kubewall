@@ -43,6 +43,7 @@ import namespaceDetailsSlice from '@/data/Clusters/Namespaces/NamespaceDetailsSl
 import namespacesSlice from '@/data/Clusters/Namespaces/NamespacesSlice';
 import nodeDetailsSlice from '@/data/Clusters/Nodes/NodeDetailsSlice';
 import nodeListSlice from '@/data/Clusters/Nodes/NodeListSlice';
+import nodePodsSlice from '@/data/Clusters/Nodes/NodePodsSlice';
 import persistentVolumeClaimsDetailsSlice from '@/data/Storages/PersistentVolumeClaims/PersistentVolumeClaimDetailsSlice';
 import persistentVolumeClaimsListSlice from '@/data/Storages/PersistentVolumeClaims/PersistentVolumeClaimsListSlice';
 import persistentVolumeDetailsSlice from '@/data/Storages/PersistentVolumes/PersistentVolumeDetailsSlice';
@@ -52,6 +53,8 @@ import podDisruptionBudgetDetailsSlice from '@/data/Configurations/PodDisruption
 import podDisruptionBudgetsListSlice from '@/data/Configurations/PodDisruptionBudgets/PodDisruptionBudgetsListSlice';
 import podLogsSlice from '@/data/Workloads/Pods/PodLogsSlice';
 import podsSlice from '@/data/Workloads/Pods/PodsSlice';
+import portForwardingListSlice from '@/data/Workloads/Pods/PortForwardingListSlice';
+import portForwardingSlice from '@/data/Workloads/Pods/PortForwardingSlice';
 import priorityClassDetailsSlice from '@/data/Configurations/PriorityClasses/PriorityClassDetailsSlice';
 import priorityClassesListSlice from '@/data/Configurations/PriorityClasses/PriorityClassesListSlice';
 import replicaSetDetailsSlice from '@/data/Workloads/ReplicaSets/ReplicaSetDetailsSlice';
@@ -155,7 +158,10 @@ const store = configureStore({
     clusterEvents: clusterEventsListSlice,
     deploymentScale: DeploymentScaleSlice,
     kwAiModels: kwAiModelsSlice,
-    kwAiTools: kwAiToolsSlice
+    kwAiTools: kwAiToolsSlice,
+    portForwarding: portForwardingSlice,
+    portForwardingList: portForwardingListSlice,
+    nodePods: nodePodsSlice
   },
 });
 

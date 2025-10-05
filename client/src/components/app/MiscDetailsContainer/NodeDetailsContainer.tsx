@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { CopyToClipboard } from "@/components/app/Common/CopyToClipboard";
+import { NodePodsList } from "./Nodes/NodePodsList";
 import { defaultOrValue } from "@/utils";
 import { memo } from "react";
 import { useAppSelector } from "@/redux/hooks";
@@ -17,6 +18,9 @@ const NodeDetailsContainer = memo(function () {
 
   return (
     <div className="mt-2">
+      <div className="mb-2">
+        <NodePodsList />
+      </div>
       {
         images && <Card className="shadow-none rounded-lg">
           <CardHeader className="p-4 ">
@@ -171,7 +175,6 @@ const NodeDetailsContainer = memo(function () {
           </CardContent>
         </Card>
       }
-
     </div>
   );
 });

@@ -8,8 +8,13 @@ import (
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/base"
 	"github.com/kubewall/kubewall/backend/handlers/helpers"
+	"github.com/kubewall/kubewall/backend/handlers/workloads/pods"
 	"github.com/labstack/echo/v4"
 	coreV1 "k8s.io/api/core/v1"
+)
+
+const (
+	GetPods = 12
 )
 
 type NodeHandler struct {
@@ -29,6 +34,8 @@ func NewNodeRouteHandler(container container.Container, routeType base.RouteType
 			return handler.BaseHandler.GetEvents(c)
 		case base.GetYaml:
 			return handler.BaseHandler.GetYaml(c)
+		case GetPods:
+			return handler.GetPods(c)
 		default:
 			return echo.NewHTTPError(http.StatusInternalServerError, "Unknown route type")
 		}
@@ -71,4 +78,16 @@ func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 	t := TransformNodes(list)
 
 	return json.Marshal(t)
+}
+
+func (h *NodeHandler) GetPods(c echo.Context) error {
+	streamID := fmt.Sprintf("%s-%s-%s-node-pods", h.BaseHandler.QueryConfig, h.BaseHandler.QueryCluster, c.Param("name"))
+	go h.NodePods(c)
+	h.BaseHandler.Container.SSE().ServeHTTP(streamID, c.Response(), c.Request())
+	return nil
+}
+
+func (h *NodeHandler) NodePods(c echo.Context) {
+	podsHandler := pods.NewPodsHandler(c, h.BaseHandler.Container)
+	podsHandler.NodePods(c)
 }
