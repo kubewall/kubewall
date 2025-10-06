@@ -1,5 +1,5 @@
 import { Dispatch, SetStateAction, useEffect, useMemo, useState } from "react";
-import { kwAIConfigurations, kwAIStoredModels } from "@/types/kwAI/addConfiguration";
+import { kwAIStoredModels } from "@/types/kwAI/addConfiguration";
 import { kwAiModels, resetKwAiModels } from "@/data/KwClusters/kwAiModelsSlice";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
@@ -28,11 +28,6 @@ const AddConfiguration = ({ uuid, setShowAddConfiguration, config, cluster, setK
     kwAiModel,
     loading
   } = useAppSelector((state) => state.kwAiModels);
-
-  const queryParams = new URLSearchParams({
-    config,
-    cluster
-  }).toString();
 
   const getDefaultState = (uuid?: string) => {
     let defaultState = {
