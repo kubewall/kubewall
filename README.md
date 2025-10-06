@@ -19,6 +19,7 @@ It provides a simple and rich realtime interface to manage and investigate your 
 | 🌐 **Browser-Based Access** | Access securely via any browser with optional HTTPS setup, perfect for remote teams managing on-premises or cloud clusters. |
 | 🧭 **Search & Filter** | Instantly locate namespaces, labels, images, nodes, and workloads with powerful search and filtering—streamlining navigation across large clusters. |
 | 🛡 **Privacy by Default** | Maintain full control with zero cloud dependency, ensuring your cluster data stays local and secure by design. |
+| 🔌 **Port Forwarding** | Instantly access in-cluster services on your local machine with secure, one-click port forwarding. No complex CLI commands or YAML edits required, enabling faster debugging and testing. |
 | 🔄 **Live Refresh** | Experience seamless auto-updates for resources, eliminating manual refresh cycles and keeping your dashboard perpetually current. |
 | 📜 **Aggregated Pod Logs** | Stream logs across pods and containers with advanced search and tail options—perfect for monitoring multi-replica applications with ease. |
 | 🖥️ **Clean Resource Management** | Enjoy streamlined views for Deployments, Pods, Services, ConfigMaps, and more scale deployments, restart pods, perform rollout restarts, and apply manifests with a single click for unmatched efficiency. |
