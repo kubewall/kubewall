@@ -80,13 +80,13 @@
     "@ai-sdk/provider" "2.0.0"
     "@ai-sdk/provider-utils" "3.0.1"
 
-"@ai-sdk/gateway@1.0.4":
-  version "1.0.4"
-  resolved "https://registry.yarnpkg.com/@ai-sdk/gateway/-/gateway-1.0.4.tgz#e8e0da84a98d9ad5ee0c72adc6951a8db37d90e6"
-  integrity sha512-1roLdgMbFU3Nr4MC97/te7w6OqxsWBkDUkpbCcvxF3jz/ku91WVaJldn/PKU8feMKNyI5W9wnqhbjb1BqbExOQ==
+"@ai-sdk/gateway@1.0.29":
+  version "1.0.29"
+  resolved "https://registry.yarnpkg.com/@ai-sdk/gateway/-/gateway-1.0.29.tgz#b7e902c2d7139e2ca2a94cb6076febe517088fa0"
+  integrity sha512-o9LtmBiG2WAgs3GAmL79F8idan/UupxHG8Tyr2gP4aUSOzflM0bsvfzozBp8x6WatQnOx+Pio7YNw45Y6I16iw==
   dependencies:
     "@ai-sdk/provider" "2.0.0"
-    "@ai-sdk/provider-utils" "3.0.1"
+    "@ai-sdk/provider-utils" "3.0.9"
 
 "@ai-sdk/google-vertex@^3.0.4":
   version "3.0.4"
@@ -148,6 +148,15 @@
     "@standard-schema/spec" "^1.0.0"
     eventsource-parser "^3.0.3"
     zod-to-json-schema "^3.24.1"
+
+"@ai-sdk/provider-utils@3.0.9":
+  version "3.0.9"
+  resolved "https://registry.yarnpkg.com/@ai-sdk/provider-utils/-/provider-utils-3.0.9.tgz#ac35a11eaafb5943a6c1bb024b4d2fdda6a8a0a3"
+  integrity sha512-Pm571x5efqaI4hf9yW4KsVlDBDme8++UepZRnq+kqVBWWjgvGhQlzU8glaFq0YJEB9kkxZHbRRyVeHoV2sRYaQ==
+  dependencies:
+    "@ai-sdk/provider" "2.0.0"
+    "@standard-schema/spec" "^1.0.0"
+    eventsource-parser "^3.0.5"
 
 "@ai-sdk/provider@2.0.0":
   version "2.0.0"
@@ -2396,14 +2405,14 @@ agent-base@^7.1.2:
   resolved "https://registry.yarnpkg.com/agent-base/-/agent-base-7.1.3.tgz#29435eb821bc4194633a5b89e5bc4703bafc25a1"
   integrity sha512-jRR5wdylq8CkOe6hei19GGZnxM6rBGwFl3Bg0YItGDimvjGtAvdZk4Pu6Cl4u4Igsws4a1fd1Vq3ezrhn4KmFw==
 
-ai@^5.0.8:
-  version "5.0.9"
-  resolved "https://registry.yarnpkg.com/ai/-/ai-5.0.9.tgz#fc32c41b92b73c53c99273917782bae915c91623"
-  integrity sha512-l7YdzsCTId7CDNNQ+roC0m4uDMmVIO9NpDC3bI2RxNDss3XpGIvsbHq7bT+IZzMYIqGbHK17HI0eiOOvtwzN6Q==
+ai@^5.0.52:
+  version "5.0.52"
+  resolved "https://registry.yarnpkg.com/ai/-/ai-5.0.52.tgz#3aa9a6eab56505db2c94ce7a16a7ea089760977e"
+  integrity sha512-GLlRHjMlvN9+w7UYGxCpUQ8GgCRv5Z+JCprRH3Q8YbXJ/JyIc6EP9+YRUmQsyExX/qQsuehe7y/LLygarbSTOw==
   dependencies:
-    "@ai-sdk/gateway" "1.0.4"
+    "@ai-sdk/gateway" "1.0.29"
     "@ai-sdk/provider" "2.0.0"
-    "@ai-sdk/provider-utils" "3.0.1"
+    "@ai-sdk/provider-utils" "3.0.9"
     "@opentelemetry/api" "1.9.0"
 
 ajv@^6.12.4:
@@ -3083,6 +3092,11 @@ eventsource-parser@^3.0.3:
   version "3.0.3"
   resolved "https://registry.yarnpkg.com/eventsource-parser/-/eventsource-parser-3.0.3.tgz#e9af1d40b77e6268cdcbc767321e8b9f066adea8"
   integrity sha512-nVpZkTMM9rF6AQ9gPJpFsNAMt48wIzB5TQgiTLdHiuO8XEDhUgZEhqKlZWXbIzo9VmJ/HvysHqEaVeD5v9TPvA==
+
+eventsource-parser@^3.0.5:
+  version "3.0.6"
+  resolved "https://registry.yarnpkg.com/eventsource-parser/-/eventsource-parser-3.0.6.tgz#292e165e34cacbc936c3c92719ef326d4aeb4e90"
+  integrity sha512-Vo1ab+QXPzZ4tCa8SwIHJFaSzy4R6SHf7BY79rFBDf0idraZWAkYrDjDj8uWaSm3S2TK+hJ7/t1CEmZ7jXw+pg==
 
 extend@^3.0.0, extend@^3.0.2:
   version "3.0.2"
