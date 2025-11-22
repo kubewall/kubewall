@@ -42,6 +42,7 @@ func Server(e *echo.Echo, appContainer container.Container) {
 	e.GET("api/v1/mcp/sse", echo.WrapHandler(sseServer.SSEHandler()))
 	e.POST("/api/v1/mcp/message", echo.WrapHandler(sseServer.MessageHandler()))
 
-	// Proxy handler
-	e.Any("api/v1/mcp/proxy/*", ProxyHandler)
+	e.Any("/api/v1/mcp/llm/v1/*", func(c echo.Context) error {
+		return AnthropicProxyHandler(appContainer, c)
+	})
 }

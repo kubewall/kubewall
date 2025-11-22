@@ -36,7 +36,7 @@ const KUBECONFIGS_BEARER_URL = 'kubeconfigs-bearer';
 const KUBECONFIGS_CERTIFICATE_URL = 'kubeconfigs-certificate';
 const KUBECONFIGS_URL = 'kubeconfigs';
 const NODES_ENDPOINT = 'nodes';
-const MCP_SERVER_ENDPOINT = '/mcp/proxy';
+const MCP_SERVER_ENDPOINT = '/mcp/llm/v1';
 
 
 

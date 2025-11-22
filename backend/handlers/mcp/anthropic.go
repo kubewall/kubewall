@@ -5,30 +5,28 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-
-	"net"
 	"net/http"
-	"net/url"
-	"strings"
 	"time"
+	"strings"
 
 	"github.com/charmbracelet/log"
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/labstack/echo/v4"
 )
 
-func ProxyHandler(c echo.Context) error {
+func AnthropicProxyHandler(appContainer container.Container, c echo.Context) error {
 	remoteURLPart := c.Param("*")
 
-	if remoteURLPart == "" {
-		return c.String(http.StatusBadRequest, "Missing remote URL in path. Example: /proxy/https://api.example.com/data")
+	llmAPIEndpoint := appContainer.Config().LLMAPIEndpoint
+	llmAPIKey := appContainer.Config().LLMAPIKey
+
+	if llmAPIEndpoint == "" {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "LLM API endpoint not configured",
+		})
 	}
 
-	remoteURL, err := url.Parse(remoteURLPart)
-	if err != nil {
-		log.Error("Error parsing remote URL", "err", err)
-		return c.String(http.StatusBadRequest, "Invalid remote URL provided.")
-	}
+	llmAPIEndpoint = llmAPIEndpoint + "/" + remoteURLPart
 
 	client := &http.Client{
 		Transport: &http.Transport{
@@ -36,7 +34,7 @@ func ProxyHandler(c echo.Context) error {
 				InsecureSkipVerify: true,
 			},
 		},
-		Timeout: time.Second * 30,
+		Timeout: time.Second * 120, // LLM requests can take longer
 	}
 
 	var reqBody io.Reader
@@ -50,10 +48,12 @@ func ProxyHandler(c echo.Context) error {
 		c.Request().Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 	}
 
-	proxyReq, err := http.NewRequest(c.Request().Method, remoteURL.String(), reqBody)
+	proxyReq, err := http.NewRequest(c.Request().Method, llmAPIEndpoint, reqBody)
 	if err != nil {
 		log.Error("Error creating proxy request", "err", err)
-		return c.String(http.StatusInternalServerError, "Failed to create proxy request.")
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Failed to create proxy request",
+		})
 	}
 
 	for name, values := range c.Request().Header {
@@ -68,13 +68,23 @@ func ProxyHandler(c echo.Context) error {
 			proxyReq.Header.Add(name, value)
 		}
 	}
+	// Set required headers
+	proxyReq.Header.Set("Content-Type", "application/json")
+	proxyReq.Header.Set("Accept", "application/json")
+	proxyReq.Header.Set("Anthropic-Version", "2023-06-01")
 
-	proxyReq.Host = remoteURL.Host
+	// Set API key if available
+	if llmAPIKey != "" {
+		proxyReq.Header.Set("X-Api-Key", llmAPIKey)
+		proxyReq.Header.Set("Authorization", "Bearer "+llmAPIKey)
+	}
 
 	resp, err := client.Do(proxyReq)
 	if err != nil {
-		log.Error("Error sending request to remote server", "url", remoteURL.String(), "err", err)
-		return c.String(http.StatusBadGateway, err.Error())
+		log.Error("Error sending request to LLM provider", "err", err)
+		return c.JSON(http.StatusBadGateway, map[string]string{
+			"error": fmt.Sprintf("Failed to communicate with LLM provider: %s", err.Error()),
+		})
 	}
 	defer resp.Body.Close()
 
@@ -98,26 +108,6 @@ func ProxyHandler(c echo.Context) error {
 	return nil
 }
 
-func baseURL(appContainer container.Container) string {
-	host, port, err := net.SplitHostPort(appContainer.Config().ListenAddr)
-	if err != nil {
-		host = "localhost"
-		port = "7080"
-	}
-	if host == "" || host == "::" {
-		host = "localhost"
-	}
-	scheme := "http"
-	if appContainer.Config().IsSecure {
-		scheme = "https"
-	}
-	return fmt.Sprintf("%s://%s:%s", scheme, host, port)
-}
-
-// isHopByHopHeader checks if a header is a hop-by-hop header.
-// These headers are meaningful only for a single transport-level connection.
-// They should not be retransmitted by proxies.
-// Based on RFC 2616, section 13.5.1
 func isHopByHopHeader(header string) bool {
 	switch http.CanonicalHeaderKey(header) {
 	case "Connection",

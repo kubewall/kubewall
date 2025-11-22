@@ -5,7 +5,11 @@ type kwAIConfigurations = 'provider' | 'model' | 'url' | 'apiKey' | 'alias';
 type kwAIModelResponse = {
   data: {
     id: string;
+    object: string;
+    created: number;
+    owned_by: string;
   }[];
+  object: string;
 };
 
 type kwAIStoredModel = {

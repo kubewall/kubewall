@@ -14,6 +14,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/pytimer/k8sutil v0.0.0-20221114090626-86d6279d8e52
 	github.com/r3labs/sse/v2 v2.10.0
+	github.com/sashabaranov/go-openai v1.41.2
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
 	k8s.io/api v0.33.3

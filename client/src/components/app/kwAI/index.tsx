@@ -1,9 +1,9 @@
 import './index.css';
 
-import { HistoryIcon, Maximize2, Minimize2, SettingsIcon, Sparkles, SquarePen, X } from "lucide-react";
+import { HistoryIcon, Maximize2, Minimize2, Sparkles, SquarePen, X } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { kwAIStoredChatHistory, kwAIStoredModels } from '@/types/kwAI/addConfiguration';
+import { kwAIStoredChatHistory } from '@/types/kwAI/addConfiguration';
 import { kwDetails, kwList } from '@/routes';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useEffect, useState } from 'react';
@@ -11,7 +11,6 @@ import { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { ChatHistory } from './History';
 import { ChatWindow } from '@/components/app/kwAI/Chat';
-import { Configuration } from './Configuration';
 import { TabsContent } from '@radix-ui/react-tabs';
 import { cn } from '@/lib/utils';
 import { fetchKwAiTools } from '@/data/KwAi/KwAiToolsSlice';
@@ -28,7 +27,20 @@ interface AiChatProps {
 export function AiChat({ isFullscreen = false, onToggleFullscreen, customHeight, onClose, isDetailsPage = false }: AiChatProps) {
   const [activeView, setActiveView] = useState("chat");
   const kwAiChatWindow = useSidebarSize("kwai-chat");
-  const [kwAIStoredModelsCollection, setKwAIStoredModelsCollection] = useState<kwAIStoredModels>({} as kwAIStoredModels);
+  const [selectedModel, setSelectedModel] = useState<string>("");
+  
+  // Function to save selected model to local storage
+  const saveSelectedModel = (model: string) => {
+    if (model) {
+      localStorage.setItem(`kwAI_selectedModel`, model);
+    }
+  };
+  
+  // Custom setter that also saves to local storage
+  const handleModelChange = (model: string) => {
+    setSelectedModel(model);
+    saveSelectedModel(model);
+  };
   const dispatch = useAppDispatch();
   let config = '';
   let cluster = '';
@@ -56,10 +68,16 @@ export function AiChat({ isFullscreen = false, onToggleFullscreen, customHeight,
   };
   const [currentChatKey, setCurrentChatKey] = useState<string>(getLatestChat);
 
+  // Load selected model from local storage on component mount
+  useEffect(() => {
+    const savedModel = localStorage.getItem(`kwAI_selectedModel`);
+    if (savedModel) {
+      setSelectedModel(savedModel);
+    }
+  }, [clusterConfigKey]);
+
   useEffect(() => {
     dispatch(fetchKwAiTools({isDev: clusters.version === 'dev', config, cluster}));
-    const kwAIStoredModels = JSON.parse(localStorage.getItem('kwAIStoredModels') || '{}') as kwAIStoredModels;
-    setKwAIStoredModelsCollection(() => kwAIStoredModels);
   }, []);
 
 
@@ -67,7 +85,6 @@ export function AiChat({ isFullscreen = false, onToggleFullscreen, customHeight,
   const navigationItems = [
     { id: "chat", icon: Sparkles, label: "Chat" },
     { id: "history", icon: HistoryIcon, label: "History" },
-    { id: "configuration", icon: SettingsIcon, label: "Configure" },
   ];
 
   const resetChat = () => {
@@ -179,28 +196,18 @@ export function AiChat({ isFullscreen = false, onToggleFullscreen, customHeight,
           </div>
         </div>
         <TabsContent value='chat' className={cn(isDetailsPage ? 'chatbot-details-inner-container' : 'chatbot-list-inner-container')}>
-          {
-            kwAIStoredModelsCollection.providerCollection && Object.keys(kwAIStoredModelsCollection.providerCollection)?.length > 0 ?
-              <ChatWindow currentChatKey={currentChatKey || ''} cluster={cluster} config={config} isDetailsPage={isDetailsPage} kwAIStoredModels={kwAIStoredModelsCollection} resetChat={resetChat} />
-              :
-              <div className={cn("flex items-center justify-center", isDetailsPage ? 'chatbot-details-inner-container' : 'chatbot-list-inner-container')}>
-                <p className="w-3/4 p-4 rounded text-center text-muted-foreground">
-                  <span>You haven't set up any providers yet.</span>
-                  <br />
-                  <span>Click
-                    <span className="text-blue-600/100 dark:text-sky-400/100 cursor-pointer" onClick={() => setActiveView('configuration')}> here</span>
-                    , to go to Configuration and add one now.</span>
-                </p>
-              </div>
-          }
-
-
+          <ChatWindow
+            currentChatKey={currentChatKey || ''}
+            cluster={cluster}
+            config={config}
+            isDetailsPage={isDetailsPage}
+            selectedModel={selectedModel}
+            setSelectedModel={handleModelChange}
+            resetChat={resetChat}
+          />
         </TabsContent>
         <TabsContent value="history" className={cn(isDetailsPage ? 'chatbot-details-inner-container' : 'chatbot-list-inner-container')}>
           <ChatHistory resumeChat={resumeChat} cluster={cluster} config={config} isDetailsPage={isDetailsPage} />
-        </TabsContent>
-        <TabsContent value="configuration" className={cn(isDetailsPage ? 'chatbot-details-inner-container' : 'chatbot-list-inner-container')}>
-          <Configuration cluster={cluster} config={config} setKwAIStoredModelsCollection={setKwAIStoredModelsCollection} isDetailsPage={isDetailsPage} />
         </TabsContent>
       </Tabs>
     </div>

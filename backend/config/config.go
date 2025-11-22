@@ -33,6 +33,10 @@ type AppConfig struct {
 	ListenAddr string                     `json:"listenAddr"`
 	KubeConfig map[string]*KubeConfigInfo `json:"kubeConfigs"`
 	mu         sync.Mutex
+
+	LLMModel       string `json:"llmModel,omitempty"`
+	LLMAPIEndpoint string `json:"llmApiEndpoint,omitempty"`
+	LLMAPIKey      string `json:"-"`
 }
 
 func NewEnv() *Env {
@@ -44,14 +48,17 @@ func NewEnv() *Env {
 	return &env
 }
 
-func NewAppConfig(version, listenAddr string, k8sClientQPS, k8sClientBurst int, isSecure bool) *AppConfig {
+func NewAppConfig(version, listenAddr string, k8sClientQPS, k8sClientBurst int, isSecure bool, llmModel, llmAPIEndpoint, llmAPIKey string) *AppConfig {
 	K8SQPS = k8sClientQPS
 	K8SBURST = k8sClientBurst
 	return &AppConfig{
-		Version:    version,
-		IsSecure:   isSecure,
-		ListenAddr: listenAddr,
-		KubeConfig: make(map[string]*KubeConfigInfo),
+		Version:        version,
+		IsSecure:       isSecure,
+		ListenAddr:     listenAddr,
+		KubeConfig:     make(map[string]*KubeConfigInfo),
+		LLMModel:       llmModel,
+		LLMAPIEndpoint: llmAPIEndpoint,
+		LLMAPIKey:      llmAPIKey,
 	}
 }
 

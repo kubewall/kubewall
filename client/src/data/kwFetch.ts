@@ -52,4 +52,4 @@ const kwFetch = (url: string, options?: RequestInit) => fetch(url, {...options }
 
 export { ApiRequestError };
 export type { RawRequestError };
-export default kwFetch;
+export default kwFetch; 

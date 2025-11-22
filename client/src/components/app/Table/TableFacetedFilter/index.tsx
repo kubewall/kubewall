@@ -40,7 +40,9 @@ export function DataTableFacetedFilter<TData, TValue>({
   } = useAppSelector((state: RootState) => state.listTableNamesapce);
   const dispatch = useAppDispatch();
   const facets = column?.getFacetedUniqueValues();
-  const selectedValues = new Set(selectedNamespace);
+  
+  // Single select: get the first value or undefined
+  const selectedValue = selectedNamespace?.[0];
 
   return (
     <Popover>
@@ -48,37 +50,15 @@ export function DataTableFacetedFilter<TData, TValue>({
         <Button variant="outline" size="sm" className="h-8 shadow-none gap-0">
           <ListFilterIcon className="mr-2 h-4 w-4" />
           {title}
-          {selectedValues?.size > 0 && (
+          {selectedValue && (
             <>
               <Separator orientation="vertical" className="mx-2 data-[orientation=vertical]:h-4" />
               <Badge
                 variant="secondary"
-                className="rounded-sm px-1 font-normal lg:hidden"
+                className="rounded-sm px-1 font-normal"
               >
-                {selectedValues.size}
+                {options.find((option) => option.value === selectedValue)?.label}
               </Badge>
-              <div className="hidden space-x-1 lg:flex">
-                {selectedValues.size > 2 ? (
-                  <Badge
-                    variant="secondary"
-                    className="rounded-sm px-1 font-normal"
-                  >
-                    {selectedValues.size} selected
-                  </Badge>
-                ) : (
-                  options
-                    .filter((option) => selectedValues.has(option.value))
-                    .map((option) => (
-                      <Badge
-                        variant="secondary"
-                        key={option.value}
-                        className="rounded-sm px-1 font-normal"
-                      >
-                        {option.label}
-                      </Badge>
-                    ))
-                )}
-              </div>
             </>
           )}
         </Button>
@@ -90,21 +70,19 @@ export function DataTableFacetedFilter<TData, TValue>({
             <CommandEmpty>No results found.</CommandEmpty>
             <CommandGroup>
               {options.map((option) => {
-                const isSelected = selectedValues.has(option.value);
+                const isSelected = selectedValue === option.value;
                 return (
                   <CommandItem
                     key={option.value}
                     onSelect={() => {
-                      if (isSelected) {
-                        selectedValues.delete(option.value);
-                      } else {
-                        selectedValues.add(option.value);
-                      }
-                      dispatch(updateFilterNamespace(Array.from(selectedValues)));
-                      const filterValues = Array.from(selectedValues);
-                      column?.setFilterValue(
-                        filterValues.length ? filterValues : undefined
-                      );
+                      // Single select logic: toggle selection
+                      const newValue = isSelected ? undefined : option.value;
+                      
+                      // Update Redux state
+                      dispatch(updateFilterNamespace(newValue ? [newValue] : []));
+                      
+                      // Update column filter
+                      column?.setFilterValue(newValue);
                     }}
                   >
                     <div
@@ -130,12 +108,15 @@ export function DataTableFacetedFilter<TData, TValue>({
                 );
               })}
             </CommandGroup>
-            {selectedValues.size > 0 && (
+            {selectedValue && (
               <>
                 <CommandSeparator />
                 <CommandGroup>
                   <CommandItem
-                    onSelect={() => { column?.setFilterValue(undefined); dispatch(resetFilterNamespace()); }}
+                    onSelect={() => { 
+                      column?.setFilterValue(undefined); 
+                      dispatch(resetFilterNamespace()); 
+                    }}
                     className="justify-center text-center"
                   >
                     Clear filters
@@ -149,4 +130,3 @@ export function DataTableFacetedFilter<TData, TValue>({
     </Popover>
   );
 }
-

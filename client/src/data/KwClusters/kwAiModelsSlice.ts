@@ -19,21 +19,35 @@ const initialState: InitialState = {
 };
 
 type fetchKwAIModelsProps = {
-  url: string;
   apiKey: string;
   queryParams: string;
 }
 
-const kwAiModels = createAsyncThunk('kwAiModels', ({ apiKey, url, queryParams }: fetchKwAIModelsProps, thunkAPI) => {
-  // TODO: Check why // is showing up in build
-  const formatedUrl = `${API_VERSION}/${MCP_SERVER_ENDPOINT}`.replace('//', '/');
-  return kwFetch(`${formatedUrl}/${url}/models?${queryParams}`, {
+const kwAiModels = createAsyncThunk('kwAiModels', ({ apiKey, queryParams }: fetchKwAIModelsProps, thunkAPI) => {
+  const formatedUrl = `${API_VERSION}${MCP_SERVER_ENDPOINT}`.replace('//', '/');
+  
+  console.log('Fetching models from:', `${formatedUrl}/models?${queryParams}`);
+  
+  return kwFetch(`${formatedUrl}/models?${queryParams}`, {
     headers: {
-      'Authorization': `Bearer ${apiKey}`
+      'Authorization': apiKey ? `Bearer ${apiKey}` : '',
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Anthropic-Version': '2023-06-01'
     }
   })
-    .then((res: kwAIModelResponse) => res ?? {})
-    .catch((e: Error) => thunkAPI.rejectWithValue(serializeError(e)));
+    .then((res: kwAIModelResponse) => {
+      if (!res) {
+        console.warn('Empty response received');
+        return { data: [], object: 'list' };
+      }
+      
+      return res || { data: [], object: 'list' };
+    })
+    .catch((e: Error) => {
+      console.error('API Error:', e);
+      return thunkAPI.rejectWithValue(serializeError(e));
+    });
 });
 
 const kwAiModelsSlices = createSlice({
@@ -52,8 +66,17 @@ const kwAiModelsSlices = createSlice({
       kwAiModels.fulfilled,
       (state, action: PayloadAction<kwAIModelResponse>) => {
         state.loading = false;
-        state.kwAiModel = formatKwAIModels(action.payload);
-        state.error = null;
+        try {
+          const formattedModels = formatKwAIModels(action.payload);
+          state.kwAiModel = formattedModels;
+          state.error = null;
+          
+        } catch (error) {
+          console.error('Error formatting models:', error);
+          // Don't set default models, just keep the state empty
+          state.kwAiModel = [];
+          state.error = { message: 'Error formatting models' };
+        }
       },
     );
     builder.addCase(kwAiModels.rejected, (state, action) => {
