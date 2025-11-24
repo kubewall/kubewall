@@ -40,7 +40,7 @@ func TestNewEnv(t *testing.T) {
 
 func TestNewAppConfig(t *testing.T) {
 	t.Run("app config initialization", func(t *testing.T) {
-		config := NewAppConfig("appTest", "7080", 10, 10, false, "", "", "")
+		config := NewAppConfig("appTest", "7080", 10, 10, false, "", "")
 		assert.NotNil(t, config)
 		assert.NotNil(t, config.KubeConfig)
 	})
@@ -51,7 +51,7 @@ func TestAppConfigLoadAppConfig(t *testing.T) {
 		os.Setenv("HOME", "/invalid/home/path")
 		defer os.Unsetenv("HOME")
 
-		config := NewAppConfig("appTest", "7080", 10, 10, false, "", "", "")
+		config := NewAppConfig("appTest", "7080", 10, 10, false, "", "")
 		config.LoadAppConfig()
 		assert.NotContains(t, config.KubeConfig, InClusterKey)
 	})
@@ -72,7 +72,7 @@ func TestAppConfigBuildKubeConfigs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			config := NewAppConfig("appTest", "7080", 10, 10, false, "", "", "")
+			config := NewAppConfig("appTest", "7080", 10, 10, false, "", "")
 			config.buildKubeConfigs(tt.dirPath)
 			if tt.expectErr {
 				assert.Empty(t, config.KubeConfig)
@@ -114,7 +114,7 @@ func TestAppConfigRemoveKubeConfig(t *testing.T) {
 			tt.setup()
 			defer tt.cleanup()
 
-			config := NewAppConfig("appTest", "7080", 10, 10, false, "", "", "")
+			config := NewAppConfig("appTest", "7080", 10, 10, false, "", "")
 			err := config.RemoveKubeConfig(tt.uuid)
 			if tt.name == "error path - kubeconfig file does not exist" {
 				assert.Error(t, err)
@@ -143,7 +143,7 @@ func TestAppConfigSaveKubeConfig(t *testing.T) {
 			tt.setup()
 			defer os.RemoveAll(filepath.Join(homedir.HomeDir(), appConfigDir))
 
-			config := NewAppConfig("appTest", "7080", 10, 10, false, "", "", "")
+			config := NewAppConfig("appTest", "7080", 10, 10, false, "", "")
 			config.SaveKubeConfig(tt.uuid)
 			if tt.name == "error path - invalid kubeconfig file" {
 				assert.Empty(t, config.KubeConfig)

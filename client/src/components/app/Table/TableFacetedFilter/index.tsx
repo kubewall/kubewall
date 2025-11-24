@@ -19,6 +19,7 @@ import { ListFilterIcon } from "lucide-react";
 import { RootState } from "@/redux/store";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { useEffect } from "react";
 
 type DataTableFacetedFilterProps<TData, TValue> = {
   column?: Column<TData, TValue>;
@@ -40,9 +41,16 @@ export function DataTableFacetedFilter<TData, TValue>({
   } = useAppSelector((state: RootState) => state.listTableNamesapce);
   const dispatch = useAppDispatch();
   const facets = column?.getFacetedUniqueValues();
-  
+
   // Single select: get the first value or undefined
   const selectedValue = selectedNamespace?.[0];
+
+  // Apply the filter on mount if there's a selected namespace
+  useEffect(() => {
+    if (selectedValue && column) {
+      column.setFilterValue(selectedValue);
+    }
+  }, [selectedValue, column]);
 
   return (
     <Popover>
@@ -77,10 +85,10 @@ export function DataTableFacetedFilter<TData, TValue>({
                     onSelect={() => {
                       // Single select logic: toggle selection
                       const newValue = isSelected ? undefined : option.value;
-                      
+
                       // Update Redux state
                       dispatch(updateFilterNamespace(newValue ? [newValue] : []));
-                      
+
                       // Update column filter
                       column?.setFilterValue(newValue);
                     }}
@@ -113,9 +121,9 @@ export function DataTableFacetedFilter<TData, TValue>({
                 <CommandSeparator />
                 <CommandGroup>
                   <CommandItem
-                    onSelect={() => { 
-                      column?.setFilterValue(undefined); 
-                      dispatch(resetFilterNamespace()); 
+                    onSelect={() => {
+                      column?.setFilterValue(undefined);
+                      dispatch(resetFilterNamespace());
                     }}
                     className="justify-center text-center"
                   >

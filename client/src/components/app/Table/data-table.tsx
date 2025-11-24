@@ -27,7 +27,6 @@ import { useEffect, useState } from "react";
 import { AiChat } from '../kwAI';
 import { DataTableToolbar } from "@/components/app/Table/TableToolbar";
 import { RootState } from "@/redux/store";
-import { TableDelete } from './TableDelete';
 import { useAppSelector } from "@/redux/hooks";
 
 type DataTableProps<TData, TValue> = {
@@ -162,11 +161,6 @@ export function DataTable<TData, TValue>({
           !fullScreen &&
           <ResizablePanel id="table" order={1} defaultSize={showChat ? 55 : 100}>
             <div className={`border border-x-0 overflow-auto ${tableWidthCss} `}>
-              {
-                Object.keys(rowSelection).length > 0 &&
-                <TableDelete selectedRows={table.getSelectedRowModel().rows} toggleAllRowsSelected={table.resetRowSelection} />
-              }
-
               <Table>
                 <TableHeader className="sticky top-0 z-10 bg-muted">
                   {table.getHeaderGroups().map((headerGroup) => (
@@ -224,7 +218,7 @@ export function DataTable<TData, TValue>({
         {
           showChat &&
           <>
-            { !fullScreen && <ResizableHandle withHandle/> }
+            {!fullScreen && <ResizableHandle withHandle />}
             <ResizablePanel id="ai-chat" order={2} minSize={30} defaultSize={fullScreen ? 100 : 45}>
               {/* <div className="flex h-full items-center justify-center p-6">
                 <span className="font-semibold">Sidebar</span>

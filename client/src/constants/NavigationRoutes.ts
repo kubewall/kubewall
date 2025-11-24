@@ -11,19 +11,11 @@ const NAVIGATION_ROUTE: NavigationRoutes = {
       route: 'namespaces'
     },
     {
-      name: 'Leases',
-      route: 'leases'
-    },
-    {
       name: 'Events',
       route: 'events'
     },
   ],
   'Workloads': [
-    {
-      name: 'Pods',
-      route: 'pods'
-    },
     {
       name: 'Deployments',
       route: 'deployments'
@@ -47,62 +39,17 @@ const NAVIGATION_ROUTE: NavigationRoutes = {
     {
       name: 'CronJobs',
       route: 'cronjobs'
-    }
-  ],
-  'Configuration': [
-    {
-      name: 'Secrets',
-      route: 'secrets'
-    },
-    {
-      name: 'ConfigMaps',
-      route: 'configmaps'
     },
     {
       name: 'HPA',
       route: 'horizontalpodautoscalers'
     },
-    {
-      name: 'Limit Ranges',
-      route: 'limitranges'
-    },
-    {
-      name: 'Resource Quotas',
-      route: 'resourcequotas'
-    },
-    {
-      name: 'Priority Classes',
-      route: 'priorityclasses'
-    },
-    {
-      name: 'Runtime Classes',
-      route: 'runtimeclasses'
-    },
-    {
-      name: 'Pod Disruption Budgets',
-      route: 'poddisruptionbudgets'
-    }
+
   ],
   'Access Control' :[
     {
       name: 'Service Accounts',
       route: 'serviceaccounts'
-    },
-    {
-      name: 'Roles',
-      route: 'roles'
-    },
-    {
-      name: 'Role Bindings',
-      route: 'rolebindings'
-    },
-    {
-      name: 'Cluster Roles',
-      route: 'clusterroles'
-    },
-    {
-      name: 'Cluster Role Bindings',
-      route: 'clusterrolebindings'
     },
   ],
   'Network':[
@@ -117,10 +64,6 @@ const NAVIGATION_ROUTE: NavigationRoutes = {
     {
       name: 'Endpoints',
       route: 'endpoints'
-    },
-    {
-      name: 'Port Forwarding',
-      route: 'portforwards'
     },
   ],
   'Storage' :[

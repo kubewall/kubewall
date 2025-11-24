@@ -1,7 +1,6 @@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
-import { AddResource } from "@/components/app/Common/AddResource";
 import { Button } from "@/components/ui/button";
 import { Cross2Icon } from "@radix-ui/react-icons";
 import { DataTableFacetedFilter } from "@/components/app/Table/TableFacetedFilter";
@@ -97,7 +96,6 @@ export function DataTableToolbar<TData>({
         }
       </div>
       <DataTableViewOptions table={table} />
-      <AddResource />
       <ThemeModeSelector />
 
       <TooltipProvider>

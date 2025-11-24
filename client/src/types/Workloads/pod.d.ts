@@ -10,7 +10,6 @@ type PodsHeaders = {
   lastRestartAt: string;
   lastRestartReason: string;
   podIP: string;
-  qos: string;
   age: string;
 };
 

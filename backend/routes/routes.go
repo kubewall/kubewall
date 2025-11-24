@@ -65,6 +65,7 @@ func ConfigureRoutes(e *echo.Echo, appContainer container.Container) {
 	e.Use(appmiddleware.ClusterQueryParamMiddleware(appContainer))
 	e.Use(appmiddleware.ClusterConnectivityMiddleware(appContainer))
 	e.Use(appmiddleware.ClusterCacheMiddleware(appContainer))
+	e.Use(appmiddleware.DisableUnusedMethods(appContainer))
 	e.Use(middleware.StaticWithConfig(middleware.StaticConfig{
 		HTML5:      true,
 		Root:       "static",

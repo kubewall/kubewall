@@ -1,12 +1,18 @@
 package config
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
+	"os"
 	"sync"
+	"time"
 
 	"github.com/charmbracelet/log"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
@@ -17,6 +23,12 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	metricsclient "k8s.io/metrics/pkg/client/clientset/versioned"
+	ctrlconf "sigs.k8s.io/controller-runtime/pkg/client/config"
+)
+
+const (
+	KubeWallClusterLabel = "kubewall/cluster"
+	KubeWallNamespace    = "kubewall"
 )
 
 type KubeConfigInfo struct {
@@ -40,6 +52,38 @@ type Cluster struct {
 	DynamicInformerFactory   dynamicinformer.DynamicSharedInformerFactory `json:"-"`
 	MetricClient             *metricsclient.Clientset                     `json:"-"`
 	mu                       sync.Mutex                                   `json:"-"`
+}
+
+type SecretClusterConfig struct {
+	BearerToken     string `json:"bearerToken"`
+	TlsClientConfig struct {
+		Insecure bool   `json:"insecure"`
+		KeyData  string `json:"keyData,omitempty"`
+		CertData string `json:"certData,omitempty"`
+		CaData   string `json:"caData,omitempty"`
+	} `json:"tlsClientConfig"`
+}
+
+func (clusterConfig *SecretClusterConfig) toRestConfig(server string) *rest.Config {
+	restConfig := &rest.Config{
+		Host:        server,
+		BearerToken: clusterConfig.BearerToken,
+		TLSClientConfig: rest.TLSClientConfig{
+			Insecure: true,
+		},
+	}
+	clusterConfig.addTLSConfigurationsInto(restConfig)
+	return restConfig
+}
+
+func (clusterConfig *SecretClusterConfig) addTLSConfigurationsInto(restConfig *rest.Config) {
+	restConfig.TLSClientConfig = rest.TLSClientConfig{Insecure: clusterConfig.TlsClientConfig.Insecure}
+	if !clusterConfig.TlsClientConfig.Insecure {
+		restConfig.TLSClientConfig.ServerName = restConfig.ServerName
+		restConfig.TLSClientConfig.KeyData = []byte(clusterConfig.TlsClientConfig.KeyData)
+		restConfig.TLSClientConfig.CertData = []byte(clusterConfig.TlsClientConfig.CertData)
+		restConfig.TLSClientConfig.CAData = []byte(clusterConfig.TlsClientConfig.CaData)
+	}
 }
 
 func (c *Cluster) GetClientSet() *kubernetes.Clientset {
@@ -125,6 +169,90 @@ func LoadInClusterConfig() (KubeConfigInfo, error) {
 		},
 	}
 	return newConfig, nil
+}
+
+func GetApplicationNamespace() string {
+	if namespace := os.Getenv("NAMESPACE"); namespace != "" {
+		return namespace
+	}
+
+	contents, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	if err != nil {
+		return "default"
+	}
+	return string(contents)
+}
+
+func GetAllClusters() (map[string]*Cluster, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	config, err := ctrlconf.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	namespace := GetApplicationNamespace()
+
+	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{
+		KubeWallClusterLabel: "true",
+	}}
+	secrets, err := clientset.CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if secrets != nil && len(secrets.Items) == 0 {
+		return nil, fmt.Errorf("kubewall cluster secrets not found")
+	}
+
+	clusters := make(map[string]*Cluster)
+	for _, secret := range secrets.Items {
+		if secret.Data != nil {
+			if server, ok := secret.Data["server"]; ok {
+				if name, ok := secret.Data["name"]; ok {
+					if config, ok := secret.Data["config"]; ok {
+						var clusterConfig SecretClusterConfig
+						err = json.Unmarshal(config, &clusterConfig)
+						if err != nil {
+							continue
+						}
+						restConfig := clusterConfig.toRestConfig(string(server))
+						clusterConfig.addTLSConfigurationsInto(restConfig)
+
+						kubeConfig, err := loadClientConfig(restConfig)
+						if err != nil {
+							log.Warn("failed to load clientConfig for cluster", "err", err)
+							continue
+						}
+						cfg := &Cluster{
+							Name:                     string(name),
+							Namespace:                "default",
+							AuthInfo:                 string(name),
+							RestConfig:               restConfig,
+							ClientSet:                kubeConfig.ClientSet,
+							DynamicClient:            kubeConfig.DynamicClient,
+							DiscoveryClient:          kubeConfig.DiscoveryClient,
+							SharedInformerFactory:    kubeConfig.SharedInformerFactory,
+							ExtensionInformerFactory: kubeConfig.ExtensionInformerFactory,
+							DynamicInformerFactory:   kubeConfig.DynamicInformerFactory,
+							MetricClient:             kubeConfig.MetricClient,
+						}
+						clusters[string(name)] = cfg
+					}
+				}
+			}
+		}
+	}
+
+	return clusters, nil
 }
 
 func LoadK8ConfigFromFile(path string) (map[string]*Cluster, error) {

@@ -34,7 +34,6 @@ type AppConfig struct {
 	KubeConfig map[string]*KubeConfigInfo `json:"kubeConfigs"`
 	mu         sync.Mutex
 
-	LLMModel       string `json:"llmModel,omitempty"`
 	LLMAPIEndpoint string `json:"llmApiEndpoint,omitempty"`
 	LLMAPIKey      string `json:"-"`
 }
@@ -48,7 +47,7 @@ func NewEnv() *Env {
 	return &env
 }
 
-func NewAppConfig(version, listenAddr string, k8sClientQPS, k8sClientBurst int, isSecure bool, llmModel, llmAPIEndpoint, llmAPIKey string) *AppConfig {
+func NewAppConfig(version, listenAddr string, k8sClientQPS, k8sClientBurst int, isSecure bool, llmAPIEndpoint, llmAPIKey string) *AppConfig {
 	K8SQPS = k8sClientQPS
 	K8SBURST = k8sClientBurst
 	return &AppConfig{
@@ -56,7 +55,6 @@ func NewAppConfig(version, listenAddr string, k8sClientQPS, k8sClientBurst int, 
 		IsSecure:       isSecure,
 		ListenAddr:     listenAddr,
 		KubeConfig:     make(map[string]*KubeConfigInfo),
-		LLMModel:       llmModel,
 		LLMAPIEndpoint: llmAPIEndpoint,
 		LLMAPIKey:      llmAPIKey,
 	}
@@ -68,6 +66,7 @@ func (c *AppConfig) LoadAppConfig() {
 
 	c.buildKubeConfigs(filepath.Join(homedir.HomeDir(), defaultKubeConfigDir))
 	c.buildKubeConfigs(filepath.Join(homedir.HomeDir(), appConfigDir, appKubeConfigDir))
+	c.buildKubeConfigsFromSecrets()
 
 	i, err := LoadInClusterConfig()
 	if err == nil {
@@ -90,6 +89,19 @@ func (c *AppConfig) buildKubeConfigs(dirPath string) {
 					FileExists:   true,
 					Clusters:     clusters,
 				}
+			}
+		}
+	}
+}
+
+func (c *AppConfig) buildKubeConfigsFromSecrets() {
+	if clusters, err := GetAllClusters(); err == nil {
+		for name, cluster := range clusters {
+			c.KubeConfig[name] = &KubeConfigInfo{
+				Name:         name,
+				AbsolutePath: "",
+				FileExists:   false,
+				Clusters:     map[string]*Cluster{name: cluster},
 			}
 		}
 	}

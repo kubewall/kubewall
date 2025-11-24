@@ -369,7 +369,6 @@ const podsColumnConfig = (config: string, cluster: string, isSelectable = true) 
     { title: 'Restarts', accessorKey: 'restarts', },
     { title: 'Last Restart', accessorKey: 'lastRestartAt', },
     { title: 'IP', accessorKey: 'podIP', enableGlobalFilter: true },
-    { title: 'QOS', accessorKey: 'qos', },
     { title: 'Age', accessorKey: 'age' }
   ].filter(({ title }) => isSelectable || (!isSelectable && title.toLowerCase() !== 'select')),
   queryParams: { config, cluster },

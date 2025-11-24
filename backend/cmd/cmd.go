@@ -24,9 +24,8 @@ func init() {
 	rootCmd.PersistentFlags().Int("k8s-client-qps", 100, "maximum QPS to the master from client")
 	rootCmd.PersistentFlags().Int("k8s-client-burst", 200, "Maximum burst for throttle")
 	rootCmd.PersistentFlags().Bool("no-open-browser", false, "Do not open the default browser")
-	rootCmd.PersistentFlags().String("llm-model", "", "LLM model name (e.g., gpt-4, claude-3-opus)")
-        rootCmd.PersistentFlags().String("llm-api-endpoint", "", "LLM API endpoint URL")
-        rootCmd.PersistentFlags().String("llm-api-key", "", "LLM API key (can also use KUBEWALL_LLM_API_KEY env var)")
+	rootCmd.PersistentFlags().String("llm-api-endpoint", "", "LLM API endpoint URL")
+	rootCmd.PersistentFlags().String("llm-api-key", "", "LLM API key (can also use KUBEWALL_LLM_API_KEY env var)")
 
 }
 
@@ -90,26 +89,23 @@ func Serve(cmd *cobra.Command) error {
 	if err != nil {
 		return err
 	}
-	llmModel, err := cmd.Flags().GetString("llm-model")
-        if err != nil {
-                return err
-        }
-        llmAPIEndpoint, err := cmd.Flags().GetString("llm-api-endpoint")
-        if err != nil {
-                return err
-        }
-        llmAPIKey, err := cmd.Flags().GetString("llm-api-key")
-        if err != nil {
-                return err
-        }
-        // Allow API key from environment variable if not provided via flag
-        if llmAPIKey == "" {
-                llmAPIKey = os.Getenv("KUBEWALL_LLM_API_KEY")
-        }
+
+	llmAPIEndpoint, err := cmd.Flags().GetString("llm-api-endpoint")
+	if err != nil {
+		return err
+	}
+	llmAPIKey, err := cmd.Flags().GetString("llm-api-key")
+	if err != nil {
+		return err
+	}
+	// Allow API key from environment variable if not provided via flag
+	if llmAPIKey == "" {
+		llmAPIKey = os.Getenv("KUBEWALL_LLM_API_KEY")
+	}
 
 	isSecure := certFile != "" || keyFile != ""
 
-	cfg := config.NewAppConfig(Version, listenAddr, k8sClientQPS, k9sClientBurst, isSecure,  llmModel, llmAPIEndpoint, llmAPIKey)
+	cfg := config.NewAppConfig(Version, listenAddr, k8sClientQPS, k9sClientBurst, isSecure, llmAPIEndpoint, llmAPIKey)
 	cfg.LoadAppConfig()
 
 	c := container.NewContainer(env, cfg)

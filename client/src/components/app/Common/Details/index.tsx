@@ -1,5 +1,5 @@
-import { Link, useNavigate } from "@tanstack/react-router";
-import { PodLogs, PortForwardingDialog, ScaleDeployments } from "../../MiscDetailsContainer";
+import { Link } from "@tanstack/react-router";
+import { PodLogs, PortForwardingDialog } from "../../MiscDetailsContainer";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,10 +17,9 @@ import { Loader } from "../../Loader";
 import { Overview } from "../../Details/Overview";
 import { PODS_ENDPOINT } from "@/constants";
 import { RootState } from "@/redux/store";
-import { Row } from "@tanstack/react-table";
+
 import { Separator } from "@/components/ui/separator";
 import { Sparkles } from "lucide-react";
-import { TableDelete } from "../../Table/TableDelete";
 import { ThemeModeSelector } from "../ThemeModeSelector";
 import { YamlEditor } from "../../Details/YamlEditor";
 import { clearLogs } from "@/data/Workloads/Pods/PodLogsSlice";
@@ -32,7 +31,6 @@ import { useSidebarSize } from "@/hooks/use-get-sidebar-size";
 
 const KwDetails = () => {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
   const [showChat, setShowChat] = useState(false);
   const [fullScreen, setFullScreen] = useState(false);
   const { isMobile } = useSidebar();
@@ -89,20 +87,6 @@ const KwDetails = () => {
     }
     return new URLSearchParams(qp).toString();
   };
-  /* eslint-disable  @typescript-eslint/no-explicit-any */
-  const selectedRows = [
-    {
-      original: {
-        name: resourcename,
-        namespace
-      }
-    }
-  ] as Row<any>[];
-  /* eslint-enable  @typescript-eslint/no-explicit-any */
-
-  const redirectToListPage = () => {
-    navigate({ to: `/${config}/list?${getListPageQueryparams()}` });
-  };
 
   const onChatClose = () => {
     setShowChat(false);
@@ -139,10 +123,6 @@ const KwDetails = () => {
                   {resourceData?.subHeading}
                 </h2>
                 <div className="ml-auto">
-                  {
-                    resourcekind === 'deployments' &&
-                    <ScaleDeployments resourcename={resourcename} queryParams={new URLSearchParams(queryParamsObj).toString()} />
-                  }
                   {
                     resourcekind === 'pods' &&
                     <PortForwardingDialog
@@ -193,7 +173,6 @@ const KwDetails = () => {
                       getPortValue={selected => Number(selected.split('/')[1])}
                     />
                   }
-                  <TableDelete selectedRows={selectedRows} postDeleteCallback={redirectToListPage} />
                   <ThemeModeSelector />
                   <TooltipProvider>
                     <Tooltip delayDuration={0}>

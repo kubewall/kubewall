@@ -5,8 +5,25 @@ type InitialState = {
   selectedNamespace: string[];
 };
 
+const NAMESPACE_STORAGE_KEY = 'kubewall_selected_namespace';
+
+// Get initial namespace from localStorage, fallback to 'default'
+const getInitialNamespace = (): string[] => {
+  try {
+    const stored = localStorage.getItem(NAMESPACE_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return Array.isArray(parsed) ? parsed : [parsed];
+    }
+  } catch (error) {
+    console.error('Error reading namespace from localStorage:', error);
+  }
+  // Default to 'default' namespace
+  return ['default'];
+};
+
 const initialState: InitialState = {
-  selectedNamespace: []
+  selectedNamespace: getInitialNamespace()
 };
 
 const listTableNamespaceSlice = createSlice({
@@ -15,9 +32,21 @@ const listTableNamespaceSlice = createSlice({
   reducers: {
     updateFilterNamespace: (state, action) => {
       state.selectedNamespace = action.payload;
+      // Persist to localStorage
+      try {
+        localStorage.setItem(NAMESPACE_STORAGE_KEY, JSON.stringify(action.payload));
+      } catch (error) {
+        console.error('Error saving namespace to localStorage:', error);
+      }
     },
     resetFilterNamespace: () => {
-      return initialState;
+      // Clear from localStorage when reset
+      try {
+        localStorage.removeItem(NAMESPACE_STORAGE_KEY);
+      } catch (error) {
+        console.error('Error removing namespace from localStorage:', error);
+      }
+      return { selectedNamespace: [] };
     }
   },
   extraReducers: (builder) => {

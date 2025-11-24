@@ -5,7 +5,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { resetAllStates, useAppDispatch, useAppSelector } from '@/redux/hooks';
 
-import { AddConfig } from './AddConfiguration';
 import { Button } from '@/components/ui/button';
 import { Clusters } from '@/types';
 import { DeleteConfiguration } from './DeleteConfiguration';
@@ -96,7 +95,6 @@ export function KubeConfiguration() {
               <span className="ml-2 text-xs">({clusters.version})</span>
             </div>
             <div className="flex space-x-2">
-              <AddConfig />
               <TooltipProvider>
                 <Tooltip delayDuration={0}>
                   <TooltipTrigger asChild>

@@ -4,24 +4,13 @@ import (
 	"fmt"
 
 	"github.com/kubewall/kubewall/backend/container"
-	"github.com/kubewall/kubewall/backend/handlers/config/secrets"
 	"github.com/kubewall/kubewall/backend/handlers/helpers"
 	"github.com/kubewall/kubewall/backend/handlers/workloads/deployments"
 	"github.com/labstack/echo/v4"
 
-	"github.com/kubewall/kubewall/backend/handlers/accesscontrol/clusterroles"
-	clusterrolebindings "github.com/kubewall/kubewall/backend/handlers/accesscontrol/clusterrolesbindings"
-	"github.com/kubewall/kubewall/backend/handlers/accesscontrol/roles"
-	rolebindings "github.com/kubewall/kubewall/backend/handlers/accesscontrol/rolesbindings"
 	"github.com/kubewall/kubewall/backend/handlers/accesscontrol/serviceaccounts"
-	configmaps "github.com/kubewall/kubewall/backend/handlers/config/configMaps"
 	horizontalpodautoscalers "github.com/kubewall/kubewall/backend/handlers/config/horizontalPodAutoscalers"
 	"github.com/kubewall/kubewall/backend/handlers/config/leases"
-	limitranges "github.com/kubewall/kubewall/backend/handlers/config/limitRanges"
-	poddisruptionbudgets "github.com/kubewall/kubewall/backend/handlers/config/podDisruptionBudgets"
-	priorityclasses "github.com/kubewall/kubewall/backend/handlers/config/priorityClasses"
-	resourcequotas "github.com/kubewall/kubewall/backend/handlers/config/resourceQuotas"
-	runtimeclasses "github.com/kubewall/kubewall/backend/handlers/config/runtimeClasses"
 	"github.com/kubewall/kubewall/backend/handlers/events"
 	"github.com/kubewall/kubewall/backend/handlers/namespaces"
 	"github.com/kubewall/kubewall/backend/handlers/network/endpoints"
@@ -34,7 +23,6 @@ import (
 	cronjobs "github.com/kubewall/kubewall/backend/handlers/workloads/cronJobs"
 	"github.com/kubewall/kubewall/backend/handlers/workloads/daemonsets"
 	"github.com/kubewall/kubewall/backend/handlers/workloads/jobs"
-	"github.com/kubewall/kubewall/backend/handlers/workloads/pods"
 	"github.com/kubewall/kubewall/backend/handlers/workloads/replicaset"
 	statefulset "github.com/kubewall/kubewall/backend/handlers/workloads/statefulsets"
 )
@@ -68,7 +56,7 @@ func ClusterCacheMiddleware(container container.Container) echo.MiddlewareFunc {
 }
 
 func loadAllInformerOfCluster(c echo.Context, container container.Container) {
-	go pods.NewPodsHandler(c, container)
+	// go pods.NewPodsHandler(c, container)
 	go deployments.NewDeploymentsHandler(c, container)
 	go daemonsets.NewDaemonSetsHandler(c, container)
 	go replicaset.NewReplicaSetHandler(c, container)
@@ -82,28 +70,28 @@ func loadAllInformerOfCluster(c echo.Context, container container.Container) {
 	go storageclasses.NewStorageClassesHandler(c, container)
 
 	// Config
-	go configmaps.NewConfigMapsHandler(c, container)
-	go secrets.NewSecretsHandler(c, container)
-	go resourcequotas.NewResourceQuotaHandler(c, container)
+	// go configmaps.NewConfigMapsHandler(c, container)
+	// go secrets.NewSecretsHandler(c, container)
+	// go resourcequotas.NewResourceQuotaHandler(c, container)
 	go namespaces.NewNamespacesHandler(c, container)
 	go horizontalpodautoscalers.NewHorizontalPodAutoScalerHandler(c, container)
-	go poddisruptionbudgets.NewPodDisruptionBudgetHandler(c, container)
-	go priorityclasses.NewPriorityClassHandler(c, container)
-	go runtimeclasses.NewRunTimeClassHandler(c, container)
+	// go poddisruptionbudgets.NewPodDisruptionBudgetHandler(c, container)
+	// go priorityclasses.NewPriorityClassHandler(c, container)
+	// go runtimeclasses.NewRunTimeClassHandler(c, container)
 	go leases.NewLeasesHandler(c, container)
 
 	// AccessControl
 	go serviceaccounts.NewServiceAccountsHandler(c, container)
-	go roles.NewRolesHandler(c, container)
-	go rolebindings.NewRoleBindingHandler(c, container)
-	go clusterroles.NewRolesHandler(c, container)
-	go clusterrolebindings.NewClusterRoleBindingHandler(c, container)
+	// go roles.NewRolesHandler(c, container)
+	// go rolebindings.NewRoleBindingHandler(c, container)
+	// go clusterroles.NewRolesHandler(c, container)
+	// go clusterrolebindings.NewClusterRoleBindingHandler(c, container)
 
 	// Network
 	go endpoints.NewEndpointsHandler(c, container)
 	go ingresses.NewIngressHandler(c, container)
 	go services.NewServicesHandler(c, container)
-	go limitranges.NewLimitRangesHandler(c, container)
+	// go limitranges.NewLimitRangesHandler(c, container)
 
 	go nodes.NewNodeHandler(c, container)
 	go events.NewEventsHandler(c, container)
