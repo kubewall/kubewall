@@ -64,15 +64,10 @@ spec:
           - name: tls-certs
             mountPath: "/etc/ssl/certs"
             readOnly: true
-          - name: kubewall-data
-            mountPath: {{ .Values.kubewallData.mountPath }}
       volumes:
       - name: tls-certs
         secret:
           secretName: {{ include "helm-chart.kubewall-tls-secret-name" . }}
-      - name: kubewall-data
-        persistentVolumeClaim:
-          claimName: {{ .Values.pvc.name }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
