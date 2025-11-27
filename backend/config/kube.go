@@ -178,8 +178,12 @@ func restConfig(path string, contextName string) (*rest.Config, error) {
 
 	restConfig, err := cc.ClientConfig()
 	if err != nil {
-		log.Error("failed to Kubernetes ClientConfig", "err", err)
-		return nil, fmt.Errorf("failed to create kubernetes ClientConfig: %w", err)
+		log.Error("failed to load Kubernetes client configuration",
+			"configPath", path,
+			"context", contextName,
+			"error", err,
+		)
+		return nil, fmt.Errorf("failed to load Kubernetes client configuration: %w", err)
 	}
 	restConfig.ContentType = runtime.ContentTypeProtobuf
 	restConfig.AcceptContentTypes = fmt.Sprintf("%s,%s", runtime.ContentTypeProtobuf, runtime.ContentTypeJSON)
