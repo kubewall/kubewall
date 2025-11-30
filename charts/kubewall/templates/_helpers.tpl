@@ -96,3 +96,36 @@ Falls back to service.port if listen is empty.
 {{ .Values.service.port }}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Generate ingress TLS certificates
+*/}}
+{{- define "helm-chart.gen-ingress-certs" -}}
+{{- $ca := genCA "kubewall-ingress-ca" 1825 -}}
+{{- $hosts := list -}}
+{{- range .Values.ingress.hosts -}}
+{{- $hosts = append $hosts .host -}}
+{{- end -}}
+{{- $primaryHost := index .Values.ingress.hosts 0 | default (dict "host" "kubewall.local") -}}
+{{- $cert := genSignedCert $primaryHost.host nil $hosts 1825 $ca -}}
+tls.crt: {{ $cert.Cert | b64enc }}
+tls.key: {{ $cert.Key | b64enc }}
+{{- end -}}
+
+{{/*
+Default ingress TLS secret name
+*/}}
+{{- define "helm-chart.default-ingress-tls-secret-name" -}}
+kubewall-ingress-tls-secret
+{{- end }}
+
+{{/*
+Get ingress TLS secret name
+*/}}
+{{- define "helm-chart.ingress-tls-secret-name" -}}
+{{- if .Values.ingress.tls.secretName -}}
+{{ .Values.ingress.tls.secretName }}
+{{- else -}}
+{{ include "helm-chart.default-ingress-tls-secret-name" . }}
+{{- end -}}
+{{- end -}}

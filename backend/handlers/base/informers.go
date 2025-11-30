@@ -84,7 +84,7 @@ func (h *BaseHandler) WaitForSync(c echo.Context) {
 	h.Informer.SetWatchErrorHandler(func(r *cache.Reflector, err error) {
 		log.Warn("failed to watch, will backoff and retry", "error", err, "kind", h.Kind)
 	})
-	err := wait.PollUntilContextCancel(c.Request().Context(), 100*time.Millisecond, true, func(context.Context) (done bool, err error) {
+	err := wait.PollUntilContextCancel(c.Request().Context(), 50*time.Millisecond, true, func(context.Context) (done bool, err error) {
 		hasSynced := h.Informer.HasSynced()
 		if hasSynced {
 			h.Container.EventProcessor().AddEvent(h.Kind, h.processListEvents(""))

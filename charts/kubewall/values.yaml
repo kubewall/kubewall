@@ -43,17 +43,23 @@ fullnameOverride: ""  # Set to override the full name of the chart
 podAnnotations: {}
 
 # Pod-level security context
-podSecurityContext: {}  # Security settings applied to the entire pod
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65534  # nobody user
+  runAsGroup: 65534
+  fsGroup: 65534
+  seccompProfile:
+    type: RuntimeDefault
 
 # Container-level security context
-securityContext: {}
-  # Example settings to drop all Linux capabilities and run as non-root
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true  # Enforce the root filesystem to be read-only
-  # runAsNonRoot: true  # Ensure the container runs as a non-root user
-# runAsUser: 1000  # Specify the UID of the user inside the container
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false  # Kubewall needs to write to /.kubewall
+  runAsNonRoot: true
+  runAsUser: 65534
+  capabilities:
+    drop:
+      - ALL
 
 # Service exposure settings
 service:
@@ -64,14 +70,45 @@ service:
   #   listen: "192.168.1.10:8443" # specific pod interface (rare)
   listen: ":8443"  # Listen on all interfaces (IPv6 compatible)
 
+# Ingress configuration for external access
+ingress:
+  enabled: false  # Set to true to enable ingress
+  className: ""  # Ingress class name (e.g., "nginx", "traefik")
+  annotations:
+    # Backend protocol is HTTPS by default since Kubewall runs with TLS
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    # Common additional annotations for different ingress controllers:
+    # For nginx-ingress with cert-manager:
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # For traefik:
+    # traefik.ingress.kubernetes.io/router.tls: "true"
+    # For AWS ALB:
+    # alb.ingress.kubernetes.io/scheme: internet-facing
+    # alb.ingress.kubernetes.io/target-type: ip
+    # alb.ingress.kubernetes.io/backend-protocol: "HTTPS"
+  hosts:
+    - host: kubewall.local  # Hostname for accessing Kubewall
+      paths:
+        - path: /
+          pathType: Prefix  # Path type: Prefix, Exact, or ImplementationSpecific
+  tls:
+    # Auto TLS configuration - automatically creates self-signed certificates
+    autoTLS: true  # Set to false to disable automatic TLS certificate generation
+    secretName: ""  # Leave empty to auto-generate, or specify your own TLS secret name
+    # Manual TLS configuration (used when autoTLS is false)
+    # - secretName: kubewall-ingress-tls  # Name of the TLS secret
+    #   hosts:
+    #     - kubewall.local  # Hostname(s) covered by the certificate
+
 # Resource limits and requests for the container
 resources:
   limits:
-    cpu: 100m  # Maximum CPU limit (100 milli-CPU)
-    memory: 256Mi  # Maximum memory limit (128 MiB)
+    cpu: 500m  # Maximum CPU limit (500 milli-CPU)
+    memory: 512Mi  # Maximum memory limit (512 MiB)
   requests:
-    cpu: 100m  # Minimum CPU request (100 milli-CPU)
-    memory: 256Mi  # Minimum memory request (128 MiB)
+    cpu: 250m  # Minimum CPU request (250 milli-CPU)
+    memory: 256Mi  # Minimum memory request (256 MiB)
 
 # Persistent volume claim (PVC) for Kubewall data storage
 pvc:

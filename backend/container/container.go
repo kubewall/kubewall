@@ -72,7 +72,7 @@ func NewContainer(env *config.Env, cfg *config.AppConfig) Container {
 
 	pf := portforward.NewPortForwarder()
 
-	e := event.NewEventCounter(time.Millisecond * 250)
+	e := event.NewEventCounter(time.Millisecond * 150)
 	go e.Run()
 	return &container{
 		env:            env,
@@ -125,65 +125,41 @@ func (c *container) EventProcessor() *event.EventProcessor {
 }
 
 func (c *container) RestConfig(config, cluster string) *rest.Config {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
 	return cfg.RestConfig
 }
 
 func (c *container) ClientSet(config, cluster string) *kubernetes.Clientset {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
 	return cfg.GetClientSet()
 }
 
 func (c *container) DynamicClient(config, cluster string) *dynamic.DynamicClient {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
 	return cfg.GetDynamicClient()
 }
 
 func (c *container) DiscoveryClient(config, cluster string) *discovery.DiscoveryClient {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
 	return cfg.GetDiscoveryClient()
 }
 
 func (c *container) MetricClient(config, cluster string) *metricsclient.Clientset {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
 	return cfg.GetMetricClient()
 }
 
 func (c *container) SharedInformerFactory(config, cluster string) informers.SharedInformerFactory {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
 	return cfg.GetSharedInformerFactory()
 }
 
 func (c *container) ExtensionSharedFactoryInformer(config, cluster string) apiextensionsinformers.SharedInformerFactory {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
 	return cfg.GetExtensionInformerFactory()
 }
 
 func (c *container) DynamicSharedInformerFactory(config, cluster string) dynamicinformer.DynamicSharedInformerFactory {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
 	return cfg.GetDynamicSharedInformerFactory()
 }

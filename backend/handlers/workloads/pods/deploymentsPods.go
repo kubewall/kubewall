@@ -3,10 +3,8 @@ package pods
 import (
 	"encoding/json"
 	"fmt"
-	"sort"
-	"strings"
-
 	appV1 "k8s.io/api/apps/v1"
+	"sort"
 
 	"github.com/labstack/echo/v4"
 	"github.com/r3labs/sse/v2"
@@ -79,23 +77,4 @@ func (h *PodsHandler) FindPodDeploymentOwner(c echo.Context, pod v1.Pod) string 
 		}
 	}
 	return ""
-}
-
-func FilterPodsByDeploymentName(pods []v1.Pod, deploymentName string) []v1.Pod {
-	var filtered []v1.Pod
-	for _, pod := range pods {
-		for _, ownerRef := range pod.OwnerReferences {
-			if ownerRef.Kind == "ReplicaSet" && ownerRef.Controller != nil && *ownerRef.Controller {
-				if isOwnedByDeployment(ownerRef.Name, deploymentName) {
-					filtered = append(filtered, pod)
-				}
-			}
-		}
-	}
-	return filtered
-}
-
-func isOwnedByDeployment(replicaSetName, deploymentName string) bool {
-	return len(replicaSetName) >= len(deploymentName) &&
-		strings.HasPrefix(replicaSetName, deploymentName+"-")
 }
