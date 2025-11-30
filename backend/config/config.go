@@ -8,7 +8,6 @@ import (
 	"k8s.io/client-go/util/homedir"
 )
 
-// Increased QPS and Burst for better performance with large clusters
 // QPS: queries per second allowed to the Kubernetes API
 // Burst: maximum burst for throttle
 var K8SQPS = 200

@@ -125,49 +125,41 @@ func (c *container) EventProcessor() *event.EventProcessor {
 }
 
 func (c *container) RestConfig(config, cluster string) *rest.Config {
-	// Read-only access, no need for mutex since config is immutable after initialization
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
 	return cfg.RestConfig
 }
 
 func (c *container) ClientSet(config, cluster string) *kubernetes.Clientset {
-	// Read-only access, no need for mutex since config is immutable after initialization
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
 	return cfg.GetClientSet()
 }
 
 func (c *container) DynamicClient(config, cluster string) *dynamic.DynamicClient {
-	// Read-only access, no need for mutex since config is immutable after initialization
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
 	return cfg.GetDynamicClient()
 }
 
 func (c *container) DiscoveryClient(config, cluster string) *discovery.DiscoveryClient {
-	// Read-only access, no need for mutex since config is immutable after initialization
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
 	return cfg.GetDiscoveryClient()
 }
 
 func (c *container) MetricClient(config, cluster string) *metricsclient.Clientset {
-	// Read-only access, no need for mutex since config is immutable after initialization
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
 	return cfg.GetMetricClient()
 }
 
 func (c *container) SharedInformerFactory(config, cluster string) informers.SharedInformerFactory {
-	// Read-only access, no need for mutex since config is immutable after initialization
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
 	return cfg.GetSharedInformerFactory()
 }
 
 func (c *container) ExtensionSharedFactoryInformer(config, cluster string) apiextensionsinformers.SharedInformerFactory {
-	// Read-only access, no need for mutex since config is immutable after initialization
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
 	return cfg.GetExtensionInformerFactory()
 }
 
 func (c *container) DynamicSharedInformerFactory(config, cluster string) dynamicinformer.DynamicSharedInformerFactory {
-	// Read-only access, no need for mutex since config is immutable after initialization
 	cfg := c.config.KubeConfig[config].Clusters[cluster]
 	return cfg.GetDynamicSharedInformerFactory()
 }
