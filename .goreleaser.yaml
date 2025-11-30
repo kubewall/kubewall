@@ -179,15 +179,12 @@ docker_manifests:
 
 signs:
   - cmd: cosign
-    signature: "${artifact}.sig"
-    certificate: "${artifact}.pem"
+    signature: "${artifact}.sigstore.json"
     output: true
     artifacts: checksum
     args:
       - sign-blob
-      - "--oidc-provider=github-actions"
-      - "--output-certificate=${certificate}"
-      - "--output-signature=${signature}"
+      - "--bundle=${signature}"
       - "${artifact}"
       - --yes
 
@@ -248,9 +245,6 @@ release:
 
     **Windows (Exe)**
     [amd64](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_Windows_x86_64.zip) | [arm64](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_Windows_arm64.zip) | [i386](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_Windows_i386.zip)
-
-    **FreeBSD (Binaries)**
-    [amd64](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_Freebsd_x86_64.tar.gz) | [arm64](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_Freebsd_arm64.tar.gz) | [i386](https://github.com/kubewall/kubewall/releases/download/{{ .Tag }}/kubewall_Freebsd_i386.tar.gz)
 
     **Packages**
     * **Debian / Ubuntu (.deb):**
