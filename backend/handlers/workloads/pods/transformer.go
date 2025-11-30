@@ -36,8 +36,10 @@ func TransformPodList(pods []coreV1.Pod, podMetricsList *v1beta1.PodMetricsList)
 
 	for _, p := range pods {
 		item := TransformPodListItem(p)
-		item.CPU = podsMetricsMap[item.Name]["cpu"]
-		item.Memory = podsMetricsMap[item.Name]["memory"]
+		if metrics, exists := podsMetricsMap[item.Name]; exists {
+			item.CPU = metrics["cpu"]
+			item.Memory = metrics["memory"]
+		}
 
 		list = append(list, item)
 	}

@@ -1,6 +1,12 @@
 1. Get the application URL by running these commands:
 
-{{- if eq .Values.service.type "ClusterIP" }}
+{{- if .Values.ingress.enabled }}
+{{- range $host := .Values.ingress.hosts }}
+  {{- range .paths }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ .path }}
+  {{- end }}
+{{- end }}
+{{- else if eq .Values.service.type "ClusterIP" }}
   echo "Visit: https://$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "kubewall.fullname" . }} -o jsonpath='{.spec.clusterIP}'):$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "kubewall.fullname" . }} -o jsonpath='{.spec.ports[0].port}')"
 
 {{- else if eq .Values.service.type "LoadBalancer" }}

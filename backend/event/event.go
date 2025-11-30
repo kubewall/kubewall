@@ -15,7 +15,7 @@ type EventProcessor struct {
 func NewEventCounter(interval time.Duration) *EventProcessor {
 	ec := &EventProcessor{
 		ticker: time.NewTicker(interval),
-		key:    make(map[string]func()),
+		key:    make(map[string]func(), 5000),
 	}
 	return ec
 }
