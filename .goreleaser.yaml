@@ -3,8 +3,8 @@ version: 2
 
 before:
   hooks:
-    - sh -c "yarn --cwd client install && yarn --cwd client run build && rm -rf backend/routes/static && mv client/dist backend/routes/static"
-    - cd backend && go mod tidy && cd ..
+    - sh -c "yarn --cwd client install && yarn --cwd client run build && rm -rf client/node_modules && rm -rf backend/routes/static && mv client/dist backend/routes/static"
+    - sh -c "cd backend && go mod tidy && cd .."
     
 builds:
   - main: main.go
