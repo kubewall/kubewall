@@ -4,12 +4,13 @@ version: 2
 before:
   hooks:
     - sh -c "yarn --cwd client install && yarn --cwd client run build && rm -rf backend/routes/static && mv client/dist backend/routes/static"
-
+    - cd backend && go mod tidy && cd ..
+    
 builds:
   - main: main.go
     dir: ./backend
     binary: kubewall
-    goos: ["linux", "darwin", "windows", "freebsd"]
+    goos: ["linux", "darwin", "windows"]
     goarch: ["386", "amd64", "arm64"]
     flags:
       - -trimpath
