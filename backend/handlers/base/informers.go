@@ -8,7 +8,6 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/labstack/echo/v4"
 	"github.com/r3labs/sse/v2"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -84,17 +83,15 @@ func (h *BaseHandler) WaitForSync(c echo.Context) {
 	h.Informer.SetWatchErrorHandler(func(r *cache.Reflector, err error) {
 		log.Warn("failed to watch, will backoff and retry", "error", err, "kind", h.Kind)
 	})
-	err := wait.PollUntilContextCancel(c.Request().Context(), 50*time.Millisecond, true, func(context.Context) (done bool, err error) {
-		hasSynced := h.Informer.HasSynced()
-		if hasSynced {
-			h.Container.EventProcessor().AddEvent(h.Kind, h.processListEvents(""))
-		}
-		return hasSynced, nil
-	})
-	if err != nil {
-		log.Warn("failed to load informer for sync", "error", err, "kind", h.Kind)
+	ctx, cancel := context.WithTimeout(c.Request().Context(), 30*time.Second)
+	defer cancel()
+
+	if !cache.WaitForCacheSync(ctx.Done(), h.Informer.HasSynced) {
+		log.Warn("failed to sync informer within timeout", "kind", h.Kind)
 		return
 	}
+
+	h.Container.EventProcessor().AddEvent(h.Kind, h.processListEvents(""))
 }
 
 func (h *BaseHandler) processListEvents(resourceName string) func() {

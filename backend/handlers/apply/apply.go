@@ -39,10 +39,18 @@ func NewApplyHandler(container container.Container, routeType base.RouteType) ec
 func (h *ApplyHandler) PostApply(c echo.Context) error {
 	dynamicClient := h.BaseHandler.Container.DynamicClient(h.BaseHandler.QueryConfig, h.BaseHandler.QueryCluster)
 	discoveryClient := h.BaseHandler.Container.DiscoveryClient(h.BaseHandler.QueryConfig, h.BaseHandler.QueryCluster)
-	if c.FormValue("yaml") == "" {
+
+	yamlContent := c.FormValue("yaml")
+	if yamlContent == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "YAML is required")
 	}
-	inputYaml := []byte(c.FormValue("yaml"))
+
+	// Add size limit to prevent abuse
+	if len(yamlContent) > 1024*1024 { // 1MB limit
+		return echo.NewHTTPError(http.StatusBadRequest, "YAML content too large (max 1MB)")
+	}
+
+	inputYaml := []byte(yamlContent)
 
 	if checkKubectlCLIPresent() {
 		cluster := h.BaseHandler.Container.Config().KubeConfig[h.BaseHandler.QueryConfig]

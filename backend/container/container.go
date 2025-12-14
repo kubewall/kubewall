@@ -52,14 +52,14 @@ type container struct {
 	eventProcessor *event.EventProcessor
 	socketUpgrader *websocket.Upgrader
 	portForwarder  *portforward.PortForwarder
-	mu             sync.Mutex
+	mu             sync.RWMutex
 }
 
 // NewContainer is constructor.
 func NewContainer(env *config.Env, cfg *config.AppConfig) Container {
 	cache := otter.Must(&otter.Options[string, any]{
 		MaximumSize:      5000,
-		ExpiryCalculator: otter.ExpiryAccessing[string, any](4 * time.Hour), // Reset timer on reads/writes
+		ExpiryCalculator: otter.ExpiryAccessing[string, any](4 * time.Hour),
 	})
 
 	s := sse.New()
@@ -90,36 +90,36 @@ func NewContainer(env *config.Env, cfg *config.AppConfig) Container {
 }
 
 func (c *container) Env() *config.Env {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 
 	return c.env
 }
 
 func (c *container) Config() *config.AppConfig {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 
 	return c.config
 }
 
 func (c *container) Cache() *otter.Cache[string, any] {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 
 	return c.cache
 }
 
 func (c *container) SSE() *sse.Server {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 
 	return c.sseServer
 }
 
 func (c *container) EventProcessor() *event.EventProcessor {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 
 	return c.eventProcessor
 }
@@ -165,15 +165,15 @@ func (c *container) DynamicSharedInformerFactory(config, cluster string) dynamic
 }
 
 func (c *container) SocketUpgrader() *websocket.Upgrader {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 
 	return c.socketUpgrader
 }
 
 func (c *container) PortForwarder() *portforward.PortForwarder {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 
 	return c.portForwarder
 }

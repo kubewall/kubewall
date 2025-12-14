@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/labstack/echo/v4"
 	"github.com/r3labs/sse/v2"
 	coreV1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sync"
-	"time"
 )
 
 func (h *BaseHandler) buildEventStreamID(c echo.Context) string {
@@ -17,10 +17,13 @@ func (h *BaseHandler) buildEventStreamID(c echo.Context) string {
 }
 
 func (h *BaseHandler) fetchEvents(c echo.Context) []coreV1.Event {
+	ctx, cancel := context.WithTimeout(c.Request().Context(), 60*time.Second)
+	defer cancel()
+
 	l, err := h.Container.ClientSet(c.QueryParam("config"), c.QueryParam("cluster")).
 		CoreV1().
 		Events(c.QueryParam("namespace")).
-		List(c.Request().Context(), metaV1.ListOptions{
+		List(ctx, metaV1.ListOptions{
 			FieldSelector: fmt.Sprintf("involvedObject.name=%s", c.Param("name")),
 			TypeMeta:      metaV1.TypeMeta{Kind: h.Kind},
 		})
@@ -57,19 +60,18 @@ func (h *BaseHandler) publishEvents(streamID string, data []byte) {
 
 func (h *BaseHandler) startEventTicker(ctx context.Context, streamID string, data []byte) *time.Ticker {
 	ticker := time.NewTicker(time.Second)
+
 	go func() {
 		defer ticker.Stop()
-		<-ctx.Done()
-	}()
-
-	var wg sync.Mutex
-	go func() {
-		for range ticker.C {
-			wg.Lock()
-			if len(data) > 0 {
-				h.publishEvents(streamID, data)
+		for {
+			select {
+			case <-ctx.Done():
+				return // Proper cleanup when context is cancelled
+			case <-ticker.C:
+				if len(data) > 0 {
+					h.publishEvents(streamID, data)
+				}
 			}
-			wg.Unlock()
 		}
 	}()
 
