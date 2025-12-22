@@ -28,7 +28,7 @@ func AddTypeInformationToObject(obj runtime.Object) error {
 	return nil
 }
 
-func StripUnusedFields(obj interface{}) (interface{}, error) {
+func StripUnusedFields(obj any) (any, error) {
 	if tombstone, ok := obj.(cache.DeletedFinalStateUnknown); ok {
 		obj = tombstone.Obj
 	}
