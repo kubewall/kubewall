@@ -1,16 +1,8 @@
 import {
-  ArrowDownIcon,
-  ArrowUpIcon,
+  CaretDownIcon,
+  CaretUpIcon,
   CaretSortIcon,
-  EyeNoneIcon,
 } from "@radix-ui/react-icons";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 import { Button } from "@/components/ui/button";
 import { Column } from "@tanstack/react-table";
@@ -28,48 +20,45 @@ export function DefaultHeader<TData, TValue>({
   className,
 }: DataTableColumnHeaderProps<TData, TValue>) {
   if (!column.getCanSort()) {
-    return <Button
-      variant="ghost"
-      size="sm"
-      className={cn(" h-8 data-[state=open]:bg-accent", className)}
-    >{title}</Button>;
+    return (
+      <Button
+        variant="ghost"
+        size="sm"
+        className={cn("h-8", className)}
+      >
+        {title}
+      </Button>
+    );
   }
+
+  const handleSort = () => {
+    const currentSort = column.getIsSorted();
+    if (currentSort === "asc") {
+      column.toggleSorting(true);
+    } else if (currentSort === "desc") {
+      column.clearSorting();
+    } else {
+      column.toggleSorting(false);
+    }
+  };
 
   return (
     <div className={cn("flex items-center space-x-2", className)}>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 data-[state=open]:bg-accent"
-          >
-            <span>{title}</span>
-            {column.getIsSorted() === "desc" ? (
-              <ArrowDownIcon className="ml-2 h-4 w-4" />
-            ) : column.getIsSorted() === "asc" ? (
-              <ArrowUpIcon className="ml-2 h-4 w-4" />
-            ) : (
-              <CaretSortIcon className="ml-2 h-4 w-4" />
-            )}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
-          <DropdownMenuItem onClick={() => column.toggleSorting(false)}>
-            <ArrowUpIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
-            Asc
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => column.toggleSorting(true)}>
-            <ArrowDownIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
-            Desc
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => column.toggleVisibility(false)}>
-            <EyeNoneIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
-            Hide
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-8 hover:bg-accent"
+        onClick={handleSort}
+      >
+        <span>{title}</span>
+        {column.getIsSorted() === "desc" ? (
+          <CaretDownIcon className="ml-2 h-4 w-4" />
+        ) : column.getIsSorted() === "asc" ? (
+          <CaretUpIcon className="ml-2 h-4 w-4" />
+        ) : (
+          <CaretSortIcon className="ml-2 h-4 w-4" />
+        )}
+      </Button>
     </div>
   );
 }
