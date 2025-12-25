@@ -34,9 +34,8 @@ const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef, updateLogs }:
   }, [containerNameProp]);
 
   const scrollToBottom = () => {
-    const xtermContainer = document.querySelector('.xterm-viewport');
-    if (xtermContainer) {
-      xtermContainer.scrollTop = xtermContainer.scrollHeight;
+    if (xterm.current) {
+      xterm.current.scrollToBottom();
     }
   };
 
@@ -87,23 +86,30 @@ const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef, updateLogs }:
         resizeObserver.observe(containerRef.current);
       }
 
-      const xtermContainer = document.querySelector('.xterm-viewport');
+      // Store reference to the xterm container for proper cleanup
+      const xtermContainer = document.querySelector('.xterm-viewport') as HTMLElement;
 
       const checkIfBottom = () => {
-        const xtermContainer = document.querySelector('.xterm-viewport');
-        if (xtermContainer && xtermContainer?.clientHeight + xtermContainer?.scrollTop < xtermContainer.scrollHeight) {
+        if (xtermContainer && xtermContainer.clientHeight + xtermContainer.scrollTop < xtermContainer.scrollHeight) {
           setShowScrollDown(true);
         } else {
           setShowScrollDown(false);
         }
       };
-      xtermContainer?.addEventListener('scroll', checkIfBottom);
+
+      // Only add event listener if container exists
+      if (xtermContainer) {
+        xtermContainer.addEventListener('scroll', checkIfBottom);
+      }
       
       return () => {
         xterm.current?.dispose();
         window.removeEventListener('resize', handleResize);
         resizeObserver.disconnect();
-        xtermContainer?.removeEventListener('scroll', checkIfBottom);
+        // Use the stored reference for cleanup to ensure we remove from the correct element
+        if (xtermContainer) {
+          xtermContainer.removeEventListener('scroll', checkIfBottom);
+        }
         dispatch(clearLogs());
       };
     }
