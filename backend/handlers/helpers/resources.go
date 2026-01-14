@@ -19,7 +19,11 @@ type Resource struct {
 }
 
 func CacheAllResources(container container.Container, config, cluster string) error {
-	_, apiResourcesList, err := container.ClientSet(config, cluster).Discovery().ServerGroupsAndResources()
+	clientSet := container.ClientSet(config, cluster)
+	if clientSet == nil {
+		return fmt.Errorf("clientset not found for config=%s, cluster=%s", config, cluster)
+	}
+	_, apiResourcesList, err := clientSet.Discovery().ServerGroupsAndResources()
 	if err != nil && !discovery.IsGroupDiscoveryFailedError(err) {
 		return err // Only fail if it's not a partial discovery error
 	}

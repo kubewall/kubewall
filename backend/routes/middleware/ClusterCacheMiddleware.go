@@ -51,7 +51,17 @@ func ClusterCacheMiddleware(container container.Container) echo.MiddlewareFunc {
 
 			allResourcesKey := fmt.Sprintf(helpers.AllResourcesCacheKeyFormat, config, cluster)
 
-			conn := container.Config().KubeConfig[config].Clusters[cluster]
+			// Safe access with nil checks
+			kubeConfig, ok := container.Config().KubeConfig[config]
+			if !ok || kubeConfig == nil {
+				return c.JSON(400, "config not found")
+			}
+
+			conn, ok := kubeConfig.Clusters[cluster]
+			if !ok || conn == nil {
+				return c.JSON(400, "cluster not found in config")
+			}
+
 			if !conn.IsConnected() {
 				conn.MarkAsConnected()
 			}

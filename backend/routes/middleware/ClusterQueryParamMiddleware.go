@@ -1,8 +1,6 @@
 package middleware
 
 import (
-	"strings"
-
 	"github.com/kubewall/kubewall/backend/container"
 
 	"github.com/labstack/echo/v4"
@@ -15,28 +13,35 @@ func ClusterQueryParamMiddleware(container container.Container) echo.MiddlewareF
 				return next(c)
 			}
 
-			if c.QueryParam("cluster") == "" {
+			config := c.QueryParam("config")
+			cluster := c.QueryParam("cluster")
+
+			if cluster == "" {
 				return c.JSON(400, "?cluster={clusterName} query param is required")
 			}
 
-			if _, ok := container.Config().KubeConfig[c.QueryParam("config")]; !ok {
+			// Check if config exists
+			kubeConfig, ok := container.Config().KubeConfig[config]
+			if !ok || kubeConfig == nil {
 				return c.JSON(400, "selected config is not present")
 			}
 
-			for _, v := range container.Config().KubeConfig {
-				if strings.EqualFold(v.Name, c.QueryParam("cluster")) {
-					if !v.FileExists {
-						return c.JSON(400, "selected cluster is not present in config")
-					}
-				}
+			// Check if file exists
+			if !kubeConfig.FileExists {
+				return c.JSON(400, "selected config file does not exist")
 			}
 
-			for _, v := range container.Config().KubeConfig[c.QueryParam("config")].Clusters {
-				if v.Name == c.QueryParam("cluster") {
-					return next(c)
-				}
+			// Check if cluster exists in the config
+			if kubeConfig.Clusters == nil {
+				return c.JSON(400, "no clusters found in config")
 			}
-			return c.JSON(400, "selected cluster is not present in config")
+
+			clusterObj, ok := kubeConfig.Clusters[cluster]
+			if !ok || clusterObj == nil {
+				return c.JSON(400, "selected cluster is not present in config")
+			}
+
+			return next(c)
 		}
 	}
 }
