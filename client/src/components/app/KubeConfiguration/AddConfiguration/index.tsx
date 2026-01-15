@@ -1,6 +1,7 @@
 import { BearerTokenConfig, CertificateConfig, KubeconfigFileConfig } from "@/types";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { KUBECONFIGS_BEARER_URL, KUBECONFIGS_CERTIFICATE_URL, KUBECONFIGS_URL } from "@/constants";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { addConfig, resetAddConfig } from "@/data/KwClusters/AddConfigSlice";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
@@ -20,7 +21,14 @@ const AddConfig = () => {
   const [textValue, setTextValue] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [bearerTokenConfig, setBearerTokenConfig] = useState<BearerTokenConfig>({} as BearerTokenConfig);
-  const [certificateConfig, setCertificateConfig] = useState<CertificateConfig>({} as CertificateConfig);
+  const [certificateConfig, setCertificateConfig] = useState<CertificateConfig>({
+    name: '',
+    apiServer: '',
+    certificate: '',
+    certificateKey: '',
+    tlsMode: 'system',
+    caCertificate: '',
+  });
   const [kubeconfigFileConfig, setKubeconfigFileConfig] = useState<KubeconfigFileConfig>({} as KubeconfigFileConfig);
   const [activeTab, setActiveTab] = useState("bearerToken");
   const dispatch = useAppDispatch();
@@ -63,7 +71,14 @@ const AddConfig = () => {
 
   const setStatesToDefault = (open: boolean) => {
     setBearerTokenConfig({} as BearerTokenConfig);
-    setCertificateConfig({} as CertificateConfig);
+    setCertificateConfig({
+      name: '',
+      apiServer: '',
+      certificate: '',
+      certificateKey: '',
+      tlsMode: 'system',
+      caCertificate: '',
+    });
     setKubeconfigFileConfig({} as KubeconfigFileConfig);
     setTextValue('');
     setModalOpen(open);
@@ -84,6 +99,10 @@ const AddConfig = () => {
       formData.append("clientCertData", certificateConfig.certificate);
       formData.append("clientKeyData", certificateConfig.certificateKey);
       formData.append("name", certificateConfig.name);
+      formData.append("tlsMode", certificateConfig.tlsMode);
+      if (certificateConfig.tlsMode === 'custom' && certificateConfig.caCertificate) {
+        formData.append("caCertData", certificateConfig.caCertificate);
+      }
       route = KUBECONFIGS_CERTIFICATE_URL;
     } else {
       formData = new FormData();
@@ -98,7 +117,9 @@ const AddConfig = () => {
       return !bearerTokenConfig.apiServer || !bearerTokenConfig.name || checkForValidConfigName(bearerTokenConfig.name) || !bearerTokenConfig.token;
     }
     if (activeTab === "certificate") {
-      return !certificateConfig.apiServer || !certificateConfig.certificate || !certificateConfig.certificateKey || !certificateConfig.name || checkForValidConfigName(certificateConfig.name);
+      const baseValidation = !certificateConfig.apiServer || !certificateConfig.certificate || !certificateConfig.certificateKey || !certificateConfig.name || checkForValidConfigName(certificateConfig.name);
+      const caCertRequired = certificateConfig.tlsMode === 'custom' && !certificateConfig.caCertificate;
+      return baseValidation || caCertRequired;
     }
     return !kubeconfigFileConfig.config;
   };
@@ -213,6 +234,45 @@ const AddConfig = () => {
                         onChange={(e) => setCertificateConfig({ ...certificateConfig, certificateKey: e.target.value || '' })}
                       />
                     </div>
+                    <div className="space-y-1 mt-2">
+                      <Label htmlFor="tlsMode">TLS Verification</Label>
+                      <Select
+                        value={certificateConfig.tlsMode}
+                        onValueChange={(value) => setCertificateConfig({
+                          ...certificateConfig,
+                          tlsMode: value as 'system' | 'custom' | 'insecure'
+                        })}
+                      >
+                        <SelectTrigger className="shadow-none">
+                          <SelectValue placeholder="Select TLS mode" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="system">Use system certificates</SelectItem>
+                          <SelectItem value="custom">Use custom CA certificate</SelectItem>
+                          <SelectItem value="insecure">Skip verification (insecure)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {certificateConfig.tlsMode === 'insecure' && (
+                      <p className="text-yellow-600 text-sm mt-2">
+                        Warning: Disables server certificate verification. Only use for development or trusted networks.
+                      </p>
+                    )}
+                    {certificateConfig.tlsMode === 'custom' && (
+                      <div className="space-y-1 mt-2">
+                        <Label htmlFor="caCertificate">CA Certificate</Label>
+                        <Textarea
+                          id="caCertificate"
+                          placeholder={`----- BEGIN CERTIFICATE -----\r\n----- END CERTIFICATE -----`}
+                          className="shadow-none"
+                          value={certificateConfig.caCertificate}
+                          onChange={(e) => setCertificateConfig({
+                            ...certificateConfig,
+                            caCertificate: e.target.value || ''
+                          })}
+                        />
+                      </div>
+                    )}
                   </TabsContent>
                   <TabsContent value="kubeconfigFile">
                     <div className="space-y-1">
