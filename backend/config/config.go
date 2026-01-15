@@ -13,8 +13,8 @@ var K8SBURST = 200
 
 const (
 	defaultKubeConfigDir = ".kube"
-	appConfigDir         = ".kubewall"
-	appKubeConfigDir     = "kubeconfigs"
+	AppConfigDir         = ".kubewall"
+	AppKubeConfigDir     = "kubeconfigs"
 	InClusterKey         = "incluster"
 )
 
@@ -60,7 +60,7 @@ func (c *AppConfig) LoadAppConfig() {
 	defer c.mu.Unlock()
 
 	c.buildKubeConfigs(filepath.Join(homedir.HomeDir(), defaultKubeConfigDir))
-	c.buildKubeConfigs(filepath.Join(homedir.HomeDir(), appConfigDir, appKubeConfigDir))
+	c.buildKubeConfigs(filepath.Join(homedir.HomeDir(), AppConfigDir, AppKubeConfigDir))
 
 	i, err := LoadInClusterConfig()
 	if err == nil {
@@ -103,20 +103,28 @@ func readAllFilesInDir(dirPath string) []string {
 	return files
 }
 
-func (c *AppConfig) RemoveKubeConfig(uuid string) error {
+func (c *AppConfig) RemoveKubeConfig(configName string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	delete(c.KubeConfig, uuid)
-	return os.Remove(filepath.Join(homedir.HomeDir(), appConfigDir, appKubeConfigDir, uuid))
+	delete(c.KubeConfig, configName)
+	return os.Remove(filepath.Join(homedir.HomeDir(), AppConfigDir, AppKubeConfigDir, configName))
 }
 
-func (c *AppConfig) SaveKubeConfig(uuid string) {
+func (c *AppConfig) ConfigExists(name string) bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	filePath := filepath.Join(homedir.HomeDir(), appConfigDir, appKubeConfigDir, uuid)
+
+	_, exists := c.KubeConfig[name]
+	return exists
+}
+
+func (c *AppConfig) SaveKubeConfig(configName string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	filePath := filepath.Join(homedir.HomeDir(), AppConfigDir, AppKubeConfigDir, configName)
 	if clusters, err := LoadK8ConfigFromFile(filePath); err == nil {
 		if len(clusters) > 0 {
-			c.KubeConfig[filepath.Base(filePath)] = &KubeConfigInfo{
+			c.KubeConfig[configName] = &KubeConfigInfo{
 				Name:         filePath,
 				AbsolutePath: filePath,
 				FileExists:   true,
@@ -127,8 +135,8 @@ func (c *AppConfig) SaveKubeConfig(uuid string) {
 }
 
 func createEnvDirAndFile() {
-	ensureDirExists(filepath.Join(homedir.HomeDir(), appConfigDir))
-	ensureDirExists(filepath.Join(homedir.HomeDir(), appConfigDir, appKubeConfigDir))
+	ensureDirExists(filepath.Join(homedir.HomeDir(), AppConfigDir))
+	ensureDirExists(filepath.Join(homedir.HomeDir(), AppConfigDir, AppKubeConfigDir))
 }
 
 func ensureDirExists(dirPath string) {

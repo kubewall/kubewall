@@ -7,11 +7,11 @@ import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { ConfigNameInput, isConfigNameInvalid } from "@/components/app/Common/ConfigNameInput";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PlusCircledIcon } from "@radix-ui/react-icons";
 import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
 import { fetchClusters } from "@/data/KwClusters/ClustersSlice";
 import { toast } from "sonner";
 
@@ -19,9 +19,23 @@ const AddConfig = () => {
 
   const [textValue, setTextValue] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
-  const [bearerTokenConfig, setBearerTokenConfig] = useState<BearerTokenConfig>({} as BearerTokenConfig);
-  const [certificateConfig, setCertificateConfig] = useState<CertificateConfig>({} as CertificateConfig);
-  const [kubeconfigFileConfig, setKubeconfigFileConfig] = useState<KubeconfigFileConfig>({} as KubeconfigFileConfig);
+  const [bearerTokenConfig, setBearerTokenConfig] = useState<BearerTokenConfig>({
+    configName: '',
+    name: '',
+    apiServer: '',
+    token: ''
+  });
+  const [certificateConfig, setCertificateConfig] = useState<CertificateConfig>({
+    configName: '',
+    name: '',
+    apiServer: '',
+    certificate: '',
+    certificateKey: ''
+  });
+  const [kubeconfigFileConfig, setKubeconfigFileConfig] = useState<KubeconfigFileConfig>({
+    configName: '',
+    config: ''
+  });
   const [activeTab, setActiveTab] = useState("bearerToken");
   const dispatch = useAppDispatch();
   const {
@@ -62,9 +76,23 @@ const AddConfig = () => {
   };
 
   const setStatesToDefault = (open: boolean) => {
-    setBearerTokenConfig({} as BearerTokenConfig);
-    setCertificateConfig({} as CertificateConfig);
-    setKubeconfigFileConfig({} as KubeconfigFileConfig);
+    setBearerTokenConfig({
+      configName: '',
+      name: '',
+      apiServer: '',
+      token: ''
+    });
+    setCertificateConfig({
+      configName: '',
+      name: '',
+      apiServer: '',
+      certificate: '',
+      certificateKey: ''
+    });
+    setKubeconfigFileConfig({
+      configName: '',
+      config: ''
+    });
     setTextValue('');
     setModalOpen(open);
   };
@@ -75,19 +103,22 @@ const AddConfig = () => {
     if (activeTab === 'bearerToken') {
       formData = new FormData();
       formData.append("serverIP", bearerTokenConfig.apiServer);
-      formData.append("name", bearerTokenConfig.name);
+      formData.append("name", bearerTokenConfig.name);  // Cluster/context name
+      formData.append("configName", bearerTokenConfig.configName);  // Config file identifier
       formData.append("token", bearerTokenConfig.token);
       route = KUBECONFIGS_BEARER_URL;
     } else if (activeTab === 'certificate') {
       formData = new FormData();
       formData.append("serverIP", certificateConfig.apiServer);
+      formData.append("name", certificateConfig.name);  // Cluster/context name
+      formData.append("configName", certificateConfig.configName);  // Config file identifier
       formData.append("clientCertData", certificateConfig.certificate);
       formData.append("clientKeyData", certificateConfig.certificateKey);
-      formData.append("name", certificateConfig.name);
       route = KUBECONFIGS_CERTIFICATE_URL;
     } else {
       formData = new FormData();
       formData.append("file", kubeconfigFileConfig.config);
+      formData.append("configName", kubeconfigFileConfig.configName);  // Config file identifier
       route = KUBECONFIGS_URL;
     }
     dispatch(addConfig({ formData, route }));
@@ -95,17 +126,23 @@ const AddConfig = () => {
 
   const isDisabled = () => {
     if (activeTab === "bearerToken") {
-      return !bearerTokenConfig.apiServer || !bearerTokenConfig.name || checkForValidConfigName(bearerTokenConfig.name) || !bearerTokenConfig.token;
+      return !bearerTokenConfig.apiServer ||
+             !bearerTokenConfig.name ||
+             !bearerTokenConfig.configName ||
+             isConfigNameInvalid(bearerTokenConfig.configName) ||
+             !bearerTokenConfig.token;
     }
     if (activeTab === "certificate") {
-      return !certificateConfig.apiServer || !certificateConfig.certificate || !certificateConfig.certificateKey || !certificateConfig.name || checkForValidConfigName(certificateConfig.name);
+      return !certificateConfig.apiServer ||
+             !certificateConfig.name ||
+             !certificateConfig.configName ||
+             isConfigNameInvalid(certificateConfig.configName) ||
+             !certificateConfig.certificate ||
+             !certificateConfig.certificateKey;
     }
-    return !kubeconfigFileConfig.config;
-  };
-
-  const checkForValidConfigName = (name: string) => {
-    const regex = /^[a-zA-Z0-9-]+$/;
-    return (!regex.test(name));
+    return !kubeconfigFileConfig.config ||
+           !kubeconfigFileConfig.configName ||
+           isConfigNameInvalid(kubeconfigFileConfig.configName);
   };
 
   return (
@@ -134,19 +171,23 @@ const AddConfig = () => {
                   </TabsList>
                   <TabsContent value="bearerToken">
                     <div className="space-y-1">
-                      <Label htmlFor="bearerTokenName">Name</Label>
+                      <Label htmlFor="bearerTokenName">Cluster Name</Label>
                       <Input
                         id="bearerTokenName"
-                        placeholder="Config name"
+                        placeholder="production"
                         value={bearerTokenConfig.name}
-                        className={cn('shadow-none', bearerTokenConfig.name && checkForValidConfigName(bearerTokenConfig.name) && 'border-red-500 focus-visible:ring-red-500')}
+                        className="shadow-none"
                         onChange={(e) => setBearerTokenConfig({ ...bearerTokenConfig, name: e.target.value || '' })}
                       />
-                      {
-                        bearerTokenConfig.name && checkForValidConfigName(bearerTokenConfig.name) &&
-                        <p className="text-red-500 text-sm">Name must be alphanumeric and can include hyphens (-).</p>
-                      }
+                      <p className="text-xs text-muted-foreground">
+                        Name for the cluster/context in the kubeconfig YAML
+                      </p>
                     </div>
+                    <ConfigNameInput
+                      id="bearerTokenConfigName"
+                      value={bearerTokenConfig.configName}
+                      onChange={(value) => setBearerTokenConfig({ ...bearerTokenConfig, configName: value })}
+                    />
                     <div className="space-y-1">
                       <Label htmlFor="bearerTokenApiServer">API Server</Label>
                       <Input
@@ -171,19 +212,23 @@ const AddConfig = () => {
                   </TabsContent>
                   <TabsContent value="certificate">
                     <div className="space-y-1">
-                      <Label htmlFor="certificateName">Name</Label>
+                      <Label htmlFor="certificateName">Cluster Name</Label>
                       <Input
                         id="certificateName"
-                        placeholder="Config name"
+                        placeholder="production"
                         value={certificateConfig.name}
-                        className={cn('shadow-none', bearerTokenConfig.name && checkForValidConfigName(certificateConfig.name) && 'border-red-500 focus-visible:ring-red-500')}
+                        className="shadow-none"
                         onChange={(e) => setCertificateConfig({ ...certificateConfig, name: e.target.value || '' })}
                       />
-                      {
-                        bearerTokenConfig.name && checkForValidConfigName(certificateConfig.name) &&
-                        <p className="text-red-500 text-sm">Name must be alphanumeric and can include hyphens (-).</p>
-                      }
+                      <p className="text-xs text-muted-foreground">
+                        Name for the cluster/context in the kubeconfig YAML
+                      </p>
                     </div>
+                    <ConfigNameInput
+                      id="certificateConfigName"
+                      value={certificateConfig.configName}
+                      onChange={(value) => setCertificateConfig({ ...certificateConfig, configName: value })}
+                    />
                     <div className="space-y-1">
                       <Label htmlFor="certificateApiServer">API Server</Label>
                       <Input
@@ -215,6 +260,11 @@ const AddConfig = () => {
                     </div>
                   </TabsContent>
                   <TabsContent value="kubeconfigFile">
+                    <ConfigNameInput
+                      id="kubeconfigConfigName"
+                      value={kubeconfigFileConfig.configName}
+                      onChange={(value) => setKubeconfigFileConfig({ ...kubeconfigFileConfig, configName: value })}
+                    />
                     <div className="space-y-1">
                       <Label htmlFor="kubeconfigFile">File</Label>
                       <Input
@@ -226,7 +276,7 @@ const AddConfig = () => {
                     </div>
                     <div className="space-y-1 mt-1">
                       <Textarea id="kubeconfig"
-                        rows={11}
+                        rows={8}
                         className="shadow-none"
                         placeholder="Select the config file or directly paste your config here"
                         value={textValue}

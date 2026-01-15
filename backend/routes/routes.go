@@ -83,7 +83,7 @@ func ConfigureRoutes(e *echo.Echo, appContainer container.Container) {
 	e.POST("api/v1/app/config/kubeconfigs-certificate", appConfig.PostCertificate)
 	e.GET("api/v1/app/config/reload", appConfig.Reload)
 
-	e.DELETE("api/v1/app/config/kubeconfigs/:uuid", appConfig.Delete)
+	e.DELETE("api/v1/app/config/kubeconfigs/:configId", appConfig.Delete)
 
 	// Namespaces
 	e.GET("api/v1/namespaces", namespaces.NewNamespacesRouteHandler(appContainer, base.GetList)).Name = "namespacesList"
