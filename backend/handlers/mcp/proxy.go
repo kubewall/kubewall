@@ -24,7 +24,12 @@ func ProxyHandler(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Missing remote URL in path. Example: /proxy/https://api.example.com/data")
 	}
 
-	remoteURL, err := url.Parse(remoteURLPart)
+	decodedURL, err := url.QueryUnescape(remoteURLPart)
+	if err != nil {
+		decodedURL = remoteURLPart
+	}
+
+	remoteURL, err := url.Parse(decodedURL)
 	if err != nil {
 		log.Error("Error parsing remote URL", "err", err)
 		return c.String(http.StatusBadRequest, "Invalid remote URL provided.")
