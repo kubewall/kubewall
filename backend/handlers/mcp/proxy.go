@@ -60,18 +60,23 @@ func ProxyHandler(c echo.Context) error {
 		log.Error("Error creating proxy request", "err", err)
 		return c.String(http.StatusInternalServerError, "Failed to create proxy request.")
 	}
+	apiKey := c.Request().Header.Get("X-KW-AI-API-Key")
 
 	for name, values := range c.Request().Header {
 		if strings.EqualFold(name, "Connection") ||
 			strings.EqualFold(name, "Proxy-Connection") ||
 			strings.EqualFold(name, "Keep-Alive") ||
 			strings.EqualFold(name, "Transfer-Encoding") ||
-			strings.EqualFold(name, "Upgrade") {
-			continue
+			strings.EqualFold(name, "Upgrade") ||
+			strings.EqualFold(name, "X-KW-AI-API-Key") {
 		}
 		for _, value := range values {
 			proxyReq.Header.Add(name, value)
 		}
+	}
+
+	if apiKey != "" {
+		proxyReq.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
 	}
 
 	proxyReq.Host = remoteURL.Host

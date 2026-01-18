@@ -29,7 +29,7 @@ const kwAiModels = createAsyncThunk('kwAiModels', ({ apiKey, url, queryParams }:
   const encodedUrl = encodeURIComponent(url);
   return kwFetch(`${formatedUrl}/${encodedUrl}/models?${queryParams}`, {
     headers: {
-      'Authorization': `Bearer ${apiKey}`
+      'X-KW-AI-API-Key': apiKey
     }
   })
     .then((res: kwAIModelResponse) => res ?? {})
