@@ -171,7 +171,8 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
         return createOpenAICompatible({
           name: 'ollama',
           baseURL: `${providerData.url}/`, fetch: (url, options) => {
-            const newUrl = `${API_VERSION}${MCP_SERVER_ENDPOINT}/${url.toString()}?${clusterConfigKey}`;
+            const encodedUrl = encodeURIComponent(url.toString());
+            const newUrl = `${API_VERSION}${MCP_SERVER_ENDPOINT}/${encodedUrl}?${clusterConfigKey}`;
             if (options) {
               options.headers = {
                 ...options.headers,
@@ -188,7 +189,9 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
         return createOpenAICompatible({
           name: 'lmstudio',
           baseURL: `${providerData.url}/`, fetch: (url, options) => {
-            const newUrl = `${API_VERSION}${MCP_SERVER_ENDPOINT}/${url}?${clusterConfigKey}`;
+            // URL-encode to prevent reverse proxies (like Traefik) from collapsing double slashes
+            const encodedUrl = encodeURIComponent(url.toString());
+            const newUrl = `${API_VERSION}${MCP_SERVER_ENDPOINT}/${encodedUrl}?${clusterConfigKey}`;
             if (options) {
               options.headers = {
                 ...options.headers,

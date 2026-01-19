@@ -22,6 +22,15 @@ func TestProxyHandler(t *testing.T) {
 			body, _ := io.ReadAll(r.Body)
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write(body)
+		case "/check-auth":
+			authHeader := r.Header.Get("Authorization")
+			if authHeader == "Bearer test-api-key-123" {
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("authorized"))
+			} else {
+				w.WriteHeader(http.StatusUnauthorized)
+				_, _ = w.Write([]byte("unauthorized"))
+			}
 		default:
 			w.WriteHeader(http.StatusNotFound)
 			_, _ = w.Write([]byte("not found"))
@@ -34,6 +43,7 @@ func TestProxyHandler(t *testing.T) {
 		remotePath     string
 		method         string
 		body           string
+		headers        map[string]string
 		wantStatusCode int
 		wantBody       string
 	}{
@@ -73,6 +83,26 @@ func TestProxyHandler(t *testing.T) {
 			wantStatusCode: http.StatusNotFound,
 			wantBody:       "not found",
 		},
+		{
+			name:       "X-KW-AI-API-Key header converted to Authorization Bearer",
+			remotePath: mockServer.URL + "/check-auth",
+			method:     http.MethodGet,
+			headers: map[string]string{
+				"X-KW-AI-API-Key": "test-api-key-123",
+			},
+			wantStatusCode: http.StatusOK,
+			wantBody:       "authorized",
+		},
+		{
+			name:       "existing Authorization header preserved when no X-KW-AI-API-Key",
+			remotePath: mockServer.URL + "/check-auth",
+			method:     http.MethodGet,
+			headers: map[string]string{
+				"Authorization": "Bearer test-api-key-123",
+			},
+			wantStatusCode: http.StatusOK,
+			wantBody:       "authorized",
+		},
 	}
 
 	for _, tt := range tests {
@@ -81,6 +111,12 @@ func TestProxyHandler(t *testing.T) {
 
 			req := httptest.NewRequest(tt.method, "/proxy/"+tt.remotePath, strings.NewReader(tt.body))
 			req.Header.Set(echo.HeaderContentType, echo.MIMETextPlain)
+
+			// Add custom headers
+			for key, value := range tt.headers {
+				req.Header.Set(key, value)
+			}
+
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
 			c.SetParamNames("*")
