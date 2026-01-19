@@ -171,7 +171,7 @@ const AddConfig = () => {
                   </TabsList>
                   <TabsContent value="bearerToken">
                     <div className="space-y-1">
-                      <Label htmlFor="bearerTokenName">Cluster Name</Label>
+                      <Label htmlFor="bearerTokenName">Cluster Name *</Label>
                       <Input
                         id="bearerTokenName"
                         placeholder="production"
@@ -189,7 +189,7 @@ const AddConfig = () => {
                       onChange={(value) => setBearerTokenConfig({ ...bearerTokenConfig, configName: value })}
                     />
                     <div className="space-y-1">
-                      <Label htmlFor="bearerTokenApiServer">API Server</Label>
+                      <Label htmlFor="bearerTokenApiServer">API Server *</Label>
                       <Input
                         id="bearerTokenApiServer"
                         className="shadow-none"
@@ -199,7 +199,7 @@ const AddConfig = () => {
                       />
                     </div>
                     <div className="space-y-1 mt-2">
-                      <Label htmlFor="bearerToken">Bearer Token</Label>
+                      <Label htmlFor="bearerToken">Bearer Token *</Label>
                       <Textarea
                         id="bearerToken"
                         rows={6}
@@ -212,7 +212,7 @@ const AddConfig = () => {
                   </TabsContent>
                   <TabsContent value="certificate">
                     <div className="space-y-1">
-                      <Label htmlFor="certificateName">Cluster Name</Label>
+                      <Label htmlFor="certificateName">Cluster Name *</Label>
                       <Input
                         id="certificateName"
                         placeholder="production"
@@ -230,7 +230,7 @@ const AddConfig = () => {
                       onChange={(value) => setCertificateConfig({ ...certificateConfig, configName: value })}
                     />
                     <div className="space-y-1">
-                      <Label htmlFor="certificateApiServer">API Server</Label>
+                      <Label htmlFor="certificateApiServer">API Server *</Label>
                       <Input
                         id="certificateApiServer"
                         className="shadow-none"
@@ -240,7 +240,7 @@ const AddConfig = () => {
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label htmlFor="certificateCertificate">Certificate</Label>
+                      <Label htmlFor="certificateCertificate">Certificate *</Label>
                       <Textarea
                         id="certificateCertificate"
                         placeholder={`----- BEGIN CERTIFICATE -----\r\n----- END CERTIFICATE -----`}
@@ -250,7 +250,7 @@ const AddConfig = () => {
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label htmlFor="certificateCertificateKey">Certificate Key</Label>
+                      <Label htmlFor="certificateCertificateKey">Certificate Key *</Label>
                       <Textarea id="certificateCertificateKey"
                         placeholder={`----- BEGIN RSA PRIVATE KEY -----\r\n----- END CERTIFICATE -----`}
                         className="shadow-none"
@@ -266,7 +266,7 @@ const AddConfig = () => {
                       onChange={(value) => setKubeconfigFileConfig({ ...kubeconfigFileConfig, configName: value })}
                     />
                     <div className="space-y-1">
-                      <Label htmlFor="kubeconfigFile">File</Label>
+                      <Label htmlFor="kubeconfigFile">File *</Label>
                       <Input
                         id="kubeconfigFile"
                         type='file'

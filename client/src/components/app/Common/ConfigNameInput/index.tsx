@@ -50,7 +50,7 @@ export const ConfigNameInput = ({ id, value, onChange }: ConfigNameInputProps) =
 
   return (
     <div className="space-y-1">
-      <Label htmlFor={id}>Config Name</Label>
+      <Label htmlFor={id}>Config Name *</Label>
       <Input
         id={id}
         placeholder="my-cluster"
