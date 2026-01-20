@@ -62,7 +62,7 @@ func (h *PortForwardHandler) StartPortForwarding(c echo.Context) error {
 
 	h.publishList(config, cluster)
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
+	return c.JSON(http.StatusOK, map[string]any{
 		"id":        id,
 		"localPort": actualLocal,
 	})

@@ -2,6 +2,8 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: {{ .Values.pvc.name }}
+  labels:
+    {{- include "kubewall.labels" . | nindent 4 }}
 spec:
   accessModes:
     - {{ .Values.pvc.accessModes }}

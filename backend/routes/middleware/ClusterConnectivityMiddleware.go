@@ -25,7 +25,12 @@ func ClusterConnectivityMiddleware(container container.Container) echo.Middlewar
 
 			value, exists := container.Cache().GetIfPresent(isAbleToConnectToClusterCacheKey)
 			if !exists {
-				_, err = container.DiscoveryClient(config, cluster).ServerVersion()
+				discoveryClient := container.DiscoveryClient(config, cluster)
+				if discoveryClient == nil {
+					log.Error("failed to get discovery client for cluster", "config", config, "cluster", cluster)
+					return c.JSON(http.StatusFailedDependency, "discovery client not available")
+				}
+				_, err = discoveryClient.ServerVersion()
 				if err != nil {
 					log.Error("failed to connect to cluster", "err", err)
 					return c.JSON(http.StatusFailedDependency, err.Error())

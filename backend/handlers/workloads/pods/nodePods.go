@@ -17,7 +17,7 @@ func (h *PodsHandler) NodePods(c echo.Context) {
 	}
 
 	// group pods by node
-	podsByNode := make(map[string][]v1.Pod, 8)
+	podsByNode := make(map[string][]v1.Pod, len(items))
 	for _, obj := range items {
 		pod, ok := obj.(*v1.Pod)
 		if !ok {

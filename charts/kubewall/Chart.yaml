@@ -9,6 +9,9 @@ keywords:
   - dashboard
   - kubernetes-dashboard
   - kubernetes-ui
+  - monitoring
+  - observability
+  - multi-cluster
 type: application
 maintainers:
   - name: "Abhimanyu Sharma"
@@ -16,7 +19,7 @@ maintainers:
     url: "https://github.com/abhimanyu003"
   - name: "Kshitij Mehta"
     email: "Kshittijmehta@gmail.com"
-    url: "https://github.com/abhimanyu003"
+    url: "https://github.com/kshitij10496"
 version: 0.0.0
 sources:
   - https://github.com/kubewall/kubewall.git

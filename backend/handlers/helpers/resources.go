@@ -19,7 +19,11 @@ type Resource struct {
 }
 
 func CacheAllResources(container container.Container, config, cluster string) error {
-	_, apiResourcesList, err := container.ClientSet(config, cluster).Discovery().ServerGroupsAndResources()
+	clientSet := container.ClientSet(config, cluster)
+	if clientSet == nil {
+		return fmt.Errorf("clientset not found for config=%s, cluster=%s", config, cluster)
+	}
+	_, apiResourcesList, err := clientSet.Discovery().ServerGroupsAndResources()
 	if err != nil && !discovery.IsGroupDiscoveryFailedError(err) {
 		return err // Only fail if it's not a partial discovery error
 	}
@@ -27,7 +31,8 @@ func CacheAllResources(container container.Container, config, cluster string) er
 	if err != nil {
 		log.Info("partial discovery error", err)
 	}
-	var allResource []Resource
+
+	allResource := make([]Resource, 0, 2000)
 	for _, group := range apiResourcesList {
 		for _, resource := range group.APIResources {
 			allResource = append(allResource, Resource{
@@ -36,8 +41,6 @@ func CacheAllResources(container container.Container, config, cluster string) er
 				Kind:       resource.Kind,
 			})
 		}
-		// Check if metric serer is available and mark it as true.
-		// It's fine to cache this value multiple times, without checking if it's cache is already dirty.
 		if strings.Contains(group.GroupVersion, "metrics.k8s.io") {
 			container.Cache().Set(fmt.Sprintf(IsMetricServerAvailableCacheKeyFormat, config, cluster), true)
 		}

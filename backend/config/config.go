@@ -8,8 +8,10 @@ import (
 	"k8s.io/client-go/util/homedir"
 )
 
-var K8SQPS = 100
-var K8SBURST = 200
+// QPS: queries per second allowed to the Kubernetes API
+// Burst: maximum burst for throttle
+var K8SQPS = 200
+var K8SBURST = 400
 
 const (
 	defaultKubeConfigDir = ".kube"

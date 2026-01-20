@@ -113,6 +113,8 @@ func (h *AppConfigHandler) PostCertificate(c echo.Context) error {
 	cert := strings.TrimSpace(c.FormValue("clientCertData"))
 	key := strings.TrimSpace(c.FormValue("clientKeyData"))
 	configName := strings.TrimSpace(c.FormValue("configName"))
+	tlsMode := strings.TrimSpace(c.FormValue("tlsMode"))
+	caCert := strings.TrimSpace(c.FormValue("caCertData"))
 
 	if serverIP == "" || name == "" || cert == "" || key == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "missing required fields: serverIP, name, clientCertData, or clientKeyData")
@@ -131,9 +133,25 @@ func (h *AppConfigHandler) PostCertificate(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusConflict, fmt.Sprintf("config '%s' already exists", configName))
 	}
 
+	// Default to system mode if not specified
+	if tlsMode == "" {
+		tlsMode = "system"
+	}
+
+	// Validate: if custom mode, CA cert is required
+	if tlsMode == "custom" && caCert == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "CA certificate required for custom TLS mode")
+	}
+
 	encodedCert := base64.StdEncoding.EncodeToString([]byte(cert))
 	encodedKey := base64.StdEncoding.EncodeToString([]byte(key))
-	kubeconfig := generateCertificateConfig(serverIP, name, encodedCert, encodedKey)
+
+	var encodedCaCert string
+	if caCert != "" {
+		encodedCaCert = base64.StdEncoding.EncodeToString([]byte(caCert))
+	}
+
+	kubeconfig := generateCertificateConfig(serverIP, name, encodedCert, encodedKey, encodedCaCert, tlsMode)
 
 	path := filepath.Join(homeDir(), config.AppConfigDir, config.AppKubeConfigDir, configName)
 	if err := writeKubeconfigToFile(path, kubeconfig); err != nil {
@@ -225,14 +243,30 @@ users:
 `, serverIP, name, name, name, name, name, name, token)
 }
 
-func generateCertificateConfig(serverIP, name, certData, keyData string) string {
+func generateCertificateConfig(serverIP, name, certData, keyData, caCertData, tlsMode string) string {
+	var clusterBlock string
+
+	switch tlsMode {
+	case "insecure":
+		clusterBlock = fmt.Sprintf(`- cluster:
+    insecure-skip-tls-verify: true
+    server: %s
+  name: %s`, serverIP, name)
+	case "custom":
+		clusterBlock = fmt.Sprintf(`- cluster:
+    certificate-authority-data: %s
+    server: %s
+  name: %s`, caCertData, serverIP, name)
+	default: // "system" - use OS CA bundle
+		clusterBlock = fmt.Sprintf(`- cluster:
+    server: %s
+  name: %s`, serverIP, name)
+	}
+
 	return fmt.Sprintf(`apiVersion: v1
 kind: Config
 clusters:
-- cluster:
-    certificate-authority-data: %s
-    server: %s
-  name: %s
+%s
 contexts:
 - context:
     cluster: %s
@@ -244,5 +278,5 @@ users:
   user:
     client-certificate-data: %s
     client-key-data: %s
-`, certData, serverIP, name, name, name, name, name, name, certData, keyData)
+`, clusterBlock, name, name, name, name, name, certData, keyData)
 }

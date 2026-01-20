@@ -52,14 +52,14 @@ type container struct {
 	eventProcessor *event.EventProcessor
 	socketUpgrader *websocket.Upgrader
 	portForwarder  *portforward.PortForwarder
-	mu             sync.Mutex
+	mu             sync.RWMutex
 }
 
 // NewContainer is constructor.
 func NewContainer(env *config.Env, cfg *config.AppConfig) Container {
 	cache := otter.Must(&otter.Options[string, any]{
 		MaximumSize:      5000,
-		ExpiryCalculator: otter.ExpiryAccessing[string, any](4 * time.Hour), // Reset timer on reads/writes
+		ExpiryCalculator: otter.ExpiryAccessing[string, any](4 * time.Hour),
 	})
 
 	s := sse.New()
@@ -72,7 +72,7 @@ func NewContainer(env *config.Env, cfg *config.AppConfig) Container {
 
 	pf := portforward.NewPortForwarder()
 
-	e := event.NewEventCounter(time.Millisecond * 250)
+	e := event.NewEventCounter(time.Millisecond * 150)
 	go e.Run()
 	return &container{
 		env:            env,
@@ -90,114 +90,146 @@ func NewContainer(env *config.Env, cfg *config.AppConfig) Container {
 }
 
 func (c *container) Env() *config.Env {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 
 	return c.env
 }
 
 func (c *container) Config() *config.AppConfig {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 
 	return c.config
 }
 
 func (c *container) Cache() *otter.Cache[string, any] {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 
 	return c.cache
 }
 
 func (c *container) SSE() *sse.Server {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 
 	return c.sseServer
 }
 
 func (c *container) EventProcessor() *event.EventProcessor {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 
 	return c.eventProcessor
 }
 
 func (c *container) RestConfig(config, cluster string) *rest.Config {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	cfg := c.config.KubeConfig[config].Clusters[cluster]
+	kubeConfig, ok := c.config.KubeConfig[config]
+	if !ok || kubeConfig == nil {
+		return nil
+	}
+	cfg, ok := kubeConfig.Clusters[cluster]
+	if !ok || cfg == nil {
+		return nil
+	}
 	return cfg.RestConfig
 }
 
 func (c *container) ClientSet(config, cluster string) *kubernetes.Clientset {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	cfg := c.config.KubeConfig[config].Clusters[cluster]
+	kubeConfig, ok := c.config.KubeConfig[config]
+	if !ok || kubeConfig == nil {
+		return nil
+	}
+	cfg, ok := kubeConfig.Clusters[cluster]
+	if !ok || cfg == nil {
+		return nil
+	}
 	return cfg.GetClientSet()
 }
 
 func (c *container) DynamicClient(config, cluster string) *dynamic.DynamicClient {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	cfg := c.config.KubeConfig[config].Clusters[cluster]
+	kubeConfig, ok := c.config.KubeConfig[config]
+	if !ok || kubeConfig == nil {
+		return nil
+	}
+	cfg, ok := kubeConfig.Clusters[cluster]
+	if !ok || cfg == nil {
+		return nil
+	}
 	return cfg.GetDynamicClient()
 }
 
 func (c *container) DiscoveryClient(config, cluster string) *discovery.DiscoveryClient {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	cfg := c.config.KubeConfig[config].Clusters[cluster]
+	kubeConfig, ok := c.config.KubeConfig[config]
+	if !ok || kubeConfig == nil {
+		return nil
+	}
+	cfg, ok := kubeConfig.Clusters[cluster]
+	if !ok || cfg == nil {
+		return nil
+	}
 	return cfg.GetDiscoveryClient()
 }
 
 func (c *container) MetricClient(config, cluster string) *metricsclient.Clientset {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	cfg := c.config.KubeConfig[config].Clusters[cluster]
+	kubeConfig, ok := c.config.KubeConfig[config]
+	if !ok || kubeConfig == nil {
+		return nil
+	}
+	cfg, ok := kubeConfig.Clusters[cluster]
+	if !ok || cfg == nil {
+		return nil
+	}
 	return cfg.GetMetricClient()
 }
 
 func (c *container) SharedInformerFactory(config, cluster string) informers.SharedInformerFactory {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	cfg := c.config.KubeConfig[config].Clusters[cluster]
+	kubeConfig, ok := c.config.KubeConfig[config]
+	if !ok || kubeConfig == nil {
+		return nil
+	}
+	cfg, ok := kubeConfig.Clusters[cluster]
+	if !ok || cfg == nil {
+		return nil
+	}
 	return cfg.GetSharedInformerFactory()
 }
 
 func (c *container) ExtensionSharedFactoryInformer(config, cluster string) apiextensionsinformers.SharedInformerFactory {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	cfg := c.config.KubeConfig[config].Clusters[cluster]
+	kubeConfig, ok := c.config.KubeConfig[config]
+	if !ok || kubeConfig == nil {
+		return nil
+	}
+	cfg, ok := kubeConfig.Clusters[cluster]
+	if !ok || cfg == nil {
+		return nil
+	}
 	return cfg.GetExtensionInformerFactory()
 }
 
 func (c *container) DynamicSharedInformerFactory(config, cluster string) dynamicinformer.DynamicSharedInformerFactory {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	cfg := c.config.KubeConfig[config].Clusters[cluster]
+	kubeConfig, ok := c.config.KubeConfig[config]
+	if !ok || kubeConfig == nil {
+		return nil
+	}
+	cfg, ok := kubeConfig.Clusters[cluster]
+	if !ok || cfg == nil {
+		return nil
+	}
 	return cfg.GetDynamicSharedInformerFactory()
 }
 
 func (c *container) SocketUpgrader() *websocket.Upgrader {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 
 	return c.socketUpgrader
 }
 
 func (c *container) PortForwarder() *portforward.PortForwarder {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 
 	return c.portForwarder
 }

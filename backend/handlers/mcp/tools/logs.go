@@ -117,8 +117,8 @@ func ReadLogsStream(sseURL string) ([]LogEntry, error) {
 			continue
 		}
 
-		if strings.HasPrefix(line, "data:") {
-			data := strings.TrimPrefix(line, "data:")
+		if after, ok := strings.CutPrefix(line, "data:"); ok {
+			data := after
 			if currentData.Len() > 0 {
 				currentData.WriteString("\n")
 			}

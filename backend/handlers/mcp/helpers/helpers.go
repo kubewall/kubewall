@@ -38,8 +38,8 @@ func ReadFirstSSEMessage(url string) (string, error) {
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		if strings.HasPrefix(line, "data:") {
-			data.WriteString(strings.TrimPrefix(line, "data:"))
+		if after, ok := strings.CutPrefix(line, "data:"); ok {
+			data.WriteString(after)
 			data.WriteString("\n")
 		}
 

@@ -26,6 +26,8 @@ type CertificateConfig = {
   apiServer: string;
   certificate: string;
   certificateKey: string;
+  tlsMode: 'system' | 'custom' | 'insecure';
+  caCertificate: string;
 };
 
 /**

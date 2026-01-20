@@ -2,8 +2,6 @@ package config
 
 import (
 	"fmt"
-	"sync"
-
 	"github.com/charmbracelet/log"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions"
@@ -17,6 +15,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	metricsclient "k8s.io/metrics/pkg/client/clientset/versioned"
+	"sync"
 )
 
 type KubeConfigInfo struct {
@@ -43,51 +42,30 @@ type Cluster struct {
 }
 
 func (c *Cluster) GetClientSet() *kubernetes.Clientset {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	return c.ClientSet
 }
 
 func (c *Cluster) GetDynamicClient() *dynamic.DynamicClient {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	return c.DynamicClient
 }
 
 func (c *Cluster) GetDiscoveryClient() *discovery.DiscoveryClient {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	return c.DiscoveryClient
 }
 
 func (c *Cluster) GetSharedInformerFactory() informers.SharedInformerFactory {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	return c.SharedInformerFactory
 }
 
 func (c *Cluster) GetDynamicSharedInformerFactory() dynamicinformer.DynamicSharedInformerFactory {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	return c.DynamicInformerFactory
 }
 
 func (c *Cluster) GetExtensionInformerFactory() apiextensionsinformers.SharedInformerFactory {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	return c.ExtensionInformerFactory
 }
 
 func (c *Cluster) GetMetricClient() *metricsclient.Clientset {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	return c.MetricClient
 }
 
@@ -178,8 +156,12 @@ func restConfig(path string, contextName string) (*rest.Config, error) {
 
 	restConfig, err := cc.ClientConfig()
 	if err != nil {
-		log.Error("failed to Kubernetes ClientConfig", "err", err)
-		return nil, fmt.Errorf("failed to create kubernetes ClientConfig: %w", err)
+		log.Error("failed to load Kubernetes client configuration",
+			"configPath", path,
+			"context", contextName,
+			"error", err,
+		)
+		return nil, fmt.Errorf("failed to load Kubernetes client configuration: %w", err)
 	}
 	restConfig.ContentType = runtime.ContentTypeProtobuf
 	restConfig.AcceptContentTypes = fmt.Sprintf("%s,%s", runtime.ContentTypeProtobuf, runtime.ContentTypeJSON)
@@ -202,12 +184,19 @@ func loadClientConfig(restConfig *rest.Config) (*Cluster, error) {
 	if restConfig == nil {
 		return nil, fmt.Errorf("restConfig is nil")
 	}
+
+	// Create core clientset first (most critical)
 	clientSet, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create kubernetes clientset: %w", err)
 	}
 
 	sharedInformerFactory := informers.NewSharedInformerFactory(clientSet, 0)
+
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(restConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create kubernetes DiscoveryClient: %w", err)
+	}
 
 	clientset, err := apiextensionsclientset.NewForConfig(restConfig)
 	if err != nil {
@@ -221,14 +210,10 @@ func loadClientConfig(restConfig *rest.Config) (*Cluster, error) {
 	}
 	dynamicInformer := dynamicinformer.NewDynamicSharedInformerFactory(dynamicClient, 0)
 
-	discoveryClient, err := discovery.NewDiscoveryClientForConfig(restConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create kubernetes DiscoveryClient: %w", err)
-	}
-
 	metricClient, err := metricsclient.NewForConfig(restConfig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create kubernetes metricClientSet: %w", err)
+		log.Warn("failed to create metrics client, metrics will be unavailable", "err", err)
+		// Continue without metrics client
 	}
 
 	return &Cluster{

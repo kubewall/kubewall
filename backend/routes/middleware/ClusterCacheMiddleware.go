@@ -51,7 +51,17 @@ func ClusterCacheMiddleware(container container.Container) echo.MiddlewareFunc {
 
 			allResourcesKey := fmt.Sprintf(helpers.AllResourcesCacheKeyFormat, config, cluster)
 
-			conn := container.Config().KubeConfig[config].Clusters[cluster]
+			// Safe access with nil checks
+			kubeConfig, ok := container.Config().KubeConfig[config]
+			if !ok || kubeConfig == nil {
+				return c.JSON(400, "config not found")
+			}
+
+			conn, ok := kubeConfig.Clusters[cluster]
+			if !ok || conn == nil {
+				return c.JSON(400, "cluster not found in config")
+			}
+
 			if !conn.IsConnected() {
 				conn.MarkAsConnected()
 			}
@@ -68,43 +78,62 @@ func ClusterCacheMiddleware(container container.Container) echo.MiddlewareFunc {
 }
 
 func loadAllInformerOfCluster(c echo.Context, container container.Container) {
-	go pods.NewPodsHandler(c, container)
-	go deployments.NewDeploymentsHandler(c, container)
-	go daemonsets.NewDaemonSetsHandler(c, container)
-	go replicaset.NewReplicaSetHandler(c, container)
-	go statefulset.NewSatefulSetHandler(c, container)
-	go cronjobs.NewCronJobsHandler(c, container)
-	go jobs.NewJobsHandler(c, container)
+	// Load critical workload informers first with higher priority
+	// These are most frequently accessed and should be ready ASAP
+	go func() {
+		pods.NewPodsHandler(c, container)
+		deployments.NewDeploymentsHandler(c, container)
+		replicaset.NewReplicaSetHandler(c, container)
+		services.NewServicesHandler(c, container)
+		namespaces.NewNamespacesHandler(c, container)
+	}()
 
-	// Storage
-	go persistentvolumeclaims.NewPersistentVolumeClaimsHandler(c, container)
-	go persistentvolumes.NewPersistentVolumeHandler(c, container)
-	go storageclasses.NewStorageClassesHandler(c, container)
+	// Load remaining workload informers
+	go func() {
+		daemonsets.NewDaemonSetsHandler(c, container)
+		statefulset.NewSatefulSetHandler(c, container)
+		cronjobs.NewCronJobsHandler(c, container)
+		jobs.NewJobsHandler(c, container)
+	}()
 
-	// Config
-	go configmaps.NewConfigMapsHandler(c, container)
-	go secrets.NewSecretsHandler(c, container)
-	go resourcequotas.NewResourceQuotaHandler(c, container)
-	go namespaces.NewNamespacesHandler(c, container)
-	go horizontalpodautoscalers.NewHorizontalPodAutoScalerHandler(c, container)
-	go poddisruptionbudgets.NewPodDisruptionBudgetHandler(c, container)
-	go priorityclasses.NewPriorityClassHandler(c, container)
-	go runtimeclasses.NewRunTimeClassHandler(c, container)
-	go leases.NewLeasesHandler(c, container)
+	// Load storage informers
+	go func() {
+		persistentvolumeclaims.NewPersistentVolumeClaimsHandler(c, container)
+		persistentvolumes.NewPersistentVolumeHandler(c, container)
+		storageclasses.NewStorageClassesHandler(c, container)
+	}()
 
-	// AccessControl
-	go serviceaccounts.NewServiceAccountsHandler(c, container)
-	go roles.NewRolesHandler(c, container)
-	go rolebindings.NewRoleBindingHandler(c, container)
-	go clusterroles.NewRolesHandler(c, container)
-	go clusterrolebindings.NewClusterRoleBindingHandler(c, container)
+	// Load config informers
+	go func() {
+		configmaps.NewConfigMapsHandler(c, container)
+		secrets.NewSecretsHandler(c, container)
+		resourcequotas.NewResourceQuotaHandler(c, container)
+		horizontalpodautoscalers.NewHorizontalPodAutoScalerHandler(c, container)
+		poddisruptionbudgets.NewPodDisruptionBudgetHandler(c, container)
+		priorityclasses.NewPriorityClassHandler(c, container)
+		runtimeclasses.NewRunTimeClassHandler(c, container)
+		leases.NewLeasesHandler(c, container)
+	}()
 
-	// Network
-	go endpoints.NewEndpointsHandler(c, container)
-	go ingresses.NewIngressHandler(c, container)
-	go services.NewServicesHandler(c, container)
-	go limitranges.NewLimitRangesHandler(c, container)
+	// Load access control informers
+	go func() {
+		serviceaccounts.NewServiceAccountsHandler(c, container)
+		roles.NewRolesHandler(c, container)
+		rolebindings.NewRoleBindingHandler(c, container)
+		clusterroles.NewRolesHandler(c, container)
+		clusterrolebindings.NewClusterRoleBindingHandler(c, container)
+	}()
 
-	go nodes.NewNodeHandler(c, container)
-	go events.NewEventsHandler(c, container)
+	// Load network informers
+	go func() {
+		endpoints.NewEndpointsHandler(c, container)
+		ingresses.NewIngressHandler(c, container)
+		limitranges.NewLimitRangesHandler(c, container)
+	}()
+
+	// Load node and events informers
+	go func() {
+		nodes.NewNodeHandler(c, container)
+		events.NewEventsHandler(c, container)
+	}()
 }

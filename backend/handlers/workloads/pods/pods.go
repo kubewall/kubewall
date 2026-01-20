@@ -81,8 +81,8 @@ func NewPodsHandler(c echo.Context, container container.Container) *PodsHandler 
 	additionalEvents := []map[string]func(){
 		{
 			"pods-deployments": func() {
-				handler.DeploymentsPods(c)
-				handler.NodePods(c)
+				go handler.DeploymentsPods(c)
+				go handler.NodePods(c)
 			},
 		},
 	}

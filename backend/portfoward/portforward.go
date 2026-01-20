@@ -66,15 +66,25 @@ func clusterConfigKey(cluster, config string) string {
 }
 
 func (p *PortForwarder) isLocalPortInUse(localPort int) bool {
+	// First check our internal state
 	p.mu.RLock()
-	defer p.mu.RUnlock()
 	for _, inner := range p.active {
 		for _, pf := range inner {
 			if pf.LocalPort == localPort {
+				p.mu.RUnlock()
 				return true
 			}
 		}
 	}
+	p.mu.RUnlock()
+
+	// Then test actual port binding to avoid race conditions
+	addr := fmt.Sprintf(":%d", localPort)
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		return true // Port in use
+	}
+	listener.Close()
 	return false
 }
 
@@ -162,12 +172,13 @@ func (p *PortForwarder) Start(cfg *rest.Config, clientset kubernetes.Interface, 
 	}
 
 	ports, err := fw.GetPorts()
-	if err != nil || len(ports) == 0 {
+	if err != nil {
 		close(stopCh)
-		if err == nil {
-			err = fmt.Errorf("no ports forwarded")
-		}
 		return "", 0, fmt.Errorf("failed to get forwarded ports: %s", err.Error())
+	}
+	if len(ports) == 0 {
+		close(stopCh)
+		return "", 0, fmt.Errorf("no ports forwarded")
 	}
 	actualLocal := int(ports[0].Local)
 

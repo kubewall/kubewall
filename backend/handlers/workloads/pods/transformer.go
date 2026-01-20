@@ -3,6 +3,7 @@ package pods
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/maruel/natural"
@@ -36,8 +37,10 @@ func TransformPodList(pods []coreV1.Pod, podMetricsList *v1beta1.PodMetricsList)
 
 	for _, p := range pods {
 		item := TransformPodListItem(p)
-		item.CPU = podsMetricsMap[item.Name]["cpu"]
-		item.Memory = podsMetricsMap[item.Name]["memory"]
+		if metrics, exists := podsMetricsMap[item.Name]; exists {
+			item.CPU = metrics["cpu"]
+			item.Memory = metrics["memory"]
+		}
 
 		list = append(list, item)
 	}
@@ -121,7 +124,7 @@ func hasUpdated(pod coreV1.Pod) bool {
 func GetPodStatusReason(pod *coreV1.Pod) (string, string) {
 	reason := string(pod.Status.Phase)
 	// message is used to store more detailed information about the pod status
-	message := ""
+	var message strings.Builder
 	if pod.Status.Reason != "" {
 		reason = pod.Status.Reason
 	}
@@ -153,7 +156,7 @@ func GetPodStatusReason(pod *coreV1.Pod) (string, string) {
 		}
 
 		if container.LastTerminationState.Terminated != nil && container.LastTerminationState.Terminated.Message != "" {
-			message += container.LastTerminationState.Terminated.Message
+			message.WriteString(container.LastTerminationState.Terminated.Message)
 		}
 		break
 	}
@@ -169,15 +172,15 @@ func GetPodStatusReason(pod *coreV1.Pod) (string, string) {
 					// if the container is terminated, we should use the message from the last termination state
 					// if no message from the last termination state, we should use the exit code
 					if container.LastTerminationState.Terminated.Message != "" {
-						message += container.LastTerminationState.Terminated.Message
+						message.WriteString(container.LastTerminationState.Terminated.Message)
 					} else {
-						message += fmt.Sprintf("ExitCode:%d", container.LastTerminationState.Terminated.ExitCode)
+						message.WriteString(fmt.Sprintf("ExitCode:%d", container.LastTerminationState.Terminated.ExitCode))
 					}
 				}
 			} else if container.State.Terminated != nil && container.State.Terminated.Reason != "" {
 				reason = container.State.Terminated.Reason
 				// add message from the last termination exit code
-				message += fmt.Sprintf("ExitCode:%d", container.State.Terminated.ExitCode)
+				message.WriteString(fmt.Sprintf("ExitCode:%d", container.State.Terminated.ExitCode))
 			} else if container.State.Terminated != nil && container.State.Terminated.Reason == "" {
 				// no extra message from the last termination state, since the signal or exit code is used as the reason
 				if container.State.Terminated.Signal != 0 {
@@ -203,7 +206,7 @@ func GetPodStatusReason(pod *coreV1.Pod) (string, string) {
 		if len(pod.Status.Conditions) > 0 {
 			for condition := range pod.Status.Conditions {
 				if pod.Status.Conditions[condition].Type == coreV1.PodScheduled && pod.Status.Conditions[condition].Status == coreV1.ConditionFalse {
-					message += pod.Status.Conditions[condition].Message
+					message.WriteString(pod.Status.Conditions[condition].Message)
 				}
 			}
 		}
@@ -216,7 +219,7 @@ func GetPodStatusReason(pod *coreV1.Pod) (string, string) {
 		reason = "Terminating"
 	}
 
-	return reason, message
+	return reason, message.String()
 }
 
 func hasPodReadyCondition(conditions []coreV1.PodCondition) bool {
