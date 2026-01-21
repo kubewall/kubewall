@@ -27,13 +27,13 @@ func TestNewEnv(t *testing.T) {
 			os.Setenv("HOME", tt.envHome)
 			defer os.Unsetenv("HOME")
 
-			env := NewEnv()
-			assert.NotNil(t, env)
-			assert.Empty(t, env.KubeConfigs)
+		env := NewEnv()
+		assert.NotNil(t, env)
+		assert.Empty(t, env.KubeConfigs)
 
-			expectedDir := filepath.Join(tt.envHome, appConfigDir, appKubeConfigDir)
-			_, err := os.Stat(expectedDir)
-			assert.NoError(t, err)
+		expectedDir := filepath.Join(tt.envHome, AppConfigDir, AppKubeConfigDir)
+		_, err := os.Stat(expectedDir)
+		assert.NoError(t, err)
 		})
 	}
 }
@@ -85,27 +85,27 @@ func TestAppConfigBuildKubeConfigs(t *testing.T) {
 
 func TestAppConfigRemoveKubeConfig(t *testing.T) {
 	tests := []struct {
-		name    string
-		uuid    string
-		setup   func()
-		cleanup func()
+		name       string
+		configName string
+		setup      func()
+		cleanup    func()
 	}{
 		{
-			name: "happy path - kubeconfig file exists",
-			uuid: "test-config",
-			setup: func() {
-				os.MkdirAll(filepath.Join(homedir.HomeDir(), appConfigDir, appKubeConfigDir), 0755)
-				os.WriteFile(filepath.Join(homedir.HomeDir(), appConfigDir, appKubeConfigDir, "test-config"), []byte("test content"), 0644)
-			},
-			cleanup: func() {
-				os.RemoveAll(filepath.Join(homedir.HomeDir(), appConfigDir))
-			},
+		name:       "happy path - kubeconfig file exists",
+		configName: "test-config",
+		setup: func() {
+			os.MkdirAll(filepath.Join(homedir.HomeDir(), AppConfigDir, AppKubeConfigDir), 0755)
+			os.WriteFile(filepath.Join(homedir.HomeDir(), AppConfigDir, AppKubeConfigDir, "test-config"), []byte("test content"), 0644)
+		},
+		cleanup: func() {
+			os.RemoveAll(filepath.Join(homedir.HomeDir(), AppConfigDir))
+		},
 		},
 		{
-			name:    "error path - kubeconfig file does not exist",
-			uuid:    "nonexistent-config",
-			setup:   func() {},
-			cleanup: func() {},
+			name:       "error path - kubeconfig file does not exist",
+			configName: "nonexistent-config",
+			setup:      func() {},
+			cleanup:    func() {},
 		},
 	}
 
@@ -115,7 +115,7 @@ func TestAppConfigRemoveKubeConfig(t *testing.T) {
 			defer tt.cleanup()
 
 			config := NewAppConfig("appTest", "7080", 10, 10, false)
-			err := config.RemoveKubeConfig(tt.uuid)
+			err := config.RemoveKubeConfig(tt.configName)
 			if tt.name == "error path - kubeconfig file does not exist" {
 				assert.Error(t, err)
 			} else {
@@ -127,24 +127,24 @@ func TestAppConfigRemoveKubeConfig(t *testing.T) {
 
 func TestAppConfigSaveKubeConfig(t *testing.T) {
 	tests := []struct {
-		name  string
-		uuid  string
-		setup func()
+		name       string
+		configName string
+		setup      func()
 	}{
 		{
-			name:  "error path - invalid kubeconfig file",
-			uuid:  "invalid-config",
-			setup: func() {},
+			name:       "error path - invalid kubeconfig file",
+			configName: "invalid-config",
+			setup:      func() {},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.setup()
-			defer os.RemoveAll(filepath.Join(homedir.HomeDir(), appConfigDir))
+			defer os.RemoveAll(filepath.Join(homedir.HomeDir(), AppConfigDir))
 
 			config := NewAppConfig("appTest", "7080", 10, 10, false)
-			config.SaveKubeConfig(tt.uuid)
+			config.SaveKubeConfig(tt.configName)
 			if tt.name == "error path - invalid kubeconfig file" {
 				assert.Empty(t, config.KubeConfig)
 			} else {
@@ -230,5 +230,108 @@ func TestReadAllFilesInDir(t *testing.T) {
 			files := readAllFilesInDir(tt.dirPath)
 			assert.Equal(t, tt.expectedLen, len(files))
 		})
+	}
+}
+
+func TestAppConfigConfigExists(t *testing.T) {
+	tests := []struct {
+		name           string
+		setupConfigs   map[string]*KubeConfigInfo
+		checkName      string
+		expectedExists bool
+	}{
+		{
+			name: "happy path - config exists",
+			setupConfigs: map[string]*KubeConfigInfo{
+				"my-cluster": {
+					Name:         "/path/to/my-cluster",
+					AbsolutePath: "/path/to/my-cluster",
+					FileExists:   true,
+					Clusters:     make(map[string]*Cluster),
+				},
+			},
+			checkName:      "my-cluster",
+			expectedExists: true,
+		},
+		{
+			name: "happy path - config does not exist",
+			setupConfigs: map[string]*KubeConfigInfo{
+				"my-cluster": {
+					Name:         "/path/to/my-cluster",
+					AbsolutePath: "/path/to/my-cluster",
+					FileExists:   true,
+					Clusters:     make(map[string]*Cluster),
+				},
+			},
+			checkName:      "other-cluster",
+			expectedExists: false,
+		},
+		{
+			name:           "happy path - empty map",
+			setupConfigs:   map[string]*KubeConfigInfo{},
+			checkName:      "any-cluster",
+			expectedExists: false,
+		},
+		{
+			name: "happy path - multiple configs, check existing",
+			setupConfigs: map[string]*KubeConfigInfo{
+				"cluster-1": {
+					Name:       "/path/to/cluster-1",
+					FileExists: true,
+					Clusters:   make(map[string]*Cluster),
+				},
+				"cluster-2": {
+					Name:       "/path/to/cluster-2",
+					FileExists: true,
+					Clusters:   make(map[string]*Cluster),
+				},
+			},
+			checkName:      "cluster-2",
+			expectedExists: true,
+		},
+		{
+			name:           "edge case - empty string name",
+			setupConfigs:   map[string]*KubeConfigInfo{},
+			checkName:      "",
+			expectedExists: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			appConfig := &AppConfig{
+				KubeConfig: tt.setupConfigs,
+			}
+
+			exists := appConfig.ConfigExists(tt.checkName)
+			assert.Equal(t, tt.expectedExists, exists, "ConfigExists() returned unexpected result")
+		})
+	}
+}
+
+func TestAppConfigConfigExists_ThreadSafety(t *testing.T) {
+	appConfig := &AppConfig{
+		KubeConfig: map[string]*KubeConfigInfo{
+			"test-cluster": {
+				Name:       "/path/to/test-cluster",
+				FileExists: true,
+				Clusters:   make(map[string]*Cluster),
+			},
+		},
+	}
+
+	// Run concurrent checks to ensure mutex is working
+	done := make(chan bool)
+	for i := 0; i < 10; i++ {
+		go func() {
+			exists := appConfig.ConfigExists("test-cluster")
+			assert.True(t, exists)
+			done <- true
+		}()
+	}
+
+	// Wait for all goroutines to complete
+	for i := 0; i < 10; i++ {
+		<-done
 	}
 }

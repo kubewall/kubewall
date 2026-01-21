@@ -53,3 +53,6 @@ resources/node_modules/
 resources/static/
 resources/views/*.go
 resources/views/*/*.go
+
+# Agent directories.
+.agent/
