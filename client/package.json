@@ -60,7 +60,7 @@
     "cmdk": "^0.2.1",
     "date-fns": "^2.30.0",
     "highlight.js": "^11.11.1",
-    "lodash": "^4.17.21",
+    "lodash": "^4.17.23",
     "lucide-react": "^0.479.0",
     "monaco-editor": "^0.52.0",
     "monaco-yaml": "^5.2.3",
