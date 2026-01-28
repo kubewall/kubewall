@@ -49,18 +49,33 @@ export function KubeConfiguration() {
       setFilteredClusters(clusters);
     } else {
       const res: Clusters = { kubeConfigs: {}, version: '' };
-      Object.keys(clusters.kubeConfigs).map((key) => {
-        Object.keys(clusters.kubeConfigs[key].clusters).map((skey) => {
-          if (skey.toLowerCase().includes(searchText.toLowerCase())) {
+      const searchLower = searchText.toLowerCase();
+
+      Object.keys(clusters.kubeConfigs).forEach((key) => {
+        const configNameMatches = key.toLowerCase().includes(searchLower);
+
+        if (configNameMatches) {
+          // If kubeconfig name matches, include entire config with all clusters
+          res.kubeConfigs[key] = clusters.kubeConfigs[key];
+        } else {
+          // Otherwise, check individual context names
+          const matchingClusters: typeof clusters.kubeConfigs[typeof key]['clusters'] = {};
+
+          Object.keys(clusters.kubeConfigs[key].clusters).forEach((skey) => {
+            if (skey.toLowerCase().includes(searchLower)) {
+              matchingClusters[skey] = clusters.kubeConfigs[key].clusters[skey];
+            }
+          });
+
+          if (Object.keys(matchingClusters).length > 0) {
             res.kubeConfigs[key] = {
               ...clusters.kubeConfigs[key],
-              clusters: {
-                [skey]: clusters.kubeConfigs[key].clusters[skey]
-              }
+              clusters: matchingClusters
             };
           }
-        });
+        }
       });
+
       setFilteredClusters(res);
     }
   };
