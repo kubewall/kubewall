@@ -1,17 +1,16 @@
 import './index.css';
 
-import { Fragment, useEffect, useState } from 'react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Clusters, ClustersDetails } from '@/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { resetAllStates, useAppDispatch, useAppSelector } from '@/redux/hooks';
+import { useEffect, useMemo, useState } from 'react';
 
 import { AddConfig } from './AddConfiguration';
 import { Button } from '@/components/ui/button';
-import { Clusters } from '@/types';
-import { DeleteConfiguration } from './DeleteConfiguration';
+import { ConfigSection } from './ConfigSection';
 import { Input } from '@/components/ui/input';
 import { ReloadIcon } from '@radix-ui/react-icons';
-import { StatusCell } from '../Table/TableCells/statusCell';
+import { Search } from "lucide-react";
 import { fetchClusters } from '@/data/KwClusters/ClustersSlice';
 import { getSystemTheme } from '@/utils';
 import kwLogoDark from '../../../assets/kw-dark-theme.svg';
@@ -19,8 +18,6 @@ import kwLogoLight from '../../../assets/kw-light-theme.svg';
 import { resetDeleteConfig } from '@/data/KwClusters/DeleteConfigSlice';
 import { toast } from "sonner";
 import { useNavigate } from '@tanstack/react-router';
-import { FileBox } from "lucide-react";
-import { Search } from "lucide-react";
 
 export function KubeConfiguration() {
   const {
@@ -35,6 +32,7 @@ export function KubeConfiguration() {
   const [filteredClusters, setFilteredClusters] = useState(clusters);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+
   useEffect(() => {
     dispatch(fetchClusters());
     dispatch(resetAllStates());
@@ -43,6 +41,27 @@ export function KubeConfiguration() {
   useEffect(() => {
     setFilteredClusters(clusters);
   }, [clusters]);
+
+  const isSystemConfig = (absolutePath: string): boolean => {
+    return absolutePath.includes('/.kube/') && !absolutePath.includes('/.kubewall/');
+  };
+
+  const { addedConfigs, systemConfigs } = useMemo(() => {
+    const added: { [key: string]: ClustersDetails } = {};
+    const system: { [key: string]: ClustersDetails } = {};
+
+
+    Object.entries(filteredClusters.kubeConfigs || {}).forEach(([key, config]) => {
+      if (isSystemConfig(config.absolutePath)) {
+        system[key] = config;
+      } else {
+        added[key] = config;
+      }
+    });
+
+    return { addedConfigs: added, systemConfigs: system };
+  }, [filteredClusters]);
+
   const onSearch = (searchText: string) => {
     setSearch(searchText);
     if (!searchText) {
@@ -80,7 +99,6 @@ export function KubeConfiguration() {
     }
   };
 
-
   useEffect(() => {
     if (error) {
       toast.error("Failure", {
@@ -100,6 +118,8 @@ export function KubeConfiguration() {
   const navigateTo = (config: string, name: string) => {
     navigate({ to: `/${config}/list?cluster=${encodeURIComponent(name)}&resourcekind=pods` });
   };
+
+  const hasConfigs = filteredClusters?.kubeConfigs && Object.keys(filteredClusters.kubeConfigs).length > 0;
 
   return (
     <>
@@ -138,83 +158,34 @@ export function KubeConfiguration() {
               className="h-8 pl-8 pr-2 shadow-none"
             />
           </div>
-          <div className="overflow-auto config-list mt-2 rounded-md border">
-            <Table className="overflow-auto">
-              <TableHeader className="bg-muted/80">
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Namespace</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {
-                  filteredClusters?.kubeConfigs && Object.keys(filteredClusters.kubeConfigs).length ?
-                    Object.keys(filteredClusters.kubeConfigs).map((config, index) => {
-                      return (
-                        <Fragment key={config + index}>
-                          <TableRow className="border-t group/item">
-                            <TableCell colSpan={3} className="bg-muted/50">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-1">
-                                  <FileBox className="h-4 w-4 text-muted-foreground" />
-                                  <span>{config}</span>
-                                </div>
-                                <DeleteConfiguration configId={config} />
-                              </div>
-                            </TableCell>
 
-                          </TableRow>
-                          {
-                            Object.keys(filteredClusters.kubeConfigs[config].clusters).map((key) => {
-                              const {
-                                name,
-                                namespace,
-                                connected
-                              } = filteredClusters.kubeConfigs[config].clusters[key];
-                              return (
-                                <TableRow
-                                  className="group/item hover:cursor-pointer"
-                                  onClick={() => navigateTo(config, name)}
-                                  key={name}
-                                >
-                                  <TableCell className="flex items-center space-x-3">
-                                    <div className="flex w-12 flex-shrink-0 items-center justify-center bg-primary rounded-md text-sm font-medium text-secondary">{name.substring(0, 2).toUpperCase()}</div>
-                                    <span className="font-normal">{name}</span>
-                                  </TableCell>
-                                  <TableCell className="">
-                                    <span>{namespace || 'N/A'}</span>
-                                  </TableCell>
-                                  <TableCell className="">
-                                    {
-                                      connected ? <StatusCell cellValue='Active' /> : <StatusCell cellValue='InActive' />
-                                    }
-
-                                  </TableCell>
-                                </TableRow >
-
-                              );
-                            })
-                          }
-                        </Fragment>
-                      );
-                    }) :
-                    <TableRow className="cluster-empty-table">
-                      <TableCell
-                        colSpan={3}
-                        className="text-center"
-                      >
-                        No results.
-                      </TableCell>
-                    </TableRow>
-                }
-                {/* </tbody> */}
-              </TableBody>
-              {/* </table> */}
-            </Table>
+          <div className="overflow-auto config-list space-y-6">
+            {hasConfigs ? (
+              <>
+                <ConfigSection
+                  title="Added Configs"
+                  configs={addedConfigs}
+                  isSystem={false}
+                  onNavigate={navigateTo}
+                />
+                <ConfigSection
+                  title="System Configs"
+                  subtitle="~/.kube/"
+                  configs={systemConfigs}
+                  isSystem={true}
+                  onNavigate={navigateTo}
+                />
+              </>
+            ) : (
+              <div className="rounded-md border">
+                <div className="flex items-center justify-center h-64 text-muted-foreground">
+                  No results.
+                </div>
+              </div>
+            )}
           </div>
         </div>
-      </div >
+      </div>
     </>
   );
 }
