@@ -1,15 +1,16 @@
 import './index.css';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Clusters, ClustersDetails } from '@/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { resetAllStates, useAppDispatch, useAppSelector } from '@/redux/hooks';
+import { useEffect, useMemo, useState } from 'react';
 
 import { AddConfig } from './AddConfiguration';
 import { Button } from '@/components/ui/button';
-import { Clusters, ClustersDetails } from '@/types';
 import { ConfigSection } from './ConfigSection';
 import { Input } from '@/components/ui/input';
 import { ReloadIcon } from '@radix-ui/react-icons';
+import { Search } from "lucide-react";
 import { fetchClusters } from '@/data/KwClusters/ClustersSlice';
 import { getSystemTheme } from '@/utils';
 import kwLogoDark from '../../../assets/kw-dark-theme.svg';
@@ -17,11 +18,6 @@ import kwLogoLight from '../../../assets/kw-light-theme.svg';
 import { resetDeleteConfig } from '@/data/KwClusters/DeleteConfigSlice';
 import { toast } from "sonner";
 import { useNavigate } from '@tanstack/react-router';
-import { Search } from "lucide-react";
-
-const isSystemConfig = (absolutePath: string): boolean => {
-  return absolutePath.includes('/.kube/') && !absolutePath.includes('/.kubewall/');
-};
 
 export function KubeConfiguration() {
   const {
@@ -46,9 +42,14 @@ export function KubeConfiguration() {
     setFilteredClusters(clusters);
   }, [clusters]);
 
+  const isSystemConfig = (absolutePath: string): boolean => {
+    return absolutePath.includes('/.kube/') && !absolutePath.includes('/.kubewall/');
+  };
+
   const { addedConfigs, systemConfigs } = useMemo(() => {
     const added: { [key: string]: ClustersDetails } = {};
     const system: { [key: string]: ClustersDetails } = {};
+
 
     Object.entries(filteredClusters.kubeConfigs || {}).forEach(([key, config]) => {
       if (isSystemConfig(config.absolutePath)) {
