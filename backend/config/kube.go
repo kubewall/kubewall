@@ -89,6 +89,8 @@ func LoadInClusterConfig() (KubeConfigInfo, error) {
 	if err != nil {
 		return KubeConfigInfo{}, err
 	}
+	config.QPS = float32(K8SQPS)
+	config.Burst = K8SBURST
 	kubeConfig, err := loadClientConfig(config)
 	if err != nil {
 		return KubeConfigInfo{}, err
