@@ -58,16 +58,17 @@ func (h *BaseHandler) publishEvents(streamID string, data []byte) {
 	})
 }
 
-func (h *BaseHandler) startEventTicker(ctx context.Context, streamID string, data []byte) *time.Ticker {
+func (h *BaseHandler) startEventTicker(ctx context.Context, c echo.Context, streamID string) *time.Ticker {
 	ticker := time.NewTicker(time.Second)
 
 	go func() {
-		defer ticker.Stop()
 		for {
 			select {
 			case <-ctx.Done():
-				return // Proper cleanup when context is cancelled
+				return
 			case <-ticker.C:
+				events := h.fetchEvents(c)
+				data := h.marshalEvents(events)
 				if len(data) > 0 {
 					h.publishEvents(streamID, data)
 				}

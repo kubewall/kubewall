@@ -75,7 +75,7 @@ func (h *BaseHandler) GetEvents(c echo.Context) error {
 	data := h.marshalEvents(events)
 	h.publishEvents(streamID, data)
 
-	ticker := h.startEventTicker(c.Request().Context(), streamID, data)
+	ticker := h.startEventTicker(c.Request().Context(), c, streamID)
 	defer ticker.Stop()
 
 	h.Container.SSE().ServeHTTP(streamID, c.Response(), c.Request())

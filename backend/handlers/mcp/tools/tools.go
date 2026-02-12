@@ -58,9 +58,13 @@ func ListTool(c echo.Context, appContainer container.Container) Toolset {
 func NewListTool(c echo.Context, routeName string) server.ServerTool {
 	kindName := strings.ReplaceAll(routeName, "List", "")
 
-	description := parseTemplate(listTemplate, map[string]string{
+	description, err := parseTemplate(listTemplate, map[string]string{
 		"kindName": kindName,
 	})
+	if err != nil {
+		log.Error("failed to parse list template", "route", routeName, "err", err)
+		description = fmt.Sprintf("List all %s in the cluster", kindName)
+	}
 
 	tool := mcp.NewTool(routeName,
 		mcp.WithDescription(description),
@@ -87,9 +91,13 @@ func NewYamlDetailsTool(c echo.Context, routeName string) server.ServerTool {
 	// pods
 	kindName := strings.ReplaceAll(routeName, "Yaml", "")
 
-	description := parseTemplate(yamlDetailsTemplate, map[string]string{
+	description, err := parseTemplate(yamlDetailsTemplate, map[string]string{
 		"kindName": kindName,
 	})
+	if err != nil {
+		log.Error("failed to parse yaml details template", "route", routeName, "err", err)
+		description = fmt.Sprintf("Retrieve details of a specific %s in YAML format", kindName)
+	}
 
 	tool := mcp.NewTool(toolName,
 		mcp.WithDescription(description),

@@ -2,19 +2,20 @@ package tools
 
 import (
 	"bytes"
+	"fmt"
 	"text/template"
 )
 
-func parseTemplate(tmpl string, data map[string]string) string {
-	t := template.Must(template.New("description").Parse(tmpl))
-
-	var buf bytes.Buffer
-	err := t.Execute(&buf, data)
+func parseTemplate(tmpl string, data map[string]string) (string, error) {
+	t, err := template.New("description").Parse(tmpl)
 	if err != nil {
-		panic(err)
+		return "", fmt.Errorf("failed to parse template: %w", err)
 	}
 
-	output := buf.String()
+	var buf bytes.Buffer
+	if err := t.Execute(&buf, data); err != nil {
+		return "", fmt.Errorf("failed to execute template: %w", err)
+	}
 
-	return output
+	return buf.String(), nil
 }
