@@ -129,7 +129,7 @@ func (h *PodsHandler) GetLogs(c echo.Context) error {
 	config := c.QueryParam("config")
 	cluster := c.QueryParam("cluster")
 	name := c.Param("name")
-	namespace := c.Param("namespace")
+	namespace := c.QueryParam("namespace")
 	containerName := c.QueryParam("container")
 	allContainers := c.QueryParam("all-containers")
 
