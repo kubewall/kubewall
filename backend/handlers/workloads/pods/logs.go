@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/labstack/echo/v4"
+	"github.com/charmbracelet/log"
 	"github.com/r3labs/sse/v2"
 	v1 "k8s.io/api/core/v1"
 )
@@ -59,26 +59,23 @@ func (h *PodsHandler) fetchLogs(ctx context.Context, namespace, podName, contain
 	}
 }
 
-func (h *PodsHandler) publishLogsToSSE(c echo.Context, streamKey string, sseServer *sse.Server) (error, bool) {
-	name := c.Param("name")
-	namespace := c.QueryParam("namespace")
-	container := c.QueryParam("container")
-	isAllContainers := strings.EqualFold(c.QueryParam("all-containers"), "true")
+func (h *PodsHandler) publishLogsToSSE(ctx context.Context, name, namespace, container, allContainers, streamKey string, sseServer *sse.Server) (error, bool) {
+	isAllContainers := strings.EqualFold(allContainers, "true")
 
 	var containerNames []string
 
 	if isAllContainers {
-		podObj, _, err := h.BaseHandler.Informer.GetStore().GetByKey(fmt.Sprintf("%s/%s", c.QueryParam("namespace"), c.Param("name")))
+		podObj, _, err := h.BaseHandler.Informer.GetStore().GetByKey(fmt.Sprintf("%s/%s", namespace, name))
 		if err != nil {
 			return err, true
 		}
 		if podObj == nil {
-			c.Logger().Error("failed to get obj publishLogsToSSE", "err", err)
+			log.Error("failed to get obj publishLogsToSSE", "err", err)
 			return fmt.Errorf("failed to get obj publishLogsToSSE %s", err), true
 		}
 		pod, ok := podObj.(*v1.Pod)
 		if !ok {
-			c.Logger().Error("failed to type assertions pod", "err", err)
+			log.Error("failed to type assertions pod", "err", err)
 			return fmt.Errorf("failed to type assertions pod %s", err), true
 		}
 		// Include init containers
@@ -94,25 +91,29 @@ func (h *PodsHandler) publishLogsToSSE(c echo.Context, streamKey string, sseServ
 	}
 
 	logsChannel := make(chan LogMessage)
-	defer close(logsChannel)
 
+	var wg sync.WaitGroup
 	for _, containerName := range containerNames {
-		go h.fetchLogs(c.Request().Context(), namespace, name, containerName, logsChannel)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			h.fetchLogs(ctx, namespace, name, containerName, logsChannel)
+		}()
 	}
+	go func() {
+		wg.Wait()
+		close(logsChannel)
+	}()
 
-	var logMutex sync.Mutex
 	for logMsg := range logsChannel {
-		logMutex.Lock()
 		j, err := json.Marshal(logMsg)
 		if err != nil {
-			c.Logger().Errorf("failed to marshal log message: %v", err)
-			return nil, true
+			log.Error("failed to marshal log message", "err", err)
+			continue
 		}
-
 		sseServer.Publish(streamKey, &sse.Event{
 			Data: j,
 		})
-		logMutex.Unlock()
 	}
 
 	return nil, false

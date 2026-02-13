@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -19,7 +20,7 @@ type ServicesHandler struct {
 
 func NewServicesRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		handler := NewServicesHandler(c, container)
+		handler := NewServicesHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
 		case base.GetList:
@@ -38,10 +39,7 @@ func NewServicesRouteHandler(container container.Container, routeType base.Route
 	}
 }
 
-func NewServicesHandler(c echo.Context, container container.Container) *ServicesHandler {
-	config := c.QueryParam("config")
-	cluster := c.QueryParam("cluster")
-
+func NewServicesHandler(ctx context.Context, config, cluster string, container container.Container) *ServicesHandler {
 	informer := container.SharedInformerFactory(config, cluster).Core().V1().Services().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
@@ -58,8 +56,8 @@ func NewServicesHandler(c echo.Context, container container.Container) *Services
 		},
 	}
 	cache := base.ResourceEventHandler[*v1.Service](&handler.BaseHandler)
-	handler.BaseHandler.StartInformer(c, cache)
-	handler.BaseHandler.WaitForSync(c)
+	handler.BaseHandler.StartInformer(cache)
+	handler.BaseHandler.WaitForSync(ctx)
 	return handler
 }
 

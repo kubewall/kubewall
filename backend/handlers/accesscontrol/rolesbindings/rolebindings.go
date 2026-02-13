@@ -1,6 +1,7 @@
 package rolebindings
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -19,7 +20,7 @@ type RoleBindingHandler struct {
 
 func NewRoleBindingsRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		handler := NewRoleBindingHandler(c, container)
+		handler := NewRoleBindingHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
 		case base.GetList:
@@ -38,10 +39,7 @@ func NewRoleBindingsRouteHandler(container container.Container, routeType base.R
 	}
 }
 
-func NewRoleBindingHandler(c echo.Context, container container.Container) *RoleBindingHandler {
-	config := c.QueryParam("config")
-	cluster := c.QueryParam("cluster")
-
+func NewRoleBindingHandler(ctx context.Context, config, cluster string, container container.Container) *RoleBindingHandler {
 	informer := container.SharedInformerFactory(config, cluster).Rbac().V1().RoleBindings().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
@@ -58,8 +56,8 @@ func NewRoleBindingHandler(c echo.Context, container container.Container) *RoleB
 		},
 	}
 	cache := base.ResourceEventHandler[*rbacV1.RoleBinding](&handler.BaseHandler)
-	handler.BaseHandler.StartInformer(c, cache)
-	handler.BaseHandler.WaitForSync(c)
+	handler.BaseHandler.StartInformer(cache)
+	handler.BaseHandler.WaitForSync(ctx)
 	return handler
 }
 

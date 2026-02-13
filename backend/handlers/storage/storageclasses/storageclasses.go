@@ -1,6 +1,7 @@
 package storageclasses
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -19,7 +20,7 @@ type StorageClassesHandler struct {
 
 func NewStorageClassRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		handler := NewStorageClassesHandler(c, container)
+		handler := NewStorageClassesHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
 		case base.GetList:
@@ -38,10 +39,7 @@ func NewStorageClassRouteHandler(container container.Container, routeType base.R
 	}
 }
 
-func NewStorageClassesHandler(c echo.Context, container container.Container) *StorageClassesHandler {
-	config := c.QueryParam("config")
-	cluster := c.QueryParam("cluster")
-
+func NewStorageClassesHandler(ctx context.Context, config, cluster string, container container.Container) *StorageClassesHandler {
 	informer := container.SharedInformerFactory(config, cluster).Storage().V1().StorageClasses().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
@@ -58,8 +56,8 @@ func NewStorageClassesHandler(c echo.Context, container container.Container) *St
 		},
 	}
 	cache := base.ResourceEventHandler[*storageV1.StorageClass](&handler.BaseHandler)
-	handler.BaseHandler.StartInformer(c, cache)
-	handler.BaseHandler.WaitForSync(c)
+	handler.BaseHandler.StartInformer(cache)
+	handler.BaseHandler.WaitForSync(ctx)
 	return handler
 }
 

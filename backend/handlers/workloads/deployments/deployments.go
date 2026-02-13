@@ -1,6 +1,7 @@
 package deployments
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -29,7 +30,7 @@ type DeploymentReplicas struct {
 
 func NewDeploymentRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		handler := NewDeploymentsHandler(c, container)
+		handler := NewDeploymentsHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
 		case base.GetList:
@@ -52,10 +53,7 @@ func NewDeploymentRouteHandler(container container.Container, routeType base.Rou
 	}
 }
 
-func NewDeploymentsHandler(c echo.Context, container container.Container) *DeploymentsHandler {
-	config := c.QueryParam("config")
-	cluster := c.QueryParam("cluster")
-
+func NewDeploymentsHandler(ctx context.Context, config, cluster string, container container.Container) *DeploymentsHandler {
 	informer := container.SharedInformerFactory(config, cluster).Apps().V1().Deployments().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
@@ -73,8 +71,8 @@ func NewDeploymentsHandler(c echo.Context, container container.Container) *Deplo
 	}
 
 	cache := base.ResourceEventHandler[*v1.Deployment](&handler.BaseHandler)
-	handler.BaseHandler.StartInformer(c, cache)
-	handler.BaseHandler.WaitForSync(c)
+	handler.BaseHandler.StartInformer(cache)
+	handler.BaseHandler.WaitForSync(ctx)
 
 	return handler
 }
@@ -95,15 +93,17 @@ func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 
 func (h *DeploymentsHandler) GetPods(c echo.Context) error {
 	streamID := fmt.Sprintf("%s-%s-%s-deployments-pods", h.BaseHandler.QueryConfig, h.BaseHandler.QueryCluster, c.Param("name"))
-	go h.DeploymentsPods(c)
+	ctx := c.Request().Context()
+	config := c.QueryParam("config")
+	cluster := c.QueryParam("cluster")
+	go h.loadDeploymentPods(ctx, config, cluster)
 	h.BaseHandler.Container.SSE().ServeHTTP(streamID, c.Response(), c.Request())
 	return nil
 }
 
-// DeploymentsPods get list of pods for given deployment
-func (h *DeploymentsHandler) DeploymentsPods(c echo.Context) {
-	podsHandler := pods.NewPodsHandler(c, h.BaseHandler.Container)
-	podsHandler.DeploymentsPods(c)
+func (h *DeploymentsHandler) loadDeploymentPods(ctx context.Context, config, cluster string) {
+	podsHandler := pods.NewPodsHandler(ctx, config, cluster, h.BaseHandler.Container)
+	podsHandler.DeploymentsPods()
 }
 
 // UpdateScale updates the scale of a deployment

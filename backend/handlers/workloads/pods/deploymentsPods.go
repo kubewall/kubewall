@@ -6,12 +6,11 @@ import (
 	appV1 "k8s.io/api/apps/v1"
 	"sort"
 
-	"github.com/labstack/echo/v4"
 	"github.com/r3labs/sse/v2"
 	v1 "k8s.io/api/core/v1"
 )
 
-func (h *PodsHandler) DeploymentsPods(c echo.Context) {
+func (h *PodsHandler) DeploymentsPods() {
 	items := h.BaseHandler.Informer.GetStore().List()
 	if len(items) == 0 {
 		return
@@ -31,7 +30,7 @@ func (h *PodsHandler) DeploymentsPods(c echo.Context) {
 	// group pods by deployment
 	podsByDeployment := make(map[string][]v1.Pod, 16)
 	for _, pod := range pods {
-		deployment := h.FindPodDeploymentOwner(c, pod)
+		deployment := h.FindPodDeploymentOwner(pod)
 		if deployment == "" {
 			deployment = "unknown-deployment"
 		}
@@ -60,7 +59,7 @@ func (h *PodsHandler) DeploymentsPods(c echo.Context) {
 	}
 }
 
-func (h *PodsHandler) FindPodDeploymentOwner(c echo.Context, pod v1.Pod) string {
+func (h *PodsHandler) FindPodDeploymentOwner(pod v1.Pod) string {
 	for _, owner := range pod.OwnerReferences {
 		if owner.Kind == "ReplicaSet" {
 			item, exists, err := h.replicasetHandler.BaseHandler.Informer.GetStore().

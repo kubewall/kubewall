@@ -1,6 +1,7 @@
 package cronjobs
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -18,7 +19,7 @@ type CronJobsHandler struct {
 
 func NewCronJobsRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		handler := NewCronJobsHandler(c, container)
+		handler := NewCronJobsHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
 		case base.GetList:
@@ -37,10 +38,7 @@ func NewCronJobsRouteHandler(container container.Container, routeType base.Route
 	}
 }
 
-func NewCronJobsHandler(c echo.Context, container container.Container) *CronJobsHandler {
-	config := c.QueryParam("config")
-	cluster := c.QueryParam("cluster")
-
+func NewCronJobsHandler(ctx context.Context, config, cluster string, container container.Container) *CronJobsHandler {
 	informer := container.SharedInformerFactory(config, cluster).Batch().V1().CronJobs().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
@@ -57,8 +55,8 @@ func NewCronJobsHandler(c echo.Context, container container.Container) *CronJobs
 		},
 	}
 	cache := base.ResourceEventHandler[*batchV1.CronJob](&handler.BaseHandler)
-	handler.BaseHandler.StartInformer(c, cache)
-	handler.BaseHandler.WaitForSync(c)
+	handler.BaseHandler.StartInformer(cache)
+	handler.BaseHandler.WaitForSync(ctx)
 	return handler
 }
 

@@ -1,6 +1,7 @@
 package resourcequotas
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -18,7 +19,7 @@ type ResourceQuotaHandler struct {
 
 func NewResourceQuotaRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		handler := NewResourceQuotaHandler(c, container)
+		handler := NewResourceQuotaHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
 		case base.GetList:
@@ -37,10 +38,7 @@ func NewResourceQuotaRouteHandler(container container.Container, routeType base.
 	}
 }
 
-func NewResourceQuotaHandler(c echo.Context, container container.Container) *ResourceQuotaHandler {
-	config := c.QueryParam("config")
-	cluster := c.QueryParam("cluster")
-
+func NewResourceQuotaHandler(ctx context.Context, config, cluster string, container container.Container) *ResourceQuotaHandler {
 	informer := container.SharedInformerFactory(config, cluster).Core().V1().ResourceQuotas().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
@@ -57,8 +55,8 @@ func NewResourceQuotaHandler(c echo.Context, container container.Container) *Res
 		},
 	}
 	cache := base.ResourceEventHandler[*coreV1.ResourceQuota](&handler.BaseHandler)
-	handler.BaseHandler.StartInformer(c, cache)
-	handler.BaseHandler.WaitForSync(c)
+	handler.BaseHandler.StartInformer(cache)
+	handler.BaseHandler.WaitForSync(ctx)
 	return handler
 }
 

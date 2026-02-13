@@ -1,6 +1,7 @@
 package horizontalpodautoscalers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -19,7 +20,7 @@ type HorizontalPodAutoScalerHandler struct {
 
 func NewHorizontalPodAutoscalersRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		handler := NewHorizontalPodAutoScalerHandler(c, container)
+		handler := NewHorizontalPodAutoScalerHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
 		case base.GetList:
@@ -38,10 +39,7 @@ func NewHorizontalPodAutoscalersRouteHandler(container container.Container, rout
 	}
 }
 
-func NewHorizontalPodAutoScalerHandler(c echo.Context, container container.Container) *HorizontalPodAutoScalerHandler {
-	config := c.QueryParam("config")
-	cluster := c.QueryParam("cluster")
-
+func NewHorizontalPodAutoScalerHandler(ctx context.Context, config, cluster string, container container.Container) *HorizontalPodAutoScalerHandler {
 	informer := container.SharedInformerFactory(config, cluster).Autoscaling().V2().HorizontalPodAutoscalers().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
@@ -58,8 +56,8 @@ func NewHorizontalPodAutoScalerHandler(c echo.Context, container container.Conta
 		},
 	}
 	cache := base.ResourceEventHandler[*autoScalingV2.HorizontalPodAutoscaler](&handler.BaseHandler)
-	handler.BaseHandler.StartInformer(c, cache)
-	handler.BaseHandler.WaitForSync(c)
+	handler.BaseHandler.StartInformer(cache)
+	handler.BaseHandler.WaitForSync(ctx)
 	return handler
 }
 

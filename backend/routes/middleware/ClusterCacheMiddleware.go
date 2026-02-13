@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/kubewall/kubewall/backend/container"
@@ -69,7 +70,7 @@ func ClusterCacheMiddleware(container container.Container) echo.MiddlewareFunc {
 			_, exists := container.Cache().GetIfPresent(allResourcesKey)
 			if !exists {
 				helpers.CacheAllResources(container, config, cluster)
-				loadAllInformerOfCluster(c, container)
+				loadAllInformerOfCluster(config, cluster, container)
 			}
 
 			return next(c)
@@ -77,63 +78,65 @@ func ClusterCacheMiddleware(container container.Container) echo.MiddlewareFunc {
 	}
 }
 
-func loadAllInformerOfCluster(c echo.Context, container container.Container) {
+func loadAllInformerOfCluster(config, cluster string, container container.Container) {
+	ctx := context.Background()
+
 	// Load critical workload informers first with higher priority
 	// These are most frequently accessed and should be ready ASAP
 	go func() {
-		pods.NewPodsHandler(c, container)
-		deployments.NewDeploymentsHandler(c, container)
-		replicaset.NewReplicaSetHandler(c, container)
-		services.NewServicesHandler(c, container)
-		namespaces.NewNamespacesHandler(c, container)
+		pods.NewPodsHandler(ctx, config, cluster, container)
+		deployments.NewDeploymentsHandler(ctx, config, cluster, container)
+		replicaset.NewReplicaSetHandler(ctx, config, cluster, container)
+		services.NewServicesHandler(ctx, config, cluster, container)
+		namespaces.NewNamespacesHandler(ctx, config, cluster, container)
 	}()
 
 	// Load remaining workload informers
 	go func() {
-		daemonsets.NewDaemonSetsHandler(c, container)
-		statefulset.NewSatefulSetHandler(c, container)
-		cronjobs.NewCronJobsHandler(c, container)
-		jobs.NewJobsHandler(c, container)
+		daemonsets.NewDaemonSetsHandler(ctx, config, cluster, container)
+		statefulset.NewSatefulSetHandler(ctx, config, cluster, container)
+		cronjobs.NewCronJobsHandler(ctx, config, cluster, container)
+		jobs.NewJobsHandler(ctx, config, cluster, container)
 	}()
 
 	// Load storage informers
 	go func() {
-		persistentvolumeclaims.NewPersistentVolumeClaimsHandler(c, container)
-		persistentvolumes.NewPersistentVolumeHandler(c, container)
-		storageclasses.NewStorageClassesHandler(c, container)
+		persistentvolumeclaims.NewPersistentVolumeClaimsHandler(ctx, config, cluster, container)
+		persistentvolumes.NewPersistentVolumeHandler(ctx, config, cluster, container)
+		storageclasses.NewStorageClassesHandler(ctx, config, cluster, container)
 	}()
 
 	// Load config informers
 	go func() {
-		configmaps.NewConfigMapsHandler(c, container)
-		secrets.NewSecretsHandler(c, container)
-		resourcequotas.NewResourceQuotaHandler(c, container)
-		horizontalpodautoscalers.NewHorizontalPodAutoScalerHandler(c, container)
-		poddisruptionbudgets.NewPodDisruptionBudgetHandler(c, container)
-		priorityclasses.NewPriorityClassHandler(c, container)
-		runtimeclasses.NewRunTimeClassHandler(c, container)
-		leases.NewLeasesHandler(c, container)
+		configmaps.NewConfigMapsHandler(ctx, config, cluster, container)
+		secrets.NewSecretsHandler(ctx, config, cluster, container)
+		resourcequotas.NewResourceQuotaHandler(ctx, config, cluster, container)
+		horizontalpodautoscalers.NewHorizontalPodAutoScalerHandler(ctx, config, cluster, container)
+		poddisruptionbudgets.NewPodDisruptionBudgetHandler(ctx, config, cluster, container)
+		priorityclasses.NewPriorityClassHandler(ctx, config, cluster, container)
+		runtimeclasses.NewRunTimeClassHandler(ctx, config, cluster, container)
+		leases.NewLeasesHandler(ctx, config, cluster, container)
 	}()
 
 	// Load access control informers
 	go func() {
-		serviceaccounts.NewServiceAccountsHandler(c, container)
-		roles.NewRolesHandler(c, container)
-		rolebindings.NewRoleBindingHandler(c, container)
-		clusterroles.NewRolesHandler(c, container)
-		clusterrolebindings.NewClusterRoleBindingHandler(c, container)
+		serviceaccounts.NewServiceAccountsHandler(ctx, config, cluster, container)
+		roles.NewRolesHandler(ctx, config, cluster, container)
+		rolebindings.NewRoleBindingHandler(ctx, config, cluster, container)
+		clusterroles.NewRolesHandler(ctx, config, cluster, container)
+		clusterrolebindings.NewClusterRoleBindingHandler(ctx, config, cluster, container)
 	}()
 
 	// Load network informers
 	go func() {
-		endpoints.NewEndpointsHandler(c, container)
-		ingresses.NewIngressHandler(c, container)
-		limitranges.NewLimitRangesHandler(c, container)
+		endpoints.NewEndpointsHandler(ctx, config, cluster, container)
+		ingresses.NewIngressHandler(ctx, config, cluster, container)
+		limitranges.NewLimitRangesHandler(ctx, config, cluster, container)
 	}()
 
 	// Load node and events informers
 	go func() {
-		nodes.NewNodeHandler(c, container)
-		events.NewEventsHandler(c, container)
+		nodes.NewNodeHandler(ctx, config, cluster, container)
+		events.NewEventsHandler(ctx, config, cluster, container)
 	}()
 }

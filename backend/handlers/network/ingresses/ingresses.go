@@ -1,6 +1,7 @@
 package ingresses
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -19,7 +20,7 @@ type IngressHandler struct {
 
 func NewIngressRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		handler := NewIngressHandler(c, container)
+		handler := NewIngressHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
 		case base.GetList:
@@ -38,10 +39,7 @@ func NewIngressRouteHandler(container container.Container, routeType base.RouteT
 	}
 }
 
-func NewIngressHandler(c echo.Context, container container.Container) *IngressHandler {
-	config := c.QueryParam("config")
-	cluster := c.QueryParam("cluster")
-
+func NewIngressHandler(ctx context.Context, config, cluster string, container container.Container) *IngressHandler {
 	informer := container.SharedInformerFactory(config, cluster).Networking().V1().Ingresses().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
@@ -58,8 +56,8 @@ func NewIngressHandler(c echo.Context, container container.Container) *IngressHa
 		},
 	}
 	cache := base.ResourceEventHandler[*networkingV1.Ingress](&handler.BaseHandler)
-	handler.BaseHandler.StartInformer(c, cache)
-	handler.BaseHandler.WaitForSync(c)
+	handler.BaseHandler.StartInformer(cache)
+	handler.BaseHandler.WaitForSync(ctx)
 	return handler
 }
 

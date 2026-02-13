@@ -1,6 +1,7 @@
 package secrets
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -18,7 +19,7 @@ type SecretsHandler struct {
 
 func NewSecretsRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		handler := NewSecretsHandler(c, container)
+		handler := NewSecretsHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
 		case base.GetList:
@@ -37,10 +38,7 @@ func NewSecretsRouteHandler(container container.Container, routeType base.RouteT
 	}
 }
 
-func NewSecretsHandler(c echo.Context, container container.Container) *SecretsHandler {
-	config := c.QueryParam("config")
-	cluster := c.QueryParam("cluster")
-
+func NewSecretsHandler(ctx context.Context, config, cluster string, container container.Container) *SecretsHandler {
 	informer := container.SharedInformerFactory(config, cluster).Core().V1().Secrets().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
@@ -57,9 +55,9 @@ func NewSecretsHandler(c echo.Context, container container.Container) *SecretsHa
 		},
 	}
 	cache := base.ResourceEventHandler[*coreV1.Secret](&handler.BaseHandler)
-	handler.BaseHandler.StartInformer(c, cache)
+	handler.BaseHandler.StartInformer(cache)
 
-	handler.BaseHandler.WaitForSync(c)
+	handler.BaseHandler.WaitForSync(ctx)
 	return handler
 }
 

@@ -1,6 +1,7 @@
 package nodes
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -23,7 +24,7 @@ type NodeHandler struct {
 
 func NewNodeRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		handler := NewNodeHandler(c, container)
+		handler := NewNodeHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
 		case base.GetList:
@@ -42,10 +43,7 @@ func NewNodeRouteHandler(container container.Container, routeType base.RouteType
 	}
 }
 
-func NewNodeHandler(c echo.Context, container container.Container) *NodeHandler {
-	config := c.QueryParam("config")
-	cluster := c.QueryParam("cluster")
-
+func NewNodeHandler(ctx context.Context, config, cluster string, container container.Container) *NodeHandler {
 	informer := container.SharedInformerFactory(config, cluster).Core().V1().Nodes().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
@@ -61,8 +59,8 @@ func NewNodeHandler(c echo.Context, container container.Container) *NodeHandler 
 		},
 	}
 	cache := base.ResourceEventHandler[*coreV1.Node](&handler.BaseHandler)
-	handler.BaseHandler.StartInformer(c, cache)
-	handler.BaseHandler.WaitForSync(c)
+	handler.BaseHandler.StartInformer(cache)
+	handler.BaseHandler.WaitForSync(ctx)
 	return handler
 }
 
@@ -82,12 +80,15 @@ func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 
 func (h *NodeHandler) GetPods(c echo.Context) error {
 	streamID := fmt.Sprintf("%s-%s-%s-node-pods", h.BaseHandler.QueryConfig, h.BaseHandler.QueryCluster, c.Param("name"))
-	go h.NodePods(c)
+	ctx := c.Request().Context()
+	config := c.QueryParam("config")
+	cluster := c.QueryParam("cluster")
+	go h.loadNodePods(ctx, config, cluster)
 	h.BaseHandler.Container.SSE().ServeHTTP(streamID, c.Response(), c.Request())
 	return nil
 }
 
-func (h *NodeHandler) NodePods(c echo.Context) {
-	podsHandler := pods.NewPodsHandler(c, h.BaseHandler.Container)
-	podsHandler.NodePods(c)
+func (h *NodeHandler) loadNodePods(ctx context.Context, config, cluster string) {
+	podsHandler := pods.NewPodsHandler(ctx, config, cluster, h.BaseHandler.Container)
+	podsHandler.NodePods()
 }

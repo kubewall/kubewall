@@ -1,6 +1,7 @@
 package persistentvolumeclaims
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -18,7 +19,7 @@ type PersistentVolumeClaimsHandler struct {
 
 func NewPersistentVolumeClaimsRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		handler := NewPersistentVolumeClaimsHandler(c, container)
+		handler := NewPersistentVolumeClaimsHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
 		case base.GetList:
@@ -37,10 +38,7 @@ func NewPersistentVolumeClaimsRouteHandler(container container.Container, routeT
 	}
 }
 
-func NewPersistentVolumeClaimsHandler(c echo.Context, container container.Container) *PersistentVolumeClaimsHandler {
-	config := c.QueryParam("config")
-	cluster := c.QueryParam("cluster")
-
+func NewPersistentVolumeClaimsHandler(ctx context.Context, config, cluster string, container container.Container) *PersistentVolumeClaimsHandler {
 	informer := container.SharedInformerFactory(config, cluster).Core().V1().PersistentVolumeClaims().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
@@ -58,8 +56,8 @@ func NewPersistentVolumeClaimsHandler(c echo.Context, container container.Contai
 	}
 
 	cache := base.ResourceEventHandler[*coreV1.PersistentVolumeClaim](&handler.BaseHandler)
-	handler.BaseHandler.StartInformer(c, cache)
-	handler.BaseHandler.WaitForSync(c)
+	handler.BaseHandler.StartInformer(cache)
+	handler.BaseHandler.WaitForSync(ctx)
 	return handler
 }
 
