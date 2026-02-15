@@ -33,7 +33,7 @@ const ConfigMapDetailsContainer = memo(function () {
                           <div className="break-all basis-[97%] ">
                             <Badge variant="secondary" className="text-sm font-normal">
 
-                              <span className="whitespace-pre-line">
+                              <span className="whitespace-pre-wrap">
                                 {data[key]}
                               </span>
                             </Badge>
