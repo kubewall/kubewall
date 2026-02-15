@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/charmbracelet/log"
-	"github.com/labstack/echo/v4"
 	"github.com/r3labs/sse/v2"
 	"k8s.io/client-go/tools/cache"
 )
@@ -51,22 +50,22 @@ func ResourceEventHandler[T Resource](handler *BaseHandler, additionalEvents ...
 	}
 }
 
-func (h *BaseHandler) StartInformer(c echo.Context, cache cache.ResourceEventHandlerFuncs) {
-	h.baseInformer(c, cache)
+func (h *BaseHandler) StartInformer(cache cache.ResourceEventHandlerFuncs) {
+	h.baseInformer(cache)
 	go h.Container.SharedInformerFactory(h.QueryConfig, h.QueryCluster).Start(context.Background().Done())
 }
 
-func (h *BaseHandler) StartExtensionInformer(c echo.Context, cache cache.ResourceEventHandlerFuncs) {
-	h.baseInformer(c, cache)
+func (h *BaseHandler) StartExtensionInformer(cache cache.ResourceEventHandlerFuncs) {
+	h.baseInformer(cache)
 	go h.Container.ExtensionSharedFactoryInformer(h.QueryConfig, h.QueryCluster).Start(context.Background().Done())
 }
 
-func (h *BaseHandler) StartDynamicInformer(c echo.Context, cache cache.ResourceEventHandlerFuncs) {
-	h.baseInformer(c, cache)
+func (h *BaseHandler) StartDynamicInformer(cache cache.ResourceEventHandlerFuncs) {
+	h.baseInformer(cache)
 	go h.Container.DynamicSharedInformerFactory(h.QueryConfig, h.QueryCluster).Start(context.Background().Done())
 }
 
-func (h *BaseHandler) baseInformer(_ echo.Context, cache cache.ResourceEventHandlerFuncs) {
+func (h *BaseHandler) baseInformer(cache cache.ResourceEventHandlerFuncs) {
 	_, exists := h.Container.Cache().GetIfPresent(h.InformerCacheKey)
 	if exists {
 		return
@@ -79,11 +78,11 @@ func (h *BaseHandler) baseInformer(_ echo.Context, cache cache.ResourceEventHand
 	}
 }
 
-func (h *BaseHandler) WaitForSync(c echo.Context) {
+func (h *BaseHandler) WaitForSync(ctx context.Context) {
 	h.Informer.SetWatchErrorHandler(func(r *cache.Reflector, err error) {
 		log.Warn("failed to watch, will backoff and retry", "error", err, "kind", h.Kind)
 	})
-	ctx, cancel := context.WithTimeout(c.Request().Context(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	if !cache.WaitForCacheSync(ctx.Done(), h.Informer.HasSynced) {

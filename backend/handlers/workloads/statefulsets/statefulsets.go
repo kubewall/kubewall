@@ -1,6 +1,7 @@
 package statefulset
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -19,7 +20,7 @@ type StatefulSetHandler struct {
 
 func NewStatefulSetRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		handler := NewSatefulSetHandler(c, container)
+		handler := NewSatefulSetHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
 		case base.GetList:
@@ -38,10 +39,7 @@ func NewStatefulSetRouteHandler(container container.Container, routeType base.Ro
 	}
 }
 
-func NewSatefulSetHandler(c echo.Context, container container.Container) *StatefulSetHandler {
-	config := c.QueryParam("config")
-	cluster := c.QueryParam("cluster")
-
+func NewSatefulSetHandler(ctx context.Context, config, cluster string, container container.Container) *StatefulSetHandler {
 	informer := container.SharedInformerFactory(config, cluster).Apps().V1().StatefulSets().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
@@ -58,8 +56,8 @@ func NewSatefulSetHandler(c echo.Context, container container.Container) *Statef
 		},
 	}
 	cache := base.ResourceEventHandler[*appV1.StatefulSet](&handler.BaseHandler)
-	handler.BaseHandler.StartInformer(c, cache)
-	handler.BaseHandler.WaitForSync(c)
+	handler.BaseHandler.StartInformer(cache)
+	handler.BaseHandler.WaitForSync(ctx)
 	return handler
 }
 

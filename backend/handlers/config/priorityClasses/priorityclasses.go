@@ -1,6 +1,7 @@
 package priorityclasses
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -19,7 +20,7 @@ type PriorityClassesHandler struct {
 
 func NewPriorityClassRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		handler := NewPriorityClassHandler(c, container)
+		handler := NewPriorityClassHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
 		case base.GetList:
@@ -38,10 +39,7 @@ func NewPriorityClassRouteHandler(container container.Container, routeType base.
 	}
 }
 
-func NewPriorityClassHandler(c echo.Context, container container.Container) *PriorityClassesHandler {
-	config := c.QueryParam("config")
-	cluster := c.QueryParam("cluster")
-
+func NewPriorityClassHandler(ctx context.Context, config, cluster string, container container.Container) *PriorityClassesHandler {
 	informer := container.SharedInformerFactory(config, cluster).Scheduling().V1().PriorityClasses().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
@@ -58,8 +56,8 @@ func NewPriorityClassHandler(c echo.Context, container container.Container) *Pri
 		},
 	}
 	cache := base.ResourceEventHandler[*v1.PriorityClass](&handler.BaseHandler)
-	handler.BaseHandler.StartInformer(c, cache)
-	handler.BaseHandler.WaitForSync(c)
+	handler.BaseHandler.StartInformer(cache)
+	handler.BaseHandler.WaitForSync(ctx)
 
 	return handler
 }

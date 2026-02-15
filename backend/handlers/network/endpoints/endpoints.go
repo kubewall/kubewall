@@ -1,6 +1,7 @@
 package endpoints
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -19,7 +20,7 @@ type EndpointsHandler struct {
 
 func NewEndpointsRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		handler := NewEndpointsHandler(c, container)
+		handler := NewEndpointsHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
 		case base.GetList:
@@ -38,10 +39,7 @@ func NewEndpointsRouteHandler(container container.Container, routeType base.Rout
 	}
 }
 
-func NewEndpointsHandler(c echo.Context, container container.Container) *EndpointsHandler {
-	config := c.QueryParam("config")
-	cluster := c.QueryParam("cluster")
-
+func NewEndpointsHandler(ctx context.Context, config, cluster string, container container.Container) *EndpointsHandler {
 	informer := container.SharedInformerFactory(config, cluster).Discovery().V1().EndpointSlices().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
@@ -59,8 +57,8 @@ func NewEndpointsHandler(c echo.Context, container container.Container) *Endpoin
 	}
 
 	cache := base.ResourceEventHandler[*discoveryv1.EndpointSlice](&handler.BaseHandler)
-	handler.BaseHandler.StartInformer(c, cache)
-	handler.BaseHandler.WaitForSync(c)
+	handler.BaseHandler.StartInformer(cache)
+	handler.BaseHandler.WaitForSync(ctx)
 	return handler
 }
 

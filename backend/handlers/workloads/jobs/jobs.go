@@ -1,6 +1,7 @@
 package jobs
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -18,7 +19,7 @@ type JobsHandler struct {
 
 func NewJobsRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		handler := NewJobsHandler(c, container)
+		handler := NewJobsHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
 		case base.GetList:
@@ -37,10 +38,7 @@ func NewJobsRouteHandler(container container.Container, routeType base.RouteType
 	}
 }
 
-func NewJobsHandler(c echo.Context, container container.Container) *JobsHandler {
-	config := c.QueryParam("config")
-	cluster := c.QueryParam("cluster")
-
+func NewJobsHandler(ctx context.Context, config, cluster string, container container.Container) *JobsHandler {
 	informer := container.SharedInformerFactory(config, cluster).Batch().V1().Jobs().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
@@ -58,8 +56,8 @@ func NewJobsHandler(c echo.Context, container container.Container) *JobsHandler 
 	}
 
 	cache := base.ResourceEventHandler[*batchV1.Job](&handler.BaseHandler)
-	handler.BaseHandler.StartInformer(c, cache)
-	handler.BaseHandler.WaitForSync(c)
+	handler.BaseHandler.StartInformer(cache)
+	handler.BaseHandler.WaitForSync(ctx)
 	return handler
 }
 

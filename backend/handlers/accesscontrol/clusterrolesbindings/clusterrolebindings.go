@@ -1,6 +1,7 @@
 package clusterrolebindings
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -19,7 +20,7 @@ type ClusterRoleBindingHandler struct {
 
 func NewClusterRoleBindingsRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		handler := NewClusterRoleBindingHandler(c, container)
+		handler := NewClusterRoleBindingHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
 		case base.GetList:
@@ -38,10 +39,7 @@ func NewClusterRoleBindingsRouteHandler(container container.Container, routeType
 	}
 }
 
-func NewClusterRoleBindingHandler(c echo.Context, container container.Container) *ClusterRoleBindingHandler {
-	config := c.QueryParam("config")
-	cluster := c.QueryParam("cluster")
-
+func NewClusterRoleBindingHandler(ctx context.Context, config, cluster string, container container.Container) *ClusterRoleBindingHandler {
 	informer := container.SharedInformerFactory(config, cluster).Rbac().V1().ClusterRoleBindings().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
@@ -58,8 +56,8 @@ func NewClusterRoleBindingHandler(c echo.Context, container container.Container)
 		},
 	}
 	cache := base.ResourceEventHandler[*rbacV1.ClusterRoleBinding](&handler.BaseHandler)
-	handler.BaseHandler.StartInformer(c, cache)
-	handler.BaseHandler.WaitForSync(c)
+	handler.BaseHandler.StartInformer(cache)
+	handler.BaseHandler.WaitForSync(ctx)
 	return handler
 }
 

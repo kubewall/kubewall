@@ -1,6 +1,7 @@
 package leases
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -19,7 +20,7 @@ type LeasesHandler struct {
 
 func NewLeaseRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		handler := NewLeasesHandler(c, container)
+		handler := NewLeasesHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
 		case base.GetList:
@@ -38,10 +39,7 @@ func NewLeaseRouteHandler(container container.Container, routeType base.RouteTyp
 	}
 }
 
-func NewLeasesHandler(c echo.Context, container container.Container) *LeasesHandler {
-	config := c.QueryParam("config")
-	cluster := c.QueryParam("cluster")
-
+func NewLeasesHandler(ctx context.Context, config, cluster string, container container.Container) *LeasesHandler {
 	informer := container.SharedInformerFactory(config, cluster).Coordination().V1().Leases().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
@@ -58,8 +56,8 @@ func NewLeasesHandler(c echo.Context, container container.Container) *LeasesHand
 		},
 	}
 	cache := base.ResourceEventHandler[*v1.Lease](&handler.BaseHandler)
-	handler.BaseHandler.StartInformer(c, cache)
-	handler.BaseHandler.WaitForSync(c)
+	handler.BaseHandler.StartInformer(cache)
+	handler.BaseHandler.WaitForSync(ctx)
 	return handler
 }
 

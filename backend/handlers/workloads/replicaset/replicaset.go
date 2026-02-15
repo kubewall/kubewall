@@ -1,6 +1,7 @@
 package replicaset
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -19,7 +20,7 @@ type ReplicaSetHandler struct {
 
 func NewReplicaSetRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		handler := NewReplicaSetHandler(c, container)
+		handler := NewReplicaSetHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
 		case base.GetList:
@@ -38,10 +39,7 @@ func NewReplicaSetRouteHandler(container container.Container, routeType base.Rou
 	}
 }
 
-func NewReplicaSetHandler(c echo.Context, container container.Container) *ReplicaSetHandler {
-	config := c.QueryParam("config")
-	cluster := c.QueryParam("cluster")
-
+func NewReplicaSetHandler(ctx context.Context, config, cluster string, container container.Container) *ReplicaSetHandler {
 	informer := container.SharedInformerFactory(config, cluster).Apps().V1().ReplicaSets().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
@@ -59,8 +57,8 @@ func NewReplicaSetHandler(c echo.Context, container container.Container) *Replic
 	}
 
 	cache := base.ResourceEventHandler[*appV1.ReplicaSet](&handler.BaseHandler)
-	handler.BaseHandler.StartInformer(c, cache)
-	handler.BaseHandler.WaitForSync(c)
+	handler.BaseHandler.StartInformer(cache)
+	handler.BaseHandler.WaitForSync(ctx)
 	return handler
 }
 

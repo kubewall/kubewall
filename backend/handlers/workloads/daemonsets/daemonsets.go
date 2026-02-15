@@ -1,6 +1,7 @@
 package daemonsets
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -19,7 +20,7 @@ type DaemonSetsHandlers struct {
 
 func NewDaemonSetsRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		handler := NewDaemonSetsHandler(c, container)
+		handler := NewDaemonSetsHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
 		case base.GetList:
@@ -38,10 +39,7 @@ func NewDaemonSetsRouteHandler(container container.Container, routeType base.Rou
 	}
 }
 
-func NewDaemonSetsHandler(c echo.Context, container container.Container) *DaemonSetsHandlers {
-	config := c.QueryParam("config")
-	cluster := c.QueryParam("cluster")
-
+func NewDaemonSetsHandler(ctx context.Context, config, cluster string, container container.Container) *DaemonSetsHandlers {
 	informer := container.SharedInformerFactory(config, cluster).Apps().V1().DaemonSets().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
@@ -59,8 +57,8 @@ func NewDaemonSetsHandler(c echo.Context, container container.Container) *Daemon
 	}
 
 	cache := base.ResourceEventHandler[*appV1.DaemonSet](&handler.BaseHandler)
-	handler.BaseHandler.StartInformer(c, cache)
-	handler.BaseHandler.WaitForSync(c)
+	handler.BaseHandler.StartInformer(cache)
+	handler.BaseHandler.WaitForSync(ctx)
 	return handler
 }
 

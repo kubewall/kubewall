@@ -1,6 +1,7 @@
 package resources
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -35,7 +36,7 @@ type UnstructuredHandler struct {
 
 func NewUnstructuredRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		handler := NewUnstructuredHandler(c, container)
+		handler := NewUnstructuredHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), c.QueryParam("kind"), c.QueryParam("group"), c.QueryParam("version"), c.QueryParam("resource"), container)
 
 		switch routeType {
 		case base.GetList:
@@ -54,15 +55,7 @@ func NewUnstructuredRouteHandler(container container.Container, routeType base.R
 	}
 }
 
-func NewUnstructuredHandler(c echo.Context, container container.Container) *UnstructuredHandler {
-	config := c.QueryParam("config")
-	cluster := c.QueryParam("cluster")
-
-	kind := c.QueryParam("kind")
-	group := c.QueryParam("group")
-	version := c.QueryParam("version")
-	resource := c.QueryParam("resource")
-
+func NewUnstructuredHandler(ctx context.Context, config, cluster, kind, group, version, resource string, container container.Container) *UnstructuredHandler {
 	informer := container.DynamicSharedInformerFactory(config, cluster).ForResource(schema.GroupVersionResource{Group: group, Version: version, Resource: resource}).Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
@@ -79,8 +72,8 @@ func NewUnstructuredHandler(c echo.Context, container container.Container) *Unst
 	}
 
 	cache := base.ResourceEventHandler[*unstructured.Unstructured](&handler.BaseHandler)
-	handler.BaseHandler.StartDynamicInformer(c, cache)
-	handler.BaseHandler.WaitForSync(c)
+	handler.BaseHandler.StartDynamicInformer(cache)
+	handler.BaseHandler.WaitForSync(ctx)
 
 	return handler
 }

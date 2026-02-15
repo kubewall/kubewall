@@ -1,6 +1,7 @@
 package events
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -18,7 +19,7 @@ type EventsHandler struct {
 
 func NewEventsRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		handler := NewEventsHandler(c, container)
+		handler := NewEventsHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
 		case base.GetList:
@@ -31,10 +32,7 @@ func NewEventsRouteHandler(container container.Container, routeType base.RouteTy
 	}
 }
 
-func NewEventsHandler(c echo.Context, container container.Container) *EventsHandler {
-	config := c.QueryParam("config")
-	cluster := c.QueryParam("cluster")
-
+func NewEventsHandler(ctx context.Context, config, cluster string, container container.Container) *EventsHandler {
 	informer := container.SharedInformerFactory(config, cluster).Core().V1().Events().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
@@ -51,8 +49,8 @@ func NewEventsHandler(c echo.Context, container container.Container) *EventsHand
 		},
 	}
 	cache := base.ResourceEventHandler[*v1.Event](&handler.BaseHandler)
-	handler.BaseHandler.StartInformer(c, cache)
-	handler.BaseHandler.WaitForSync(c)
+	handler.BaseHandler.StartInformer(cache)
+	handler.BaseHandler.WaitForSync(ctx)
 	return handler
 }
 

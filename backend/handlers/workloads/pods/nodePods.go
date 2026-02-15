@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/labstack/echo/v4"
 	"github.com/r3labs/sse/v2"
 	v1 "k8s.io/api/core/v1"
 )
 
-func (h *PodsHandler) NodePods(c echo.Context) {
+func (h *PodsHandler) NodePods() {
 	items := h.BaseHandler.Informer.GetStore().List()
 	if len(items) == 0 {
 		return

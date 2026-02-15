@@ -1,6 +1,7 @@
 package limitranges
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -18,7 +19,7 @@ type LimitRangesHandler struct {
 
 func NewLimitRangesRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		handler := NewLimitRangesHandler(c, container)
+		handler := NewLimitRangesHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
 		case base.GetList:
@@ -37,10 +38,7 @@ func NewLimitRangesRouteHandler(container container.Container, routeType base.Ro
 	}
 }
 
-func NewLimitRangesHandler(c echo.Context, container container.Container) *LimitRangesHandler {
-	config := c.QueryParam("config")
-	cluster := c.QueryParam("cluster")
-
+func NewLimitRangesHandler(ctx context.Context, config, cluster string, container container.Container) *LimitRangesHandler {
 	informer := container.SharedInformerFactory(config, cluster).Core().V1().LimitRanges().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
@@ -57,8 +55,8 @@ func NewLimitRangesHandler(c echo.Context, container container.Container) *Limit
 		},
 	}
 	cache := base.ResourceEventHandler[*coreV1.LimitRange](&handler.BaseHandler)
-	handler.BaseHandler.StartInformer(c, cache)
-	handler.BaseHandler.WaitForSync(c)
+	handler.BaseHandler.StartInformer(cache)
+	handler.BaseHandler.WaitForSync(ctx)
 	return handler
 }
 

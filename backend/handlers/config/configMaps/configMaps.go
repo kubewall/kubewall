@@ -1,6 +1,7 @@
 package configmaps
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -18,7 +19,7 @@ type ConfigMapsHandler struct {
 
 func NewConfigMapsRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		handler := NewConfigMapsHandler(c, container)
+		handler := NewConfigMapsHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
 		case base.GetList:
@@ -37,10 +38,7 @@ func NewConfigMapsRouteHandler(container container.Container, routeType base.Rou
 	}
 }
 
-func NewConfigMapsHandler(c echo.Context, container container.Container) *ConfigMapsHandler {
-	config := c.QueryParam("config")
-	cluster := c.QueryParam("cluster")
-
+func NewConfigMapsHandler(ctx context.Context, config, cluster string, container container.Container) *ConfigMapsHandler {
 	informer := container.SharedInformerFactory(config, cluster).Core().V1().ConfigMaps().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
@@ -57,8 +55,8 @@ func NewConfigMapsHandler(c echo.Context, container container.Container) *Config
 		},
 	}
 	cache := base.ResourceEventHandler[*coreV1.ConfigMap](&handler.BaseHandler)
-	handler.BaseHandler.StartInformer(c, cache)
-	handler.BaseHandler.WaitForSync(c)
+	handler.BaseHandler.StartInformer(cache)
+	handler.BaseHandler.WaitForSync(ctx)
 	return handler
 }
 

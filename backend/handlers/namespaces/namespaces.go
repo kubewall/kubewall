@@ -1,6 +1,7 @@
 package namespaces
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -18,7 +19,7 @@ type NamespacesHandler struct {
 
 func NewNamespacesRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		handler := NewNamespacesHandler(c, container)
+		handler := NewNamespacesHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
 		case base.GetList:
@@ -37,10 +38,7 @@ func NewNamespacesRouteHandler(container container.Container, routeType base.Rou
 	}
 }
 
-func NewNamespacesHandler(c echo.Context, container container.Container) *NamespacesHandler {
-	config := c.QueryParam("config")
-	cluster := c.QueryParam("cluster")
-
+func NewNamespacesHandler(ctx context.Context, config, cluster string, container container.Container) *NamespacesHandler {
 	informer := container.SharedInformerFactory(config, cluster).Core().V1().Namespaces().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
@@ -57,8 +55,8 @@ func NewNamespacesHandler(c echo.Context, container container.Container) *Namesp
 		},
 	}
 	cache := base.ResourceEventHandler[*v1.Namespace](&handler.BaseHandler)
-	handler.BaseHandler.StartInformer(c, cache)
-	handler.BaseHandler.WaitForSync(c)
+	handler.BaseHandler.StartInformer(cache)
+	handler.BaseHandler.WaitForSync(ctx)
 	return handler
 }
 

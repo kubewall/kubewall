@@ -33,7 +33,7 @@ type PodsHandler struct {
 
 func NewPodsRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		handler := NewPodsHandler(c, container)
+		handler := NewPodsHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
 		case base.GetList:
@@ -54,10 +54,7 @@ func NewPodsRouteHandler(container container.Container, routeType base.RouteType
 	}
 }
 
-func NewPodsHandler(c echo.Context, container container.Container) *PodsHandler {
-	config := c.QueryParam("config")
-	cluster := c.QueryParam("cluster")
-
+func NewPodsHandler(ctx context.Context, config, cluster string, container container.Container) *PodsHandler {
 	informer := container.SharedInformerFactory(config, cluster).Core().V1().Pods().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 	clientSet := container.ClientSet(config, cluster)
@@ -75,21 +72,21 @@ func NewPodsHandler(c echo.Context, container container.Container) *PodsHandler 
 		},
 		restConfig:        container.RestConfig(config, cluster),
 		clientSet:         clientSet,
-		replicasetHandler: replicaset.NewReplicaSetHandler(c, container),
+		replicasetHandler: replicaset.NewReplicaSetHandler(ctx, config, cluster, container),
 	}
 
 	additionalEvents := []map[string]func(){
 		{
 			"pods-deployments": func() {
-				go handler.DeploymentsPods(c)
-				go handler.NodePods(c)
+				go handler.DeploymentsPods()
+				go handler.NodePods()
 			},
 		},
 	}
 
 	cache := base.ResourceEventHandler[*v1.Pod](&handler.BaseHandler, additionalEvents...)
-	handler.BaseHandler.StartInformer(c, cache)
-	handler.BaseHandler.WaitForSync(c)
+	handler.BaseHandler.StartInformer(cache)
+	handler.BaseHandler.WaitForSync(ctx)
 
 	return handler
 }
@@ -128,19 +125,21 @@ func (h *PodsHandler) GetLogs(c echo.Context) error {
 	sseServer := sse.New()
 	sseServer.AutoStream = true
 	sseServer.EventTTL = 0
+	ctx := c.Request().Context()
 	config := c.QueryParam("config")
 	cluster := c.QueryParam("cluster")
 	name := c.Param("name")
-	namespace := c.Param("namespace")
-	container := c.QueryParam("container")
+	namespace := c.QueryParam("namespace")
+	containerName := c.QueryParam("container")
+	allContainers := c.QueryParam("all-containers")
 
 	var key string
-	if container != "" {
-		key = fmt.Sprintf("%s-%s-%s-%s-%s-logs", config, cluster, name, namespace, container)
+	if containerName != "" {
+		key = fmt.Sprintf("%s-%s-%s-%s-%s-logs", config, cluster, name, namespace, containerName)
 	} else {
 		key = fmt.Sprintf("%s-%s-%s-%s-logs", config, cluster, name, namespace)
 	}
-	go h.publishLogsToSSE(c, key, sseServer)
+	go h.publishLogsToSSE(ctx, name, namespace, containerName, allContainers, key, sseServer)
 
 	sseServer.ServeHTTP(key, c.Response(), c.Request())
 

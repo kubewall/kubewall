@@ -1,6 +1,7 @@
 package clusterroles
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -19,7 +20,7 @@ type RolesHandler struct {
 
 func NewClusterRoleRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		handler := NewRolesHandler(c, container)
+		handler := NewRolesHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
 		case base.GetList:
@@ -38,10 +39,7 @@ func NewClusterRoleRouteHandler(container container.Container, routeType base.Ro
 	}
 }
 
-func NewRolesHandler(c echo.Context, container container.Container) *RolesHandler {
-	config := c.QueryParam("config")
-	cluster := c.QueryParam("cluster")
-
+func NewRolesHandler(ctx context.Context, config, cluster string, container container.Container) *RolesHandler {
 	informer := container.SharedInformerFactory(config, cluster).Rbac().V1().ClusterRoles().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
@@ -58,8 +56,8 @@ func NewRolesHandler(c echo.Context, container container.Container) *RolesHandle
 		},
 	}
 	cache := base.ResourceEventHandler[*rbacV1.ClusterRole](&handler.BaseHandler)
-	handler.BaseHandler.StartInformer(c, cache)
-	handler.BaseHandler.WaitForSync(c)
+	handler.BaseHandler.StartInformer(cache)
+	handler.BaseHandler.WaitForSync(ctx)
 	return handler
 }
 

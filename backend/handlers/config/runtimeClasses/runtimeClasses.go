@@ -1,6 +1,7 @@
 package runtimeclasses
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -19,7 +20,7 @@ type RunTimeClassesHandler struct {
 
 func NewRunTimeClassRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		handler := NewRunTimeClassHandler(c, container)
+		handler := NewRunTimeClassHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
 		case base.GetList:
@@ -38,10 +39,7 @@ func NewRunTimeClassRouteHandler(container container.Container, routeType base.R
 	}
 }
 
-func NewRunTimeClassHandler(c echo.Context, container container.Container) *RunTimeClassesHandler {
-	config := c.QueryParam("config")
-	cluster := c.QueryParam("cluster")
-
+func NewRunTimeClassHandler(ctx context.Context, config, cluster string, container container.Container) *RunTimeClassesHandler {
 	informer := container.SharedInformerFactory(config, cluster).Node().V1().RuntimeClasses().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
@@ -58,8 +56,8 @@ func NewRunTimeClassHandler(c echo.Context, container container.Container) *RunT
 		},
 	}
 	cache := base.ResourceEventHandler[*v1.RuntimeClass](&handler.BaseHandler)
-	handler.BaseHandler.StartInformer(c, cache)
-	handler.BaseHandler.WaitForSync(c)
+	handler.BaseHandler.StartInformer(cache)
+	handler.BaseHandler.WaitForSync(ctx)
 	return handler
 }
 

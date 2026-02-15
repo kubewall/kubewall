@@ -1,6 +1,7 @@
 package serviceaccounts
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -18,7 +19,7 @@ type ServiceAccountsHandler struct {
 
 func NewServiceAccountsRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		handler := NewServiceAccountsHandler(c, container)
+		handler := NewServiceAccountsHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
 		case base.GetList:
@@ -37,10 +38,7 @@ func NewServiceAccountsRouteHandler(container container.Container, routeType bas
 	}
 }
 
-func NewServiceAccountsHandler(c echo.Context, container container.Container) *ServiceAccountsHandler {
-	config := c.QueryParam("config")
-	cluster := c.QueryParam("cluster")
-
+func NewServiceAccountsHandler(ctx context.Context, config, cluster string, container container.Container) *ServiceAccountsHandler {
 	informer := container.SharedInformerFactory(config, cluster).Core().V1().ServiceAccounts().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
@@ -57,8 +55,8 @@ func NewServiceAccountsHandler(c echo.Context, container container.Container) *S
 		},
 	}
 	cache := base.ResourceEventHandler[*coreV1.ServiceAccount](&handler.BaseHandler)
-	handler.BaseHandler.StartInformer(c, cache)
-	handler.BaseHandler.WaitForSync(c)
+	handler.BaseHandler.StartInformer(cache)
+	handler.BaseHandler.WaitForSync(ctx)
 	return handler
 }
 

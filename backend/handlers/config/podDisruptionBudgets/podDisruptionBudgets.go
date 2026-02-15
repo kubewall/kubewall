@@ -1,6 +1,7 @@
 package poddisruptionbudgets
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -19,7 +20,7 @@ type PodDisruptionBudgetHandler struct {
 
 func NewPodDisruptionBudgetRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		handler := NewPodDisruptionBudgetHandler(c, container)
+		handler := NewPodDisruptionBudgetHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
 		case base.GetList:
@@ -38,10 +39,7 @@ func NewPodDisruptionBudgetRouteHandler(container container.Container, routeType
 	}
 }
 
-func NewPodDisruptionBudgetHandler(c echo.Context, container container.Container) *PodDisruptionBudgetHandler {
-	config := c.QueryParam("config")
-	cluster := c.QueryParam("cluster")
-
+func NewPodDisruptionBudgetHandler(ctx context.Context, config, cluster string, container container.Container) *PodDisruptionBudgetHandler {
 	informer := container.SharedInformerFactory(config, cluster).Policy().V1().PodDisruptionBudgets().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
@@ -58,8 +56,8 @@ func NewPodDisruptionBudgetHandler(c echo.Context, container container.Container
 		},
 	}
 	cache := base.ResourceEventHandler[*policyV1.PodDisruptionBudget](&handler.BaseHandler)
-	handler.BaseHandler.StartInformer(c, cache)
-	handler.BaseHandler.WaitForSync(c)
+	handler.BaseHandler.StartInformer(cache)
+	handler.BaseHandler.WaitForSync(ctx)
 	return handler
 }
 

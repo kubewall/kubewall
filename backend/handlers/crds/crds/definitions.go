@@ -1,6 +1,7 @@
 package crds
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -18,7 +19,7 @@ type CRDHandler struct {
 
 func NewCRDRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		handler := NewCRDHandler(c, container)
+		handler := NewCRDHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
 		case base.GetList:
@@ -37,10 +38,7 @@ func NewCRDRouteHandler(container container.Container, routeType base.RouteType)
 	}
 }
 
-func NewCRDHandler(c echo.Context, container container.Container) *CRDHandler {
-	config := c.QueryParam("config")
-	cluster := c.QueryParam("cluster")
-
+func NewCRDHandler(ctx context.Context, config, cluster string, container container.Container) *CRDHandler {
 	informer := container.ExtensionSharedFactoryInformer(config, cluster).Apiextensions().V1().CustomResourceDefinitions().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
@@ -58,8 +56,8 @@ func NewCRDHandler(c echo.Context, container container.Container) *CRDHandler {
 	}
 
 	cache := base.ResourceEventHandler[*apiextensionsv1.CustomResourceDefinition](&handler.BaseHandler)
-	handler.BaseHandler.StartExtensionInformer(c, cache)
-	handler.BaseHandler.WaitForSync(c)
+	handler.BaseHandler.StartExtensionInformer(cache)
+	handler.BaseHandler.WaitForSync(ctx)
 
 	return handler
 }
