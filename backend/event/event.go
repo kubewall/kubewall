@@ -1,12 +1,19 @@
 package event
 
 import (
+	"container/list"
 	"sync"
 	"time"
 )
 
+type eventEntry struct {
+	key string
+	fn  func()
+}
+
 type EventProcessor struct {
-	key       map[string]func()
+	events    map[string]*list.Element
+	order     *list.List
 	ticker    *time.Ticker
 	mu        sync.Mutex
 	maxEvents int
@@ -17,7 +24,8 @@ type EventProcessor struct {
 func NewEventCounter(interval time.Duration) *EventProcessor {
 	ec := &EventProcessor{
 		ticker:    time.NewTicker(interval),
-		key:       make(map[string]func()),
+		events:    make(map[string]*list.Element),
+		order:     list.New(),
 		maxEvents: 1000, // Limit to prevent unbounded growth
 		done:      make(chan struct{}),
 	}
@@ -29,16 +37,21 @@ func (ec *EventProcessor) AddEvent(key string, f func()) {
 	ec.mu.Lock()
 	defer ec.mu.Unlock()
 
-	// Prevent unbounded growth
-	if len(ec.key) >= ec.maxEvents {
-		// Remove oldest entry (simple FIFO approach)
-		for k := range ec.key {
-			delete(ec.key, k)
-			break
+	if elem, exists := ec.events[key]; exists {
+		ec.order.Remove(elem)
+		delete(ec.events, key)
+	}
+	if len(ec.events) >= ec.maxEvents {
+		oldest := ec.order.Front()
+		if oldest != nil {
+			entry := oldest.Value.(*eventEntry)
+			delete(ec.events, entry.key)
+			ec.order.Remove(oldest)
 		}
 	}
-
-	ec.key[key] = f
+	entry := &eventEntry{key: key, fn: f}
+	elem := ec.order.PushBack(entry)
+	ec.events[key] = elem
 }
 
 func (ec *EventProcessor) Run() {
@@ -55,12 +68,20 @@ func (ec *EventProcessor) Run() {
 
 func (ec *EventProcessor) processEvents() {
 	ec.mu.Lock()
-	defer ec.mu.Unlock()
-	if len(ec.key) > 0 {
-		for k, v := range ec.key {
-			v()
-			delete(ec.key, k)
-		}
+	if len(ec.events) == 0 {
+		ec.mu.Unlock()
+		return
+	}
+	toProcess := make([]eventEntry, 0, len(ec.events))
+	for elem := ec.order.Front(); elem != nil; elem = elem.Next() {
+		entry := elem.Value.(*eventEntry)
+		toProcess = append(toProcess, *entry)
+	}
+	ec.events = make(map[string]*list.Element)
+	ec.order.Init()
+	ec.mu.Unlock()
+	for i := range toProcess {
+		toProcess[i].fn()
 	}
 }
 

@@ -45,7 +45,7 @@ func ResourceEventHandler[T Resource](handler *BaseHandler, additionalEvents ...
 
 	return cache.ResourceEventHandlerFuncs{
 		AddFunc:    handleEvent,
-		UpdateFunc: func(oldObj, newObj any) { handleEvent(oldObj) },
+		UpdateFunc: func(oldObj, newObj any) { handleEvent(newObj) },
 		DeleteFunc: handleEvent,
 	}
 }

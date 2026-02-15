@@ -6,14 +6,12 @@ import (
 	"fmt"
 	"io"
 
-	"net"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
 	"github.com/charmbracelet/log"
-	"github.com/kubewall/kubewall/backend/container"
 	"github.com/labstack/echo/v4"
 )
 
@@ -106,22 +104,6 @@ func ProxyHandler(c echo.Context) error {
 	}
 
 	return nil
-}
-
-func baseURL(appContainer container.Container) string {
-	host, port, err := net.SplitHostPort(appContainer.Config().ListenAddr)
-	if err != nil {
-		host = "localhost"
-		port = "7080"
-	}
-	if host == "" || host == "::" {
-		host = "localhost"
-	}
-	scheme := "http"
-	if appContainer.Config().IsSecure {
-		scheme = "https"
-	}
-	return fmt.Sprintf("%s://%s:%s", scheme, host, port)
 }
 
 // isHopByHopHeader checks if a header is a hop-by-hop header.
