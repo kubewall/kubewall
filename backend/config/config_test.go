@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 
 	"k8s.io/client-go/util/homedir"
@@ -334,4 +335,52 @@ func TestAppConfigConfigExists_ThreadSafety(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		<-done
 	}
+}
+
+func TestAppConfig_ConcurrentReloadAndRead(t *testing.T) {
+	appConfig := &AppConfig{
+		KubeConfig: map[string]*KubeConfigInfo{
+			"test-cluster": {
+				Name:       "/path/to/test-cluster",
+				FileExists: true,
+				Clusters:   make(map[string]*Cluster),
+			},
+		},
+	}
+
+	var wg sync.WaitGroup
+
+	// Concurrent readers using GetKubeConfigInfo
+	for i := 0; i < 20; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < 100; j++ {
+				info, ok := appConfig.GetKubeConfigInfo("test-cluster")
+				if ok {
+					_ = info.Name
+				}
+			}
+		}()
+	}
+
+	// Concurrent writers simulating ReloadConfig
+	for i := 0; i < 5; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < 10; j++ {
+				appConfig.mu.Lock()
+				appConfig.KubeConfig = make(map[string]*KubeConfigInfo)
+				appConfig.KubeConfig["test-cluster"] = &KubeConfigInfo{
+					Name:       "/path/to/test-cluster",
+					FileExists: true,
+					Clusters:   make(map[string]*Cluster),
+				}
+				appConfig.mu.Unlock()
+			}
+		}()
+	}
+
+	wg.Wait()
 }

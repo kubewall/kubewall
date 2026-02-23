@@ -125,7 +125,7 @@ func (c *container) EventProcessor() *event.EventProcessor {
 }
 
 func (c *container) RestConfig(config, cluster string) *rest.Config {
-	kubeConfig, ok := c.config.KubeConfig[config]
+	kubeConfig, ok := c.config.GetKubeConfigInfo(config)
 	if !ok || kubeConfig == nil {
 		return nil
 	}
@@ -137,7 +137,7 @@ func (c *container) RestConfig(config, cluster string) *rest.Config {
 }
 
 func (c *container) ClientSet(config, cluster string) *kubernetes.Clientset {
-	kubeConfig, ok := c.config.KubeConfig[config]
+	kubeConfig, ok := c.config.GetKubeConfigInfo(config)
 	if !ok || kubeConfig == nil {
 		return nil
 	}
@@ -149,7 +149,7 @@ func (c *container) ClientSet(config, cluster string) *kubernetes.Clientset {
 }
 
 func (c *container) DynamicClient(config, cluster string) *dynamic.DynamicClient {
-	kubeConfig, ok := c.config.KubeConfig[config]
+	kubeConfig, ok := c.config.GetKubeConfigInfo(config)
 	if !ok || kubeConfig == nil {
 		return nil
 	}
@@ -161,7 +161,7 @@ func (c *container) DynamicClient(config, cluster string) *dynamic.DynamicClient
 }
 
 func (c *container) DiscoveryClient(config, cluster string) *discovery.DiscoveryClient {
-	kubeConfig, ok := c.config.KubeConfig[config]
+	kubeConfig, ok := c.config.GetKubeConfigInfo(config)
 	if !ok || kubeConfig == nil {
 		return nil
 	}
@@ -173,7 +173,7 @@ func (c *container) DiscoveryClient(config, cluster string) *discovery.Discovery
 }
 
 func (c *container) MetricClient(config, cluster string) *metricsclient.Clientset {
-	kubeConfig, ok := c.config.KubeConfig[config]
+	kubeConfig, ok := c.config.GetKubeConfigInfo(config)
 	if !ok || kubeConfig == nil {
 		return nil
 	}
@@ -185,7 +185,7 @@ func (c *container) MetricClient(config, cluster string) *metricsclient.Clientse
 }
 
 func (c *container) SharedInformerFactory(config, cluster string) informers.SharedInformerFactory {
-	kubeConfig, ok := c.config.KubeConfig[config]
+	kubeConfig, ok := c.config.GetKubeConfigInfo(config)
 	if !ok || kubeConfig == nil {
 		return nil
 	}
@@ -197,7 +197,7 @@ func (c *container) SharedInformerFactory(config, cluster string) informers.Shar
 }
 
 func (c *container) ExtensionSharedFactoryInformer(config, cluster string) apiextensionsinformers.SharedInformerFactory {
-	kubeConfig, ok := c.config.KubeConfig[config]
+	kubeConfig, ok := c.config.GetKubeConfigInfo(config)
 	if !ok || kubeConfig == nil {
 		return nil
 	}
@@ -209,7 +209,7 @@ func (c *container) ExtensionSharedFactoryInformer(config, cluster string) apiex
 }
 
 func (c *container) DynamicSharedInformerFactory(config, cluster string) dynamicinformer.DynamicSharedInformerFactory {
-	kubeConfig, ok := c.config.KubeConfig[config]
+	kubeConfig, ok := c.config.GetKubeConfigInfo(config)
 	if !ok || kubeConfig == nil {
 		return nil
 	}
