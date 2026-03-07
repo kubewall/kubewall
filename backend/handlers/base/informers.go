@@ -3,12 +3,16 @@ package base
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/charmbracelet/log"
 	"github.com/r3labs/sse/v2"
 	"k8s.io/client-go/tools/cache"
 )
+
+// informerInitOnce prevents duplicate AddEventHandler registrations.
+var informerInitOnce sync.Map
 
 type Resource interface {
 	GetName() string
@@ -66,16 +70,13 @@ func (h *BaseHandler) StartDynamicInformer(cache cache.ResourceEventHandlerFuncs
 }
 
 func (h *BaseHandler) baseInformer(cache cache.ResourceEventHandlerFuncs) {
-	_, exists := h.Container.Cache().GetIfPresent(h.InformerCacheKey)
-	if exists {
-		return
-	}
-	h.Container.Cache().Set(h.InformerCacheKey, true)
-	_, err := h.Informer.AddEventHandler(cache)
-	if err != nil {
-		log.Warn("failed to load baseInformer", "error", err, "kind", h.Kind)
-		return
-	}
+	once, _ := informerInitOnce.LoadOrStore(h.InformerCacheKey, &sync.Once{})
+	once.(*sync.Once).Do(func() {
+		h.Container.Cache().Set(h.InformerCacheKey, true)
+		if _, err := h.Informer.AddEventHandler(cache); err != nil {
+			log.Warn("failed to load baseInformer", "error", err, "kind", h.Kind)
+		}
+	})
 }
 
 func (h *BaseHandler) WaitForSync(ctx context.Context) {

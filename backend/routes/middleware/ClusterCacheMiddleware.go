@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/config/secrets"
@@ -40,6 +41,10 @@ import (
 	statefulset "github.com/kubewall/kubewall/backend/handlers/workloads/statefulsets"
 )
 
+// clusterInitOnce tracks per-cluster initialization to prevent duplicate
+// informer creation from concurrent requests.
+var clusterInitOnce sync.Map
+
 func ClusterCacheMiddleware(container container.Container) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
@@ -49,8 +54,6 @@ func ClusterCacheMiddleware(container container.Container) echo.MiddlewareFunc {
 
 			config := c.QueryParam("config")
 			cluster := c.QueryParam("cluster")
-
-			allResourcesKey := fmt.Sprintf(helpers.AllResourcesCacheKeyFormat, config, cluster)
 
 			// Safe access with nil checks
 			kubeConfig, ok := container.Config().KubeConfig[config]
@@ -67,11 +70,12 @@ func ClusterCacheMiddleware(container container.Container) echo.MiddlewareFunc {
 				conn.MarkAsConnected()
 			}
 
-			_, exists := container.Cache().GetIfPresent(allResourcesKey)
-			if !exists {
+			clusterKey := fmt.Sprintf("%s-%s", config, cluster)
+			once, _ := clusterInitOnce.LoadOrStore(clusterKey, &sync.Once{})
+			once.(*sync.Once).Do(func() {
 				helpers.CacheAllResources(container, config, cluster)
 				loadAllInformerOfCluster(config, cluster, container)
-			}
+			})
 
 			return next(c)
 		}
