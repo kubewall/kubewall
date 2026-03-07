@@ -56,7 +56,7 @@ func ClusterCacheMiddleware(container container.Container) echo.MiddlewareFunc {
 			cluster := c.QueryParam("cluster")
 
 			// Safe access with nil checks
-			kubeConfig, ok := container.Config().KubeConfig[config]
+			kubeConfig, ok := container.Config().GetKubeConfigInfo(config)
 			if !ok || kubeConfig == nil {
 				return c.JSON(400, "config not found")
 			}

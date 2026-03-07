@@ -34,7 +34,7 @@ type AppConfig struct {
 	IsSecure   bool                       `json:"isSecure"`
 	ListenAddr string                     `json:"listenAddr"`
 	KubeConfig map[string]*KubeConfigInfo `json:"kubeConfigs"`
-	mu         sync.Mutex
+	mu         sync.RWMutex
 }
 
 func NewEnv() *Env {
@@ -60,7 +60,18 @@ func NewAppConfig(version, listenAddr string, k8sClientQPS, k8sClientBurst int, 
 func (c *AppConfig) LoadAppConfig() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	c.loadAppConfigLocked()
+}
 
+func (c *AppConfig) ReloadConfig() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.KubeConfig = make(map[string]*KubeConfigInfo)
+	c.loadAppConfigLocked()
+}
+
+// loadAppConfigLocked performs the actual config loading. Caller must hold c.mu.
+func (c *AppConfig) loadAppConfigLocked() {
 	c.buildKubeConfigs(filepath.Join(homedir.HomeDir(), defaultKubeConfigDir))
 	c.buildKubeConfigs(filepath.Join(homedir.HomeDir(), AppConfigDir, AppKubeConfigDir))
 
@@ -70,9 +81,13 @@ func (c *AppConfig) LoadAppConfig() {
 	}
 }
 
-func (c *AppConfig) ReloadConfig() {
-	c.KubeConfig = make(map[string]*KubeConfigInfo)
-	c.LoadAppConfig()
+// GetKubeConfigInfo returns the KubeConfigInfo for the given config name.
+// It is safe for concurrent use.
+func (c *AppConfig) GetKubeConfigInfo(name string) (*KubeConfigInfo, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	info, ok := c.KubeConfig[name]
+	return info, ok
 }
 
 func (c *AppConfig) buildKubeConfigs(dirPath string) {
@@ -113,8 +128,8 @@ func (c *AppConfig) RemoveKubeConfig(configName string) error {
 }
 
 func (c *AppConfig) ConfigExists(name string) bool {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 
 	_, exists := c.KubeConfig[name]
 	return exists

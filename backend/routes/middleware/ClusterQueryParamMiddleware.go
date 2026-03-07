@@ -21,7 +21,7 @@ func ClusterQueryParamMiddleware(container container.Container) echo.MiddlewareF
 			}
 
 			// Check if config exists
-			kubeConfig, ok := container.Config().KubeConfig[config]
+			kubeConfig, ok := container.Config().GetKubeConfigInfo(config)
 			if !ok || kubeConfig == nil {
 				return c.JSON(400, "selected config is not present")
 			}

@@ -53,7 +53,7 @@ func (h *ApplyHandler) PostApply(c echo.Context) error {
 	inputYaml := []byte(yamlContent)
 
 	if checkKubectlCLIPresent() {
-		cluster := h.BaseHandler.Container.Config().KubeConfig[h.BaseHandler.QueryConfig]
+		cluster, _ := h.BaseHandler.Container.Config().GetKubeConfigInfo(h.BaseHandler.QueryConfig)
 		output, err := applyYAML(cluster.AbsolutePath, h.BaseHandler.QueryCluster, string(inputYaml))
 		if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
