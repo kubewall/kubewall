@@ -22,14 +22,16 @@ type fetchKwAIModelsProps = {
   url: string;
   apiKey: string;
   queryParams: string;
+  provider: string;
 }
 
-const kwAiModels = createAsyncThunk('kwAiModels', ({ apiKey, url, queryParams }: fetchKwAIModelsProps, thunkAPI) => {
+const kwAiModels = createAsyncThunk('kwAiModels', ({ apiKey, url, queryParams, provider }: fetchKwAIModelsProps, thunkAPI) => {
   const formatedUrl = `${API_VERSION}/${MCP_SERVER_ENDPOINT}`.replace('//', '/');
   const encodedUrl = encodeURIComponent(url);
   return kwFetch(`${formatedUrl}/${encodedUrl}/models?${queryParams}`, {
     headers: {
-      'X-KW-AI-API-Key': apiKey
+      'X-KW-AI-API-Key': apiKey,
+      'X-KW-AI-API-Provider': provider,
     }
   })
     .then((res: kwAIModelResponse) => res ?? {})

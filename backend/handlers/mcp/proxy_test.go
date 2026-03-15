@@ -31,6 +31,24 @@ func TestProxyHandler(t *testing.T) {
 				w.WriteHeader(http.StatusUnauthorized)
 				_, _ = w.Write([]byte("unauthorized"))
 			}
+		case "/check-anthropic-auth":
+			apiKey := r.Header.Get("x-api-key")
+			if apiKey == "test-api-key-123" {
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("anthropic-authorized"))
+			} else {
+				w.WriteHeader(http.StatusUnauthorized)
+				_, _ = w.Write([]byte("unauthorized"))
+			}
+		case "/check-azure-auth":
+			apiKey := r.Header.Get("api-key")
+			if apiKey == "test-api-key-123" {
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("azure-authorized"))
+			} else {
+				w.WriteHeader(http.StatusUnauthorized)
+				_, _ = w.Write([]byte("unauthorized"))
+			}
 		default:
 			w.WriteHeader(http.StatusNotFound)
 			_, _ = w.Write([]byte("not found"))
@@ -99,6 +117,39 @@ func TestProxyHandler(t *testing.T) {
 			method:     http.MethodGet,
 			headers: map[string]string{
 				"Authorization": "Bearer test-api-key-123",
+			},
+			wantStatusCode: http.StatusOK,
+			wantBody:       "authorized",
+		},
+		{
+			name:       "Anthropic provider uses x-api-key header",
+			remotePath: mockServer.URL + "/check-anthropic-auth",
+			method:     http.MethodGet,
+			headers: map[string]string{
+				"X-KW-AI-API-Key":  "test-api-key-123",
+				"X-KW-AI-Provider": "anthropic",
+			},
+			wantStatusCode: http.StatusOK,
+			wantBody:       "anthropic-authorized",
+		},
+		{
+			name:       "Azure provider uses api-key header",
+			remotePath: mockServer.URL + "/check-azure-auth",
+			method:     http.MethodGet,
+			headers: map[string]string{
+				"X-KW-AI-API-Key":  "test-api-key-123",
+				"X-KW-AI-Provider": "azure",
+			},
+			wantStatusCode: http.StatusOK,
+			wantBody:       "azure-authorized",
+		},
+		{
+			name:       "OpenAI provider uses Bearer auth (default)",
+			remotePath: mockServer.URL + "/check-auth",
+			method:     http.MethodGet,
+			headers: map[string]string{
+				"X-KW-AI-API-Key":  "test-api-key-123",
+				"X-KW-AI-Provider": "openai",
 			},
 			wantStatusCode: http.StatusOK,
 			wantBody:       "authorized",

@@ -93,7 +93,7 @@ const TableDelete = ({ selectedRows, toggleAllRowsSelected, postDeleteCallback }
       if(resourcekind === PORT_FORWARDING_ENDPOINT) {
         return {
           'id': original.id,
-        }
+        };
       }
       return {
         'name': original.name || original.metadata.name,

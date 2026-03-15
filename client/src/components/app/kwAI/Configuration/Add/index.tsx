@@ -119,9 +119,9 @@ const AddConfiguration = ({ uuid, setShowAddConfiguration, config, cluster, setK
     const dynamicQueryParams = new URLSearchParams(params).toString();
 
     if (provider && url && (['lmstudio'].includes(provider) || apiKey)) {
-      dispatch(kwAiModels({ apiKey, url, queryParams: dynamicQueryParams }));
+      dispatch(kwAiModels({ apiKey, url, queryParams: dynamicQueryParams, provider }));
     }
-  }, [formData.apiKey, formData.url, formData.provider, formData.apiVersion, config, cluster, dispatch])
+  }, [formData.apiKey, formData.url, formData.provider, formData.apiVersion, config, cluster, dispatch]);
 
   const resetAddConfiguration = () => {
     dispatch(resetKwAiModels());

@@ -21,4 +21,4 @@ type PortForwardingListResponse = {
 export {
   PortForwardingListHeaders,
   PortForwardingListResponse
-}
+};
