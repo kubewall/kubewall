@@ -90,11 +90,11 @@ export function PortForwardingDialog({
   useEffect(() => {
     if (message) {
       toast.success("Success", { description: message });
-      dispatch(resetPortForwarding())
+      dispatch(resetPortForwarding());
       resetDialog();
     } else if (error) {
       toast.error("Failure", { description: error.message });
-      dispatch(resetPortForwarding())
+      dispatch(resetPortForwarding());
       resetDialog();
     }
   }, [message, error]);

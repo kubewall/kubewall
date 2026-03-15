@@ -85,7 +85,7 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
         });
       case "azure":
         return createAzure({
-          apiKey: providerData.apiKey, baseURL: providerData.url, apiVersion: providerData.apiVersion, headers: {
+          apiKey: providerData.apiKey, baseURL: providerData.url, apiVersion: 'v1', headers: {
             'HTTP-Referer': 'https://kubewall.com',
             'X-Title': 'Kubewall'
           }
