@@ -15,9 +15,10 @@ func TestNewEventCounter(t *testing.T) {
 
 		assert.NotNil(t, ep)
 		assert.NotNil(t, ep.ticker)
-		assert.NotNil(t, ep.key)
+		assert.NotNil(t, ep.events)
+		assert.NotNil(t, ep.order)
 		assert.NotNil(t, ep.done)
-		assert.Empty(t, ep.key)
+		assert.Empty(t, ep.events)
 		assert.Equal(t, 1000, ep.maxEvents)
 	})
 }
@@ -54,9 +55,9 @@ func TestEventProcessor_AddEvent(t *testing.T) {
 				ep.AddEvent(k, v)
 			}
 
-			assert.Len(t, ep.key, len(tt.expKeys))
+			assert.Len(t, ep.events, len(tt.expKeys))
 			for _, k := range tt.expKeys {
-				_, ok := ep.key[k]
+				_, ok := ep.events[k]
 				assert.True(t, ok, "expected key not found: %s", k)
 			}
 		})
@@ -73,7 +74,7 @@ func TestEventProcessor_RunAndStop(t *testing.T) {
 
 		go ep.Run()
 
-		time.Sleep(30 * time.Millisecond) // Wait to allow the event to be processed at least once
+		time.Sleep(30 * time.Millisecond)
 		ep.Stop()
 
 		// Give some time for the goroutine to stop
@@ -94,25 +95,25 @@ func TestEventProcessor_ProcessEvents(t *testing.T) {
 		ep.processEvents()
 
 		assert.Equal(t, int32(2), atomic.LoadInt32(&count))
-		assert.Empty(t, ep.key) // Ensure all events are processed and removed
+		assert.Empty(t, ep.events)
 	})
 }
 
 func TestEventProcessor_MaxEvents(t *testing.T) {
 	t.Run("respect max events limit", func(t *testing.T) {
 		ep := NewEventCounter(10 * time.Millisecond)
-		ep.maxEvents = 2 // Set a small limit for testing
+		ep.maxEvents = 2
 
 		ep.AddEvent("event1", func() {})
 		ep.AddEvent("event2", func() {})
-		ep.AddEvent("event3", func() {}) // This should remove event1
+		ep.AddEvent("event3", func() {})
 
-		assert.Len(t, ep.key, 2)
-		_, exists := ep.key["event1"]
-		assert.False(t, exists, "event1 should have been removed")
-		_, exists = ep.key["event2"]
+		assert.Len(t, ep.events, 2)
+		_, exists := ep.events["event1"]
+		assert.False(t, exists, "event1 should have been removed (oldest)")
+		_, exists = ep.events["event2"]
 		assert.True(t, exists, "event2 should still exist")
-		_, exists = ep.key["event3"]
+		_, exists = ep.events["event3"]
 		assert.True(t, exists, "event3 should exist")
 	})
 }
