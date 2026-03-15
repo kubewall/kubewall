@@ -33,6 +33,16 @@ func ProxyHandler(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Invalid remote URL provided.")
 	}
 
+	if incomingQuery := c.QueryParams(); len(incomingQuery) > 0 {
+		existing := remoteURL.Query()
+		for key, values := range incomingQuery {
+			for _, v := range values {
+				existing.Add(key, v)
+			}
+		}
+		remoteURL.RawQuery = existing.Encode()
+	}
+
 	client := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
