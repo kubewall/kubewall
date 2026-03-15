@@ -42,6 +42,16 @@ func ProxyHandler(c echo.Context) error {
 		Timeout: time.Second * 30,
 	}
 
+	if incomingQuery := c.QueryParams(); len(incomingQuery) > 0 {
+		existing := remoteURL.Query()
+		for key, values := range incomingQuery {
+			for _, v := range values {
+				existing.Add(key, v)
+			}
+		}
+		remoteURL.RawQuery = existing.Encode()
+	}
+
 	var reqBody io.Reader
 	if c.Request().Body != nil {
 		bodyBytes, err := io.ReadAll(c.Request().Body)
@@ -59,6 +69,7 @@ func ProxyHandler(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, "Failed to create proxy request.")
 	}
 	apiKey := c.Request().Header.Get("X-KW-AI-API-Key")
+	provider := strings.ToLower(c.Request().Header.Get("X-KW-AI-Provider"))
 
 	for name, values := range c.Request().Header {
 		if strings.EqualFold(name, "Connection") ||
@@ -66,7 +77,9 @@ func ProxyHandler(c echo.Context) error {
 			strings.EqualFold(name, "Keep-Alive") ||
 			strings.EqualFold(name, "Transfer-Encoding") ||
 			strings.EqualFold(name, "Upgrade") ||
-			strings.EqualFold(name, "X-KW-AI-API-Key") {
+			strings.EqualFold(name, "X-KW-AI-API-Key") ||
+			strings.EqualFold(name, "X-KW-AI-Provider") {
+			continue
 		}
 		for _, value := range values {
 			proxyReq.Header.Add(name, value)
@@ -74,7 +87,7 @@ func ProxyHandler(c echo.Context) error {
 	}
 
 	if apiKey != "" {
-		proxyReq.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
+		setProviderAuthHeader(proxyReq, provider, apiKey)
 	}
 
 	proxyReq.Host = remoteURL.Host
@@ -123,5 +136,24 @@ func isHopByHopHeader(header string) bool {
 		return true
 	default:
 		return false
+	}
+}
+
+// setProviderAuthHeader sets the appropriate authentication header based on the AI provider.
+// Most providers use the standard "Authorization: Bearer <key>" pattern.
+// Exceptions:
+//   - anthropic: uses "x-api-key: <key>"
+//   - azure: uses "api-key: <key>"
+func setProviderAuthHeader(req *http.Request, provider, apiKey string) {
+	switch provider {
+	case "anthropic":
+		req.Header.Set("x-api-key", apiKey)
+	case "azure":
+		req.Header.Set("api-key", apiKey)
+	default:
+		// Standard Bearer token auth used by: openai, xai, groq, deepinfra,
+		// mistral, togetherai, cohere, fireworks, deepseek, cerebras,
+		// openrouter, ollama, lmstudio, and others.
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
 	}
 }
