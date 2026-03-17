@@ -14,6 +14,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
+const maxLogLineSize = 1024 * 1024
+
 type LogMessage struct {
 	ContainerName string `json:"containerName"`
 	Timestamp     string `json:"timestamp"`
@@ -31,21 +33,35 @@ func (h *PodsHandler) fetchLogs(ctx context.Context, namespace, podName, contain
 	req := h.clientSet.CoreV1().Pods(namespace).GetLogs(podName, podLogOptions)
 	podLogs, err := req.Stream(ctx)
 	if err != nil {
+		log.Error("failed to open log stream", "pod", podName, "container", containerName, "err", err)
 		return
 	}
+
+	go func() {
+		<-ctx.Done()
+		podLogs.Close()
+	}()
 	defer podLogs.Close()
 
 	scanner := bufio.NewScanner(podLogs)
+	scanner.Buffer(make([]byte, 0, maxLogLineSize), maxLogLineSize)
 
 	for scanner.Scan() {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
 		logLine := scanner.Text()
 		parts := strings.Split(logLine, " ")
 		if len(parts) == 0 {
+			log.Warn("empty log line received", "pod", podName, "container", containerName)
 			return
 		}
 		logLine = strings.Join(parts[1:], " ")
 		parseTime, err := time.Parse(time.RFC3339Nano, parts[0])
 		if err != nil {
+			log.Error("failed to parse log timestamp", "pod", podName, "container", containerName, "raw", parts[0], "err", err)
 			return
 		}
 		logsChannel <- LogMessage{
@@ -55,7 +71,7 @@ func (h *PodsHandler) fetchLogs(ctx context.Context, namespace, podName, contain
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		return
+		log.Error("log scanner error", "pod", podName, "container", containerName, "err", err)
 	}
 }
 
@@ -70,13 +86,13 @@ func (h *PodsHandler) publishLogsToSSE(ctx context.Context, name, namespace, con
 			return err, true
 		}
 		if podObj == nil {
-			log.Error("failed to get obj publishLogsToSSE", "err", err)
-			return fmt.Errorf("failed to get obj publishLogsToSSE %s", err), true
+			log.Error("pod not found in store", "namespace", namespace, "pod", name)
+			return fmt.Errorf("pod %s/%s not found in store", namespace, name), true
 		}
 		pod, ok := podObj.(*v1.Pod)
 		if !ok {
-			log.Error("failed to type assertions pod", "err", err)
-			return fmt.Errorf("failed to type assertions pod %s", err), true
+			log.Error("failed to type assert pod object", "namespace", namespace, "pod", name)
+			return fmt.Errorf("failed to type assert pod object %s/%s", namespace, name), true
 		}
 		// Include init containers
 		for _, initContainer := range pod.Spec.InitContainers {
@@ -90,7 +106,7 @@ func (h *PodsHandler) publishLogsToSSE(ctx context.Context, name, namespace, con
 		containerNames = []string{container}
 	}
 
-	logsChannel := make(chan LogMessage)
+	logsChannel := make(chan LogMessage, 100)
 
 	var wg sync.WaitGroup
 	for _, containerName := range containerNames {
