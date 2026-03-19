@@ -28,7 +28,7 @@ func (h *PodsHandler) DeploymentsPods() {
 	}
 
 	// group pods by deployment
-	podsByDeployment := make(map[string][]v1.Pod, 16)
+	podsByDeployment := make(map[string][]v1.Pod, len(pods))
 	for _, pod := range pods {
 		deployment := h.FindPodDeploymentOwner(pod)
 		if deployment == "" {

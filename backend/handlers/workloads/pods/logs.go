@@ -70,7 +70,7 @@ func (h *PodsHandler) fetchLogs(ctx context.Context, namespace, podName, contain
 			Log:           logLine,
 		}
 	}
-	if err := scanner.Err(); err != nil {
+	if err := scanner.Err(); err != nil && !strings.Contains(err.Error(), "http2: response body closed") {
 		log.Error("log scanner error", "pod", podName, "container", containerName, "err", err)
 	}
 }

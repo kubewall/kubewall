@@ -13,7 +13,7 @@ import (
 
 type PortForwardRequest struct {
 	Namespace     string `json:"namespace"`
-	Kind          string `json:kind"`
+	Kind          string `json:"kind"`
 	Name          string `json:"name"`
 	LocalPort     int    `json:"localPort"`
 	ContainerPort int    `json:"containerPort"`
