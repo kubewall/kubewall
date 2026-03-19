@@ -13,7 +13,7 @@ import { memo, useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 
-import { BoxIcon } from "lucide-react";
+import { DatabaseIcon, LayersIcon, LayoutGridIcon, NetworkIcon, ServerIcon, ShieldHalf, SlidersHorizontalIcon, UngroupIcon } from "lucide-react";
 import { Kbd } from "@/components/ui/kbd";
 import { NAVIGATION_ROUTE } from "@/constants";
 import { RootState } from "@/redux/store";
@@ -23,6 +23,18 @@ import { resetListTableFilter } from "@/data/Misc/ListTableFilterSlice";
 import { useIsMac } from "@/hooks/use-is-mac";
 import { useSidebar } from "@/components/ui/sidebar";
 
+const getGroupIcon = (group: string) => {
+  switch (group.toLowerCase().replace(/\s/g, '')) {
+    case 'cluster':      return <LayoutGridIcon className="mr-2 h-4 w-4" />;
+    case 'workloads':    return <UngroupIcon className="mr-2 h-4 w-4" />;
+    case 'configuration': return <SlidersHorizontalIcon className="mr-2 h-4 w-4" />;
+    case 'accesscontrol': return <ShieldHalf className="mr-2 h-4 w-4" />;
+    case 'network':      return <NetworkIcon className="mr-2 h-4 w-4" />;
+    case 'storage':      return <DatabaseIcon className="mr-2 h-4 w-4" />;
+    default:             return <LayersIcon className="mr-2 h-4 w-4" />;
+  }
+};
+
 type SidebarNavigatorProps = {
   setOpenMenus: (value: React.SetStateAction<Record<string, boolean>>) => void;
 };
@@ -30,6 +42,7 @@ type SidebarNavigatorProps = {
 const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: SidebarNavigatorProps) {
   const dispatch = useAppDispatch();
   const { customResourcesNavigation } = useAppSelector((state: RootState) => state.customResources);
+  const { clusters } = useAppSelector((state: RootState) => state.clusters);
 
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
@@ -75,6 +88,12 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
     }));
   };
 
+  const onSelectCluster = (config: string, name: string) => {
+    dispatch(resetListTableFilter());
+    navigate({ to: `/${config}/list?cluster=${encodeURIComponent(name)}&resourcekind=pods` });
+    setOpen(false);
+  };
+
   return (
     <>
       {isSidebarOpen || openMobile ? (
@@ -115,7 +134,7 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
                   className="group cursor-pointer"
                   onSelect={() => onSelectResources(routeValue, route)}
                 >
-                  <BoxIcon className="mr-2 h-4 w-4" />
+                  {getGroupIcon(route)}
                   <span>{name}</span>
                   <CommandShortcut className="invisible group-aria-[selected=true]:visible">
                     <Kbd square>↵</Kbd>
@@ -152,6 +171,34 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
           </CommandGroup>
 
           <CommandSeparator />
+
+          {clusters?.kubeConfigs && Object.keys(clusters.kubeConfigs).length > 0 && (
+            <CommandGroup heading="Clusters">
+              {Object.keys(clusters.kubeConfigs).map((config) =>
+                Object.keys(clusters.kubeConfigs[config].clusters).map((name) => {
+                  const isActive = config === configName && name === clusterName;
+                  return (
+                    <CommandItem
+                      key={`${config}::${name}`}
+                      value={`${config}::${name}`}
+                      className="group cursor-pointer"
+                      onSelect={() => onSelectCluster(config, name)}
+                    >
+                      <ServerIcon className="mr-2 h-4 w-4 shrink-0" />
+                      <span>{name}</span>
+                      <span className="ml-2 text-xs text-muted-foreground truncate">{config}</span>
+                      {isActive && (
+                        <span className="ml-2 text-xs text-muted-foreground shrink-0">(current)</span>
+                      )}
+                      <CommandShortcut className="invisible group-aria-[selected=true]:visible">
+                        <Kbd square>↵</Kbd>
+                      </CommandShortcut>
+                    </CommandItem>
+                  );
+                })
+              )}
+            </CommandGroup>
+          )}
         </CommandList>
       </CommandDialog >
     </>
