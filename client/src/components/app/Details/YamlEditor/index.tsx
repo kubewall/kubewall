@@ -1,4 +1,4 @@
-import { createEventStreamQueryObject, getEventStreamUrl, getSystemTheme } from '@/utils';
+import { createEventStreamQueryObject, getEventStreamUrl } from '@/utils';
 import { memo, useCallback, useEffect, useState } from 'react';
 import { resetUpdateYaml, updateYaml } from '@/data/Yaml/YamlUpdateSlice';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
@@ -10,6 +10,7 @@ import { SaveIcon } from "lucide-react";
 import { toast } from "sonner";
 import { updateYamlDetails } from '@/data/Yaml/YamlSlice';
 import { useEventSource } from '../../Common/Hooks/EventSource';
+import { useTheme } from '@/components/app/ThemeProvider';
 
 type EditorProps = {
   name: string;
@@ -33,6 +34,11 @@ const YamlEditor = memo(function ({ instanceType, name, namespace, clusterName, 
     loading,
     yamlData,
   } = useAppSelector((state) => state.yaml);
+
+  const { theme } = useTheme();
+  const monacoTheme = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+    ? 'vs-dark'
+    : 'light';
 
   const queryParams = new URLSearchParams({
     config: configName,
@@ -125,7 +131,7 @@ const YamlEditor = memo(function ({ instanceType, name, namespace, clusterName, 
               language="yaml"
               onChange={onChange}
               className='border rounded-md h-screen'
-              theme={getSystemTheme()}
+              theme={monacoTheme}
             />
           </div>
 

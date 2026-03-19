@@ -6,7 +6,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { SidebarContent, SidebarGroup, SidebarGroupLabel, Sidebar as SidebarMainComponent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarRail, useSidebar } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { createEventStreamQueryObject, getEventStreamUrl, getSystemTheme } from "@/utils";
+import { createEventStreamQueryObject, getEventStreamUrl } from "@/utils";
 import { memo, useEffect, useMemo, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
@@ -24,6 +24,7 @@ import { resetCustomResourcesList } from "@/data/CustomResources/CustomResources
 import { resetListTableFilter } from "@/data/Misc/ListTableFilterSlice";
 import { updateCustomResources } from "@/data/CustomResources/CustomResourcesSlice";
 import { useEventSource } from "../Common/Hooks/EventSource";
+import { useTheme } from "@/components/app/ThemeProvider";
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
 }
@@ -35,6 +36,8 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
   const navigate = useNavigate();
   const routerForce = useRouter();
   const dispatch = useAppDispatch();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
   const configName = router.location.pathname.split('/')[1];
   const queryParams = new URLSearchParams(router.location.search);
   const clusterName = queryParams.get('cluster') || '';
@@ -169,7 +172,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                           <a onClick={() => onNavClick('pods')}>
                             <img
                               className={`${open || openMobile ? "w-28" : "w-4 max-w-none"}`}
-                              src={getSystemTheme() === 'light' ? (open || openMobile ? kwLogoLight : kwLogoLightIcon) : (open || openMobile ? kwLogoDark : kwLogoDarkIcon)}
+                              src={isDark ? (open || openMobile ? kwLogoDark : kwLogoDarkIcon) : (open || openMobile ? kwLogoLight : kwLogoLightIcon)}
                               alt="kubewall"
                             />
                           </a>
