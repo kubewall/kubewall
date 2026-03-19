@@ -38,14 +38,17 @@ type Condition struct {
 	Type               string    `json:"type"`
 	Status             string    `json:"status"`
 	LastTransitionTime time.Time `json:"lastTransitionTime"`
+	Reason             string    `json:"reason"`
+	Message            string    `json:"message"`
 }
 
-type Conditions []Condition
-
-func (c Conditions) Len() int      { return len(c) }
-func (c Conditions) Swap(i, j int) { c[i], c[j] = c[j], c[i] }
-func (c Conditions) Less(i, j int) bool {
-	return c[i].LastTransitionTime.Before(c[j].LastTransitionTime)
+// conditionPriority defines the display order for deployment conditions.
+// Lower number = higher priority (shown first).
+// Order follows kubectl describe convention: Available -> Progressing -> ReplicaFailure
+var conditionPriority = map[string]int{
+	"Available":      0,
+	"Progressing":    1,
+	"ReplicaFailure": 2,
 }
 
 func TransformDeploymentList(deployments []appV1.Deployment) []DeploymentList {
@@ -87,18 +90,31 @@ func TransformDeploymentItem(d appV1.Deployment) DeploymentList {
 }
 
 func getDeploymentCondition(d appV1.Deployment) []Condition {
-	conditions := make(Conditions, 0)
+	conditions := make([]Condition, 0, len(d.Status.Conditions))
 
 	for _, c := range d.Status.Conditions {
-		if c.Status == "True" {
-			conditions = append(conditions, Condition{
-				Type:               string(c.Type),
-				Status:             string(c.Status),
-				LastTransitionTime: c.LastUpdateTime.Time,
-			})
-		}
+		conditions = append(conditions, Condition{
+			Type:               string(c.Type),
+			Status:             string(c.Status),
+			LastTransitionTime: c.LastUpdateTime.Time,
+			Reason:             c.Reason,
+			Message:            c.Message,
+		})
 	}
-	sort.Sort(conditions)
+	sort.Slice(conditions, func(i, j int) bool {
+		pi, iKnown := conditionPriority[conditions[i].Type]
+		pj, jKnown := conditionPriority[conditions[j].Type]
+		if !iKnown {
+			pi = len(conditionPriority)
+		}
+		if !jKnown {
+			pj = len(conditionPriority)
+		}
+		if pi != pj {
+			return pi < pj
+		}
+		return conditions[i].Type < conditions[j].Type
+	})
 
 	return conditions
 }
