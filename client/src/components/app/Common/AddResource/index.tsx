@@ -14,12 +14,17 @@ import { Loader } from '../../Loader';
 import { getSystemTheme } from "@/utils";
 import { kwList } from '@/routes';
 import { toast } from 'sonner';
+import { useTheme } from '@/components/app/ThemeProvider';
 
 const AddResource = () => {
   const dispatch = useAppDispatch();
   const [value, setValue] = useState('');
   const { config } = kwList.useParams();
   const { cluster } = kwList.useSearch();
+  const { theme } = useTheme();
+  const monacoTheme = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+    ? 'vs-dark'
+    : 'light';
 
   const queryParams = new URLSearchParams({
     config,
@@ -141,7 +146,7 @@ const AddResource = () => {
                 value={value}
                 defaultLanguage='yaml'
                 onChange={onChange}
-                theme={getSystemTheme()}
+                theme={monacoTheme}
                 options={{
                   minimap: { enabled: false },
                   automaticLayout: true,

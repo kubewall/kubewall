@@ -9,8 +9,8 @@ import { PodSocketResponse } from '@/types';
 import { SearchAddon } from '@xterm/addon-search';
 import { Terminal } from '@xterm/xterm';
 import { clearLogs } from '@/data/Workloads/Pods/PodLogsSlice';
-import { getSystemTheme } from '@/utils';
 import { useAppDispatch } from '@/redux/hooks';
+import { useTheme } from '@/components/app/ThemeProvider';
 
 type XtermProp = {
   containerNameProp: string;
@@ -26,6 +26,27 @@ const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef, updateLogs }:
 
   const fitAddon = useRef<FitAddon | null>(null);
   const [showScrollDown, setShowScrollDown] = useState(false);
+  const { theme } = useTheme();
+
+  const darkTheme = {
+    background: '#181818',
+    foreground: '#dcdcdc',
+    cursor: '#dcdcdc',
+    selectionBackground: '#404040',
+  };
+  const lightTheme = {
+    background: '#ffffff',
+    foreground: '#333333',
+    cursor: '#333333',
+    selectionBackground: '#bbbbbb',
+  };
+
+  const resolvedIsDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  useEffect(() => {
+    if (xterm.current) {
+      xterm.current.options.theme = resolvedIsDark ? darkTheme : lightTheme;
+    }
+  }, [resolvedIsDark]);
 
   useEffect(() => {
     const newContainer = `-------------------${containerNameProp || 'All Containers'}-------------------`;
@@ -39,24 +60,11 @@ const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef, updateLogs }:
     }
   };
 
-  const darkTheme = {
-    background: '#181818',        // Dark gray background
-    foreground: '#dcdcdc',        // Light gray text
-    cursor: '#dcdcdc',            // Light gray cursor
-    selectionBackground: '#404040', // Darker gray for text selection
-  };
-  const lightTheme = {
-    background: '#ffffff',        // White background for light theme
-    foreground: '#333333',        // Dark text for readability
-    cursor: '#333333',            // Dark cursor
-    selectionBackground: '#bbbbbb', // Light gray for text selection
-  };
-
   useEffect(() => {
     if (terminalRef.current && xterm) {
       xterm.current = new Terminal({
         cursorBlink: false,
-        theme: getSystemTheme() === 'light' ? lightTheme : darkTheme,
+        theme: resolvedIsDark ? darkTheme : lightTheme,
         scrollback: 9999999,
         fontSize: 13
       });
