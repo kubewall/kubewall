@@ -12,7 +12,6 @@ import { Input } from '@/components/ui/input';
 import { ReloadIcon } from '@radix-ui/react-icons';
 import { Search } from "lucide-react";
 import { fetchClusters } from '@/data/KwClusters/ClustersSlice';
-import { getSystemTheme } from '@/utils';
 import kwLogoDark from '../../../assets/kw-dark-theme.svg';
 import kwLogoLight from '../../../assets/kw-light-theme.svg';
 import { useTheme } from '@/components/app/ThemeProvider';
@@ -33,8 +32,7 @@ export function KubeConfiguration() {
   const [filteredClusters, setFilteredClusters] = useState(clusters);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const { isDark } = useTheme();
 
   useEffect(() => {
     dispatch(fetchClusters());

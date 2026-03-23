@@ -36,8 +36,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
   const navigate = useNavigate();
   const routerForce = useRouter();
   const dispatch = useAppDispatch();
-  const { theme } = useTheme();
-  const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const { isDark } = useTheme();
   const configName = router.location.pathname.split('/')[1];
   const queryParams = new URLSearchParams(router.location.search);
   const clusterName = queryParams.get('cluster') || '';

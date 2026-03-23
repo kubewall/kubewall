@@ -26,7 +26,7 @@ const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef, updateLogs }:
 
   const fitAddon = useRef<FitAddon | null>(null);
   const [showScrollDown, setShowScrollDown] = useState(false);
-  const { theme } = useTheme();
+  const { isDark } = useTheme();
 
   const darkTheme = {
     background: '#181818',
@@ -41,12 +41,11 @@ const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef, updateLogs }:
     selectionBackground: '#bbbbbb',
   };
 
-  const resolvedIsDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
   useEffect(() => {
     if (xterm.current) {
-      xterm.current.options.theme = resolvedIsDark ? darkTheme : lightTheme;
+      xterm.current.options.theme = isDark ? darkTheme : lightTheme;
     }
-  }, [resolvedIsDark]);
+  }, [isDark]);
 
   useEffect(() => {
     const newContainer = `-------------------${containerNameProp || 'All Containers'}-------------------`;
@@ -64,7 +63,7 @@ const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef, updateLogs }:
     if (terminalRef.current && xterm) {
       xterm.current = new Terminal({
         cursorBlink: false,
-        theme: resolvedIsDark ? darkTheme : lightTheme,
+        theme: isDark ? darkTheme : lightTheme,
         scrollback: 9999999,
         fontSize: 13
       });

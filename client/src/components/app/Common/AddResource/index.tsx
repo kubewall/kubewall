@@ -11,7 +11,6 @@ import { Check } from "lucide-react";
 import Editor from '../../Details/YamlEditor/MonacoWrapper';
 import { FilePlusIcon } from "@radix-ui/react-icons";
 import { Loader } from '../../Loader';
-import { getSystemTheme } from "@/utils";
 import { kwList } from '@/routes';
 import { toast } from 'sonner';
 import { useTheme } from '@/components/app/ThemeProvider';
@@ -21,10 +20,7 @@ const AddResource = () => {
   const [value, setValue] = useState('');
   const { config } = kwList.useParams();
   const { cluster } = kwList.useSearch();
-  const { theme } = useTheme();
-  const monacoTheme = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
-    ? 'vs-dark'
-    : 'light';
+  const { monacoTheme } = useTheme();
 
   const queryParams = new URLSearchParams({
     config,

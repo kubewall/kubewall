@@ -35,10 +35,7 @@ const YamlEditor = memo(function ({ instanceType, name, namespace, clusterName, 
     yamlData,
   } = useAppSelector((state) => state.yaml);
 
-  const { theme } = useTheme();
-  const monacoTheme = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
-    ? 'vs-dark'
-    : 'light';
+  const { monacoTheme } = useTheme();
 
   const queryParams = new URLSearchParams({
     config: configName,
