@@ -11,15 +11,16 @@ import { Check } from "lucide-react";
 import Editor from '../../Details/YamlEditor/MonacoWrapper';
 import { FilePlusIcon } from "@radix-ui/react-icons";
 import { Loader } from '../../Loader';
-import { getSystemTheme } from "@/utils";
 import { kwList } from '@/routes';
 import { toast } from 'sonner';
+import { useTheme } from '@/components/app/ThemeProvider';
 
 const AddResource = () => {
   const dispatch = useAppDispatch();
   const [value, setValue] = useState('');
   const { config } = kwList.useParams();
   const { cluster } = kwList.useSearch();
+  const { monacoTheme } = useTheme();
 
   const queryParams = new URLSearchParams({
     config,
@@ -141,7 +142,7 @@ const AddResource = () => {
                 value={value}
                 defaultLanguage='yaml'
                 onChange={onChange}
-                theme={getSystemTheme()}
+                theme={monacoTheme}
                 options={{
                   minimap: { enabled: false },
                   automaticLayout: true,

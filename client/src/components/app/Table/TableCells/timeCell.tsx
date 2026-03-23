@@ -6,26 +6,21 @@ type TimeCellProps = {
   cellValue: string;
 };
 
-
 function TimeCell({ cellValue }: TimeCellProps) {
-  const [currentTime, setCurrentTime] = useState((new Date()).getTime() - (new Date(cellValue)).getTime());
-  const [timerId, setTimerId] = useState<NodeJS.Timeout>();
+  const startMs = new Date(cellValue).getTime();
+  const [elapsed, setElapsed] = useState(() => Date.now() - startMs);
 
   useEffect(() => {
-    clearTimeout(timerId);
-    const timeCellId = setInterval(() => {
-
-      setCurrentTime((currentTime) => currentTime + 500);
+    const id = setInterval(() => {
+      setElapsed(Date.now() - startMs);
     }, 1000);
-    setTimerId(timeCellId);
-    return () => {
-      clearTimeout(timerId);
-    };
-  }, []);
+    return () => clearInterval(id);
+  }, [startMs]);
+
   return (
     <div className="px-3">
       <span title={cellValue} className="text-sm text-gray-700 dark:text-gray-100">
-        {getDisplayTime(Number(currentTime))}
+        {getDisplayTime(elapsed)}
       </span>
     </div>
   );

@@ -12,9 +12,9 @@ import { Input } from '@/components/ui/input';
 import { ReloadIcon } from '@radix-ui/react-icons';
 import { Search } from "lucide-react";
 import { fetchClusters } from '@/data/KwClusters/ClustersSlice';
-import { getSystemTheme } from '@/utils';
 import kwLogoDark from '../../../assets/kw-dark-theme.svg';
 import kwLogoLight from '../../../assets/kw-light-theme.svg';
+import { useTheme } from '@/components/app/ThemeProvider';
 import { resetDeleteConfig } from '@/data/KwClusters/DeleteConfigSlice';
 import { toast } from "sonner";
 import { useNavigate } from '@tanstack/react-router';
@@ -32,6 +32,7 @@ export function KubeConfiguration() {
   const [filteredClusters, setFilteredClusters] = useState(clusters);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const { isDark } = useTheme();
 
   useEffect(() => {
     dispatch(fetchClusters());
@@ -127,7 +128,7 @@ export function KubeConfiguration() {
         <div className="flex flex-col space-y-8 md:flex p-2">
           <div className="flex items-center justify-between">
             <div className="flex items-end">
-              <img className="w-40" src={getSystemTheme() === 'light' ? kwLogoLight : kwLogoDark} alt="kubewall" />
+              <img className="w-40" src={isDark ? kwLogoDark : kwLogoLight} alt="kubewall" />
               <span className="ml-2 text-xs">({clusters.version})</span>
             </div>
             <div className="flex space-x-2">

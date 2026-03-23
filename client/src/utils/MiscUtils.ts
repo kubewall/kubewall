@@ -1,7 +1,6 @@
 import { CustomResources, CustomResourcesNavigation, KeyValue, KeyValueNull } from "@/types";
 
 import { API_VERSION } from "@/constants";
-import { intervalToDuration } from "date-fns";
 
 const mathFloor = (val = 0) => Math.floor(val);
 
@@ -133,29 +132,39 @@ const toQueryParams = (collection: Record<string, string>) => {
   return new URLSearchParams(collection).toString();
 };
 
-const getDisplayTime = (ts: number) => {
-  const duration = intervalToDuration({ start: 0, end: ts });
-  if (ts < 60000) {
-    return `${mathFloor(duration.seconds)}s`;
-  } else if (ts < 3600000) {
-    return `${mathFloor(duration.minutes)}m:${mathFloor(duration.seconds)}s`;
-  } else if (ts < 86400000) {
-    return `${mathFloor(duration.hours)}h:${mathFloor(duration.minutes)}m`;
-  } else if (ts < 604800000) {
-    return `${mathFloor(duration.days)}d:${mathFloor(duration.hours)}h`;
-  } else if (ts < 2628000000 && duration.days) {
-    const weeks = duration.days / 7;
-    const days = duration.days % 7;
-    return `${mathFloor(weeks)}w:${mathFloor(days)}d`;
-  } else if (ts < 31540000000) {
-    let weeks = 0;
-    if (duration.days) {
-      weeks = duration.days / 7;
-    }
-    return `${mathFloor(duration.months)}M:${mathFloor(weeks)}w`;
-  } else {
-    return `${mathFloor(duration.years)}y:${mathFloor(duration.months)}M`;
+const getDisplayTime = (ts: number): string => {
+  const totalSeconds = Math.floor(ts / 1000);
+
+  if (totalSeconds < 0)  return '0s';
+  if (totalSeconds < 120) return `${totalSeconds}s`;
+
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  if (totalMinutes < 10) {
+    const s = totalSeconds % 60;
+    return s === 0 ? `${totalMinutes}m` : `${totalMinutes}m${s}s`;
   }
+  if (totalMinutes < 180) return `${totalMinutes}m`;
+
+  const totalHours = Math.floor(totalMinutes / 60);
+  if (totalHours < 8) {
+    const m = totalMinutes % 60;
+    return m === 0 ? `${totalHours}h` : `${totalHours}h${m}m`;
+  }
+  if (totalHours < 48) return `${totalHours}h`;
+
+  const days = Math.floor(totalHours / 24);
+  if (totalHours < 24 * 8) {
+    const h = totalHours % 24;
+    return h === 0 ? `${days}d` : `${days}d${h}h`;
+  }
+  if (totalHours < 24 * 365 * 2) return `${days}d`;
+
+  const years = Math.floor(days / 365);
+  if (totalHours < 24 * 365 * 8) {
+    const dy = days % 365;
+    return dy === 0 ? `${years}y` : `${years}y${dy}d`;
+  }
+  return `${years}y`;
 };
 
 export {
