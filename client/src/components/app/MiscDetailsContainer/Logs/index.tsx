@@ -1,7 +1,7 @@
 import './index.css';
 
 import { ChevronDownIcon, ChevronUpIcon, Cross2Icon, DownloadIcon, MagnifyingGlassIcon } from '@radix-ui/react-icons';
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { CotainerSelector } from "./ContainerSelector";
 import { Filter } from 'lucide-react';
@@ -40,7 +40,21 @@ const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => 
   const [logs, setLogs] = useState<PodSocketResponse[]>([]);
   const searchAddonRef = useRef<SearchAddon | null>(null);
   const socketLogsRef = useRef<SocketLogsHandle | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const logsPanelRef = useRef<HTMLDivElement>(null);
   const { isDark } = useTheme();
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== '/') return;
+      const active = document.activeElement;
+      if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
+      e.preventDefault();
+      searchInputRef.current?.focus();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const runSearch = (term: string, direction: 'next' | 'prev' = 'next') => {
     const addon = searchAddonRef.current;
@@ -56,12 +70,15 @@ const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => 
     else addon.findPrevious(query, opts);
   };
 
+  const prevSearchTermRef = useRef('');
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setSearchTerm(val);
     const addon = searchAddonRef.current;
 
     if (!val.trim()) {
+      prevSearchTermRef.current = '';
       addon?.clearDecorations();
       if (filterMode) socketLogsRef.current?.replayAll();
       return;
@@ -69,10 +86,26 @@ const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => 
 
     if (filterMode) {
       socketLogsRef.current?.replayFiltered(val);
+      prevSearchTermRef.current = val;
+      return;
+    }
+
+    const isRegex = val.startsWith('/') && val.endsWith('/') && val.length > 2;
+    const query = isRegex ? val.slice(1, -1) : val;
+    const baseOpts = { regex: isRegex, caseSensitive: false, wholeWord: false, decorations: SEARCH_DECORATIONS };
+
+    const wasEmpty = !prevSearchTermRef.current.trim();
+    prevSearchTermRef.current = val;
+
+    if (wasEmpty) {
+      const term = socketLogsRef.current?.getTerminal();
+      if (term) {
+        const viewportY = term.buffer.active.viewportY;
+        term.selectLines(viewportY, viewportY);
+      }
+      addon?.findNext(query, { ...baseOpts, incremental: true });
     } else {
-      const isRegex = val.startsWith('/') && val.endsWith('/') && val.length > 2;
-      const query = isRegex ? val.slice(1, -1) : val;
-      addon?.findNext(query, { regex: isRegex, caseSensitive: false, wholeWord: false, incremental: true, decorations: SEARCH_DECORATIONS });
+      addon?.findNext(query, { ...baseOpts, incremental: true });
     }
   };
 
@@ -82,6 +115,7 @@ const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => 
     }
     if (e.key === 'Escape') {
       setSearchTerm('');
+      prevSearchTermRef.current = '';
       searchAddonRef.current?.clearDecorations();
       if (filterMode) socketLogsRef.current?.replayAll();
     }
@@ -89,6 +123,7 @@ const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => 
 
   const handleClear = () => {
     setSearchTerm('');
+    prevSearchTermRef.current = '';
     searchAddonRef.current?.clearDecorations();
     if (filterMode) socketLogsRef.current?.replayAll();
   };
@@ -130,12 +165,13 @@ const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => 
   };
 
   return (
-    <div className="logs flex-col md:flex border rounded-lg">
+    <div ref={logsPanelRef} className="logs flex-col md:flex border rounded-lg" tabIndex={-1}>
       <div className="flex items-center h-10 border-b bg-muted/50">
         <div className="flex items-center flex-1 min-w-0 h-full border-r">
           <MagnifyingGlassIcon className="h-3.5 w-3.5 shrink-0 ml-3 text-muted-foreground" />
           <Input
-            placeholder="Find logs..."
+            ref={searchInputRef}
+            placeholder="Find logs... (/)"
             value={searchTerm}
             onChange={handleSearchChange}
             onKeyDown={handleKeyDown}

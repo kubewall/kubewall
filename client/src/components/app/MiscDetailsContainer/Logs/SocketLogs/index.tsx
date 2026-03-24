@@ -10,6 +10,7 @@ import { useEventSource } from "@/components/app/Common/Hooks/EventSource";
 export type SocketLogsHandle = {
   replayFiltered: (term: string) => void;
   replayAll: () => void;
+  getTerminal: () => Terminal | null;
 };
 
 type SocketLogsProps = {
@@ -139,7 +140,7 @@ export function SocketLogs({
     onCountChange(allLogsRef.current.length, allLogsRef.current.length);
   };
 
-  socketLogsRef.current = { replayFiltered, replayAll };
+  socketLogsRef.current = { replayFiltered, replayAll, getTerminal: () => xterm.current };
 
   useEffect(() => {
     if (filterModeRef.current && filterTermRef.current.trim()) {
