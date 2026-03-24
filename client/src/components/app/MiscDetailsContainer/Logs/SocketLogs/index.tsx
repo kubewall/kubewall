@@ -31,9 +31,10 @@ type SocketLogsProps = {
 
 const RESET = '\x1b[0m';
 const DIM = '\x1b[2m';
+const SEP = '  ● ';
 
-const COLOR_TIMESTAMP_DARK = '\x1b[38;5;242m';
-const COLOR_TIMESTAMP_LIGHT = '\x1b[38;5;245m';
+const COLOR_TIMESTAMP_DARK = ' \x1b[38;5;242m';
+const COLOR_TIMESTAMP_LIGHT = ' \x1b[38;5;245m';
 
 const ALT_ROW_BG_DARK = '\x1b[48;5;234m';
 const ALT_ROW_BG_LIGHT = '\x1b[48;2;245;245;250m';
@@ -100,7 +101,7 @@ export function SocketLogs({
       : '';
 
     const visibleText = [
-      ts, ' ● ',
+      ts, SEP,
       message.containerName ? `${message.containerName} ` : '',
       message.log,
     ].join('');
@@ -141,6 +142,27 @@ export function SocketLogs({
   };
 
   socketLogsRef.current = { replayFiltered, replayAll, getTerminal: () => xterm.current };
+
+  // Replay on terminal resize so alt-row padding recalculates with the new col width.
+  useEffect(() => {
+    let debounceTimer: ReturnType<typeof setTimeout>;
+    const handleResize = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        if (filterModeRef.current && filterTermRef.current.trim()) {
+          replayFiltered(filterTermRef.current);
+        } else {
+          replayAll();
+        }
+      });
+    };
+    const term = xterm.current;
+    const disposable = term?.onResize(handleResize);
+    return () => {
+      clearTimeout(debounceTimer);
+      disposable?.dispose();
+    };
+  }, []);
 
   useEffect(() => {
     if (filterModeRef.current && filterTermRef.current.trim()) {
