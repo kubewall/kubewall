@@ -74,19 +74,26 @@ const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef, updateLogs }:
       xterm.current.loadAddon(searchAddonRef.current);
       xterm.current.open(terminalRef.current);
 
-      // Fit the terminal to the container
-      fitAddon.current.fit();
+      // Defer initial fit to ensure the DOM has layout dimensions
+      const safeFit = () => {
+        try {
+          if (fitAddon.current && xterm.current) {
+            fitAddon.current.fit();
+          }
+        } catch (_) {
+          // ignore fit errors when terminal is not yet fully rendered
+        }
+      };
+
+      requestAnimationFrame(safeFit);
 
       // Resize the terminal on window resize
-      const handleResize = () => fitAddon.current?.fit();
+      const handleResize = () => safeFit();
       window.addEventListener('resize', handleResize);
 
       // Add ResizeObserver to handle container resize (for Resizable component)
       const resizeObserver = new ResizeObserver(() => {
-        // Use requestAnimationFrame to ensure resize happens after DOM updates
-        requestAnimationFrame(() => {
-          fitAddon.current?.fit();
-        });
+        requestAnimationFrame(safeFit);
       });
       
       if (containerRef.current) {
