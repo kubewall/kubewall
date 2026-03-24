@@ -159,9 +159,9 @@ const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef, updateLogs, o
     <div ref={containerRef} className="w-full h-full relative">
       {showScrollDown && (
         <Button
-          variant="secondary"
+          variant="outline"
           size="icon"
-          className="absolute bottom-10 right-3 z-10 rounded border shadow-sm opacity-90 hover:opacity-100"
+          className="absolute bottom-10 right-3 z-10 rounded border shadow-sm opacity-90 hover:opacity-100 bg-foreground text-background hover:bg-foreground/90"
           onClick={scrollToBottom}
         >
           <ChevronsDown className="h-4 w-4" />
