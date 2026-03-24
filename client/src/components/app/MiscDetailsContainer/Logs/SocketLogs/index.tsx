@@ -1,4 +1,4 @@
-import { MutableRefObject, useRef } from "react";
+import { MutableRefObject, useEffect, useRef } from "react";
 import { PodDetailsSpec, PodSocketResponse } from "@/types";
 import { getColorForContainerName, getEventStreamUrl } from "@/utils";
 
@@ -33,7 +33,6 @@ const DIM = '\x1b[2m';
 
 const COLOR_TIMESTAMP_DARK = '\x1b[38;5;242m';
 const COLOR_TIMESTAMP_LIGHT = '\x1b[38;5;245m';
-const COLOR_DASH = '\x1b[38;5;240m';
 
 const ALT_ROW_BG_DARK = '\x1b[48;5;234m';
 const ALT_ROW_BG_LIGHT = '\x1b[48;2;245;245;250m';
@@ -79,16 +78,19 @@ export function SocketLogs({
   const visibleCountRef = useRef(0);
   const filterModeRef = useRef(filterMode);
   const filterTermRef = useRef(filterTerm);
+  const isDarkRef = useRef(isDark);
 
   filterModeRef.current = filterMode;
   filterTermRef.current = filterTerm;
+  isDarkRef.current = isDark;
 
   const renderLine = (message: PodSocketResponse, rowIndex: number) => {
     if (!xterm.current) return;
 
+    const dark = isDarkRef.current;
     const isAlt = rowIndex % 2 !== 0;
-    const bg = isAlt ? (isDark ? ALT_ROW_BG_DARK : ALT_ROW_BG_LIGHT) : '';
-    const COLOR_TIMESTAMP = isDark ? COLOR_TIMESTAMP_DARK : COLOR_TIMESTAMP_LIGHT;
+    const bg = isAlt ? (dark ? ALT_ROW_BG_DARK : ALT_ROW_BG_LIGHT) : '';
+    const COLOR_TIMESTAMP = dark ? COLOR_TIMESTAMP_DARK : COLOR_TIMESTAMP_LIGHT;
     const containerColor = getColorForContainerName(message.containerName, podDetailsSpec) ?? '\x1b[37m';
     const ts = formatTimestamp(message.timestamp);
 
@@ -138,6 +140,14 @@ export function SocketLogs({
   };
 
   socketLogsRef.current = { replayFiltered, replayAll };
+
+  useEffect(() => {
+    if (filterModeRef.current && filterTermRef.current.trim()) {
+      replayFiltered(filterTermRef.current);
+    } else {
+      replayAll();
+    }
+  }, [isDark]);
 
   const printLogLine = (message: PodSocketResponse) => {
     allLogsRef.current.push(message);
