@@ -100,7 +100,7 @@ export function SocketLogs({
       : '';
 
     const visibleText = [
-      ts, ' ● – ',
+      ts, ' ● ',
       message.containerName ? `${message.containerName} ` : '',
       message.log,
     ].join('');

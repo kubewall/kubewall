@@ -98,6 +98,10 @@ export function DataTable<TData, TValue>({
   const [rowSelection, setRowSelection] = useState({});
   const [globalFilter, setGlobalFilter] = useState(searchString);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(getDefaultValue());
+
+  useEffect(() => {
+    setGlobalFilter(searchString);
+  }, [searchString]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const table = useReactTable({
     data,
