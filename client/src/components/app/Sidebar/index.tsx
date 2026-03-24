@@ -21,7 +21,6 @@ import kwLogoDarkIcon from '../../../assets/kubewall-logo-light.svg';
 import kwLogoLight from '../../../assets/kw-light-theme.svg';
 import kwLogoLightIcon from '../../../assets/kubewall-logo-dark.svg';
 import { resetCustomResourcesList } from "@/data/CustomResources/CustomResourcesListSlice";
-import { resetListTableFilter } from "@/data/Misc/ListTableFilterSlice";
 import { updateCustomResources } from "@/data/CustomResources/CustomResourcesSlice";
 import { useEventSource } from "../Common/Hooks/EventSource";
 import { useTheme } from "@/components/app/ThemeProvider";
@@ -95,14 +94,12 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
   };
 
   const onNavClick = (routeValue: string) => {
-    dispatch(resetListTableFilter());
     setActiveTab(routeValue);
     navigate({ to: `/${configName}/list?cluster=${encodeURIComponent(clusterName)}&resourcekind=${routeValue}` });
     routerForce.invalidate();
   };
 
   const onCustomResourcesNavClick = (route: string, name: string) => {
-    dispatch(resetListTableFilter());
     const routeKeys = new URLSearchParams(route);
     setActiveTab((routeKeys.get('kind') || '').toLowerCase());
     if (activeTab.toLowerCase() !== name.toLowerCase()) {
