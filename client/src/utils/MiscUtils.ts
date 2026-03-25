@@ -29,6 +29,11 @@ const getEventStreamUrl = (stream = '', queryParmObject: Record<string, string>,
   return API_VERSION + '/' + stream + extraRoutes + queryParam + extraQueryParams;
 };
 
+const getWebSocketUrl = (stream = '', queryParmObject: Record<string, string>, extraRoutes = '') => {
+  const queryParam = '?' + new URLSearchParams(queryParmObject).toString();
+  return '/' + API_VERSION + '/' + stream + extraRoutes + queryParam;
+};
+
 const formatCustomResources = (customResources: CustomResources[]) => {
   const customResourcesNavigation = {} as CustomResourcesNavigation;
 
@@ -174,6 +179,7 @@ export {
   defaultSkeletonRow,
   formatCustomResources,
   getEventStreamUrl,
+  getWebSocketUrl,
   mathFloor,
   getAnnotationCardDetails,
   getConditionsCardDetails,
