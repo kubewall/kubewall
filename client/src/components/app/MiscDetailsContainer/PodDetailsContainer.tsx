@@ -3,14 +3,17 @@ import { createContainerData, createEventStreamQueryObject, defaultOrValue, getE
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { CopyToClipboard } from "@/components/app/Common/CopyToClipboard";
 import { CubeIcon } from "@radix-ui/react-icons";
+import { TerminalIcon } from "lucide-react";
 import { PORT_FORWARDING_ENDPOINT } from "@/constants";
 import { PortForwardingListResponse } from "@/types";
-import { memo } from "react";
+import { memo, useState } from "react";
 import { updatePortForwardingList } from "@/data/Workloads/Pods/PortForwardingListSlice";
 import { useEventSource } from "../Common/Hooks/EventSource";
 import { useRouterState } from "@tanstack/react-router";
+import ExecDialog from "./ExecDialog";
 
 const PodDetailsContainer = memo(function () {
   const router = useRouterState();
@@ -24,6 +27,16 @@ const PodDetailsContainer = memo(function () {
   } = useAppSelector((state) => state.podDetails);
   const containerCards = createContainerData(podDetails.spec, podDetails.status, "containers");
   const initContainerCards = createContainerData(podDetails.spec, podDetails.status, "initContainers");
+
+  // Exec dialog state
+  const [execDialog, setExecDialog] = useState<{
+    open: boolean;
+    container: string;
+  }>({
+    open: false,
+    container: '',
+  });
+
   const sendMessage = (message: PortForwardingListResponse[]) => {
     dispatch(updatePortForwardingList(message));
   };
@@ -60,13 +73,24 @@ const PodDetailsContainer = memo(function () {
                                 <CubeIcon className="mr-2 h-3.5 w-3.5" />
                                 <div className="text-sm font-normal basis-2/3 break-all">{name}</div>
                               </div>
-                              <div>
+                              <div className="flex items-center gap-2">
                                 {
                                   started ? <Badge variant="default">Started</Badge> : <Badge variant="destructive">Not Started</Badge>
                                 }
                                 {
                                   ready ? <Badge className="ml-1" variant="secondary">Ready</Badge> : <Badge className="ml-1" variant="destructive">Not Ready</Badge>
                                 }
+                                {started && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 w-7 p-0"
+                                    onClick={() => setExecDialog({ open: true, container: name })}
+                                    title="Exec into container"
+                                  >
+                                    <TerminalIcon className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
                               </div>
                             </CardTitle>
                           </CardHeader>
@@ -200,13 +224,24 @@ const PodDetailsContainer = memo(function () {
                               <CubeIcon className="mr-2 h-3.5 w-3.5" />
                               <div className="text-sm font-normal basis-2/3 break-all">{name}</div>
                             </div>
-                            <div>
+                            <div className="flex items-center gap-2">
                               {
                                 started ? <Badge variant="default">Started</Badge> : <Badge variant="destructive">Not Started</Badge>
                               }
                               {
                                 ready ? <Badge className="ml-1" variant="secondary">Ready</Badge> : <Badge className="ml-1" variant="destructive">Not Ready</Badge>
                               }
+                              {started && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0"
+                                  onClick={() => setExecDialog({ open: true, container: name })}
+                                  title="Exec into container"
+                                >
+                                  <TerminalIcon className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
                             </div>
                           </CardTitle>
                         </CardHeader>
@@ -320,6 +355,18 @@ const PodDetailsContainer = memo(function () {
           </CardContent>
         </Card>
       </div>
+
+      {execDialog.open && (
+        <ExecDialog
+          open={execDialog.open}
+          onClose={() => setExecDialog({ open: false, container: '' })}
+          namespace={podDetails.metadata?.namespace || ''}
+          pod={podDetails.metadata?.name || ''}
+          container={execDialog.container}
+          configName={configName}
+          clusterName={clusterName}
+        />
+      )}
     </>
   );
 });
