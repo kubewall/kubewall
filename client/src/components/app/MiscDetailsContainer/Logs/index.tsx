@@ -23,12 +23,12 @@ type PodLogsProps = {
 }
 
 const SEARCH_DECORATIONS = {
-  matchBackground: '#b45309',
-  matchBorder: '#d97706',
-  matchOverviewRuler: '#d97706',
-  activeMatchBackground: '#0369a1',
-  activeMatchBorder: '#0ea5e9',
-  activeMatchColorOverviewRuler: '#0ea5e9',
+  matchBackground: '#FFFF00',
+  matchBorder: '#FFFF00',
+  matchOverviewRuler: '#FFFF00',
+  activeMatchBackground: '#FF9632',
+  activeMatchBorder: '#FF9632',
+  activeMatchColorOverviewRuler: '#FF9632',
 };
 
 const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => {
