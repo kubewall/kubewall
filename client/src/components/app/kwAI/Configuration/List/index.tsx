@@ -251,6 +251,15 @@ const ListConfigurations = ({ setSelectedUUId, setKwAIStoredModelsCollection, is
 
           </TableBody>
         </Table>
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-2 text-xs mx-auto flex"
+          onClick={() => setShowAddConfiguration(true)}
+        >
+          <CirclePlus className="h-3.5 w-3.5 mr-1.5" />
+          Add Provider
+        </Button>
       </div>
   );
 };

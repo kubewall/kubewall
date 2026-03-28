@@ -6,7 +6,8 @@ import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-// Providers that don't require an API key to fetch models
+// Providers that always route through the backend proxy
+const PROXY_ALWAYS_PROVIDERS = ['lmstudio', 'ollama'];
 const API_KEY_OPTIONAL_PROVIDERS = ['lmstudio', 'ollama'];
 import { ComboboxDemo } from "@/components/app/Common/Combobox";
 import { Input } from "@/components/ui/input";
@@ -40,11 +41,15 @@ const AddConfiguration = ({ uuid, setShowAddConfiguration, config, cluster, setK
       apiKey: '',
       apiVersion: '',
       alias: '', // Default alias is an empty string
+      useProxy: false,
     };
     if (uuid) {
       const storedKwAIModel = localStorage.getItem('kwAIStoredModels');
       if (storedKwAIModel) {
-        defaultState = (JSON.parse(storedKwAIModel) as kwAIStoredModels).providerCollection[uuid] || defaultState;
+        const stored = (JSON.parse(storedKwAIModel) as kwAIStoredModels).providerCollection[uuid];
+        if (stored) {
+          defaultState = { ...defaultState, ...stored, useProxy: stored.useProxy ?? false };
+        }
       }
     }
     return defaultState;
@@ -105,6 +110,7 @@ const AddConfiguration = ({ uuid, setShowAddConfiguration, config, cluster, setK
       if (key === 'apiKey' && API_KEY_OPTIONAL_PROVIDERS.includes(formData.provider)) return false;
       if (key === 'apiVersion' && formData.provider === 'azure') return formData.apiVersion === '';
       if (key === 'apiVersion') return false;
+      if (key === 'useProxy') return false;
       return formData[key] === '';
     });
   }, [formData]);
@@ -297,11 +303,22 @@ const AddConfiguration = ({ uuid, setShowAddConfiguration, config, cluster, setK
           </div>
         </fieldset>
 
-        {/* Default Provider */}
-        <div className="flex items-center justify-between rounded-md border border-border/60 p-3">
-          <Label htmlFor="default-provider-switch" className="text-xs cursor-pointer">Set as default provider</Label>
-          <Switch id="default-provider-switch" checked={currentProviderIsDefault} onCheckedChange={setCurrentProviderIsDefault} />
-        </div>
+        {/* Preferences */}
+        <fieldset className="space-y-0 rounded-md border border-border/60 divide-y divide-border/60">
+          {!PROXY_ALWAYS_PROVIDERS.includes(formData.provider) && (
+            <div className="flex items-center justify-between p-3">
+              <div className="space-y-0.5 pr-3">
+                <Label htmlFor="use-proxy-switch" className="text-xs cursor-pointer">Use proxy for chat</Label>
+                <p className="text-[11px] text-muted-foreground">Enable only if you're facing CORS issues with direct API calls.</p>
+              </div>
+              <Switch id="use-proxy-switch" checked={formData.useProxy || false} onCheckedChange={(checked) => handleChange('useProxy', checked)} />
+            </div>
+          )}
+          <div className="flex items-center justify-between p-3">
+            <Label htmlFor="default-provider-switch" className="text-xs cursor-pointer">Set as default provider</Label>
+            <Switch id="default-provider-switch" checked={currentProviderIsDefault} onCheckedChange={setCurrentProviderIsDefault} />
+          </div>
+        </fieldset>
       </div>
       <div className="flex p-4 border-t justify-center gap-2">
         <Button

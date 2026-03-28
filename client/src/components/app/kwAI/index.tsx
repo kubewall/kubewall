@@ -88,8 +88,8 @@ export function AiChat({ isFullscreen = false, onToggleFullscreen, customHeight,
             <TabsList className="h-8">
               {
                 navigationItems.map((item) => (
-                  <TooltipProvider delayDuration={0}>
-                    <Tooltip key={item.id}>
+                  <TooltipProvider key={item.id} delayDuration={0}>
+                    <Tooltip>
                       <TooltipTrigger asChild>
                         <div>
                           <TabsTrigger value={item.id} >

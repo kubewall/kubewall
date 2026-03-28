@@ -65,149 +65,101 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
   const [open, setOpen] = useState(false);
   const kwAiChatWindow = useSidebarSize("kwai-chat");
   const isThinkingRef = useRef<boolean>(false);
+  const proxyFetch: typeof globalThis.fetch = (url, options) => {
+    const encodedUrl = encodeURIComponent(url.toString());
+    const newUrl = `${API_VERSION}${MCP_SERVER_ENDPOINT}/${encodedUrl}?${clusterConfigKey}`;
+    if (options) {
+      options.headers = {
+        ...options.headers,
+        'HTTP-Referer': 'https://kubewall.com',
+        'X-Title': 'Kubewall'
+      };
+    }
+    return fetch(newUrl, options);
+  };
+
   const getCurrentProvider = () => {
     const providerData = providerList[selectedProvider];
+    const commonHeaders = {
+      'HTTP-Referer': 'https://kubewall.com',
+      'X-Title': 'Kubewall'
+    };
+    const fetchOption = providerData.useProxy ? { fetch: proxyFetch } : {};
     switch (providerData.provider) {
       case "xai":
         return createXai({
-          apiKey: providerData.apiKey, baseURL: providerData.url, headers: {
-            'HTTP-Referer': 'https://kubewall.com',
-            'X-Title': 'Kubewall'
-          }
+          apiKey: providerData.apiKey, baseURL: providerData.url, headers: commonHeaders, ...fetchOption
         });
       case "openai":
         return createOpenAI({
-          apiKey: providerData.apiKey, baseURL: providerData.url, headers: {
-            'HTTP-Referer': 'https://kubewall.com',
-            'X-Title': 'Kubewall'
-          }
+          apiKey: providerData.apiKey, baseURL: providerData.url, headers: commonHeaders, ...fetchOption
         });
       case "azure":
         return createAzure({
-          apiKey: providerData.apiKey, baseURL: providerData.url, apiVersion: 'v1', headers: {
-            'HTTP-Referer': 'https://kubewall.com',
-            'X-Title': 'Kubewall'
-          }
+          apiKey: providerData.apiKey, baseURL: providerData.url, apiVersion: 'v1', headers: commonHeaders, ...fetchOption
         });
       case "anthropic":
         return createAnthropic({
-          apiKey: providerData.apiKey, baseURL: providerData.url, headers: {
-            'HTTP-Referer': 'https://kubewall.com',
-            'X-Title': 'Kubewall'
-          }
+          apiKey: providerData.apiKey, baseURL: providerData.url, headers: commonHeaders, ...fetchOption
         });
       // case "amazon-bedrock":
       //   return createAmazonBedrock({
-      //     apiKey: providerData.apiKey, baseURL: providerData.url, headers: {
-      //       'HTTP-Referer': 'https://kubewall.com',
-      //       'X-Title': 'Kubewall'
-      //     }
+      //     apiKey: providerData.apiKey, baseURL: providerData.url, headers: commonHeaders, ...fetchOption
       //   });
       case "groq":
         return createGroq({
-          apiKey: providerData.apiKey, baseURL: providerData.url, headers: {
-            'HTTP-Referer': 'https://kubewall.com',
-            'X-Title': 'Kubewall'
-          }
+          apiKey: providerData.apiKey, baseURL: providerData.url, headers: commonHeaders, ...fetchOption
         });
       case "deepinfra":
         return createDeepInfra({
-          apiKey: providerData.apiKey, baseURL: providerData.url, headers: {
-            'HTTP-Referer': 'https://kubewall.com',
-            'X-Title': 'Kubewall'
-          }
+          apiKey: providerData.apiKey, baseURL: providerData.url, headers: commonHeaders, ...fetchOption
         });
       // case "google-vertex":
       //   return createVertex({
-      //     apiKey: providerData.apiKey, baseURL: providerData.url, headers: {
-      //       'HTTP-Referer': 'https://kubewall.com',
-      //       'X-Title': 'Kubewall'
-      //     }
+      //     apiKey: providerData.apiKey, baseURL: providerData.url, headers: commonHeaders, ...fetchOption
       //   });
       case "mistral":
         return createMistral({
-          apiKey: providerData.apiKey, baseURL: providerData.url, headers: {
-            'HTTP-Referer': 'https://kubewall.com',
-            'X-Title': 'Kubewall'
-          }
+          apiKey: providerData.apiKey, baseURL: providerData.url, headers: commonHeaders, ...fetchOption
         });
       case "togetherai":
         return createTogetherAI({
-          apiKey: providerData.apiKey, baseURL: providerData.url, headers: {
-            'HTTP-Referer': 'https://kubewall.com',
-            'X-Title': 'Kubewall'
-          }
+          apiKey: providerData.apiKey, baseURL: providerData.url, headers: commonHeaders, ...fetchOption
         });
       case "cohere":
         return createCohere({
-          apiKey: providerData.apiKey, baseURL: providerData.url, headers: {
-            'HTTP-Referer': 'https://kubewall.com',
-            'X-Title': 'Kubewall'
-          }
+          apiKey: providerData.apiKey, baseURL: providerData.url, headers: commonHeaders, ...fetchOption
         });
       case "fireworks":
         return createFireworks({
-          apiKey: providerData.apiKey, baseURL: providerData.url, headers: {
-            'HTTP-Referer': 'https://kubewall.com',
-            'X-Title': 'Kubewall'
-          }
+          apiKey: providerData.apiKey, baseURL: providerData.url, headers: commonHeaders, ...fetchOption
         });
       case "deepseek":
         return createDeepSeek({
-          apiKey: providerData.apiKey, baseURL: providerData.url, headers: {
-            'HTTP-Referer': 'https://kubewall.com',
-            'X-Title': 'Kubewall'
-          }
+          apiKey: providerData.apiKey, baseURL: providerData.url, headers: commonHeaders, ...fetchOption
         });
       case "cerebras":
         return createCerebras({
-          apiKey: providerData.apiKey, baseURL: providerData.url, headers: {
-            'HTTP-Referer': 'https://kubewall.com',
-            'X-Title': 'Kubewall'
-          }
+          apiKey: providerData.apiKey, baseURL: providerData.url, headers: commonHeaders, ...fetchOption
         });
       case "ollama":
         return createOpenAICompatible({
           name: 'ollama',
-          baseURL: `${providerData.url}/`, fetch: (url, options) => {
-            const encodedUrl = encodeURIComponent(url.toString());
-            const newUrl = `${API_VERSION}${MCP_SERVER_ENDPOINT}/${encodedUrl}?${clusterConfigKey}`;
-            if (options) {
-              options.headers = {
-                ...options.headers,
-                'HTTP-Referer': 'https://kubewall.com',
-                'X-Title': 'Kubewall'
-              };
-            }
-            return fetch(newUrl, options);
-          },
+          baseURL: `${providerData.url}/`,
+          fetch: proxyFetch,
           apiKey: providerData.apiKey,
           includeUsage: true
         });
       case "lmstudio":
         return createOpenAICompatible({
           name: 'lmstudio',
-          baseURL: `${providerData.url}/`, fetch: (url, options) => {
-            // URL-encode to prevent reverse proxies (like Traefik) from collapsing double slashes
-            const encodedUrl = encodeURIComponent(url.toString());
-            const newUrl = `${API_VERSION}${MCP_SERVER_ENDPOINT}/${encodedUrl}?${clusterConfigKey}`;
-            if (options) {
-              options.headers = {
-                ...options.headers,
-                'HTTP-Referer': 'https://kubewall.com',
-                'X-Title': 'Kubewall'
-              };
-            }
-            return fetch(newUrl, options);
-          },
+          baseURL: `${providerData.url}/`,
+          fetch: proxyFetch,
           includeUsage: true
         });
       case "openrouter":
         return createOpenRouter({
-          apiKey: providerData.apiKey, baseURL: providerData.url, headers: {
-            'HTTP-Referer': 'https://kubewall.com',
-            'X-Title': 'Kubewall'
-          }
+          apiKey: providerData.apiKey, baseURL: providerData.url, headers: commonHeaders, ...fetchOption
         });
       default:
         return '';

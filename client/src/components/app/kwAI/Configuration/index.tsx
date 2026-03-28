@@ -36,7 +36,7 @@ const Configuration = ({ cluster, config, setKwAIStoredModelsCollection, isDetai
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="px-1.5">
-                  {showAddConfiguration ? 'List Configurations' : 'Add Configuration'}
+                  {showAddConfiguration ? 'List Configurations' : 'Add Provider'}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
