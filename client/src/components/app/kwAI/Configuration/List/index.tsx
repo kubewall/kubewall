@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 import { Button } from "@/components/ui/button";
+import { PROVIDER_ICONS } from "@/components/app/kwAI/Configuration/icons";
 import { TooltipWrapper } from "@/components/app/Common/TooltipWrapper";
 import { cn } from "@/lib/utils";
 import { kwAIStoredModels } from "@/types/kwAI/addConfiguration";
@@ -182,7 +183,10 @@ const ListConfigurations = ({ setSelectedUUId, setKwAIStoredModelsCollection, is
                               <TooltipWrapper tooltipString={currentRow.alias} className="truncate" side="bottom" />
                             </TableCell>
                             <TableCell className="truncate max-w-[8rem]">
-                              <TooltipWrapper tooltipString={currentRow.provider} className="truncate" side="bottom" />
+                              <span className="flex items-center gap-1.5">
+                                {PROVIDER_ICONS[currentRow.provider] && (() => { const Icon = PROVIDER_ICONS[currentRow.provider]; return <Icon className="h-3.5 w-3.5 shrink-0" />; })()}
+                                <TooltipWrapper tooltipString={currentRow.provider} className="truncate" side="bottom" />
+                              </span>
                             </TableCell>
                             <TableCell className="truncate max-w-[20rem]">
                               <TooltipWrapper tooltipString={currentRow.model} className="truncate" side="bottom" />

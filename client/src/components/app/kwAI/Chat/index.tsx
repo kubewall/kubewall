@@ -30,6 +30,7 @@ import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { createTogetherAI } from '@ai-sdk/togetherai';
 import { createXai } from '@ai-sdk/xai';
 import { getFullTools } from '@/data/KwAi/KwAiToolsSlice';
+import { PROVIDER_ICONS } from '@/components/app/kwAI/Configuration/icons';
 import rehypeFormat from 'rehype-format';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeRaw from 'rehype-raw';
@@ -704,7 +705,10 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
                     aria-expanded={open}
                     className="w-[15rem] justify-between shadow-none truncate py-1 px-2"
                   >
-                    <span className="truncate text-xs">{providerList[selectedProvider]?.alias || 'Select Provider...'}</span>
+                    <span className="truncate text-xs flex items-center gap-1.5">
+                      {providerList[selectedProvider]?.provider && PROVIDER_ICONS[providerList[selectedProvider].provider] && (() => { const Icon = PROVIDER_ICONS[providerList[selectedProvider].provider]; return <Icon className="h-3.5 w-3.5 shrink-0" />; })()}
+                      {providerList[selectedProvider]?.alias || 'Select Provider...'}
+                    </span>
                     <ChevronsUpDown className="opacity-50 h-3 w-3" />
                   </Button>
                 </PopoverTrigger>
@@ -723,9 +727,12 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
                               setOpen(false);
                             }}
                           >
-                            <div>
-                              <span>{providerList[uuid].alias}</span>
-                              <span className="block text-xs text-muted-foreground">{providerList[uuid].model}</span>
+                            <div className="flex items-center gap-2">
+                              {PROVIDER_ICONS[providerList[uuid].provider] && (() => { const Icon = PROVIDER_ICONS[providerList[uuid].provider]; return <Icon className="h-3.5 w-3.5 shrink-0" />; })()}
+                              <div>
+                                <span>{providerList[uuid].alias}</span>
+                                <span className="block text-xs text-muted-foreground">{providerList[uuid].model}</span>
+                              </div>
                             </div>
                             <CheckIcon className={cn("ml-auto h-4 w-4", uuid === selectedProvider ? "opacity-100" : "opacity-0")} />
                           </CommandItem>
