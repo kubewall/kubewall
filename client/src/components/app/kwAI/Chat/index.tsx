@@ -1,8 +1,8 @@
 import './index.css';
 
 import { API_VERSION, MCP_SERVER_ENDPOINT } from '@/constants';
-import { ArrowUp, ChartNoAxesCombined, CheckIcon, ChevronRight, ChevronsUpDown, Download, Lightbulb, OctagonX, ShieldAlert, SquarePen, Upload } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowUp, CheckIcon, ChevronRight, ChevronsUpDown, Copy, Lightbulb, OctagonX, ShieldAlert, Sparkles, SquarePen } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChatMessage, kwAIStoredChatHistory, kwAIStoredModel, kwAIStoredModels } from "@/types/kwAI/addConfiguration";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -30,7 +30,6 @@ import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { createTogetherAI } from '@ai-sdk/togetherai';
 import { createXai } from '@ai-sdk/xai';
 import { getFullTools } from '@/data/KwAi/KwAiToolsSlice';
-// import { getFullTools } from '@/data/KwAi/KwAiToolsSlice';
 import rehypeFormat from 'rehype-format';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeRaw from 'rehype-raw';
@@ -431,7 +430,7 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
         ...prev.map((p) => (
           p.id === id.toString() ? {
             ...p,
-            content: p.content || "Received Epmty response from LLM",
+            content: p.content || "Received empty response from LLM",
             completionTokens: outputTokens,
             promptTokens: inputTokens,
             totalTokens: totalTokens,
@@ -581,7 +580,6 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
                 <Icon className={cn("h-4 w-4 text-primary", isReasoning ? "animate-flashorange" : "text-orange-500")} />
                 <div className="flex-1">
                   <CardTitle className="text-default font-medium tracking-tight">{isReasoning ? "Thinking..." : "Reasoning..."}</CardTitle>
-                  <CardDescription className="text-xs"></CardDescription>
                 </div>
                 <ChevronRight className={`h-4 w-4 transition-transform duration-200 ${copen ? 'rotate-90' : ''}`} />
               </div>
@@ -597,138 +595,137 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
     );
   };
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+  };
+
+  const timeAgo = (date: Date | string) => {
+    const now = new Date();
+    const then = new Date(date);
+    const diffMs = now.getTime() - then.getTime();
+    const diffSec = Math.floor(diffMs / 1000);
+    if (diffSec < 60) return 'just now';
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return `${diffHr}h ago`;
+    const diffDay = Math.floor(diffHr / 24);
+    return `${diffDay}d ago`;
+  };
+
   return (
     <div className="flex flex-col h-full">
-      <div ref={scrollAreaRef} className="flex-1 p-2 space-y-4 overflow-y-auto">
-        <div>
-          {messages.map((message) => (
-            !(message.role === "system") &&
-            <div key={message.id} className={`flex gap-3 ${message.role === "user" ? "justify-end pt-4 pb-1" : "justify-start"}`}>
-              <Card
-                className={`max-w-[98%] p-3 pb-0 ${message.role === "user" ? "bg-primary text-primary-foreground" : message.error ? "w-[98%] border-red-100 border-none shadow-none" : "w-[98%] border-none shadow-none"}`}
-              >
-                {
-                  messageLoading && message.content === "" && !message.reasoning ?
-                    <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                      <div
-                        className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                        style={{ animationDelay: "0.1s" }}
-                      ></div>
-                      <div
-                        className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                        style={{ animationDelay: "0.2s" }}
-                      ></div>
-                    </div>
-                    :
-                    <>
-                      <div className={`text-sm overflow-x-auto  ${message.error ? "" : ""}`}>
-                        {
-                          message.reasoning &&
-                          <IconCollapsibleCard
-                            icon={Lightbulb}
-                            title="General Settings"
-                            description="Configure your app preferences"
-                            isReasoning={message.isReasoning}
-                          >
+      <div ref={scrollAreaRef} className="flex-1 overflow-y-auto">
+        {messages.filter(m => m.role !== "system" && !m.isNotVisible).length === 0 && !isLoading ? (
+          <div className="flex flex-col items-center justify-center h-full text-center px-6 gap-3">
+            <div className="rounded-full bg-muted p-3">
+              <Sparkles className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="text-sm font-medium">How can I help?</p>
+              <p className="text-xs text-muted-foreground mt-1">Ask anything about your Kubernetes cluster.</p>
+            </div>
+          </div>
+        ) : (
+          <div className="px-3 py-4 space-y-1">
+            {messages.map((message) => {
+              if (message.role === "system" || message.isNotVisible) return null;
+
+              const isUser = message.role === "user";
+              const isAssistant = message.role === "assistant";
+              const isWaiting = messageLoading && message.content === "" && !message.reasoning;
+
+              return (
+                <div key={message.id} className={cn("flex gap-2.5 py-2", isUser ? "justify-end" : "justify-start")}>
+
+                  <div className={cn("flex flex-col gap-1", isUser ? "items-end max-w-[85%]" : "items-start flex-1 min-w-0")}>
+                    {/* Message bubble */}
+                    <div className={cn(
+                      "text-sm",
+                      isUser
+                        ? "bg-muted rounded-lg rounded-br-sm px-3.5 py-2.5"
+                        : message.error
+                          ? "w-full"
+                          : "w-full"
+                    )}>
+                      {isWaiting ? (
+                        <div className="flex items-center gap-1 py-1">
+                          <span className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce" />
+                          <span className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "0.15s" }} />
+                          <span className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "0.3s" }} />
+                        </div>
+                      ) : (
+                        <>
+                          {message.reasoning && (
+                            <IconCollapsibleCard
+                              icon={Lightbulb}
+                              title="General Settings"
+                              description="Configure your app preferences"
+                              isReasoning={message.isReasoning}
+                            >
+                              <Markdown
+                                remarkPlugins={[remarkGfm, rehypeFormat, remarkRehype, rehypeSanitize, remarkFrontmatter, remarkMath, remarkParse, remarkRehype, rehypeRaw, rehypeStringify, rehypeHighlight]}
+                                components={getOverriddenComponents()}
+                              >
+                                {message.reasoning}
+                              </Markdown>
+                            </IconCollapsibleCard>
+                          )}
+                          {message.error && (
+                            <div className="flex items-center gap-2 text-destructive text-xs mb-1.5">
+                              <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
+                              <span>An error occurred</span>
+                            </div>
+                          )}
+                          <div className="overflow-x-auto">
                             <Markdown
                               remarkPlugins={[remarkGfm, rehypeFormat, remarkRehype, rehypeSanitize, remarkFrontmatter, remarkMath, remarkParse, remarkRehype, rehypeRaw, rehypeStringify, rehypeHighlight]}
                               components={getOverriddenComponents()}
                             >
-                              {message.reasoning}
+                              {message.content}
                             </Markdown>
-                          </IconCollapsibleCard>
-                          // <Accordion
-                          //   type="single"
-                          //   collapsible
-                          //   className="w-full"
-                          //   defaultValue="item-1"
-                          // >
-                          //   <AccordionItem value="item-1">
-                          //     <AccordionTrigger className="hover:no-underline">
-                          //       <div className="flex items-center gap-1">
-                          //         <Lightbulb className="h-5 w-5" />
-                          //         Thinking...
-                          //       </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
 
-                          //     </AccordionTrigger>
-                          //     <AccordionContent className="rounded-sm p-4 flex flex-col gap-4 text-balance bg-muted">
-                          //       <Markdown
-                          //         remarkPlugins={[remarkGfm, rehypeFormat, remarkRehype, rehypeSanitize, remarkFrontmatter, remarkMath, remarkParse, remarkRehype, rehypeRaw, rehypeStringify, rehypeHighlight]}
-                          //         components={getOverriddenComponents()}
-                          //       >
-                          //         {message.reasoning}
-                          //       </Markdown>
-                          //     </AccordionContent>
-                          //   </AccordionItem>
-                          // </Accordion>
-                        }
-                        {
-                          message.error && <div className="flex items-center gap-2 text-red-500"><ShieldAlert className="h-4 w-4" /> An error occured, please check the below details.</div>
-                        }
-
-                        <Markdown
-                          remarkPlugins={[remarkGfm, rehypeFormat, remarkRehype, rehypeSanitize, remarkFrontmatter, remarkMath, remarkParse, remarkRehype, rehypeRaw, rehypeStringify, rehypeHighlight]}
-                          components={getOverriddenComponents()}
-                        >
-                          {message.content}
-                        </Markdown>
+                    {/* Message footer: time + tokens + copy */}
+                    {!isWaiting && (
+                      <div className={cn("flex items-center gap-2 text-[10px] text-muted-foreground/60 px-1 flex-wrap", isUser ? "flex-row-reverse" : "flex-row")}>
+                        <TooltipWrapper
+                          side="top"
+                          tooltipContent={new Date(message.timestamp).toLocaleString()}
+                          tooltipString={timeAgo(message.timestamp)}
+                        />
+                        {isAssistant && message.promptTokens != null && (
+                          <TooltipWrapper side="top" tooltipContent="Prompt Tokens" tooltipString={`↑${message.promptTokens}`} />
+                        )}
+                        {isAssistant && message.completionTokens != null && (
+                          <TooltipWrapper side="top" tooltipContent="Completion Tokens" tooltipString={`↓${message.completionTokens}`} />
+                        )}
+                        {isAssistant && message.totalTokens != null && (
+                          <TooltipWrapper side="top" tooltipContent="Total Tokens" tooltipString={`Σ${message.totalTokens}`} />
+                        )}
+                        {isAssistant && message.content && !message.error && (
+                          <button
+                            onClick={() => copyToClipboard(message.content)}
+                            className="hover:text-foreground transition-opacity p-0.5 rounded"
+                            title="Copy"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </button>
+                        )}
                       </div>
-                    </>
-                }
-
-                <p className="text-xs opacity-70 pt-1 pb-1 flex justify-end">
-                  {
-                    <TooltipWrapper
-                      side="top"
-                      tooltipString={new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      tooltipContent={new Date(message.timestamp).toISOString()} />
-                  }
-                  {
-                    message.role === "assistant" &&
-                    <>
-                      {
-                        message.promptTokens &&
-                        <div className='ml-2 flex items-center justify-between'>
-                          <Upload className="h-3 w-3" />
-                          <TooltipWrapper
-                            side="top"
-                            tooltipContent={`Prompt Token: ${message.promptTokens}`}
-                            tooltipString={message.promptTokens} />
-                        </div>
-                      }
-                      {
-                        message.completionTokens &&
-                        <div className='ml-2 flex items-center justify-between'>
-                          <Download className="h-3 w-3" />
-                          <TooltipWrapper
-                            side="top"
-                            tooltipContent={`Completion Token: ${message.completionTokens}`}
-                            tooltipString={message.completionTokens} />
-                        </div>
-
-                      }
-                      {
-                        message.totalTokens &&
-                        <div className='ml-2 flex items-center justify-between'>
-                          <ChartNoAxesCombined className="h-3 w-3" />
-                          <TooltipWrapper
-                            side="top"
-                            tooltipContent={`Total Token: ${message.totalTokens}`}
-                            tooltipString={message.totalTokens} />
-                        </div>
-
-                      }
-
-                    </>
-                  }
-                </p>
-              </Card>
-            </div>
-          ))}
-        </div>
-
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
+
+      {/* Input area */}
       <div className="p-2">
         <div className="relative border border-border rounded-lg bg-background/50 backdrop-blur-sm">
           <Textarea
@@ -741,9 +738,8 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
                 e.preventDefault();
                 generateStreamText();
               }
-            }
-            }
-            className=" shadow-none min-h-[60px] max-h-[120px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-4 py-3 text-sm leading-relaxed placeholder:text-muted-foreground/60"
+            }}
+            className="shadow-none min-h-[60px] max-h-[120px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-4 py-3 text-sm leading-relaxed placeholder:text-muted-foreground/60"
             style={{ height: "auto" }}
           />
           <div className="flex items-center justify-between px-4 pb-3">
@@ -756,14 +752,13 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
                     aria-expanded={open}
                     className="w-[15rem] justify-between shadow-none truncate py-1 px-2"
                   >
-                    <span className='truncate text-xs'>{providerList[selectedProvider]?.alias || 'Select Provider...'}</span>
-
+                    <span className="truncate text-xs">{providerList[selectedProvider]?.alias || 'Select Provider...'}</span>
                     <ChevronsUpDown className="opacity-50 h-3 w-3" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className={`p-0 min-w-[--radix-popover-trigger-width] w-auto`} style={{ 'maxWidth': kwAiChatWindow.width - 50 }} align="start">
+                <PopoverContent className="p-0 min-w-[--radix-popover-trigger-width] w-auto" style={{ maxWidth: kwAiChatWindow.width - 50 }} align="start">
                   <Command>
-                    <CommandInput placeholder='Search Provider' className="h-9" id="comboboxSearch" />
+                    <CommandInput placeholder="Search Provider" className="h-9" id="comboboxSearch" />
                     <CommandList>
                       <CommandEmpty>No match found.</CommandEmpty>
                       <CommandGroup>
@@ -780,12 +775,7 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
                               <span>{providerList[uuid].alias}</span>
                               <span className="block text-xs text-muted-foreground">{providerList[uuid].model}</span>
                             </div>
-                            <CheckIcon
-                              className={cn(
-                                "ml-auto h-4 w-4",
-                                uuid === selectedProvider ? "opacity-100" : "opacity-0"
-                              )}
-                            />
+                            <CheckIcon className={cn("ml-auto h-4 w-4", uuid === selectedProvider ? "opacity-100" : "opacity-0")} />
                           </CommandItem>
                         ))}
                       </CommandGroup>
@@ -795,7 +785,7 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
               </Popover>
               <Button variant="outline" size="default" onClick={resetChat}>
                 <SquarePen className="h-4 w-4" />
-                <span className='text-xs'>New Chat</span>
+                <span className="text-xs">New Chat</span>
               </Button>
             </div>
             {isLoading ? (

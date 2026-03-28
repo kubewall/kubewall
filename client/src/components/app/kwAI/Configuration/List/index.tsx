@@ -1,4 +1,4 @@
-import { Check, CirclePlus, Pencil, Star, Trash2Icon, X } from "lucide-react";
+import { Check, CirclePlus, Pencil, SettingsIcon, Star, Trash2Icon, X } from "lucide-react";
 import { Dispatch, SetStateAction, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -88,15 +88,26 @@ const ListConfigurations = ({ setSelectedUUId, setKwAIStoredModelsCollection, is
   return (
     !data?.providerCollection || Object.keys(data.providerCollection).length === 0 ?
       <div className={cn("flex items-center justify-center", isDetailsPage ? 'chatbot-details-inner-container' : 'chatbot-list-inner-container')}>
-        <p className="w-3/4 p-4 rounded text-center text-muted-foreground">
-          <span>Looks like you haven't added a provider yet.</span>
-          <br />
-          <span>Click
-            <span className="text-blue-600/100 dark:text-sky-400/100 cursor-pointer" onClick={() => setShowAddConfiguration(true)}> here </span>
-            or use the button <Button variant="outline" size="icon" className="h-8 w-8 shadow-none" onClick={() => setShowAddConfiguration(true)}>
-              <CirclePlus className="h-4 w-4" />
-            </Button> at the top, to go to Configuration add your first one.</span>
-        </p>
+        <div className="flex flex-col items-center gap-4 max-w-[16rem] text-center">
+          <div className="rounded-full bg-muted p-4">
+            <SettingsIcon className="h-7 w-7 text-muted-foreground" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-medium">No providers yet</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Add your first LLM provider to get started.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-1"
+            onClick={() => setShowAddConfiguration(true)}
+          >
+            <CirclePlus className="h-3.5 w-3.5 mr-1.5" />
+            Add Provider
+          </Button>
+        </div>
       </div>
       :
       <div className="overflow-auto p-2 pt-0">

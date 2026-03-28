@@ -29,6 +29,7 @@ export function AiChat({ isFullscreen = false, onToggleFullscreen, customHeight,
   const [activeView, setActiveView] = useState("chat");
   const kwAiChatWindow = useSidebarSize("kwai-chat");
   const [kwAIStoredModelsCollection, setKwAIStoredModelsCollection] = useState<kwAIStoredModels>({} as kwAIStoredModels);
+  const [openConfigInAddMode, setOpenConfigInAddMode] = useState(false);
   const dispatch = useAppDispatch();
   let config = '';
   let cluster = '';
@@ -81,7 +82,7 @@ export function AiChat({ isFullscreen = false, onToggleFullscreen, customHeight,
 
   return (
     <div id="kwai-chat" className={cn(!isDetailsPage && 'border-t', containerClass)}>
-      <Tabs value={activeView} onValueChange={setActiveView}>
+      <Tabs value={activeView} onValueChange={(v) => { setActiveView(v); setOpenConfigInAddMode(false); }}>
         <div className={cn('flex items-center justify-between px-2 py-2 border-b', isDetailsPage && 'pt-0')}>
           <div className="flex items-center gap-1">
             <TabsList className="h-8">
@@ -184,13 +185,26 @@ export function AiChat({ isFullscreen = false, onToggleFullscreen, customHeight,
               <ChatWindow currentChatKey={currentChatKey || ''} cluster={cluster} config={config} isDetailsPage={isDetailsPage} kwAIStoredModels={kwAIStoredModelsCollection} resetChat={resetChat} />
               :
               <div className={cn("flex items-center justify-center", isDetailsPage ? 'chatbot-details-inner-container' : 'chatbot-list-inner-container')}>
-                <p className="w-3/4 p-4 rounded text-center text-muted-foreground">
-                  <span>You haven't set up any providers yet.</span>
-                  <br />
-                  <span>Click
-                    <span className="text-blue-600/100 dark:text-sky-400/100 cursor-pointer" onClick={() => setActiveView('configuration')}> here</span>
-                    , to go to Configuration and add one now.</span>
-                </p>
+                <div className="flex flex-col items-center gap-4 max-w-[16rem] text-center">
+                  <div className="rounded-full bg-muted p-4">
+                    <Sparkles className="h-7 w-7 text-muted-foreground" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">No providers configured</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Connect an LLM provider to start chatting with your cluster.
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-1"
+                    onClick={() => { setOpenConfigInAddMode(true); setActiveView('configuration'); }}
+                  >
+                    <SettingsIcon className="h-3.5 w-3.5 mr-1.5" />
+                    Add Provider
+                  </Button>
+                </div>
               </div>
           }
 
@@ -200,7 +214,7 @@ export function AiChat({ isFullscreen = false, onToggleFullscreen, customHeight,
           <ChatHistory resumeChat={resumeChat} cluster={cluster} config={config} isDetailsPage={isDetailsPage} />
         </TabsContent>
         <TabsContent value="configuration" className={cn(isDetailsPage ? 'chatbot-details-inner-container' : 'chatbot-list-inner-container')}>
-          <Configuration cluster={cluster} config={config} setKwAIStoredModelsCollection={setKwAIStoredModelsCollection} isDetailsPage={isDetailsPage} />
+          <Configuration cluster={cluster} config={config} setKwAIStoredModelsCollection={setKwAIStoredModelsCollection} isDetailsPage={isDetailsPage} defaultShowAdd={openConfigInAddMode} />
         </TabsContent>
       </Tabs>
     </div>
