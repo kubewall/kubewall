@@ -85,7 +85,7 @@ const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef, updateLogs, o
   }, [isDark]);
 
   useEffect(() => {
-    const label = containerNameProp || 'All Containers';
+    const label = `-------------------${containerNameProp || 'All Containers'}-------------------`;
     xterm?.current?.writeln(`\x1b[38;5;240m── ${label} ──\x1b[0m`);
     updateLogs({ log: label } as PodSocketResponse);
   }, [containerNameProp]);

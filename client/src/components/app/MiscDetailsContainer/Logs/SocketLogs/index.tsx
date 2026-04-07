@@ -33,8 +33,8 @@ const RESET = '\x1b[0m';
 const DIM = '\x1b[2m';
 const SEP = '  ● ';
 
-const COLOR_TIMESTAMP_DARK = ' \x1b[38;5;242m';
-const COLOR_TIMESTAMP_LIGHT = ' \x1b[38;5;245m';
+const COLOR_TIMESTAMP_DARK = '\x1b[38;5;242m';
+const COLOR_TIMESTAMP_LIGHT = '\x1b[38;5;245m';
 
 const ALT_ROW_BG_DARK = '\x1b[48;5;234m';
 const ALT_ROW_BG_LIGHT = '\x1b[48;2;245;245;250m';
@@ -109,11 +109,27 @@ export function SocketLogs({
     const cols = xterm.current.cols || 220;
     const pad = bg ? ' '.repeat(Math.max(0, cols - visibleText.length)) : '';
 
-    const line = bg
-      ? `${bg}${COLOR_TIMESTAMP}${DIM}${ts}${RESET}${bg} ${containerColor}●${RESET}${bg}${RESET}${bg} ${containerLabel}${message.log}${pad}${RESET}`
-      : `${COLOR_TIMESTAMP}${DIM}${ts}${RESET} ${containerColor}●${RESET} ${containerLabel}${message.log}`;
-
-    xterm.current.writeln(line);
+    if (bg) {
+      // For lines with background color, we need to inject background color into ANSI sequences
+      let processedLog = message.log;
+      // If the log contains ANSI codes, we need to inject background color after each color change
+      if (message.log.includes('\x1b[')) {
+        // Replace all ANSI color codes to include our background color
+        processedLog = message.log
+          // After any color code (like \x1b[31m), add our background
+          .replace(/(\x1b\[[0-9;]*m)/g, `$1${bg}`)
+          // After reset codes, re-apply background
+          .replace(/(\x1b\[0m)/g, `$1${bg}`);
+      } else {
+        // No ANSI codes, just apply background
+        processedLog = `${bg}${message.log}`;
+      }
+      const line = `${bg}${COLOR_TIMESTAMP}${ts}${RESET}${bg} ${containerColor}●${RESET}${bg} ${containerLabel}${processedLog}${pad}${RESET}`;
+      xterm.current.writeln(line);
+    } else {
+      const line = `${COLOR_TIMESTAMP}${ts}${RESET} ${containerColor}●${RESET} ${containerLabel}${message.log}`;
+      xterm.current.writeln(line);
+    }
   };
 
   const replayFiltered = (term: string) => {
