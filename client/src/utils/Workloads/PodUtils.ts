@@ -23,37 +23,53 @@ const createContainerData = (podSpec: PodDetailsSpec, podStatus: PodDetailsStatu
   return containersData;
 };
 
-const ansiColors = [
-  '\x1b[33m',        // Yellow (Bright and warm)
-  '\x1b[36m',        // Cyan (Cool and bright)
-  '\x1b[31m',        // Red (Warm and vibrant)
-  '\x1b[34m',        // Blue (Cool and contrasting
-  '\x1b[38;5;208m',  // Orange (Warm but softer than red)
-  '\x1b[38;5;118m',  // Lime (Bright and light green)
-  '\x1b[35m',        // Purple (Cool and distinct from green)
-  '\x1b[32m',        // Green (Cool and calming)
-  '\x1b[38;5;214m',  // Amber (Bright warm tone)
-  '\x1b[38;5;13m',   // Fuchsia (Vivid and distinct)
-  '\x1b[38;5;245m',  // Stone (Neutral gray, darker tone)
-  '\x1b[38;5;33m',   // Sky Blue (Cool and lighter blue)
-  '\x1b[38;5;200m',  // Pink (Bright and soft)
-  '\x1b[38;5;99m',   // Violet (Dark purple, cool tone)
-  '\x1b[38;5;34m',   // Emerald (Rich green, darker tone)
-  '\x1b[38;5;203m',  // Rose (Soft and warm)
-  '\x1b[38;5;242m',  // Zinc (Neutral gray, contrasting with vibrant tones)
-  '\x1b[38;5;245m',  // Stone (Reinforced neutral tone)
-  '\x1b[38;5;214m',  // Amber (Warm and distinct from neutrals)
-  '\x1b[37m',        // Neutral White (Bright and contrasting)
+const CONTAINER_COLORS = [
+  '#eab308',
+  '#06b6d4',
+  '#ef4444',
+  '#3b82f6',
+  '#f97316',
+  '#84cc16',
+  '#a855f7',
+  '#22c55e',
+  '#f59e0b',
+  '#e879f9',
+  '#a8a29e',
+  '#38bdf8',
+  '#f472b6',
+  '#8b5cf6',
+  '#10b981',
+  '#fb7185',
+  '#71717a',
+  '#d1d5db',
 ];
 
-const getColorForContainerName = (containerName: string, podSpec: PodDetailsSpec) => {
+function hexToAnsi(hex: string): string {
+  const n = parseInt(hex.replace('#', ''), 16);
+  const r = (n >> 16) & 0xff;
+  const g = (n >> 8) & 0xff;
+  const b = n & 0xff;
+  return `\x1b[38;2;${r};${g};${b}m`;
+}
+
+const getContainerIndex = (containerName: string, podSpec: PodDetailsSpec) => {
   const { containers, initContainers } = podSpec;
-  const index = [...containers, ...(initContainers || [])].findIndex(({ name }) => name === containerName);
-  return ansiColors[index];
+  return [...containers, ...(initContainers || [])].findIndex(({ name }) => name === containerName);
 };
 
+const getColorForContainerName = (containerName: string, podSpec: PodDetailsSpec) => {
+  const index = getContainerIndex(containerName, podSpec);
+  const hex = CONTAINER_COLORS[(index >= 0 ? index : 0) % CONTAINER_COLORS.length];
+  return hexToAnsi(hex);
+};
+
+const getCssColorForContainerName = (containerName: string, podSpec: PodDetailsSpec) => {
+  const index = getContainerIndex(containerName, podSpec);
+  return CONTAINER_COLORS[(index >= 0 ? index : 0) % CONTAINER_COLORS.length];
+};
 
 export {
   createContainerData,
-  getColorForContainerName
+  getColorForContainerName,
+  getCssColorForContainerName,
 };

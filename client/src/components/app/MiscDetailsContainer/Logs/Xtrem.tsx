@@ -15,134 +15,159 @@ import { useTheme } from '@/components/app/ThemeProvider';
 type XtermProp = {
   containerNameProp: string;
   updateLogs: (currentLog: PodSocketResponse) => void;
-  xterm: MutableRefObject<Terminal | null>
-  searchAddonRef: MutableRefObject<SearchAddon | null>
+  xterm: MutableRefObject<Terminal | null>;
+  searchAddonRef: MutableRefObject<SearchAddon | null>;
+  onReady?: () => void;
 };
 
-const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef, updateLogs }: XtermProp) => {
+const DARK_THEME = {
+  background: '#0f0f0f',
+  foreground: '#d4d4d4',
+  cursor: '#d4d4d4',
+  cursorAccent: '#0f0f0f',
+  selectionBackground: '#264f78',
+  selectionForeground: '#ffffff',
+  black: '#1e1e1e',
+  brightBlack: '#555555',
+  red: '#f44747',
+  brightRed: '#f44747',
+  green: '#4ec9b0',
+  brightGreen: '#4ec9b0',
+  yellow: '#dcdcaa',
+  brightYellow: '#dcdcaa',
+  blue: '#569cd6',
+  brightBlue: '#9cdcfe',
+  magenta: '#c586c0',
+  brightMagenta: '#c586c0',
+  cyan: '#4fc1ff',
+  brightCyan: '#4fc1ff',
+  white: '#d4d4d4',
+  brightWhite: '#ffffff',
+};
+
+const LIGHT_THEME = {
+  background: '#ffffff',
+  foreground: '#1e1e1e',
+  cursor: '#1e1e1e',
+  cursorAccent: '#ffffff',
+  selectionBackground: '#add6ff',
+  selectionForeground: '#000000',
+  black: '#000000',
+  brightBlack: '#767676',
+  red: '#cd3131',
+  brightRed: '#cd3131',
+  green: '#107c10',
+  brightGreen: '#107c10',
+  yellow: '#795e26',
+  brightYellow: '#795e26',
+  blue: '#0451a5',
+  brightBlue: '#0451a5',
+  magenta: '#af00db',
+  brightMagenta: '#af00db',
+  cyan: '#0070c1',
+  brightCyan: '#0070c1',
+  white: '#3b3b3b',
+  brightWhite: '#1e1e1e',
+};
+
+const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef, updateLogs, onReady }: XtermProp) => {
   const dispatch = useAppDispatch();
   const terminalRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
-
   const fitAddon = useRef<FitAddon | null>(null);
   const [showScrollDown, setShowScrollDown] = useState(false);
   const { isDark } = useTheme();
 
-  const darkTheme = {
-    background: '#181818',
-    foreground: '#dcdcdc',
-    cursor: '#dcdcdc',
-    selectionBackground: '#404040',
-  };
-  const lightTheme = {
-    background: '#ffffff',
-    foreground: '#333333',
-    cursor: '#333333',
-    selectionBackground: '#bbbbbb',
-  };
-
   useEffect(() => {
     if (xterm.current) {
-      xterm.current.options.theme = isDark ? darkTheme : lightTheme;
+      xterm.current.options.theme = isDark ? DARK_THEME : LIGHT_THEME;
     }
   }, [isDark]);
 
   useEffect(() => {
-    const newContainer = `-------------------${containerNameProp || 'All Containers'}-------------------`;
-    xterm?.current?.writeln(newContainer);
-    updateLogs({log: newContainer} as PodSocketResponse);
+    const label = `-------------------${containerNameProp || 'All Containers'}-------------------`;
+    xterm?.current?.writeln(`\x1b[38;5;240m── ${label} ──\x1b[0m`);
+    updateLogs({ log: label } as PodSocketResponse);
   }, [containerNameProp]);
 
-  const scrollToBottom = () => {
-    if (xterm.current) {
-      xterm.current.scrollToBottom();
-    }
-  };
+  const scrollToBottom = () => xterm.current?.scrollToBottom();
 
   useEffect(() => {
-    if (terminalRef.current && xterm) {
-      xterm.current = new Terminal({
-        cursorBlink: false,
-        theme: isDark ? darkTheme : lightTheme,
-        scrollback: 9999999,
-        fontSize: 13
-      });
+    if (!terminalRef.current) return;
 
-      fitAddon.current = new FitAddon();
-      searchAddonRef.current = new SearchAddon();
-      xterm.current.loadAddon(fitAddon.current);
-      xterm.current.loadAddon(searchAddonRef.current);
-      xterm.current.open(terminalRef.current);
+    const term = new Terminal({
+      cursorBlink: false,
+      cursorStyle: 'bar',
+      theme: isDark ? DARK_THEME : LIGHT_THEME,
+      scrollback: 50000,
+      fontSize: 12,
+      fontFamily: '"JetBrains Mono", "Fira Code", "Cascadia Code", Menlo, monospace',
+      lineHeight: 1.5,
+      letterSpacing: 0,
+      allowTransparency: true,
+      allowProposedApi: true,
+      convertEol: true,
+      disableStdin: true,
+      rightClickSelectsWord: true,
+    });
 
-      // Defer initial fit to ensure the DOM has layout dimensions
-      const safeFit = () => {
-        try {
-          if (fitAddon.current && xterm.current) {
-            fitAddon.current.fit();
-          }
-        } catch (_) {
-          // ignore fit errors when terminal is not yet fully rendered
-        }
-      };
+    const fit = new FitAddon();
+    const search = new SearchAddon({ highlightLimit: 50000 });
 
-      requestAnimationFrame(safeFit);
+    term.loadAddon(fit);
+    term.loadAddon(search);
+    term.open(terminalRef.current);
 
-      // Resize the terminal on window resize
-      const handleResize = () => safeFit();
-      window.addEventListener('resize', handleResize);
+    xterm.current = term;
+    fitAddon.current = fit;
+    searchAddonRef.current = search;
 
-      // Add ResizeObserver to handle container resize (for Resizable component)
-      const resizeObserver = new ResizeObserver(() => {
-        requestAnimationFrame(safeFit);
-      });
-      
-      if (containerRef.current) {
-        resizeObserver.observe(containerRef.current);
+    onReady?.();
+
+    const safeFit = () => {
+      try { fit.fit(); } catch (_) {}
+    };
+
+    requestAnimationFrame(safeFit);
+
+    const handleResize = () => safeFit();
+    window.addEventListener('resize', handleResize);
+
+    const resizeObserver = new ResizeObserver(() => requestAnimationFrame(safeFit));
+    if (containerRef.current) resizeObserver.observe(containerRef.current);
+
+    const viewport = terminalRef.current.querySelector('.xterm-viewport') as HTMLElement | null;
+    const checkScroll = () => {
+      if (viewport && viewport.clientHeight + viewport.scrollTop < viewport.scrollHeight - 4) {
+        setShowScrollDown(true);
+      } else {
+        setShowScrollDown(false);
       }
+    };
+    viewport?.addEventListener('scroll', checkScroll, { passive: true });
 
-      // Store reference to the xterm container for proper cleanup
-      const xtermContainer = document.querySelector('.xterm-viewport') as HTMLElement;
-
-      const checkIfBottom = () => {
-        if (xtermContainer && xtermContainer.clientHeight + xtermContainer.scrollTop < xtermContainer.scrollHeight) {
-          setShowScrollDown(true);
-        } else {
-          setShowScrollDown(false);
-        }
-      };
-
-      // Only add event listener if container exists
-      if (xtermContainer) {
-        xtermContainer.addEventListener('scroll', checkIfBottom);
-      }
-      
-      return () => {
-        xterm.current?.dispose();
-        window.removeEventListener('resize', handleResize);
-        resizeObserver.disconnect();
-        // Use the stored reference for cleanup to ensure we remove from the correct element
-        if (xtermContainer) {
-          xtermContainer.removeEventListener('scroll', checkIfBottom);
-        }
-        dispatch(clearLogs());
-      };
-    }
+    return () => {
+      term.dispose();
+      window.removeEventListener('resize', handleResize);
+      resizeObserver.disconnect();
+      viewport?.removeEventListener('scroll', checkScroll);
+      dispatch(clearLogs());
+    };
   }, []);
 
   return (
     <div ref={containerRef} className="w-full h-full relative">
-      {
-        showScrollDown &&
+      {showScrollDown && (
         <Button
-          variant="secondary"
+          variant="outline"
           size="icon"
-          className='absolute bottom-10 right-0 mt-1 mr-2 rounded z-10 border'
+          className="absolute bottom-10 right-3 z-10 rounded border shadow-sm opacity-90 hover:opacity-100 bg-foreground text-background hover:bg-foreground/90"
           onClick={scrollToBottom}
-        >  <ChevronsDown className="h-4 w-4" />
+        >
+          <ChevronsDown className="h-4 w-4" />
         </Button>
-      }
-
-      <div ref={terminalRef} />
+      )}
+      <div ref={terminalRef} className="h-full" />
     </div>
   );
 };

@@ -32,13 +32,13 @@ export function ThemeModeSelector() {
         </Tooltip>
       </TooltipProvider>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => { setTheme("light"); location.reload(); }}>
+        <DropdownMenuItem onClick={() => setTheme("light")}>
           <SunIcon className="mr-2 h-4 w-4" /> Light
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => { setTheme("dark"); location.reload(); }}>
+        <DropdownMenuItem onClick={() => setTheme("dark")}>
           <MoonIcon className="mr-2 h-4 w-4" /> Dark
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => { setTheme("system"); location.reload(); }}>
+        <DropdownMenuItem onClick={() => setTheme("system")}>
           <LaptopIcon className="mr-2 h-4 w-4" /> System
         </DropdownMenuItem>
       </DropdownMenuContent>

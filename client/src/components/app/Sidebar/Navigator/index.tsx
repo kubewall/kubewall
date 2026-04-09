@@ -11,6 +11,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { memo, useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { resetListTableFilter } from "@/data/Misc/ListTableFilterSlice";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 
 import { DatabaseIcon, LayersIcon, LayoutGridIcon, NetworkIcon, ServerIcon, ShieldHalf, SlidersHorizontalIcon, UngroupIcon } from "lucide-react";
@@ -19,7 +20,6 @@ import { NAVIGATION_ROUTE } from "@/constants";
 import { RootState } from "@/redux/store";
 import { SearchIcon } from "lucide-react";
 import { SvgRenderer } from '../../Common/SvgRenderer';
-import { resetListTableFilter } from "@/data/Misc/ListTableFilterSlice";
 import { useIsMac } from "@/hooks/use-is-mac";
 import { useSidebar } from "@/components/ui/sidebar";
 
@@ -65,7 +65,6 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
   }, []);
 
   const onSelectResources = (routeValue: string, route: string) => {
-    dispatch(resetListTableFilter());
     navigate({
       to: `/${configName}/list?cluster=${encodeURIComponent(clusterName)}&resourcekind=${routeValue}`,
     });
@@ -77,7 +76,6 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
   };
 
   const onSelectCustomResources = (routeValue: string, route: string) => {
-    dispatch(resetListTableFilter());
     navigate({
       to: `/${configName}/list?cluster=${encodeURIComponent(clusterName)}&resourcekind=customresources&${routeValue}`,
     });

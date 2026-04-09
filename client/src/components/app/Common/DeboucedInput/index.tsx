@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 const DebouncedInput = ({
   value: initialValue,
@@ -54,6 +55,7 @@ const DebouncedInput = ({
       value={value}
       onChange={e => setValue(e.target.value.trim())}
       id="global-search"
+      className={cn(props.className, value ? "ring-1 ring-ring" : "")}
     />
   );
 };
