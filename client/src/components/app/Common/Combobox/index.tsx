@@ -33,7 +33,19 @@ export function ComboboxDemo({ data, setValue, value, placeholder }: Combobox) {
           aria-expanded={open}
           className="w-full justify-between !mt-1 shadow-none"
         >
-          {data.find(item => item.value === value)?.label ?? placeholder}
+          <span className="flex items-center gap-2 truncate">
+            {(() => {
+              const selected = data.find(item => item.value === value);
+              if (!selected) return placeholder;
+              const Icon = selected.icon;
+              return (
+                <>
+                  {Icon && <Icon className="h-4 w-4 shrink-0" />}
+                  {selected.label}
+                </>
+              );
+            })()}
+          </span>
           <ChevronsUpDown className="opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -52,7 +64,10 @@ export function ComboboxDemo({ data, setValue, value, placeholder }: Combobox) {
                     setOpen(false);
                   }}
                 >
-                  {selection.label}
+                  <span className="flex items-center gap-2">
+                    {selection.icon && <selection.icon className="h-4 w-4 shrink-0" />}
+                    {selection.label}
+                  </span>
                   <Check
                     className={cn(
                       "ml-auto",

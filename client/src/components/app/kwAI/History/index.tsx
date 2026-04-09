@@ -1,4 +1,4 @@
-import { Check, Pencil, Trash2Icon, X } from "lucide-react";
+import { Check, HistoryIcon, Pencil, Trash2Icon, X } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -73,10 +73,17 @@ const ChatHistory = ({ cluster, config, isDetailsPage, resumeChat }: ChatHistory
       {
         (!chatHistory[clusterConfigKey] || Object.keys(chatHistory[clusterConfigKey]).length === 0) ?
           <div className={cn("flex items-center justify-center", isDetailsPage ? 'chatbot-details-inner-container' : 'chatbot-list-inner-container')}>
-            <p className="w-3/4 p-4 rounded text-center text-muted-foreground">
-              <span>Once you have some chats, they will appear here.</span>
-              <br />
-            </p>
+            <div className="flex flex-col items-center gap-4 max-w-[16rem] text-center">
+              <div className="rounded-full bg-muted p-4">
+                <HistoryIcon className="h-7 w-7 text-muted-foreground" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium">No conversations yet</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Your chat history will show up here once you start a conversation.
+                </p>
+              </div>
+            </div>
           </div> :
           <>
             <div className="p-4">

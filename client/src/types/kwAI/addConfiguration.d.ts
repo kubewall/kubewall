@@ -15,6 +15,7 @@ type kwAIStoredModel = {
   model: string;
   apiVersion: string;
   alias: string;
+  useProxy?: boolean;
 }
 
 type kwAIStoredModels = {

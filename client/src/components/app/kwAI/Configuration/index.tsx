@@ -12,9 +12,10 @@ type ConfigurationProps = {
   config: string;
   setKwAIStoredModelsCollection: Dispatch<SetStateAction<kwAIStoredModels>>;
   isDetailsPage?: boolean;
+  defaultShowAdd?: boolean;
 }
-const Configuration = ({ cluster, config, setKwAIStoredModelsCollection, isDetailsPage }: ConfigurationProps) => {
-  const [showAddConfiguration, setShowAddConfiguration] = useState(false);
+const Configuration = ({ cluster, config, setKwAIStoredModelsCollection, isDetailsPage, defaultShowAdd = false }: ConfigurationProps) => {
+  const [showAddConfiguration, setShowAddConfiguration] = useState(defaultShowAdd);
   const [selectedUUID, setSelectedUUId] = useState('');
   const addNewConfiguration = (uuid: string) => {
     setSelectedUUId(uuid);
@@ -35,15 +36,15 @@ const Configuration = ({ cluster, config, setKwAIStoredModelsCollection, isDetai
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="px-1.5">
-                  {showAddConfiguration ? 'List Configurations' : 'Add Configuration'}
+                  {showAddConfiguration ? 'List Configurations' : 'Add Provider'}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>
         </div>
 
-        <p className="text-sm text-muted-foreground">
-          {!showAddConfiguration ? 'List of your saved Providers and LLMs' : 'Configure a new Provider and LLM'}
+        <p className="text-sm text-muted-foreground mt-0.5">
+          {!showAddConfiguration ? 'Your saved providers and LLMs' : 'Configure a new provider and LLM'}
         </p>
       </div>
       {
