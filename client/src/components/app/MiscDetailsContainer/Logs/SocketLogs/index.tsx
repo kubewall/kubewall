@@ -31,7 +31,6 @@ type SocketLogsProps = {
 }
 
 const RESET = '\x1b[0m';
-const DIM = '\x1b[2m';
 const SEP = '  ● ';
 
 const COLOR_TIMESTAMP_DARK = '\x1b[38;5;242m';
