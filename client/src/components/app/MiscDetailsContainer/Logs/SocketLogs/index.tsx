@@ -1,4 +1,4 @@
-import { MutableRefObject, useEffect, useRef } from "react";
+import { MutableRefObject, useCallback, useEffect, useRef, useState } from "react";
 import { PodDetailsSpec, PodSocketResponse } from "@/types";
 import { getColorForContainerName, getEventStreamUrl } from "@/utils";
 
@@ -6,6 +6,7 @@ import { SearchAddon } from "@xterm/addon-search";
 import { Terminal } from "@xterm/xterm";
 import XtermTerminal from "../Xtrem";
 import { useEventSource } from "@/components/app/Common/Hooks/EventSource";
+import { fetchLogHistory } from "@/data/Workloads/Pods/fetchLogHistory";
 
 export type SocketLogsHandle = {
   replayFiltered: (term: string) => void;
@@ -81,6 +82,11 @@ export function SocketLogs({
   const filterModeRef = useRef(filterMode);
   const filterTermRef = useRef(filterTerm);
   const isDarkRef = useRef(isDark);
+  const isLoadingHistoryRef = useRef(false);
+  const hasMoreHistoryRef = useRef(true);
+  const isRenderingRef = useRef(false);
+  const pendingLogsRef = useRef<PodSocketResponse[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   filterModeRef.current = filterMode;
   filterTermRef.current = filterTerm;
@@ -157,6 +163,84 @@ export function SocketLogs({
     onCountChange(allLogsRef.current.length, allLogsRef.current.length);
   };
 
+  const replayWithScrollRestore = (prependedCount: number) => {
+    if (!xterm.current) return;
+    const term = xterm.current;
+    const currentTopLine = term.buffer.active.viewportY;
+
+    isRenderingRef.current = true;
+    term.clear();
+    rowIndexRef.current = 0;
+
+    if (filterModeRef.current && filterTermRef.current.trim()) {
+      const matched = allLogsRef.current.filter((m) => matchesTerm(m.log, filterTermRef.current));
+      matched.forEach((m) => {
+        renderLine(m, rowIndexRef.current);
+        rowIndexRef.current++;
+      });
+      visibleCountRef.current = matched.length;
+      onCountChange(allLogsRef.current.length, matched.length);
+    } else {
+      allLogsRef.current.forEach((m) => {
+        renderLine(m, rowIndexRef.current);
+        rowIndexRef.current++;
+      });
+      visibleCountRef.current = allLogsRef.current.length;
+      onCountChange(allLogsRef.current.length, allLogsRef.current.length);
+    }
+
+    // Restore scroll position accounting for prepended lines
+    requestAnimationFrame(() => {
+      term.scrollToLine(currentTopLine + prependedCount);
+      isRenderingRef.current = false;
+
+      // Flush any logs that arrived during rendering
+      const pending = pendingLogsRef.current.splice(0);
+      pending.forEach((m) => printLogLine(m));
+    });
+  };
+
+  const handleScrollToTop = useCallback(async () => {
+    if (isLoadingHistoryRef.current || !hasMoreHistoryRef.current) return;
+    if (allLogsRef.current.length === 0) return;
+    if (allLogsRef.current.length > 45000) return; // xterm scrollback limit safety
+
+    isLoadingHistoryRef.current = true;
+    setIsLoadingHistory(true);
+
+    try {
+      const oldestLog = allLogsRef.current.find(l => l.timestamp);
+      if (!oldestLog?.timestamp) return;
+
+      const response = await fetchLogHistory(pod, {
+        namespace,
+        config: configName,
+        cluster: clusterName,
+        container: containerName || undefined,
+        allContainers: !containerName,
+        before: oldestLog.timestamp,
+        batchSize: 500,
+      });
+
+      if (response.logs.length === 0) {
+        hasMoreHistoryRef.current = false;
+        return;
+      }
+
+      hasMoreHistoryRef.current = response.hasMore;
+
+      const prependedCount = response.logs.length;
+      allLogsRef.current = [...response.logs, ...allLogsRef.current];
+
+      replayWithScrollRestore(prependedCount);
+    } catch (err) {
+      // Silently fail — user can retry by scrolling up again
+    } finally {
+      isLoadingHistoryRef.current = false;
+      setIsLoadingHistory(false);
+    }
+  }, [pod, namespace, configName, clusterName, containerName]);
+
   socketLogsRef.current = { replayFiltered, replayAll, getTerminal: () => xterm.current };
 
   // Replay on terminal resize so alt-row padding recalculates with the new col width.
@@ -189,6 +273,10 @@ export function SocketLogs({
   }, [isDark]);
 
   const printLogLine = (message: PodSocketResponse) => {
+    if (isRenderingRef.current) {
+      pendingLogsRef.current.push(message);
+      return;
+    }
     allLogsRef.current.push(message);
     const total = allLogsRef.current.length;
     if (filterModeRef.current && !matchesTerm(message.log, filterTermRef.current)) {
@@ -210,6 +298,12 @@ export function SocketLogs({
     }
   };
 
+  // Reset history state when container changes
+  useEffect(() => {
+    hasMoreHistoryRef.current = true;
+    isLoadingHistoryRef.current = false;
+  }, [containerName]);
+
   useEventSource({
     url: getEventStreamUrl(`pods/${pod}/logs`, {
       namespace,
@@ -227,6 +321,8 @@ export function SocketLogs({
         xterm={xterm}
         searchAddonRef={searchAddonRef}
         updateLogs={updateLogs}
+        onScrollToTop={handleScrollToTop}
+        isLoadingHistory={isLoadingHistory}
       />
     </div>
   );
