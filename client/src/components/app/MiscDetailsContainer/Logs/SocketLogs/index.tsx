@@ -85,6 +85,7 @@ export function SocketLogs({
   const hasMoreHistoryRef = useRef(true);
   const isRenderingRef = useRef(false);
   const pendingLogsRef = useRef<PodSocketResponse[]>([]);
+  const isAtBottomRef = useRef(true);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   filterModeRef.current = filterMode;
@@ -271,12 +272,21 @@ export function SocketLogs({
     }
   }, [isDark]);
 
+  const MAX_BUFFER = 50000;
+  const TRIM_TO = 45000;
+
   const printLogLine = (message: PodSocketResponse) => {
     if (isRenderingRef.current) {
       pendingLogsRef.current.push(message);
       return;
     }
     allLogsRef.current.push(message);
+
+    // Trim oldest logs only when user is following live (at bottom)
+    if (isAtBottomRef.current && allLogsRef.current.length > MAX_BUFFER) {
+      allLogsRef.current = allLogsRef.current.slice(-TRIM_TO);
+    }
+
     const total = allLogsRef.current.length;
     if (filterModeRef.current && !matchesTerm(message.log, filterTermRef.current)) {
       onCountChange(total, visibleCountRef.current);
@@ -322,6 +332,7 @@ export function SocketLogs({
         updateLogs={updateLogs}
         onScrollToTop={handleScrollToTop}
         isLoadingHistory={isLoadingHistory}
+        isAtBottomRef={isAtBottomRef}
       />
     </div>
   );

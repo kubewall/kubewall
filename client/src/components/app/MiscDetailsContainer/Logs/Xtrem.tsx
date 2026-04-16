@@ -20,6 +20,7 @@ type XtermProp = {
   onReady?: () => void;
   onScrollToTop?: () => void;
   isLoadingHistory?: boolean;
+  isAtBottomRef?: MutableRefObject<boolean>;
 };
 
 const DARK_THEME = {
@@ -72,7 +73,7 @@ const LIGHT_THEME = {
   brightWhite: '#1e1e1e',
 };
 
-const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef, updateLogs, onReady, onScrollToTop, isLoadingHistory }: XtermProp) => {
+const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef, updateLogs, onReady, onScrollToTop, isLoadingHistory, isAtBottomRef }: XtermProp) => {
   const dispatch = useAppDispatch();
   const terminalRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -150,11 +151,13 @@ const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef, updateLogs, o
     const viewport = terminalRef.current.querySelector('.xterm-viewport') as HTMLElement | null;
     const checkScroll = () => {
       if (!viewport) return;
-      if (viewport.clientHeight + viewport.scrollTop < viewport.scrollHeight - 4) {
-        setShowScrollDown(true);
-      } else {
+      const atBottom = viewport.clientHeight + viewport.scrollTop >= viewport.scrollHeight - 4;
+      if (atBottom) {
         setShowScrollDown(false);
+      } else {
+        setShowScrollDown(true);
       }
+      if (isAtBottomRef) isAtBottomRef.current = atBottom;
       if (viewport.scrollTop <= 0) {
         handleScrollToTopDebounced();
       }
