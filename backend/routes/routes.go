@@ -250,6 +250,7 @@ func workloadRoutes(e *echo.Echo, appContainer container.Container) {
 	e.GET("api/v1/pods/:name", pods.NewPodsRouteHandler(appContainer, base.GetDetails)).Name = "podsDetails"
 	e.GET("api/v1/pods/:name/yaml", pods.NewPodsRouteHandler(appContainer, base.GetYaml)).Name = "podsYaml"
 	e.GET("api/v1/pods/:name/logs", pods.NewPodsRouteHandler(appContainer, base.GetLogs)).Name = "podsLogs"
+	e.GET("api/v1/pods/:name/logs/history", pods.NewPodsRouteHandler(appContainer, pods.GetLogHistory)).Name = "podsLogsHistory"
 	e.GET("api/v1/pods/:name/events", pods.NewPodsRouteHandler(appContainer, base.GetEvents)).Name = "podsEvents"
 	e.DELETE("api/v1/pods", pods.NewPodsRouteHandler(appContainer, base.Delete)).Name = "podsDelete"
 
