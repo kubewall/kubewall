@@ -128,7 +128,7 @@ const KwDetails = () => {
         </span>
       </div>
 
-      <div className="h-screen flex-1 flex-col space-y-2 pt-0 p-2 md:flex" style={{ width: `calc(100vw - ${(getMaxWidth())}px)` }}>
+      <div className="h-screen flex flex-col space-y-2 pt-0 p-2 overflow-hidden" style={{ width: `calc(100vw - ${(getMaxWidth())}px)` }}>
         {
           resourceInitialData?.loading ? <Loader /> :
             <>
@@ -215,8 +215,8 @@ const KwDetails = () => {
 
               </div>
               {resourceData &&
-                <Tabs defaultValue='overview'>
-                  <TabsList className="grid w-full grid-cols-6 md:grid-cols-6 sm:grid-cols-4 mb-2">
+                <Tabs defaultValue='overview' className="flex flex-col flex-1 min-h-0">
+                  <TabsList className="grid w-full grid-cols-6 md:grid-cols-6 sm:grid-cols-4 mb-2 shrink-0">
                     <TabsTrigger value='overview' autoFocus={true}>Overview</TabsTrigger>
                     <TabsTrigger value='yaml'>YAML</TabsTrigger>
                     <TabsTrigger value='events'>Events</TabsTrigger>
@@ -225,11 +225,12 @@ const KwDetails = () => {
 
                   <ResizablePanelGroup
                     direction="horizontal"
+                    className="flex-1 min-h-0"
                   >
                     {
                       !fullScreen &&
-                      <ResizablePanel className="border-t-0 mr-2 min-w-80 !overflow-auto" id="details" order={1} defaultSize={showChat ? 55 : 100}>
-                        <TabsContent className="mt-0" value='overview'>
+                      <ResizablePanel className="border-t-0 mr-2 min-w-80 overflow-hidden" id="details" order={1} defaultSize={showChat ? 55 : 100}>
+                        <TabsContent className="mt-0 h-full overflow-auto" value='overview'>
                           <Overview
                             details={[resourceData.detailCard]}
                             lableConditions={resourceData.lableConditionsCardDetails}
@@ -237,7 +238,7 @@ const KwDetails = () => {
                             miscComponent={resourceData.miscComponent}
                           />
                         </TabsContent>
-                        <TabsContent className="mt-0" value='yaml'>
+                        <TabsContent className="mt-0 h-full overflow-auto" value='yaml'>
                           <YamlEditor
                             name={resourcename}
                             configName={config}
@@ -247,7 +248,7 @@ const KwDetails = () => {
                             extraQuery={resourceInitialData.label === 'Custom Resources' ? '&' + new URLSearchParams({ group, kind, resource, version }).toString() : ''}
                           />
                         </TabsContent>
-                        <TabsContent className="mt-0" value='events'>
+                        <TabsContent className="mt-0 h-full overflow-auto" value='events'>
                           <Events
                             name={resourcename}
                             configName={config}
@@ -258,7 +259,7 @@ const KwDetails = () => {
                         </TabsContent>
                         {
                           resourceInitialData.label.toLowerCase() === PODS_ENDPOINT &&
-                          <TabsContent className="mt-0" value='logs'>
+                          <TabsContent className="mt-0 h-full overflow-hidden" value='logs'>
                             <PodLogs
                               name={podDetails?.metadata?.name}
                               configName={config}

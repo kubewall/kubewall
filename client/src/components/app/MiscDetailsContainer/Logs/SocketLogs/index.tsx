@@ -221,7 +221,7 @@ export function SocketLogs({
   });
 
   return (
-    <div ref={logContainerRef} className="m-2 h-full">
+    <div ref={logContainerRef} className="m-2 flex-1 min-h-0">
       <XtermTerminal
         containerNameProp={containerName}
         xterm={xterm}
