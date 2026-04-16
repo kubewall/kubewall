@@ -194,12 +194,12 @@ func (h *PodsHandler) GetLogHistory(c echo.Context) error {
 	batchSizeStr := c.QueryParam("batchSize")
 
 	if beforeStr == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "before parameter is required"})
+		return echo.NewHTTPError(http.StatusBadRequest, "before parameter is required")
 	}
 
 	beforeTime, err := time.Parse(timestampLayout, beforeStr)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid before timestamp"})
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid before timestamp")
 	}
 
 	batchSize := int64(500)
@@ -211,7 +211,7 @@ func (h *PodsHandler) GetLogHistory(c echo.Context) error {
 
 	containerNames, err := h.getContainerNames(namespace, name, containerName, allContainers)
 	if err != nil {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": err.Error()})
+		return echo.NewHTTPError(http.StatusNotFound, err.Error())
 	}
 
 	// Fetch with escalating tailLines until we find enough older logs
