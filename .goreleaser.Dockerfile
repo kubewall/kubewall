@@ -1,5 +1,5 @@
 # Stage 1: Build the Go application and download kubectl for the correct architecture
-FROM --platform=$BUILDPLATFORM public.ecr.aws/docker/library/golang:1.24 as builder
+FROM --platform=$BUILDPLATFORM public.ecr.aws/docker/library/golang:1.26 as builder
 
 WORKDIR /app
 ARG TARGETARCH
