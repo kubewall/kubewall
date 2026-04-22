@@ -1,5 +1,3 @@
-import './index.css';
-
 import { ChevronDownIcon, ChevronUpIcon, Cross2Icon, DownloadIcon, MagnifyingGlassIcon } from '@radix-ui/react-icons';
 import { useEffect, useRef, useState } from "react";
 
@@ -165,7 +163,7 @@ const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => 
   };
 
   return (
-    <div ref={logsPanelRef} className="logs flex-col md:flex border rounded-lg" tabIndex={-1}>
+    <div ref={logsPanelRef} className="flex flex-col h-full border rounded-lg overflow-hidden" tabIndex={-1}>
       <div className="flex items-center h-10 border-b bg-muted/50">
         <div className="flex items-center flex-1 min-w-0 h-full border-r">
           <MagnifyingGlassIcon className="h-3.5 w-3.5 shrink-0 ml-3 text-muted-foreground" />

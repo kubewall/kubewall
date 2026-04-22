@@ -1,9 +1,9 @@
 import '@xterm/xterm/css/xterm.css';
 
-import { MutableRefObject, useEffect, useRef, useState } from 'react';
+import { MutableRefObject, useCallback, useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
-import { ChevronsDown } from 'lucide-react';
+import { ChevronsDown, Loader2 } from 'lucide-react';
 import { FitAddon } from '@xterm/addon-fit';
 import { PodSocketResponse } from '@/types';
 import { SearchAddon } from '@xterm/addon-search';
@@ -18,6 +18,9 @@ type XtermProp = {
   xterm: MutableRefObject<Terminal | null>;
   searchAddonRef: MutableRefObject<SearchAddon | null>;
   onReady?: () => void;
+  onScrollToTop?: () => void;
+  isLoadingHistory?: boolean;
+  isAtBottomRef?: MutableRefObject<boolean>;
 };
 
 const DARK_THEME = {
@@ -70,7 +73,7 @@ const LIGHT_THEME = {
   brightWhite: '#1e1e1e',
 };
 
-const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef, updateLogs, onReady }: XtermProp) => {
+const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef, updateLogs, onReady, onScrollToTop, isLoadingHistory, isAtBottomRef }: XtermProp) => {
   const dispatch = useAppDispatch();
   const terminalRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -91,6 +94,15 @@ const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef, updateLogs, o
   }, [containerNameProp]);
 
   const scrollToBottom = () => xterm.current?.scrollToBottom();
+  const scrollToTopDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleScrollToTopDebounced = useCallback(() => {
+    if (!onScrollToTop) return;
+    if (scrollToTopDebounce.current) clearTimeout(scrollToTopDebounce.current);
+    scrollToTopDebounce.current = setTimeout(() => {
+      onScrollToTop();
+    }, 300);
+  }, [onScrollToTop]);
 
   useEffect(() => {
     if (!terminalRef.current) return;
@@ -138,10 +150,16 @@ const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef, updateLogs, o
 
     const viewport = terminalRef.current.querySelector('.xterm-viewport') as HTMLElement | null;
     const checkScroll = () => {
-      if (viewport && viewport.clientHeight + viewport.scrollTop < viewport.scrollHeight - 4) {
-        setShowScrollDown(true);
-      } else {
+      if (!viewport) return;
+      const atBottom = viewport.clientHeight + viewport.scrollTop >= viewport.scrollHeight - 4;
+      if (atBottom) {
         setShowScrollDown(false);
+      } else {
+        setShowScrollDown(true);
+      }
+      if (isAtBottomRef) isAtBottomRef.current = atBottom;
+      if (viewport.scrollTop <= 0) {
+        handleScrollToTopDebounced();
       }
     };
     viewport?.addEventListener('scroll', checkScroll, { passive: true });
@@ -151,12 +169,19 @@ const XtermTerminal = ({ containerNameProp, xterm, searchAddonRef, updateLogs, o
       window.removeEventListener('resize', handleResize);
       resizeObserver.disconnect();
       viewport?.removeEventListener('scroll', checkScroll);
+      if (scrollToTopDebounce.current) clearTimeout(scrollToTopDebounce.current);
       dispatch(clearLogs());
     };
   }, []);
 
   return (
     <div ref={containerRef} className="w-full h-full relative">
+      {isLoadingHistory && (
+        <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-center py-1 bg-muted/80 text-xs text-muted-foreground">
+          <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+          Loading older logs...
+        </div>
+      )}
       {showScrollDown && (
         <Button
           variant="outline"

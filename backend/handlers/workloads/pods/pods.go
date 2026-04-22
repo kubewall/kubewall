@@ -24,6 +24,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 )
 
+const (
+	GetLogHistory base.RouteType = 14
+)
+
 type PodsHandler struct {
 	BaseHandler       base.BaseHandler
 	clientSet         *kubernetes.Clientset
@@ -48,6 +52,8 @@ func NewPodsRouteHandler(container container.Container, routeType base.RouteType
 			return handler.BaseHandler.Delete(c)
 		case base.GetLogs:
 			return handler.GetLogs(c)
+		case GetLogHistory:
+			return handler.GetLogHistory(c)
 		default:
 			return echo.NewHTTPError(http.StatusInternalServerError, "Unknown route type")
 		}
