@@ -1,5 +1,5 @@
 # Stage 1: Build the Go application and download kubectl for the correct architecture
-FROM --platform=$BUILDPLATFORM public.ecr.aws/docker/library/golang:1.26 as builder
+FROM --platform=$BUILDPLATFORM public.ecr.aws/docker/library/golang:1.26 AS builder
 
 WORKDIR /app
 ARG TARGETARCH
@@ -24,8 +24,8 @@ RUN ARCH=$(case $TARGETARCH in \
     && mv kubelogin kubectl-oidc_login \
     && chmod +x kubectl-oidc_login
 
-# Stage 2: Create the final scratch image with the compiled binaries
-FROM --platform=$BUILDPLATFORM gcr.io/distroless/static-debian12
+# Stage 2: Create the final distroless image with the compiled binaries
+FROM gcr.io/distroless/static-debian12
 COPY --from=builder /app/kubectl /usr/bin/kubectl
 COPY --from=builder /app/kubectl-oidc_login /usr/bin/kubectl-oidc_login
 COPY kubewall /usr/bin/kubewall
