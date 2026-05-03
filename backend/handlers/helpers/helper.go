@@ -35,12 +35,13 @@ func StripUnusedFields(obj any) (any, error) {
 
 	accessor, err := meta.Accessor(obj)
 	if err != nil {
-		// shouldn't happen
-		return obj, nil
+		return obj, err
 	}
 	// ManagedFields is large and we never use it
 	accessor.SetManagedFields(nil)
-	AddTypeInformationToObject(accessor.(runtime.Object))
+	if runtimeObj, ok := obj.(runtime.Object); ok {
+		_ = AddTypeInformationToObject(runtimeObj)
+	}
 
 	return obj, nil
 }

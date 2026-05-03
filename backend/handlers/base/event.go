@@ -10,6 +10,7 @@ import (
 	"github.com/r3labs/sse/v2"
 	coreV1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 )
 
 func (h *BaseHandler) buildEventStreamID(c echo.Context) string {
@@ -24,8 +25,11 @@ func (h *BaseHandler) fetchEvents(c echo.Context) []coreV1.Event {
 		CoreV1().
 		Events(c.QueryParam("namespace")).
 		List(ctx, metaV1.ListOptions{
-			FieldSelector: fmt.Sprintf("involvedObject.name=%s", c.Param("name")),
-			TypeMeta:      metaV1.TypeMeta{Kind: h.Kind},
+			FieldSelector: fields.AndSelectors(
+				fields.OneTermEqualSelector("involvedObject.kind", h.Kind),
+				fields.OneTermEqualSelector("involvedObject.name", c.Param("name")),
+			).String(),
+			TypeMeta: metaV1.TypeMeta{Kind: h.Kind},
 		})
 
 	if err != nil {

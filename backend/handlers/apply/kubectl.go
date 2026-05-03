@@ -1,6 +1,7 @@
 package apply
 
 import (
+	"context"
 	"fmt"
 	"github.com/kubewall/kubewall/backend/config"
 	"os/exec"
@@ -13,12 +14,12 @@ func checkKubectlCLIPresent() bool {
 	return err == nil
 }
 
-func applyYAML(kubeConfig, context, yamlFile string) (string, error) {
+func applyYAML(ctx context.Context, kubeConfig, contextName, yamlFile string) (string, error) {
 	var cmd *exec.Cmd
-	if context == config.InClusterKey {
-		cmd = exec.Command("kubectl", "apply", "-f", "-", "--kubeconfig", kubeConfig, "--insecure-skip-tls-verify")
+	if contextName == config.InClusterKey || kubeConfig == "" {
+		cmd = exec.CommandContext(ctx, "kubectl", "apply", "-f", "-", "--insecure-skip-tls-verify")
 	} else {
-		cmd = exec.Command("kubectl", "apply", "-f", "-", "--kubeconfig", kubeConfig, "--context", context, "--insecure-skip-tls-verify")
+		cmd = exec.CommandContext(ctx, "kubectl", "apply", "-f", "-", "--kubeconfig", kubeConfig, "--context", contextName, "--insecure-skip-tls-verify")
 	}
 	cmd.Stdin = strings.NewReader(yamlFile)
 	output, err := cmd.CombinedOutput()

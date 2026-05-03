@@ -54,35 +54,35 @@ func ResourceEventHandler[T Resource](handler *BaseHandler, additionalEvents ...
 	}
 }
 
-func (h *BaseHandler) StartInformer(cache cache.ResourceEventHandlerFuncs) {
-	h.baseInformer(cache)
+func (h *BaseHandler) StartInformer(events cache.ResourceEventHandlerFuncs) {
+	h.baseInformer(events)
 	go h.Container.SharedInformerFactory(h.QueryConfig, h.QueryCluster).Start(context.Background().Done())
 }
 
-func (h *BaseHandler) StartExtensionInformer(cache cache.ResourceEventHandlerFuncs) {
-	h.baseInformer(cache)
+func (h *BaseHandler) StartExtensionInformer(events cache.ResourceEventHandlerFuncs) {
+	h.baseInformer(events)
 	go h.Container.ExtensionSharedFactoryInformer(h.QueryConfig, h.QueryCluster).Start(context.Background().Done())
 }
 
-func (h *BaseHandler) StartDynamicInformer(cache cache.ResourceEventHandlerFuncs) {
-	h.baseInformer(cache)
+func (h *BaseHandler) StartDynamicInformer(events cache.ResourceEventHandlerFuncs) {
+	h.baseInformer(events)
 	go h.Container.DynamicSharedInformerFactory(h.QueryConfig, h.QueryCluster).Start(context.Background().Done())
 }
 
-func (h *BaseHandler) baseInformer(cache cache.ResourceEventHandlerFuncs) {
+func (h *BaseHandler) baseInformer(events cache.ResourceEventHandlerFuncs) {
 	once, _ := informerInitOnce.LoadOrStore(h.InformerCacheKey, &sync.Once{})
 	once.(*sync.Once).Do(func() {
 		h.Container.Cache().Set(h.InformerCacheKey, true)
-		if _, err := h.Informer.AddEventHandler(cache); err != nil {
+		_ = h.Informer.SetWatchErrorHandler(func(r *cache.Reflector, err error) {
+			log.Warn("failed to watch, will backoff and retry", "error", err, "kind", h.Kind)
+		})
+		if _, err := h.Informer.AddEventHandler(events); err != nil {
 			log.Warn("failed to load baseInformer", "error", err, "kind", h.Kind)
 		}
 	})
 }
 
 func (h *BaseHandler) WaitForSync(ctx context.Context) {
-	h.Informer.SetWatchErrorHandler(func(r *cache.Reflector, err error) {
-		log.Warn("failed to watch, will backoff and retry", "error", err, "kind", h.Kind)
-	})
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 

@@ -57,21 +57,25 @@ func (h *PodsHandler) fetchLogs(ctx context.Context, namespace, podName, contain
 		default:
 		}
 		logLine := scanner.Text()
-		parts := strings.Split(logLine, " ")
-		if len(parts) == 0 {
-			log.Warn("empty log line received", "pod", podName, "container", containerName)
-			return
+		timestamp, message, ok := strings.Cut(logLine, " ")
+		if !ok {
+			log.Warn("malformed log line received", "pod", podName, "container", containerName)
+			continue
 		}
-		logLine = strings.Join(parts[1:], " ")
-		parseTime, err := time.Parse(time.RFC3339Nano, parts[0])
+		parseTime, err := time.Parse(time.RFC3339Nano, timestamp)
 		if err != nil {
-			log.Error("failed to parse log timestamp", "pod", podName, "container", containerName, "raw", parts[0], "err", err)
-			return
+			log.Error("failed to parse log timestamp", "pod", podName, "container", containerName, "raw", timestamp, "err", err)
+			continue
 		}
-		logsChannel <- LogMessage{
+		msg := LogMessage{
 			ContainerName: containerName,
 			Timestamp:     parseTime.Format("2006-01-02 15:04:05.000Z"),
-			Log:           logLine,
+			Log:           message,
+		}
+		select {
+		case logsChannel <- msg:
+		case <-ctx.Done():
+			return
 		}
 	}
 	if err := scanner.Err(); err != nil && !strings.Contains(err.Error(), "http2: response body closed") {
@@ -167,18 +171,18 @@ func (h *PodsHandler) fetchHistoricalLogs(ctx context.Context, namespace, podNam
 
 	for scanner.Scan() {
 		logLine := scanner.Text()
-		parts := strings.Split(logLine, " ")
-		if len(parts) == 0 {
+		timestamp, message, ok := strings.Cut(logLine, " ")
+		if !ok {
 			continue
 		}
-		parseTime, err := time.Parse(time.RFC3339Nano, parts[0])
+		parseTime, err := time.Parse(time.RFC3339Nano, timestamp)
 		if err != nil {
 			continue
 		}
 		result = append(result, LogMessage{
 			ContainerName: containerName,
 			Timestamp:     parseTime.Format(timestampLayout),
-			Log:           strings.Join(parts[1:], " "),
+			Log:           message,
 		})
 	}
 	return result
@@ -216,7 +220,7 @@ func (h *PodsHandler) GetLogHistory(c echo.Context) error {
 
 	// Fetch with escalating tailLines until we find enough older logs
 	var allLogs []LogMessage
-	hasMore := true
+	var hasMore bool
 	tailLines := batchSize * 3
 	maxTailLines := int64(50000)
 
