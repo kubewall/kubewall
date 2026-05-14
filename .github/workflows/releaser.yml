@@ -68,6 +68,9 @@ jobs:
           username: kubewall
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Configure git for private Go modules
+        run: git config --global url."https://x-access-token:${{ secrets.GORELEASER_TOKEN }}@github.com/".insteadOf "https://github.com/"
+
       - name: Free disk space
         run: |
           sudo rm -rf /usr/share/dotnet || true
@@ -84,3 +87,6 @@ jobs:
           AUR_KEY: ${{ secrets.AUR_SSH_KEY }}
           GITHUB_TOKEN: ${{ secrets.GORELEASER_TOKEN }}
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_LOGIN }}
+          KUBEWALL_GO_BUILD_TAGS: podexec
+          GOPRIVATE: github.com/kubewall/addons
+          GONOSUMDB: github.com/kubewall/addons
