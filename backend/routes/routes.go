@@ -4,6 +4,7 @@ import (
 	"embed"
 	"net/http"
 
+	"github.com/kubewall/kubewall/backend/addons"
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/accesscontrol/clusterroles"
 	clusterrolebindings "github.com/kubewall/kubewall/backend/handlers/accesscontrol/clusterrolesbindings"
@@ -61,6 +62,7 @@ func ConfigureRoutes(e *echo.Echo, appContainer container.Container) {
 	}))
 	e.Use(middleware.Recover())
 	e.Use(middleware.RequestID())
+	addons.RegisterMiddleware(e, appContainer)
 	e.Use(appmiddleware.ClusterQueryParamMiddleware(appContainer))
 	e.Use(appmiddleware.ClusterConnectivityMiddleware(appContainer))
 	e.Use(appmiddleware.ClusterCacheMiddleware(appContainer))
@@ -111,6 +113,7 @@ func ConfigureRoutes(e *echo.Echo, appContainer container.Container) {
 	storageRoutes(e, appContainer)
 	servicesRoutes(e, appContainer)
 	customResources(e, appContainer)
+	addons.RegisterRoutes(e, appContainer)
 	mcp.Server(e, appContainer)
 }
 

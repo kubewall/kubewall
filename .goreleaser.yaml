@@ -3,8 +3,9 @@ version: 2
 
 before:
   hooks:
+    - sh -c "cd client && git clone git@github.com:kubewall/enterprise-client.git enterprise-client && node enterprise-client/scripts/generate-capabilities.js --config enterprise-client/configs/free.json && cd .."
     - sh -c "yarn --cwd client install && yarn --cwd client run build && rm -rf client/node_modules && rm -rf backend/routes/static && mv client/dist backend/routes/static"
-    - sh -c "cd backend && go mod tidy && cd .."
+    - sh -c "cd backend && go mod edit -dropreplace github.com/kubewall/addons && go mod tidy && cd .."
     
 builds:
   - main: main.go
@@ -14,6 +15,7 @@ builds:
     goarch: ["386", "amd64", "arm64"]
     flags:
       - -trimpath
+      - -tags=podexec
     ldflags:
       - -s
       - -w

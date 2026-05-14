@@ -105,3 +105,5 @@ require (
 )
 
 replace github.com/r3labs/sse/v2 => github.com/kubewall/sse/v2 v2.11.2
+
+replace github.com/kubewall/addons => ./stubs/addons
