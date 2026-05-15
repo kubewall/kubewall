@@ -16,6 +16,7 @@ import FourOFourError from "../../Errors/404Error";
 import { Loader } from "../../Loader";
 import { Overview } from "../../Details/Overview";
 import { PODS_ENDPOINT } from "@/constants";
+import PageWithTerminal from "../../Layout/PageWithTerminal";
 import { RootState } from "@/redux/store";
 import { Row } from "@tanstack/react-table";
 import { Separator } from "@/components/ui/separator";
@@ -118,8 +119,9 @@ const KwDetails = () => {
   };
 
   return (
-    <div className="py-2">
-      <div className="flex items-center gap-2 pl-2">
+    <PageWithTerminal>
+      <div className="h-full flex flex-col overflow-hidden">
+      <div className="flex items-center gap-2 pl-2 pt-2 shrink-0">
         <span className="text-xs text-blue-600 dark:text-blue-500 hover:underline flex items-center">
           <Link to={`/${config}/list?${getListPageQueryparams()}`} className="flex items-center">
             <CaretLeftIcon className="h-3.5 w-3.5 mr-1" />
@@ -128,7 +130,7 @@ const KwDetails = () => {
         </span>
       </div>
 
-      <div className="h-screen flex flex-col space-y-2 pt-0 p-2 overflow-hidden" style={{ width: `calc(100vw - ${(getMaxWidth())}px)` }}>
+      <div className="flex-1 min-h-0 flex flex-col space-y-2 pt-0 p-2 overflow-hidden" style={{ width: `calc(100vw - ${(getMaxWidth())}px)` }}>
         {
           resourceInitialData?.loading ? <Loader /> :
             <>
@@ -145,31 +147,33 @@ const KwDetails = () => {
                   }
                   {
                     resourcekind === 'pods' &&
-                    <PortForwardingDialog
-                      resourcename={resourcename}
-                      queryParams={new URLSearchParams(queryParamsObj).toString()}
-                      config={config}
-                      cluster={cluster}
-                      resourceKind="pod"
-                      details={podDetails}
-                      portForwardingList={portForwardingList}
-                      loading={loading}
-                      error={error}
-                      message={message}
-                      getPortOptions={() =>
-                        [...(podDetails.spec.initContainers || []), ...(podDetails.spec.containers || [])].map(container => {
-                          const portObj = container.ports?.find(p => p.protocol?.toLowerCase() === 'tcp');
-                          return {
-                            value: `${container.name}${portObj ? `: ${portObj.containerPort}` : ""}`,
-                            label: `${container.name}${portObj ? `: ${portObj.containerPort}` : ""}`,
-                          };
-                        })
-                      }
-                      getPortValue={(selected, custom) =>
-                        custom ? Number(custom) : Number(selected.split(": ")[1])
-                      }
-                      showCustomPortInput={true}
-                    />
+                    <>
+                      <PortForwardingDialog
+                        resourcename={resourcename}
+                        queryParams={new URLSearchParams(queryParamsObj).toString()}
+                        config={config}
+                        cluster={cluster}
+                        resourceKind="pod"
+                        details={podDetails}
+                        portForwardingList={portForwardingList}
+                        loading={loading}
+                        error={error}
+                        message={message}
+                        getPortOptions={() =>
+                          [...(podDetails.spec.initContainers || []), ...(podDetails.spec.containers || [])].map(container => {
+                            const portObj = container.ports?.find(p => p.protocol?.toLowerCase() === 'tcp');
+                            return {
+                              value: `${container.name}${portObj ? `: ${portObj.containerPort}` : ""}`,
+                              label: `${container.name}${portObj ? `: ${portObj.containerPort}` : ""}`,
+                            };
+                          })
+                        }
+                        getPortValue={(selected, custom) =>
+                          custom ? Number(custom) : Number(selected.split(": ")[1])
+                        }
+                        showCustomPortInput={true}
+                      />
+                    </>
                   }
                   {
                     resourcekind === 'services' &&
@@ -226,11 +230,12 @@ const KwDetails = () => {
                   <ResizablePanelGroup
                     direction="horizontal"
                     className="flex-1 min-h-0"
+                    style={{ overflow: 'hidden' }}
                   >
                     {
                       !fullScreen &&
-                      <ResizablePanel className="border-t-0 mr-2 min-w-80 overflow-hidden" id="details" order={1} defaultSize={showChat ? 55 : 100}>
-                        <TabsContent className="mt-0 h-full overflow-auto" value='overview'>
+                      <ResizablePanel className="border-t-0 mr-2 min-w-80" style={{ overflow: 'hidden' }} id="details" order={1} defaultSize={showChat ? 55 : 100}>
+                        <TabsContent className="mt-0 h-full overflow-auto overscroll-contain" value='overview'>
                           <Overview
                             details={[resourceData.detailCard]}
                             lableConditions={resourceData.lableConditionsCardDetails}
@@ -238,7 +243,7 @@ const KwDetails = () => {
                             miscComponent={resourceData.miscComponent}
                           />
                         </TabsContent>
-                        <TabsContent className="mt-0 h-full overflow-auto" value='yaml'>
+                        <TabsContent className="mt-0 h-full overflow-auto overscroll-contain" value='yaml'>
                           <YamlEditor
                             name={resourcename}
                             configName={config}
@@ -248,7 +253,7 @@ const KwDetails = () => {
                             extraQuery={resourceInitialData.label === 'Custom Resources' ? '&' + new URLSearchParams({ group, kind, resource, version }).toString() : ''}
                           />
                         </TabsContent>
-                        <TabsContent className="mt-0 h-full overflow-auto" value='events'>
+                        <TabsContent className="mt-0 h-full overflow-auto overscroll-contain" value='events'>
                           <Events
                             name={resourcename}
                             configName={config}
@@ -288,7 +293,8 @@ const KwDetails = () => {
             </>
         }
       </div>
-    </div>
+      </div>
+    </PageWithTerminal>
   );
 };
 

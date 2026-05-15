@@ -228,7 +228,7 @@ body {
 }
 
 .empty-table {
-  height: calc(100vh - 90px);
+  height: calc(100vh - 90px - var(--terminal-height, 0px));
 }
 
 @keyframes bgColorChange {
@@ -246,7 +246,7 @@ body {
 }
 
 .overview {
-  max-height: calc(100vh - 115px);
+  max-height: calc(100vh - 115px - var(--terminal-height, 0px));
 }
 
 /* Fix for Resizable.Panel */

@@ -76,7 +76,7 @@ const CreateTable = <T extends ClusterDetails, C extends HeaderList>({
           })}
           data={loading ? defaultSkeletonRow() : data}
           showNamespaceFilter={showNamespaceFilter}
-          tableWidthCss={cn('list-table-max-height', 'h-screen')}
+          tableWidthCss={cn('list-table-max-height', 'h-full')}
           instanceType={instanceType}
           loading={loading}
           showChat={showChat}

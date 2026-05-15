@@ -109,6 +109,7 @@ import {
 
 import { CreateTable } from "@/components/app/Common/Hooks/Table";
 import FourOFourError from "@/components/app/Errors/404Error";
+import PageWithTerminal from "@/components/app/Layout/PageWithTerminal";
 import { RootState } from "@/redux/store";
 import { kwList } from "@/routes";
 import { updateClusterEventsList } from "@/data/Clusters/Events/EventsListSlice";
@@ -269,18 +270,20 @@ export function KwList() {
 
   document.title = `kubewall - ${tableData.instaceType}`;
   return (
-    <CreateTable
-      clusterName={cluster}
-      configName={config}
-      headersList={tableData.headersList as HeaderList[]}
-      loading={tableData.loading}
-      count={tableData.data.length}
-      data={tableData.data as ArrayElement<typeof tableData.data>[]}
-      queryParmObject={tableData.queryParams}
-      instanceType={tableData.instaceType}
-      endpoint={tableData.instaceType}
-      dispatchMethod={tableData.dispatchMethod}
-      showNamespaceFilter={tableData.showNamespaceFilter}
-    />
+    <PageWithTerminal>
+      <CreateTable
+        clusterName={cluster}
+        configName={config}
+        headersList={tableData.headersList as HeaderList[]}
+        loading={tableData.loading}
+        count={tableData.data.length}
+        data={tableData.data as ArrayElement<typeof tableData.data>[]}
+        queryParmObject={tableData.queryParams}
+        instanceType={tableData.instaceType}
+        endpoint={tableData.instaceType}
+        dispatchMethod={tableData.dispatchMethod}
+        showNamespaceFilter={tableData.showNamespaceFilter}
+      />
+    </PageWithTerminal>
   );
 }
