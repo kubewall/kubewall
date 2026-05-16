@@ -7,10 +7,14 @@ import { CopyToClipboard } from "@/components/app/Common/CopyToClipboard";
 import { CubeIcon } from "@radix-ui/react-icons";
 import { PORT_FORWARDING_ENDPOINT } from "@/constants";
 import { PortForwardingListResponse } from "@/types";
+import addons from "@/addons";
 import { memo } from "react";
 import { updatePortForwardingList } from "@/data/Workloads/Pods/PortForwardingListSlice";
 import { useEventSource } from "../Common/Hooks/EventSource";
 import { useRouterState } from "@tanstack/react-router";
+
+// Resolved once at module load — null in free build, real component in premium.
+const PodSSHButton = addons.terminal?.PodSSHButton ?? null;
 
 const PodDetailsContainer = memo(function () {
   const router = useRouterState();
@@ -58,7 +62,18 @@ const PodDetailsContainer = memo(function () {
                             <CardTitle className="flex items-center justify-between">
                               <div className="flex flex-1 items-center">
                                 <CubeIcon className="mr-2 h-3.5 w-3.5" />
-                                <div className="text-sm font-normal basis-2/3 break-all">{name}</div>
+                                <div className="text-sm font-normal break-all mr-1 shrink min-w-0">{name}</div>
+                                {PodSSHButton && (
+                                  <PodSSHButton
+                                    podName={podDetails.metadata.name}
+                                    namespace={podDetails.metadata.namespace}
+                                    containerName={name}
+                                    configName={configName}
+                                    clusterName={clusterName}
+                                    started={!!started}
+                                    ready={!!ready}
+                                  />
+                                )}
                               </div>
                               <div>
                                 {
@@ -198,7 +213,18 @@ const PodDetailsContainer = memo(function () {
                           <CardTitle className="flex items-center justify-between">
                             <div className="flex flex-1 items-center">
                               <CubeIcon className="mr-2 h-3.5 w-3.5" />
-                              <div className="text-sm font-normal basis-2/3 break-all">{name}</div>
+                              <div className="text-sm font-normal break-all mr-1 shrink min-w-0">{name}</div>
+                              {PodSSHButton && (
+                                <PodSSHButton
+                                  podName={podDetails.metadata.name}
+                                  namespace={podDetails.metadata.namespace}
+                                  containerName={name}
+                                  configName={configName}
+                                  clusterName={clusterName}
+                                  started={!!started}
+                                  ready={!!ready}
+                                />
+                              )}
                             </div>
                             <div>
                               {

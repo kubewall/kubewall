@@ -1,5 +1,5 @@
 .list-table-max-height {
-  max-height: calc(100vh - 48px);
+  height: calc(100vh - 48px - var(--terminal-height, 0px));
 }
 
 .list-table-max-width-expanded {
@@ -30,11 +30,11 @@ max-width: calc(100vw - 9rem);
 }
 
 .sidebar-max-height {
-  max-height: calc(100vh - 90px);
+  max-height: calc(100vh - 90px - var(--terminal-height, 0px));
 }
 
 .event-table-max-height {
-  max-height: calc(100vh - 115px);
+  max-height: calc(100vh - 115px - var(--terminal-height, 0px));
   border-left-width: 1px;
   border-right-width: 1px;
 }

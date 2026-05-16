@@ -79,6 +79,21 @@ import storageClassDetailsSlice from '@/data/Storages/StorageClasses/StorageClas
 import storageClassesListSlice from '@/data/Storages/StorageClasses/StorageClassesListSlice';
 import updateYamlSlice from '@/data/Yaml/YamlUpdateSlice';
 import yamlSlice from '@/data/Yaml/YamlSlice';
+import addons from '@/addons';
+import { Reducer } from '@reduxjs/toolkit';
+
+// Dynamically collect reducers from all registered addons.
+// Each addon declares reducer + reducerKey; we inject them here so the store
+// is always in sync with whatever addons are present in this build.
+const addonReducers = Object.values(addons).reduce<Record<string, Reducer>>(
+  (acc, addon) => {
+    if (addon?.reducer && addon?.reducerKey) {
+      acc[addon.reducerKey] = addon.reducer;
+    }
+    return acc;
+  },
+  {}
+);
 
 const store = configureStore({
   reducer: {
@@ -161,7 +176,8 @@ const store = configureStore({
     kwAiTools: kwAiToolsSlice,
     portForwarding: portForwardingSlice,
     portForwardingList: portForwardingListSlice,
-    nodePods: nodePodsSlice
+    nodePods: nodePodsSlice,
+    ...addonReducers,
   },
 });
 

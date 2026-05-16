@@ -42,6 +42,10 @@ client/.kiro/
 node_modules/
 vendor/
 
+# enterprise-client — cloned separately, not tracked by this repo.
+# Clone from git@github.com:kubewall/enterprise-client.git into client/enterprise-client/
+client/enterprise-client/
+
 # Binary directories.
 bin/
 

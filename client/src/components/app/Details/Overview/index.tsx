@@ -10,7 +10,7 @@ type OverviewProps = {
 
 export function Overview({ details, lableConditions, annotations, miscComponent }: OverviewProps) {
   return (
-    <div className="overview overflow-auto">
+    <div className="overview">
       <div className="items-start justify-center gap-6 rounded-lg">
         {
           details.map((detailCard, index) => {
