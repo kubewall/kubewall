@@ -46,7 +46,7 @@ jobs:
         with:
           distribution: goreleaser
           version: "~> v2"
-          args: build --snapshot --clean
+          args: build --snapshot --clean --single-target
         env:
           GITHUB_TOKEN: ${{ secrets.GORELEASER_TOKEN }}
           GOPRIVATE: github.com/kubewall/addons
