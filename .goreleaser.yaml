@@ -9,7 +9,7 @@ before:
     - sh -c "cd backend && go mod edit -dropreplace github.com/kubewall/addons && GOPRIVATE=github.com/kubewall/addons GONOSUMDB=github.com/kubewall/addons go mod tidy && cd .."
     
 builds:
-  - main: main.go
+  - main: .
     dir: ./backend
     binary: kubewall
     goos: ["linux", "darwin", "windows"]

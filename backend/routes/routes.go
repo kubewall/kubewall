@@ -3,6 +3,7 @@ package routes
 import (
 	"embed"
 	"net/http"
+	"strings"
 
 	"github.com/kubewall/kubewall/backend/addons"
 	"github.com/kubewall/kubewall/backend/container"
@@ -67,6 +68,9 @@ func ConfigureRoutes(e *echo.Echo, appContainer container.Container) {
 	e.Use(appmiddleware.ClusterConnectivityMiddleware(appContainer))
 	e.Use(appmiddleware.ClusterCacheMiddleware(appContainer))
 	e.Use(middleware.StaticWithConfig(middleware.StaticConfig{
+		Skipper: func(c echo.Context) bool {
+			return strings.HasPrefix(c.Request().URL.Path, "/api/")
+		},
 		HTML5:      true,
 		Root:       "static",
 		Filesystem: http.FS(embeddedFiles),
