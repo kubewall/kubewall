@@ -90,3 +90,40 @@ jobs:
           KUBEWALL_GO_BUILD_TAGS: podexec
           GOPRIVATE: github.com/kubewall/addons
           GONOSUMDB: github.com/kubewall/addons
+
+  helm-release:
+    needs: goreleaser
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          fetch-depth: 1
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
+
+      - name: Login to ghcr.io (Helm)
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io --username ${{ github.actor }} --password-stdin
+
+      - name: Package and push Helm chart
+        id: helm-push
+        run: |
+          VERSION="${{ github.ref_name }}"
+          VERSION_WITHOUT_V="${VERSION#v}"
+          helm package charts/kubewall --version "$VERSION_WITHOUT_V" --app-version "$VERSION_WITHOUT_V"
+          helm push "kubewall-${VERSION_WITHOUT_V}.tgz" oci://ghcr.io/kubewall/charts > .digest 2>&1
+          cat .digest
+          DIGEST=$(awk -F "[, ]+" '/Digest/{print $NF}' .digest)
+          if [[ -z "$DIGEST" ]]; then
+            echo "Failed to extract digest from helm push output"
+            exit 1
+          fi
+          echo "digest=${DIGEST}" >> $GITHUB_OUTPUT
+
+      - name: Sign Helm chart with cosign
+        run: cosign sign --yes "ghcr.io/kubewall/charts/kubewall@${{ steps.helm-push.outputs.digest }}"

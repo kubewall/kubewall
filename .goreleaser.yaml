@@ -6,7 +6,7 @@ before:
     - sh -c "git config --global url.\"https://x-access-token:${GORELEASER_TOKEN}@github.com/\".insteadOf \"https://github.com/\""
     - sh -c "cd client && git clone https://github.com/kubewall/enterprise-client enterprise-client && node enterprise-client/scripts/generate-capabilities.js --config enterprise-client/configs/free.json && cd .."
     - sh -c "yarn --cwd client install && yarn --cwd client run build && rm -rf client/node_modules && rm -rf backend/routes/static && mv client/dist backend/routes/static"
-    - sh -c "cd backend && go mod edit -dropreplace github.com/kubewall/addons && GOPRIVATE=github.com/kubewall/addons GONOSUMDB=github.com/kubewall/addons go mod tidy -tags=podexec && cd .."
+    - sh -c "cd backend && go mod edit -dropreplace github.com/kubewall/addons && GOPRIVATE=github.com/kubewall/addons GONOSUMDB=github.com/kubewall/addons go mod tidy && cd .."
     
 builds:
   - main: main.go
