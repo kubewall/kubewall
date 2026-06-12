@@ -40,6 +40,13 @@ func NewServicesRouteHandler(container container.Container, routeType base.Route
 }
 
 func NewServicesHandler(ctx context.Context, config, cluster string, container container.Container) *ServicesHandler {
+	cacheKey := fmt.Sprintf("%s-%s-handlers/network/services.NewServicesHandler", config, cluster)
+	return base.GetOrCreateHandler(cacheKey, func() *ServicesHandler {
+		return newServicesHandler(ctx, config, cluster, container)
+	})
+}
+
+func newServicesHandler(ctx context.Context, config, cluster string, container container.Container) *ServicesHandler {
 	informer := container.SharedInformerFactory(config, cluster).Core().V1().Services().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 

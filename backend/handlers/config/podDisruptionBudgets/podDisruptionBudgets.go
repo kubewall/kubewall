@@ -40,6 +40,13 @@ func NewPodDisruptionBudgetRouteHandler(container container.Container, routeType
 }
 
 func NewPodDisruptionBudgetHandler(ctx context.Context, config, cluster string, container container.Container) *PodDisruptionBudgetHandler {
+	cacheKey := fmt.Sprintf("%s-%s-handlers/config/podDisruptionBudgets.NewPodDisruptionBudgetHandler", config, cluster)
+	return base.GetOrCreateHandler(cacheKey, func() *PodDisruptionBudgetHandler {
+		return newPodDisruptionBudgetHandler(ctx, config, cluster, container)
+	})
+}
+
+func newPodDisruptionBudgetHandler(ctx context.Context, config, cluster string, container container.Container) *PodDisruptionBudgetHandler {
 	informer := container.SharedInformerFactory(config, cluster).Policy().V1().PodDisruptionBudgets().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 

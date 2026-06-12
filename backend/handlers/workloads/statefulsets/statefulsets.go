@@ -40,6 +40,13 @@ func NewStatefulSetRouteHandler(container container.Container, routeType base.Ro
 }
 
 func NewSatefulSetHandler(ctx context.Context, config, cluster string, container container.Container) *StatefulSetHandler {
+	cacheKey := fmt.Sprintf("%s-%s-handlers/workloads/statefulsets.NewSatefulSetHandler", config, cluster)
+	return base.GetOrCreateHandler(cacheKey, func() *StatefulSetHandler {
+		return newSatefulSetHandler(ctx, config, cluster, container)
+	})
+}
+
+func newSatefulSetHandler(ctx context.Context, config, cluster string, container container.Container) *StatefulSetHandler {
 	informer := container.SharedInformerFactory(config, cluster).Apps().V1().StatefulSets().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 

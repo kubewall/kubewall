@@ -44,6 +44,13 @@ func NewNodeRouteHandler(container container.Container, routeType base.RouteType
 }
 
 func NewNodeHandler(ctx context.Context, config, cluster string, container container.Container) *NodeHandler {
+	cacheKey := fmt.Sprintf("%s-%s-handlers/nodes.NewNodeHandler", config, cluster)
+	return base.GetOrCreateHandler(cacheKey, func() *NodeHandler {
+		return newNodeHandler(ctx, config, cluster, container)
+	})
+}
+
+func newNodeHandler(ctx context.Context, config, cluster string, container container.Container) *NodeHandler {
 	informer := container.SharedInformerFactory(config, cluster).Core().V1().Nodes().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 

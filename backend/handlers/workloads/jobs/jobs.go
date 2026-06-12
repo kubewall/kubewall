@@ -39,6 +39,13 @@ func NewJobsRouteHandler(container container.Container, routeType base.RouteType
 }
 
 func NewJobsHandler(ctx context.Context, config, cluster string, container container.Container) *JobsHandler {
+	cacheKey := fmt.Sprintf("%s-%s-handlers/workloads/jobs.NewJobsHandler", config, cluster)
+	return base.GetOrCreateHandler(cacheKey, func() *JobsHandler {
+		return newJobsHandler(ctx, config, cluster, container)
+	})
+}
+
+func newJobsHandler(ctx context.Context, config, cluster string, container container.Container) *JobsHandler {
 	informer := container.SharedInformerFactory(config, cluster).Batch().V1().Jobs().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 

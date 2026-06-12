@@ -39,6 +39,13 @@ func NewLimitRangesRouteHandler(container container.Container, routeType base.Ro
 }
 
 func NewLimitRangesHandler(ctx context.Context, config, cluster string, container container.Container) *LimitRangesHandler {
+	cacheKey := fmt.Sprintf("%s-%s-handlers/config/limitRanges.NewLimitRangesHandler", config, cluster)
+	return base.GetOrCreateHandler(cacheKey, func() *LimitRangesHandler {
+		return newLimitRangesHandler(ctx, config, cluster, container)
+	})
+}
+
+func newLimitRangesHandler(ctx context.Context, config, cluster string, container container.Container) *LimitRangesHandler {
 	informer := container.SharedInformerFactory(config, cluster).Core().V1().LimitRanges().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 

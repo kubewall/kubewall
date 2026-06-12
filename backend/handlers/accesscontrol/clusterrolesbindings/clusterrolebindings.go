@@ -40,6 +40,13 @@ func NewClusterRoleBindingsRouteHandler(container container.Container, routeType
 }
 
 func NewClusterRoleBindingHandler(ctx context.Context, config, cluster string, container container.Container) *ClusterRoleBindingHandler {
+	cacheKey := fmt.Sprintf("%s-%s-handlers/accesscontrol/clusterrolesbindings.NewClusterRoleBindingHandler", config, cluster)
+	return base.GetOrCreateHandler(cacheKey, func() *ClusterRoleBindingHandler {
+		return newClusterRoleBindingHandler(ctx, config, cluster, container)
+	})
+}
+
+func newClusterRoleBindingHandler(ctx context.Context, config, cluster string, container container.Container) *ClusterRoleBindingHandler {
 	informer := container.SharedInformerFactory(config, cluster).Rbac().V1().ClusterRoleBindings().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 

@@ -33,6 +33,13 @@ func NewEventsRouteHandler(container container.Container, routeType base.RouteTy
 }
 
 func NewEventsHandler(ctx context.Context, config, cluster string, container container.Container) *EventsHandler {
+	cacheKey := fmt.Sprintf("%s-%s-handlers/events.NewEventsHandler", config, cluster)
+	return base.GetOrCreateHandler(cacheKey, func() *EventsHandler {
+		return newEventsHandler(ctx, config, cluster, container)
+	})
+}
+
+func newEventsHandler(ctx context.Context, config, cluster string, container container.Container) *EventsHandler {
 	informer := container.SharedInformerFactory(config, cluster).Core().V1().Events().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 

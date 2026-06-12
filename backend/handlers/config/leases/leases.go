@@ -40,6 +40,13 @@ func NewLeaseRouteHandler(container container.Container, routeType base.RouteTyp
 }
 
 func NewLeasesHandler(ctx context.Context, config, cluster string, container container.Container) *LeasesHandler {
+	cacheKey := fmt.Sprintf("%s-%s-handlers/config/leases.NewLeasesHandler", config, cluster)
+	return base.GetOrCreateHandler(cacheKey, func() *LeasesHandler {
+		return newLeasesHandler(ctx, config, cluster, container)
+	})
+}
+
+func newLeasesHandler(ctx context.Context, config, cluster string, container container.Container) *LeasesHandler {
 	informer := container.SharedInformerFactory(config, cluster).Coordination().V1().Leases().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 

@@ -54,6 +54,13 @@ func NewDeploymentRouteHandler(container container.Container, routeType base.Rou
 }
 
 func NewDeploymentsHandler(ctx context.Context, config, cluster string, container container.Container) *DeploymentsHandler {
+	cacheKey := fmt.Sprintf("%s-%s-handlers/workloads/deployments.NewDeploymentsHandler", config, cluster)
+	return base.GetOrCreateHandler(cacheKey, func() *DeploymentsHandler {
+		return newDeploymentsHandler(ctx, config, cluster, container)
+	})
+}
+
+func newDeploymentsHandler(ctx context.Context, config, cluster string, container container.Container) *DeploymentsHandler {
 	informer := container.SharedInformerFactory(config, cluster).Apps().V1().Deployments().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 

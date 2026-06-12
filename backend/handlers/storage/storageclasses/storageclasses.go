@@ -40,6 +40,13 @@ func NewStorageClassRouteHandler(container container.Container, routeType base.R
 }
 
 func NewStorageClassesHandler(ctx context.Context, config, cluster string, container container.Container) *StorageClassesHandler {
+	cacheKey := fmt.Sprintf("%s-%s-handlers/storage/storageclasses.NewStorageClassesHandler", config, cluster)
+	return base.GetOrCreateHandler(cacheKey, func() *StorageClassesHandler {
+		return newStorageClassesHandler(ctx, config, cluster, container)
+	})
+}
+
+func newStorageClassesHandler(ctx context.Context, config, cluster string, container container.Container) *StorageClassesHandler {
 	informer := container.SharedInformerFactory(config, cluster).Storage().V1().StorageClasses().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 

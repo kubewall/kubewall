@@ -26,7 +26,7 @@ func ResourceEventHandler[T Resource](handler *BaseHandler, additionalEvents ...
 			return
 		}
 		// GetList
-		go handler.Container.EventProcessor().AddEvent(handler.Kind, handler.processListEvents(resource.GetName()))
+		handler.Container.EventProcessor().AddEvent(handler.Kind, handler.processListEvents(resource.GetName()))
 
 		var streamName string
 		if resource.GetNamespace() == "" {
@@ -35,14 +35,14 @@ func ResourceEventHandler[T Resource](handler *BaseHandler, additionalEvents ...
 			streamName = fmt.Sprintf("%s-%s-%s-%s-%s", handler.QueryConfig, handler.QueryCluster, handler.Kind, resource.GetNamespace(), resource.GetName())
 		}
 		// GetDetails
-		go handler.Container.EventProcessor().AddEvent(streamName, handler.processDetailsEvents(handler.Kind, resource.GetNamespace(), resource.GetName()))
+		handler.Container.EventProcessor().AddEvent(streamName, handler.processDetailsEvents(handler.Kind, resource.GetNamespace(), resource.GetName()))
 
 		// GetYAML
-		go handler.Container.EventProcessor().AddEvent(streamName+"-yaml", handler.processYAMLEvents(handler.Kind, resource.GetNamespace(), resource.GetName()))
+		handler.Container.EventProcessor().AddEvent(streamName+"-yaml", handler.processYAMLEvents(handler.Kind, resource.GetNamespace(), resource.GetName()))
 
 		for _, event := range additionalEvents {
 			for key, e := range event {
-				go handler.Container.EventProcessor().AddEvent(key, e)
+				handler.Container.EventProcessor().AddEvent(key, e)
 			}
 		}
 	}

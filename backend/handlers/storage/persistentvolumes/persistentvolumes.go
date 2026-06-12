@@ -39,6 +39,13 @@ func NewPersistentVolumeRouteHandler(container container.Container, routeType ba
 }
 
 func NewPersistentVolumeHandler(ctx context.Context, config, cluster string, container container.Container) *PersistentVolumeHandler {
+	cacheKey := fmt.Sprintf("%s-%s-handlers/storage/persistentvolumes.NewPersistentVolumeHandler", config, cluster)
+	return base.GetOrCreateHandler(cacheKey, func() *PersistentVolumeHandler {
+		return newPersistentVolumeHandler(ctx, config, cluster, container)
+	})
+}
+
+func newPersistentVolumeHandler(ctx context.Context, config, cluster string, container container.Container) *PersistentVolumeHandler {
 	informer := container.SharedInformerFactory(config, cluster).Core().V1().PersistentVolumes().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 

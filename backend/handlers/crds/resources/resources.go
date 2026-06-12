@@ -56,6 +56,13 @@ func NewUnstructuredRouteHandler(container container.Container, routeType base.R
 }
 
 func NewUnstructuredHandler(ctx context.Context, config, cluster, kind, group, version, resource string, container container.Container) *UnstructuredHandler {
+	cacheKey := fmt.Sprintf("%s-%s-%s-%s-%s-%s-handlers/crds/resources.NewUnstructuredHandler", config, cluster, group, version, resource, kind)
+	return base.GetOrCreateHandler(cacheKey, func() *UnstructuredHandler {
+		return newUnstructuredHandler(ctx, config, cluster, kind, group, version, resource, container)
+	})
+}
+
+func newUnstructuredHandler(ctx context.Context, config, cluster, kind, group, version, resource string, container container.Container) *UnstructuredHandler {
 	informer := container.DynamicSharedInformerFactory(config, cluster).ForResource(schema.GroupVersionResource{Group: group, Version: version, Resource: resource}).Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 

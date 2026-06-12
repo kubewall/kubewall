@@ -39,6 +39,13 @@ func NewConfigMapsRouteHandler(container container.Container, routeType base.Rou
 }
 
 func NewConfigMapsHandler(ctx context.Context, config, cluster string, container container.Container) *ConfigMapsHandler {
+	cacheKey := fmt.Sprintf("%s-%s-handlers/config/configMaps.NewConfigMapsHandler", config, cluster)
+	return base.GetOrCreateHandler(cacheKey, func() *ConfigMapsHandler {
+		return newConfigMapsHandler(ctx, config, cluster, container)
+	})
+}
+
+func newConfigMapsHandler(ctx context.Context, config, cluster string, container container.Container) *ConfigMapsHandler {
 	informer := container.SharedInformerFactory(config, cluster).Core().V1().ConfigMaps().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 

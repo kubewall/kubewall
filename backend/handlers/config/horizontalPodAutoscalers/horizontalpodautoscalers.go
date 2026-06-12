@@ -40,6 +40,13 @@ func NewHorizontalPodAutoscalersRouteHandler(container container.Container, rout
 }
 
 func NewHorizontalPodAutoScalerHandler(ctx context.Context, config, cluster string, container container.Container) *HorizontalPodAutoScalerHandler {
+	cacheKey := fmt.Sprintf("%s-%s-handlers/config/horizontalPodAutoscalers.NewHorizontalPodAutoScalerHandler", config, cluster)
+	return base.GetOrCreateHandler(cacheKey, func() *HorizontalPodAutoScalerHandler {
+		return newHorizontalPodAutoScalerHandler(ctx, config, cluster, container)
+	})
+}
+
+func newHorizontalPodAutoScalerHandler(ctx context.Context, config, cluster string, container container.Container) *HorizontalPodAutoScalerHandler {
 	informer := container.SharedInformerFactory(config, cluster).Autoscaling().V2().HorizontalPodAutoscalers().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 

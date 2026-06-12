@@ -40,6 +40,13 @@ func NewEndpointsRouteHandler(container container.Container, routeType base.Rout
 }
 
 func NewEndpointsHandler(ctx context.Context, config, cluster string, container container.Container) *EndpointsHandler {
+	cacheKey := fmt.Sprintf("%s-%s-handlers/network/endpoints.NewEndpointsHandler", config, cluster)
+	return base.GetOrCreateHandler(cacheKey, func() *EndpointsHandler {
+		return newEndpointsHandler(ctx, config, cluster, container)
+	})
+}
+
+func newEndpointsHandler(ctx context.Context, config, cluster string, container container.Container) *EndpointsHandler {
 	informer := container.SharedInformerFactory(config, cluster).Discovery().V1().EndpointSlices().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 

@@ -39,6 +39,13 @@ func NewCRDRouteHandler(container container.Container, routeType base.RouteType)
 }
 
 func NewCRDHandler(ctx context.Context, config, cluster string, container container.Container) *CRDHandler {
+	cacheKey := fmt.Sprintf("%s-%s-handlers/crds/crds.NewCRDHandler", config, cluster)
+	return base.GetOrCreateHandler(cacheKey, func() *CRDHandler {
+		return newCRDHandler(ctx, config, cluster, container)
+	})
+}
+
+func newCRDHandler(ctx context.Context, config, cluster string, container container.Container) *CRDHandler {
 	informer := container.ExtensionSharedFactoryInformer(config, cluster).Apiextensions().V1().CustomResourceDefinitions().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 

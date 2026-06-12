@@ -39,6 +39,13 @@ func NewServiceAccountsRouteHandler(container container.Container, routeType bas
 }
 
 func NewServiceAccountsHandler(ctx context.Context, config, cluster string, container container.Container) *ServiceAccountsHandler {
+	cacheKey := fmt.Sprintf("%s-%s-handlers/accesscontrol/serviceaccounts.NewServiceAccountsHandler", config, cluster)
+	return base.GetOrCreateHandler(cacheKey, func() *ServiceAccountsHandler {
+		return newServiceAccountsHandler(ctx, config, cluster, container)
+	})
+}
+
+func newServiceAccountsHandler(ctx context.Context, config, cluster string, container container.Container) *ServiceAccountsHandler {
 	informer := container.SharedInformerFactory(config, cluster).Core().V1().ServiceAccounts().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 

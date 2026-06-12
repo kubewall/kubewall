@@ -39,6 +39,13 @@ func NewCronJobsRouteHandler(container container.Container, routeType base.Route
 }
 
 func NewCronJobsHandler(ctx context.Context, config, cluster string, container container.Container) *CronJobsHandler {
+	cacheKey := fmt.Sprintf("%s-%s-handlers/workloads/cronJobs.NewCronJobsHandler", config, cluster)
+	return base.GetOrCreateHandler(cacheKey, func() *CronJobsHandler {
+		return newCronJobsHandler(ctx, config, cluster, container)
+	})
+}
+
+func newCronJobsHandler(ctx context.Context, config, cluster string, container container.Container) *CronJobsHandler {
 	informer := container.SharedInformerFactory(config, cluster).Batch().V1().CronJobs().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
