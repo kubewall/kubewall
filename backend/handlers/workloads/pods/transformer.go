@@ -151,6 +151,9 @@ func GetPodStatusReason(pod *coreV1.Pod) (string, string) {
 			reason = "Init:" + container.State.Waiting.Reason
 			initializing = true
 		default:
+			if container.State.Running != nil {
+				continue
+			}
 			reason = fmt.Sprintf("Init:%d/%d", i, len(pod.Spec.InitContainers))
 			initializing = true
 		}
