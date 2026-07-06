@@ -162,6 +162,11 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
         return createOpenRouter({
           apiKey: providerData.apiKey, baseURL: providerData.url, headers: commonHeaders, ...fetchOption
         });
+      case "requesty":
+        // Requesty is an OpenAI-compatible router (base https://router.requesty.ai/v1, Bearer auth).
+        return createOpenAI({
+          apiKey: providerData.apiKey, baseURL: providerData.url, headers: commonHeaders, ...fetchOption
+        });
       default:
         return '';
     }

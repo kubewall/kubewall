@@ -117,6 +117,13 @@ const KW_AI_PROVIDERS = [
     providerDefaultUrl: "https://openrouter.ai/api/v1",
     urlHint: "OpenRouter gateway — routes to multiple providers. Default: https://openrouter.ai/api/v1",
     icon: PROVIDER_ICONS.openrouter
+  },
+  {
+    value: "requesty",
+    label: "Requesty",
+    providerDefaultUrl: "https://router.requesty.ai/v1",
+    urlHint: "Requesty router — OpenAI-compatible gateway to multiple providers. Default: https://router.requesty.ai/v1",
+    icon: PROVIDER_ICONS.requesty
   }
 ];
 
