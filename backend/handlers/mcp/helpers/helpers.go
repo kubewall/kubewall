@@ -33,6 +33,7 @@ func ReadFirstSSEMessage(url string) (string, error) {
 	}
 
 	scanner := bufio.NewScanner(resp.Body)
+	scanner.Buffer(make([]byte, 0, 8*1024), 10*1024*1024)
 	var data strings.Builder
 
 	for scanner.Scan() {
