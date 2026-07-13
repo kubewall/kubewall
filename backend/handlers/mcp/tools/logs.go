@@ -100,6 +100,7 @@ func ReadLogsStream(sseURL string) ([]LogEntry, error) {
 	var collected []LogEntry
 
 	scanner := bufio.NewScanner(resp.Body)
+	scanner.Buffer(make([]byte, 0, 8*1024), 10*1024*1024)
 	var currentData strings.Builder
 
 	for scanner.Scan() {
