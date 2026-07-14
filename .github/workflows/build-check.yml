@@ -41,6 +41,12 @@ jobs:
       - name: Configure git for private Go modules
         run: git config --global url."https://x-access-token:${{ secrets.GORELEASER_TOKEN }}@github.com/".insteadOf "https://github.com/"
 
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet || true
+          sudo rm -rf /usr/local/lib/android || true
+          df -h
+
       - name: Run GoReleaser build
         uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6.4.0
         with:
@@ -49,5 +55,7 @@ jobs:
           args: build --snapshot --clean --single-target
         env:
           GITHUB_TOKEN: ${{ secrets.GORELEASER_TOKEN }}
+          KUBEWALL_GO_BUILD_TAGS: podexec
+          CI_BUILD: true
           GOPRIVATE: github.com/kubewall/addons
           GONOSUMDB: github.com/kubewall/addons
