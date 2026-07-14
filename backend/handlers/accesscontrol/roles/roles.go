@@ -40,6 +40,13 @@ func NewRoleRouteHandler(container container.Container, routeType base.RouteType
 }
 
 func NewRolesHandler(ctx context.Context, config, cluster string, container container.Container) *RolesHandler {
+	cacheKey := fmt.Sprintf("%s-%s-handlers/accesscontrol/roles.NewRolesHandler", config, cluster)
+	return base.GetOrCreateHandler(cacheKey, func() *RolesHandler {
+		return newRolesHandler(ctx, config, cluster, container)
+	})
+}
+
+func newRolesHandler(ctx context.Context, config, cluster string, container container.Container) *RolesHandler {
 	informer := container.SharedInformerFactory(config, cluster).Rbac().V1().Roles().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 

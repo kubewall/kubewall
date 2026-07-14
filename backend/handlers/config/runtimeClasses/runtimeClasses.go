@@ -40,6 +40,13 @@ func NewRunTimeClassRouteHandler(container container.Container, routeType base.R
 }
 
 func NewRunTimeClassHandler(ctx context.Context, config, cluster string, container container.Container) *RunTimeClassesHandler {
+	cacheKey := fmt.Sprintf("%s-%s-handlers/config/runtimeClasses.NewRunTimeClassHandler", config, cluster)
+	return base.GetOrCreateHandler(cacheKey, func() *RunTimeClassesHandler {
+		return newRunTimeClassHandler(ctx, config, cluster, container)
+	})
+}
+
+func newRunTimeClassHandler(ctx context.Context, config, cluster string, container container.Container) *RunTimeClassesHandler {
 	informer := container.SharedInformerFactory(config, cluster).Node().V1().RuntimeClasses().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 

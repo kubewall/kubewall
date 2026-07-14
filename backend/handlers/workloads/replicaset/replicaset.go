@@ -40,6 +40,13 @@ func NewReplicaSetRouteHandler(container container.Container, routeType base.Rou
 }
 
 func NewReplicaSetHandler(ctx context.Context, config, cluster string, container container.Container) *ReplicaSetHandler {
+	cacheKey := fmt.Sprintf("%s-%s-handlers/workloads/replicaset.NewReplicaSetHandler", config, cluster)
+	return base.GetOrCreateHandler(cacheKey, func() *ReplicaSetHandler {
+		return newReplicaSetHandler(ctx, config, cluster, container)
+	})
+}
+
+func newReplicaSetHandler(ctx context.Context, config, cluster string, container container.Container) *ReplicaSetHandler {
 	informer := container.SharedInformerFactory(config, cluster).Apps().V1().ReplicaSets().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 

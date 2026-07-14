@@ -38,6 +38,9 @@ type BaseHandler struct {
 
 func (h *BaseHandler) GetList(c echo.Context) error {
 	streamID := fmt.Sprintf("%s-%s-%s", h.QueryConfig, h.QueryCluster, h.Kind)
+	// Handlers are cached across requests, so publish the current list for
+	// this new subscriber instead of relying on construction-time sync.
+	h.Container.EventProcessor().AddEvent(streamID, h.processListEvents(""))
 	h.Container.SSE().ServeHTTP(streamID, c.Response(), c.Request())
 	return nil
 }

@@ -40,6 +40,13 @@ func NewDaemonSetsRouteHandler(container container.Container, routeType base.Rou
 }
 
 func NewDaemonSetsHandler(ctx context.Context, config, cluster string, container container.Container) *DaemonSetsHandlers {
+	cacheKey := fmt.Sprintf("%s-%s-handlers/workloads/daemonsets.NewDaemonSetsHandler", config, cluster)
+	return base.GetOrCreateHandler(cacheKey, func() *DaemonSetsHandlers {
+		return newDaemonSetsHandler(ctx, config, cluster, container)
+	})
+}
+
+func newDaemonSetsHandler(ctx context.Context, config, cluster string, container container.Container) *DaemonSetsHandlers {
 	informer := container.SharedInformerFactory(config, cluster).Apps().V1().DaemonSets().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 

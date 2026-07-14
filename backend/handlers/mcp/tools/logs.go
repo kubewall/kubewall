@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -99,32 +100,37 @@ func ReadLogsStream(sseURL string) ([]LogEntry, error) {
 
 	var collected []LogEntry
 
-	scanner := bufio.NewScanner(resp.Body)
+	reader := bufio.NewReader(resp.Body)
 	var currentData strings.Builder
 
-	for scanner.Scan() {
-		line := scanner.Text()
+	for {
+		line, err := reader.ReadString('\n')
+		line = strings.TrimRight(line, "\r\n")
+
 		if line == "" {
 			// End of event.
 			if currentData.Len() > 0 {
 				var entry LogEntry
-				if err := json.Unmarshal([]byte(currentData.String()), &entry); err != nil {
-					return collected, err
+				if jsonErr := json.Unmarshal([]byte(currentData.String()), &entry); jsonErr != nil {
+					return collected, jsonErr
 				}
 				collected = append(collected, entry)
 				currentData.Reset()
 			}
-			continue
-		}
-
-		if after, ok := strings.CutPrefix(line, "data:"); ok {
-			data := after
+		} else if after, ok := strings.CutPrefix(line, "data:"); ok {
 			if currentData.Len() > 0 {
 				currentData.WriteString("\n")
 			}
-			currentData.WriteString(data)
+			currentData.WriteString(after)
 		}
 		// Ignore other line types (e.g., id:, event:, :keepalive).
+
+		if err != nil {
+			if errors.Is(err, io.EOF) || errors.Is(err, context.Canceled) {
+				break
+			}
+			return collected, err
+		}
 	}
 
 	// Process any remaining data after the loop.
@@ -134,13 +140,6 @@ func ReadLogsStream(sseURL string) ([]LogEntry, error) {
 			return collected, err
 		}
 		collected = append(collected, entry)
-	}
-
-	if err := scanner.Err(); err != nil {
-		if errors.Is(err, context.Canceled) {
-			return collected, nil
-		}
-		return collected, err
 	}
 
 	return collected, nil

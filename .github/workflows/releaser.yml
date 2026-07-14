@@ -88,6 +88,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GORELEASER_TOKEN }}
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_LOGIN }}
           KUBEWALL_GO_BUILD_TAGS: podexec
+          CI_BUILD: true
           GOPRIVATE: github.com/kubewall/addons
           GONOSUMDB: github.com/kubewall/addons
 
@@ -116,11 +117,17 @@ jobs:
           VERSION="${{ github.ref_name }}"
           VERSION_WITHOUT_V="${VERSION#v}"
           helm package charts/kubewall --version "$VERSION_WITHOUT_V" --app-version "$VERSION_WITHOUT_V"
-          helm push "kubewall-${VERSION_WITHOUT_V}.tgz" oci://ghcr.io/kubewall/charts > .digest 2>&1
+          helm push "kubewall-${VERSION_WITHOUT_V}.tgz" oci://ghcr.io/kubewall/charts 2>&1 | tee .digest
+          if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
+            echo "helm push failed:"
+            cat .digest
+            exit 1
+          fi
           cat .digest
           DIGEST=$(awk -F "[, ]+" '/Digest/{print $NF}' .digest)
           if [[ -z "$DIGEST" ]]; then
             echo "Failed to extract digest from helm push output"
+            cat .digest
             exit 1
           fi
           echo "digest=${DIGEST}" >> $GITHUB_OUTPUT

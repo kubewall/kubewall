@@ -40,6 +40,13 @@ func NewIngressRouteHandler(container container.Container, routeType base.RouteT
 }
 
 func NewIngressHandler(ctx context.Context, config, cluster string, container container.Container) *IngressHandler {
+	cacheKey := fmt.Sprintf("%s-%s-handlers/network/ingresses.NewIngressHandler", config, cluster)
+	return base.GetOrCreateHandler(cacheKey, func() *IngressHandler {
+		return newIngressHandler(ctx, config, cluster, container)
+	})
+}
+
+func newIngressHandler(ctx context.Context, config, cluster string, container container.Container) *IngressHandler {
 	informer := container.SharedInformerFactory(config, cluster).Networking().V1().Ingresses().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 

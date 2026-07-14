@@ -61,6 +61,13 @@ func NewPodsRouteHandler(container container.Container, routeType base.RouteType
 }
 
 func NewPodsHandler(ctx context.Context, config, cluster string, container container.Container) *PodsHandler {
+	cacheKey := fmt.Sprintf("%s-%s-handlers/workloads/pods.NewPodsHandler", config, cluster)
+	return base.GetOrCreateHandler(cacheKey, func() *PodsHandler {
+		return newPodsHandler(ctx, config, cluster, container)
+	})
+}
+
+func newPodsHandler(ctx context.Context, config, cluster string, container container.Container) *PodsHandler {
 	informer := container.SharedInformerFactory(config, cluster).Core().V1().Pods().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 	clientSet := container.ClientSet(config, cluster)

@@ -40,6 +40,13 @@ func NewPriorityClassRouteHandler(container container.Container, routeType base.
 }
 
 func NewPriorityClassHandler(ctx context.Context, config, cluster string, container container.Container) *PriorityClassesHandler {
+	cacheKey := fmt.Sprintf("%s-%s-handlers/config/priorityClasses.NewPriorityClassHandler", config, cluster)
+	return base.GetOrCreateHandler(cacheKey, func() *PriorityClassesHandler {
+		return newPriorityClassHandler(ctx, config, cluster, container)
+	})
+}
+
+func newPriorityClassHandler(ctx context.Context, config, cluster string, container container.Container) *PriorityClassesHandler {
 	informer := container.SharedInformerFactory(config, cluster).Scheduling().V1().PriorityClasses().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 

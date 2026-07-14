@@ -150,6 +150,11 @@ func GetPodStatusReason(pod *coreV1.Pod) (string, string) {
 		case container.State.Waiting != nil && len(container.State.Waiting.Reason) > 0 && container.State.Waiting.Reason != "PodInitializing":
 			reason = "Init:" + container.State.Waiting.Reason
 			initializing = true
+		case container.State.Running != nil &&
+			i < len(pod.Spec.InitContainers) &&
+			pod.Spec.InitContainers[i].RestartPolicy != nil &&
+			*pod.Spec.InitContainers[i].RestartPolicy == coreV1.ContainerRestartPolicyAlways:
+			continue
 		default:
 			if container.State.Running != nil {
 				continue

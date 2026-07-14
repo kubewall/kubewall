@@ -39,6 +39,13 @@ func NewNamespacesRouteHandler(container container.Container, routeType base.Rou
 }
 
 func NewNamespacesHandler(ctx context.Context, config, cluster string, container container.Container) *NamespacesHandler {
+	cacheKey := fmt.Sprintf("%s-%s-handlers/namespaces.NewNamespacesHandler", config, cluster)
+	return base.GetOrCreateHandler(cacheKey, func() *NamespacesHandler {
+		return newNamespacesHandler(ctx, config, cluster, container)
+	})
+}
+
+func newNamespacesHandler(ctx context.Context, config, cluster string, container container.Container) *NamespacesHandler {
 	informer := container.SharedInformerFactory(config, cluster).Core().V1().Namespaces().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 

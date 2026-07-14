@@ -39,6 +39,13 @@ func NewSecretsRouteHandler(container container.Container, routeType base.RouteT
 }
 
 func NewSecretsHandler(ctx context.Context, config, cluster string, container container.Container) *SecretsHandler {
+	cacheKey := fmt.Sprintf("%s-%s-handlers/config/secrets.NewSecretsHandler", config, cluster)
+	return base.GetOrCreateHandler(cacheKey, func() *SecretsHandler {
+		return newSecretsHandler(ctx, config, cluster, container)
+	})
+}
+
+func newSecretsHandler(ctx context.Context, config, cluster string, container container.Container) *SecretsHandler {
 	informer := container.SharedInformerFactory(config, cluster).Core().V1().Secrets().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 

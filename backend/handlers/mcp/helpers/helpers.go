@@ -2,7 +2,9 @@ package helpers
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
@@ -32,11 +34,12 @@ func ReadFirstSSEMessage(url string) (string, error) {
 		return "", fmt.Errorf("bad status code: %d", resp.StatusCode)
 	}
 
-	scanner := bufio.NewScanner(resp.Body)
+	reader := bufio.NewReader(resp.Body)
 	var data strings.Builder
 
-	for scanner.Scan() {
-		line := scanner.Text()
+	for {
+		line, err := reader.ReadString('\n')
+		line = strings.TrimRight(line, "\r\n")
 
 		if after, ok := strings.CutPrefix(line, "data:"); ok {
 			data.WriteString(after)
@@ -47,10 +50,13 @@ func ReadFirstSSEMessage(url string) (string, error) {
 		if line == "" && data.Len() > 0 {
 			return strings.TrimSpace(data.String()), nil
 		}
-	}
 
-	if err := scanner.Err(); err != nil {
-		return "", fmt.Errorf("error reading SSE stream: %w", err)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return "", fmt.Errorf("error reading SSE stream: %w", err)
+		}
 	}
 
 	return "", fmt.Errorf("no SSE message received")

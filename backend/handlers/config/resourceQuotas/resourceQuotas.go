@@ -39,6 +39,13 @@ func NewResourceQuotaRouteHandler(container container.Container, routeType base.
 }
 
 func NewResourceQuotaHandler(ctx context.Context, config, cluster string, container container.Container) *ResourceQuotaHandler {
+	cacheKey := fmt.Sprintf("%s-%s-handlers/config/resourceQuotas.NewResourceQuotaHandler", config, cluster)
+	return base.GetOrCreateHandler(cacheKey, func() *ResourceQuotaHandler {
+		return newResourceQuotaHandler(ctx, config, cluster, container)
+	})
+}
+
+func newResourceQuotaHandler(ctx context.Context, config, cluster string, container container.Container) *ResourceQuotaHandler {
 	informer := container.SharedInformerFactory(config, cluster).Core().V1().ResourceQuotas().Informer()
 	informer.SetTransform(helpers.StripUnusedFields)
 
