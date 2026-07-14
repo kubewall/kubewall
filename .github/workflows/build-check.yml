@@ -55,6 +55,7 @@ jobs:
           args: build --snapshot --clean --single-target
         env:
           GITHUB_TOKEN: ${{ secrets.GORELEASER_TOKEN }}
+          GORELEASER_TOKEN: ${{ secrets.GORELEASER_TOKEN }}
           KUBEWALL_GO_BUILD_TAGS: podexec
           CI_BUILD: true
           GOPRIVATE: github.com/kubewall/addons
