@@ -3,17 +3,17 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const AvatarRoot = AvatarPrimitive.Root as React.ForwardRefExoticComponent<
   React.HTMLAttributes<HTMLSpanElement> & React.RefAttributes<HTMLSpanElement>
 >;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const AvatarImg = AvatarPrimitive.Image as React.ForwardRefExoticComponent<
   React.ImgHTMLAttributes<HTMLImageElement> &
     { onLoadingStatusChange?: (status: string) => void } &
     React.RefAttributes<HTMLImageElement>
 >;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const AvatarFallbackEl = AvatarPrimitive.Fallback as React.ForwardRefExoticComponent<
   React.HTMLAttributes<HTMLSpanElement> &
     { delayMs?: number } &

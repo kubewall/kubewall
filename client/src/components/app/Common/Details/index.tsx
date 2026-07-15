@@ -30,6 +30,7 @@ import { useAppSelector } from "@/redux/hooks";
 import { useDispatch } from "react-redux";
 import { useEventSource } from "../Hooks/EventSource";
 import { useSidebarSize } from "@/hooks/use-get-sidebar-size";
+import { BRAND } from "@/branding.config";
 
 const KwDetails = () => {
   const dispatch = useDispatch();
@@ -75,7 +76,7 @@ const KwDetails = () => {
     return <FourOFourError />;
   }
 
-  document.title = `kubewall - ${resourceInitialData.label.toLowerCase()} - ${resourceData?.subHeading}`;
+  document.title = `${BRAND.appTitle} - ${resourceInitialData.label.toLowerCase()} - ${resourceData?.subHeading}`;
 
   const getListPageQueryparams = () => {
     const qp: Record<string, string> = {

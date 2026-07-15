@@ -28,6 +28,7 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { createTogetherAI } from '@ai-sdk/togetherai';
+import { BRAND } from "@/branding.config";
 import { createXai } from '@ai-sdk/xai';
 import { getFullTools } from '@/data/KwAi/KwAiToolsSlice';
 import { PROVIDER_ICONS } from '@/components/app/kwAI/Configuration/icons';
@@ -72,8 +73,8 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
     if (options) {
       options.headers = {
         ...options.headers,
-        'HTTP-Referer': 'https://kubewall.com',
-        'X-Title': 'Kubewall'
+        'HTTP-Referer': BRAND.siteUrl,
+        'X-Title': BRAND.appName
       };
     }
     return fetch(newUrl, options);
@@ -185,7 +186,7 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
     setIsLoading(() => true);
     if (!input.trim() || !currentProvider) return;
 
-    const systemMessage = `You are "kubewall-ai", an intelligent Kubernetes assistant capable of operating, analyzing, and performing actions against Kubernetes clusters using tools on behalf of the user. Your job is to help with Kubernetes-related queries, analysis manifests, related manifests with one another, find issues, and ensure configurations are accurate and complete.
+    const systemMessage = `You are "${BRAND.aiAssistantName}", an intelligent Kubernetes assistant capable of operating, analyzing, and performing actions against Kubernetes clusters using tools on behalf of the user. Your job is to help with Kubernetes-related queries, analysis manifests, related manifests with one another, find issues, and ensure configurations are accurate and complete.
         You reason like a seasoned DevOps engineer, act with the precision of a policy-enforcing agent, and think like a systems architect.
 
         ## Instructions:
