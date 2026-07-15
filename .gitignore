@@ -21,6 +21,7 @@ go.work
 # Project environment config files.
 .env
 backend/.env
+!client/.env
 
 # dist folder
 dist
