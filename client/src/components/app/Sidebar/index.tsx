@@ -24,6 +24,7 @@ import { resetCustomResourcesList } from "@/data/CustomResources/CustomResources
 import { updateCustomResources } from "@/data/CustomResources/CustomResourcesSlice";
 import { useEventSource } from "../Common/Hooks/EventSource";
 import { useTheme } from "@/components/app/ThemeProvider";
+import { BRAND } from "@/branding.config";
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
 }
@@ -169,7 +170,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                             <img
                               className={`${open || openMobile ? "w-28" : "w-4 max-w-none"}`}
                               src={isDark ? (open || openMobile ? kwLogoDark : kwLogoDarkIcon) : (open || openMobile ? kwLogoLight : kwLogoLightIcon)}
-                              alt="kubewall"
+                              alt={BRAND.appName}
                             />
                           </a>
                         </div>

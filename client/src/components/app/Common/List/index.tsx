@@ -146,6 +146,7 @@ import { updateServicesList } from "@/data/Networks/Services/ServicesListSlice";
 import { updateStatefulSets } from "@/data/Workloads/StatefulSets/StatefulSetsSlice";
 import { updateStorageClassesList } from "@/data/Storages/StorageClasses/StorageClassesListSlice";
 import { useAppSelector } from "@/redux/hooks";
+import { BRAND } from "@/branding.config";
 
 type ArrayElement<ArrayType extends readonly unknown[]> =
   ArrayType extends readonly (infer ElementType)[] ? ElementType : never;
@@ -268,7 +269,7 @@ export function KwList() {
     return <FourOFourError />;
   }
 
-  document.title = `kubewall - ${tableData.instaceType}`;
+  document.title = `${BRAND.appTitle} - ${tableData.instaceType}`;
   return (
     <PageWithTerminal>
       <CreateTable

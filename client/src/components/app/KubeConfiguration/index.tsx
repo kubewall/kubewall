@@ -18,6 +18,7 @@ import { useTheme } from '@/components/app/ThemeProvider';
 import { resetDeleteConfig } from '@/data/KwClusters/DeleteConfigSlice';
 import { toast } from "sonner";
 import { useNavigate } from '@tanstack/react-router';
+import { BRAND } from "@/branding.config";
 
 export function KubeConfiguration() {
   const {
@@ -128,7 +129,7 @@ export function KubeConfiguration() {
         <div className="flex flex-col space-y-8 md:flex p-2">
           <div className="flex items-center justify-between">
             <div className="flex items-end">
-              <img className="w-40" src={isDark ? kwLogoDark : kwLogoLight} alt="kubewall" />
+              <img className="w-40" src={isDark ? kwLogoDark : kwLogoLight} alt={BRAND.appName} />
               <span className="ml-2 text-xs">({clusters.version})</span>
             </div>
             <div className="flex space-x-2">

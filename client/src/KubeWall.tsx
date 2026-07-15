@@ -4,6 +4,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { resetAllStates, useAppDispatch, useAppSelector } from "@/redux/hooks";
 
 import { App } from "./app";
+import { BRAND } from "@/branding.config";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { fetchClusters } from "@/data/KwClusters/ClustersSlice";
@@ -90,9 +91,11 @@ export function KubeWall() {
                     </Tooltip>
                   </TooltipProvider>
                 </div>
-                <div className="sticky bottom-0 w-full flex justify-center p-2 bg-muted/50">
-                  <GitHubLogoIcon className="w-6 h-6 cursor-pointer" onClick={() => window.open('https://github.com/kubewall/kubewall')} />
-                </div>
+                {BRAND.showGithubLink && (
+                  <div className="sticky bottom-0 w-full flex justify-center p-2 bg-muted/50">
+                    <GitHubLogoIcon className="w-6 h-6 cursor-pointer" onClick={() => window.open('https://github.com/kubewall/kubewall')} />
+                  </div>
+                )}
               </div>
               <div className="flex-1 flex overflow-hidden"><App /></div>
             </div>

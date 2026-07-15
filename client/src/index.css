@@ -1,126 +1,8 @@
+@import './theme.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 20 14.3% 4.1%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 20 14.3% 4.1%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 20 14.3% 4.1%;
-
-    --primary: 24 9.8% 10%;
-    --primary-foreground: 60 9.1% 97.8%;
-
-    --secondary: 60 4.8% 95.9%;
-    --secondary-foreground: 24 9.8% 10%;
-
-    --muted: 60 4.8% 95.9%;
-    --muted-foreground: 25 5.3% 44.7%;
-
-    --accent: 60 4.8% 95.9%;
-    --accent-foreground: 24 9.8% 10%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 60 9.1% 97.8%;
-
-    --success: 147, 50%, 47%;
-    --success-foreground: 60 9.1% 97.8%;
-
-    --border: 20 5.9% 90%;
-    --input: 20 5.9% 90%;
-    --ring: 20 14.3% 4.1%;
-
-    --radius: 0.5rem;
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    /* --radius: 0.3rem; */
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222.2 84% 4.9%;
-    --sidebar-primary: 222.2 47.4% 11.2%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 40% 96.1%;
-    --sidebar-accent-foreground: 222.2 47.4% 11.2%;
-    --sidebar-border: 214.3 31.8% 91.4%;
-    --sidebar-ring: 222.2 84% 4.9%;
-  }
-
-  .dark {
-    --background: 0 0% 7.0588%;
-    --foreground: 214.2857 31.8182% 91.3725%;
-    --card: 0 0% 9.0196%;
-    --card-foreground: 214.2857 31.8182% 91.3725%;
-    --popover: 0 0% 14.1176%;
-    --popover-foreground: 0 0% 66.2745%;
-    --primary: 154.8980 100.0000% 19.2157%;
-    --primary-foreground: 152.7273 19.2982% 88.8235%;
-    --secondary: 0 0% 14.1176%;
-    --secondary-foreground: 0 0% 98.0392%;
-    --muted: 0 0% 12.1569%;
-    --muted-foreground: 0 0% 63.5294%;
-    --accent: 0 0% 19.2157%;
-    --accent-foreground: 0 0% 98.0392%;
-    --destructive: 6.6667 60.0000% 20.5882%;
-    --destructive-foreground: 12.0000 12.1951% 91.9608%;
-    --border: 0 0% 16.0784%;
-    --input: 0 0% 14.1176%;
-    --ring: 141.8919 69.1589% 58.0392%;
-    --chart-1: 141.8919 69.1589% 58.0392%;
-    --chart-2: 213.1169 93.9024% 67.8431%;
-    --chart-3: 255.1351 91.7355% 76.2745%;
-    --chart-4: 43.2558 96.4126% 56.2745%;
-    --chart-5: 172.4551 66.0079% 50.3922%;
-    --sidebar: 0 0% 7.0588%;
-    --sidebar-foreground: 0 0% 53.7255%;
-    --sidebar-primary: 154.8980 100.0000% 19.2157%;
-    --sidebar-primary-foreground: 152.7273 19.2982% 88.8235%;
-    --sidebar-accent: 0 0% 19.2157%;
-    --sidebar-accent-foreground: 0 0% 98.0392%;
-    --sidebar-border: 0 0% 16.0784%;
-    --sidebar-ring: 141.8919 69.1589% 58.0392%;
-    --font-sans: Outfit, sans-serif;
-    --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
-    --font-mono: monospace;
-    /* --radius: 0.5rem; */
-    --shadow-2xs: 0px 1px 3px 0px hsl(0 0% 0% / 0.09);
-    --shadow-xs: 0px 1px 3px 0px hsl(0 0% 0% / 0.09);
-    --shadow-sm: 0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 1px 2px -1px hsl(0 0% 0% / 0.17);
-    --shadow: 0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 1px 2px -1px hsl(0 0% 0% / 0.17);
-    --shadow-md: 0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 2px 4px -1px hsl(0 0% 0% / 0.17);
-    --shadow-lg: 0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 4px 6px -1px hsl(0 0% 0% / 0.17);
-    --shadow-xl: 0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 8px 10px -1px hsl(0 0% 0% / 0.17);
-    --shadow-2xl: 0px 1px 3px 0px hsl(0 0% 0% / 0.43);
-    --sidebar-background: 0 0% 7.0588%;
-    --sidebar-foreground: 214.2857 31.8182% 91.3725%;
-    --sidebar-primary: 154.8980 100.0000% 19.2157%;
-    --sidebar-primary-foreground: 152.7273 19.2982% 88.8235%;
-    --sidebar-accent: 0 0% 19.2157%;
-    --sidebar-accent-foreground: 0 0% 98.0392%;
-    --sidebar-border: 0 0% 16.0784%;
-    --sidebar-ring: 141.8919 69.1589% 58.0392%;
-  }
-}
 
 @layer base {
   * {
@@ -317,7 +199,7 @@ body {
 } */
 
 
-/* 
+/*
 @keyframes pulseBorder {
   0%, 100% {
     opacity: 0.4;
