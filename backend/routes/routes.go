@@ -67,6 +67,7 @@ func ConfigureRoutes(e *echo.Echo, appContainer container.Container) {
 	e.Use(appmiddleware.ClusterQueryParamMiddleware(appContainer))
 	e.Use(appmiddleware.ClusterConnectivityMiddleware(appContainer))
 	e.Use(appmiddleware.ClusterCacheMiddleware(appContainer))
+	e.Use(appmiddleware.PrecompressedStaticMiddleware(embeddedFiles, "static"))
 	e.Use(middleware.StaticWithConfig(middleware.StaticConfig{
 		Skipper: func(c echo.Context) bool {
 			return strings.HasPrefix(c.Request().URL.Path, "/api/")
