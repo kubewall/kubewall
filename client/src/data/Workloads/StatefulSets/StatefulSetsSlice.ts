@@ -2,7 +2,7 @@ import { RawRequestError } from '../../kwFetch';
 import { StatefulSet } from '../../../types';
 import { createSlice } from '@reduxjs/toolkit';
 import { formatStatefulSetsResponse } from '@/utils';
-import { resetAllStates } from '@/redux/hooks';
+import { resetAllStates, resetListSlices } from '@/redux/hooks';
 
 type InitialState = {
   loading: boolean;
@@ -27,9 +27,9 @@ const statefulSetsSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(resetAllStates, () => initialState);
+    builder.addCase(resetListSlices, () => initialState);
   },
 });
-
 export default statefulSetsSlice.reducer;
 const { updateStatefulSets } = statefulSetsSlice.actions;
 export { initialState , updateStatefulSets };

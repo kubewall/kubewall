@@ -29,17 +29,27 @@ const SEARCH_DECORATIONS = {
   activeMatchColorOverviewRuler: '#FF9632',
 };
 
+// Same cap as SocketLogs' own internal buffer - this one exists only to
+// back the download button, so it doesn't need SocketLogs' scroll-position-
+// aware trimming; it can just trim unconditionally.
+const MAX_BUFFER = 50000;
+const TRIM_TO = 45000;
+
 const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterMode, setFilterMode] = useState(false);
   const [logCounts, setLogCounts] = useState({ total: 0, visible: 0 });
   const { podDetails } = useAppSelector((state: RootState) => state.podDetails);
   const [selectedContainer, setSelectedContainer] = useState('');
-  const [logs, setLogs] = useState<PodSocketResponse[]>([]);
+  // A ref, not state: this is written on every incoming log line (once per
+  // SSE message) and only ever read on click (download), so it must not
+  // trigger a re-render or copy the array on each message.
+  const logsRef = useRef<PodSocketResponse[]>([]);
   const searchAddonRef = useRef<SearchAddon | null>(null);
   const socketLogsRef = useRef<SocketLogsHandle | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const logsPanelRef = useRef<HTMLDivElement>(null);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { isDark } = useTheme();
 
   useEffect(() => {
@@ -70,9 +80,11 @@ const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => 
 
   const prevSearchTermRef = useRef('');
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setSearchTerm(val);
+  // The buffer-wide work below (replaying up to 50k lines, or an xterm
+  // addon scan with highlightLimit: 50000) is too expensive to run on every
+  // keystroke. Only the input value itself updates synchronously; the
+  // search/replay work is debounced.
+  const applySearch = (val: string) => {
     const addon = searchAddonRef.current;
 
     if (!val.trim()) {
@@ -107,11 +119,28 @@ const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => 
     }
   };
 
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setSearchTerm(val);
+
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => applySearch(val), 200);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
+  }, []);
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !filterMode) {
       e.shiftKey ? runSearch(searchTerm, 'prev') : runSearch(searchTerm, 'next');
     }
     if (e.key === 'Escape') {
+      // Cancel any pending debounced search so a stale keystroke from before
+      // Escape can't re-apply itself 200ms after this immediate clear.
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
       setSearchTerm('');
       prevSearchTermRef.current = '';
       searchAddonRef.current?.clearDecorations();
@@ -120,6 +149,7 @@ const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => 
   };
 
   const handleClear = () => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     setSearchTerm('');
     prevSearchTermRef.current = '';
     searchAddonRef.current?.clearDecorations();
@@ -127,6 +157,9 @@ const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => 
   };
 
   const handleFilterToggle = () => {
+    // Avoid a redundant replay if a debounced search from a just-typed
+    // keystroke is still pending — this immediate replay already covers it.
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     const next = !filterMode;
     setFilterMode(next);
     if (next && searchTerm.trim()) {
@@ -139,7 +172,7 @@ const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => 
   const downloadLogs = () => {
     const a = document.createElement('a');
     let logString = '';
-    logs.forEach((log) => {
+    logsRef.current.forEach((log) => {
       if (log.containerChange) {
         logString += `── ${log.containerName || 'All Containers'} ──\n`;
       } else {
@@ -155,12 +188,35 @@ const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => 
   };
 
   const updateLogs = (currentLog: PodSocketResponse) => {
-    setLogs((prev) => [...prev, currentLog]);
+    logsRef.current.push(currentLog);
+    if (logsRef.current.length > MAX_BUFFER) {
+      logsRef.current = logsRef.current.slice(-TRIM_TO);
+    }
   };
 
+  // Called once per incoming SSE log line. Coalesce into at most one state
+  // update (and one PodLogs re-render) per animation frame, instead of one
+  // per line - a bursty pod can otherwise emit far faster than 60/sec.
+  const pendingCountsRef = useRef<{ total: number; visible: number } | null>(null);
+  const countsRafRef = useRef<number | null>(null);
+
   const handleCountChange = (total: number, visible: number) => {
-    setLogCounts({ total, visible });
+    pendingCountsRef.current = { total, visible };
+    if (countsRafRef.current === null) {
+      countsRafRef.current = requestAnimationFrame(() => {
+        countsRafRef.current = null;
+        if (pendingCountsRef.current) {
+          setLogCounts(pendingCountsRef.current);
+        }
+      });
+    }
   };
+
+  useEffect(() => {
+    return () => {
+      if (countsRafRef.current !== null) cancelAnimationFrame(countsRafRef.current);
+    };
+  }, []);
 
   return (
     <div ref={logsPanelRef} className="flex flex-col h-full border rounded-lg overflow-hidden" tabIndex={-1}>

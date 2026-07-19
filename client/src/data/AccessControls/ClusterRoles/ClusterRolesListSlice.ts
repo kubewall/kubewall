@@ -1,7 +1,7 @@
 import { ClusterRolesListHeader } from '@/types';
 import { createSlice } from '@reduxjs/toolkit';
 import { formatClusterRolesResponse } from '@/utils';
-import { resetAllStates } from '@/redux/hooks';
+import { resetAllStates, resetListSlices } from '@/redux/hooks';
 
 type InitialState = {
   loading: boolean;
@@ -24,9 +24,9 @@ const clusterRolesListSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(resetAllStates, () => initialState);
+    builder.addCase(resetListSlices, () => initialState);
   },
 });
-
 export default clusterRolesListSlice.reducer;
 const { updateClusterRolesList } = clusterRolesListSlice.actions;
 export { initialState, updateClusterRolesList };

@@ -11,11 +11,12 @@ import { fetchClusters } from "@/data/KwClusters/ClustersSlice";
 import { useEffect } from "react";
 
 export function KubeWall() {
-  const router = useRouterState();
+  // Narrow selector (shallow-compared) so this component only re-renders
+  // when the pathname actually changes, not on every router state transition.
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
   const dispatch = useAppDispatch();
-  const pathname = router.location.pathname;
 
-  const configName = router.location.pathname.split('/')[1];
+  const configName = pathname.split('/')[1];
   const clusterName = new URL(location.href).searchParams.get('cluster') || '';
   const selectedResource = new URL(location.href).searchParams.get('resourcekind') || '';
   const {

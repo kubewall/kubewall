@@ -1,61 +1,26 @@
 // scrollbar-handler.js
-function initializeScrollbars() {
-  let scrollTimeout;
-  const debounceTime = 2000;
+const SCROLLBAR_ACTIVE_CLASS = 'scrollbar-active';
+const HIDE_DELAY_MS = 2000;
 
-  function handleScroll(event) {
-    const element = event.target;
-    element.classList.add('scrollbar-active');
-    clearTimeout(scrollTimeout);
-    scrollTimeout = setTimeout(() => {
-      element.classList.remove('scrollbar-active');
-    }, debounceTime);
-  }
+const hideTimers = new WeakMap();
 
-  // Check if element is scrollable
-  function isScrollable(element) {
-    const isRadixScroll = element.closest('[data-radix-scroll-area-viewport]');
-    return isRadixScroll || (
-      element.scrollHeight > element.clientHeight ||
-      element.scrollWidth > element.clientWidth
-    );
-  }
+function handleScroll(event) {
+  const element = event.target;
+  if (!(element instanceof Element)) return;
 
-  // Add listeners to existing elements
-  document.querySelectorAll('*').forEach(element => {
-    if (isScrollable(element)) {
-      element.addEventListener('scroll', handleScroll, { passive: true });
-    }
-  });
+  element.classList.add(SCROLLBAR_ACTIVE_CLASS);
 
-  // Watch for new elements
-  const observer = new MutationObserver(mutations => {
-    mutations.forEach(({ addedNodes }) => {
-      addedNodes.forEach(node => {
-        if (node.nodeType === 1) {
-          if (isScrollable(node)) {
-            node.addEventListener('scroll', handleScroll, { passive: true });
-          }
-          node.querySelectorAll('*').forEach(child => {
-            if (isScrollable(child)) {
-              child.addEventListener('scroll', handleScroll, { passive: true });
-            }
-          });
-        }
-      });
-    });
-  });
-
-  observer.observe(document.documentElement, {
-    childList: true,
-    subtree: true
-  });
+  clearTimeout(hideTimers.get(element));
+  hideTimers.set(
+    element,
+    setTimeout(() => element.classList.remove(SCROLLBAR_ACTIVE_CLASS), HIDE_DELAY_MS)
+  );
 }
 
-// Initialize
+// `scroll` events don't bubble, but they do propagate through the capture
+// phase, so one listener on `document` catches scrolling on every element -
+// current or added later - with no MutationObserver and no per-element
+// listener registration.
 if (typeof window !== 'undefined') {
-  window.addEventListener('DOMContentLoaded', initializeScrollbars);
-  window.addEventListener('unload', () => {
-    window.removeEventListener('scroll', handleScroll);
-  });
+  document.addEventListener('scroll', handleScroll, { capture: true, passive: true });
 }

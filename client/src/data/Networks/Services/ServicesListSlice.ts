@@ -1,7 +1,7 @@
 import { ServicesListHeaders } from '@/types';
 import { createSlice } from '@reduxjs/toolkit';
 import { formatServicesResponse } from '@/utils/Networks';
-import { resetAllStates } from '@/redux/hooks';
+import { resetAllStates, resetListSlices } from '@/redux/hooks';
 
 type InitialState = {
   loading: boolean;
@@ -24,9 +24,9 @@ const servicesListSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(resetAllStates, () => initialState);
+    builder.addCase(resetListSlices, () => initialState);
   },
 });
-
 export default servicesListSlice.reducer;
 const { updateServicesList } = servicesListSlice.actions;
 export { initialState, updateServicesList };

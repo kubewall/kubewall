@@ -1,7 +1,7 @@
 import { ClusterEventsHeaders } from '@/types';
 import { createSlice } from '@reduxjs/toolkit';
 import { formatClusterEvents } from '@/utils';
-import { resetAllStates } from '@/redux/hooks';
+import { resetAllStates, resetListSlices } from '@/redux/hooks';
 
 type InitialState = {
   loading: boolean;
@@ -24,9 +24,9 @@ const clusterEventsListSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(resetAllStates, () => initialState);
+    builder.addCase(resetListSlices, () => initialState);
   },
 });
-
 export default clusterEventsListSlice.reducer;
 const { updateClusterEventsList } = clusterEventsListSlice.actions;
 export { initialState, updateClusterEventsList };

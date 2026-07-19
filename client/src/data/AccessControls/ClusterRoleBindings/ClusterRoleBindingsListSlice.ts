@@ -1,7 +1,7 @@
 import { ClusterRoleBindingsListHeader } from '@/types';
 import { createSlice } from '@reduxjs/toolkit';
 import { formatClusterRoleBindingsResponse } from '@/utils';
-import { resetAllStates } from '@/redux/hooks';
+import { resetAllStates, resetListSlices } from '@/redux/hooks';
 
 type InitialState = {
   loading: boolean;
@@ -24,9 +24,9 @@ const clusterRoleBindingsListSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(resetAllStates, () => initialState);
+    builder.addCase(resetListSlices, () => initialState);
   },
 });
-
 export default clusterRoleBindingsListSlice.reducer;
 const { updateClusterRoleBindingList } = clusterRoleBindingsListSlice.actions;
 export { initialState, updateClusterRoleBindingList };

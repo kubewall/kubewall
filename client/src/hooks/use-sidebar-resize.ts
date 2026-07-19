@@ -46,127 +46,149 @@ export function useSidebarResize({
   const startWidth = React.useRef(0);
   const isInteractingWithRail = React.useRef(false);
   const lastWidth = React.useRef(0);
-  const lastLoggedWidth = React.useRef(0);
+  const unitRef = React.useRef<"rem" | "px">("rem");
+  const pendingWidthRef = React.useRef<string | null>(null);
+  const rafRef = React.useRef<number | null>(null);
   const autoCollapseThreshold = React.useRef(toPx(minResizeWidth) * 0.55); // 55% of min width
+
+  // The drag-session listeners below are attached once (in handleMouseDown)
+  // and read the latest props/callbacks through this ref, instead of being
+  // torn down and re-attached to `document` on every width/prop change -
+  // which previously happened on nearly every mousemove during a drag.
+  const latest = React.useRef({ onResize, onToggle, isCollapsed, minResizeWidth, maxResizeWidth, setIsDraggingRail });
+  React.useEffect(() => {
+    latest.current = { onResize, onToggle, isCollapsed, minResizeWidth, maxResizeWidth, setIsDraggingRail };
+  });
 
   const persistWidth = React.useCallback((width: string) => {
     document.cookie = `${SIDEBAR_WIDTH_COOKIE_NAME}=${width}; path=/; max-age=${SIDEBAR_WIDTH_COOKIE_MAX_AGE}`;
   }, []);
 
+  const flushPendingWidth = React.useCallback(() => {
+    rafRef.current = null;
+    if (pendingWidthRef.current !== null) {
+      latest.current.onResize(pendingWidthRef.current);
+      pendingWidthRef.current = null;
+    }
+  }, []);
+
+  const handleMouseMove = React.useCallback((e: MouseEvent) => {
+    if (!isInteractingWithRail.current || latest.current.isCollapsed) return;
+
+    const deltaX = Math.abs(e.clientX - startX.current);
+    if (!isDragging.current && deltaX > 5) {
+      isDragging.current = true;
+      latest.current.setIsDraggingRail(true);
+    }
+
+    if (!isDragging.current) return;
+
+    const unit = unitRef.current;
+    const minWidthPx = toPx(latest.current.minResizeWidth);
+    const maxWidthPx = toPx(latest.current.maxResizeWidth);
+
+    // Calculate new width in pixels
+    const deltaWidth = e.clientX - startX.current;
+    const newWidthPx = startWidth.current + deltaWidth;
+
+    // Auto-collapse if dragged below threshold
+    if (newWidthPx < autoCollapseThreshold.current && !latest.current.isCollapsed) {
+      latest.current.onToggle();
+      isDragging.current = false;
+      isInteractingWithRail.current = false;
+      latest.current.setIsDraggingRail(false);
+      return;
+    }
+
+    // Rest of the existing width calculation logic
+    const clampedWidthPx = Math.max(
+      minWidthPx,
+      Math.min(maxWidthPx, newWidthPx)
+    );
+
+    // Convert to the target unit if needed
+    const newWidth = unit === "rem" ? clampedWidthPx / 16 : clampedWidthPx;
+
+    // Use appropriate threshold based on unit
+    const threshold = unit === "rem" ? 0.1 : 1;
+    if (
+      Math.abs(newWidth - lastWidth.current / (unit === "rem" ? 16 : 1)) >=
+      threshold
+    ) {
+      lastWidth.current = clampedWidthPx; // Store in px for consistent comparisons
+      pendingWidthRef.current = formatWidth(newWidth, unit);
+      // Coalesce rapid mousemove events into at most one state update (and
+      // one SidebarContext/consumer re-render) per animation frame, instead
+      // of one per pixel moved.
+      if (rafRef.current === null) {
+        rafRef.current = requestAnimationFrame(flushPendingWidth);
+      }
+    }
+  }, [flushPendingWidth]);
+
+  const handleMouseUp = React.useCallback(() => {
+    document.removeEventListener("mousemove", handleMouseMove);
+    document.removeEventListener("mouseup", handleMouseUp);
+
+    if (!isInteractingWithRail.current) return;
+
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+
+    if (isDragging.current) {
+      // Persist once, at the end of the drag, instead of on every mousemove.
+      const finalWidth = pendingWidthRef.current
+        ?? formatWidth(lastWidth.current / (unitRef.current === "rem" ? 16 : 1), unitRef.current);
+      if (pendingWidthRef.current !== null) {
+        latest.current.onResize(pendingWidthRef.current);
+        pendingWidthRef.current = null;
+      }
+      persistWidth(finalWidth);
+    } else {
+      latest.current.onToggle();
+    }
+
+    isDragging.current = false;
+    isInteractingWithRail.current = false;
+    lastWidth.current = 0;
+    latest.current.setIsDraggingRail(false);
+  }, [handleMouseMove, persistWidth]);
+
   const handleMouseDown = React.useCallback(
     (e: React.MouseEvent) => {
       isInteractingWithRail.current = true;
+      // Attached only for the duration of this click/drag (removed in
+      // handleMouseUp) instead of for the component's entire lifetime.
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
 
       if (!enableDrag || isCollapsed) {
-        // console.log("[Rail] Click only mode - collapsed or drag disabled");
         return;
       }
 
       startWidth.current = toPx(currentWidth);
       startX.current = e.clientX;
       lastWidth.current = startWidth.current;
-      lastLoggedWidth.current = startWidth.current;
+      unitRef.current = parseWidth(currentWidth).unit;
 
-      // console.log(`[Rail] Started at ${currentWidth}`);
       e.preventDefault();
     },
-    [enableDrag, isCollapsed, currentWidth]
+    [enableDrag, isCollapsed, currentWidth, handleMouseMove, handleMouseUp]
   );
 
+  // Safety net: don't leak document listeners or a pending rAF if the
+  // component unmounts mid-drag.
   React.useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isInteractingWithRail.current || isCollapsed) return;
-
-      const deltaX = Math.abs(e.clientX - startX.current);
-      if (!isDragging.current && deltaX > 5) {
-        isDragging.current = true;
-        // console.log("[Rail] Started dragging");
-        setIsDraggingRail(true);
-      }
-
-      if (isDragging.current) {
-        const { unit } = parseWidth(currentWidth);
-        const minWidthPx = toPx(minResizeWidth);
-        const maxWidthPx = toPx(maxResizeWidth);
-
-        // Calculate new width in pixels
-        const deltaWidth = e.clientX - startX.current;
-        const newWidthPx = startWidth.current + deltaWidth;
-
-        // Auto-collapse if dragged below threshold
-        if (newWidthPx < autoCollapseThreshold.current && !isCollapsed) {
-          onToggle();
-          isDragging.current = false;
-          isInteractingWithRail.current = false;
-          setIsDraggingRail(false);
-          return;
-        }
-
-        // Rest of the existing width calculation logic
-        const clampedWidthPx = Math.max(
-          minWidthPx,
-          Math.min(maxWidthPx, newWidthPx)
-        );
-
-        // Convert to the target unit if needed
-        const newWidth = unit === "rem" ? clampedWidthPx / 16 : clampedWidthPx;
-
-        // Use appropriate threshold based on unit
-        const threshold = unit === "rem" ? 0.1 : 1;
-        if (
-          Math.abs(newWidth - lastWidth.current / (unit === "rem" ? 16 : 1)) >=
-          threshold
-        ) {
-          const formattedWidth = formatWidth(newWidth, unit);
-          onResize(formattedWidth);
-          persistWidth(formattedWidth); // Store width in cookie when it changes
-          lastWidth.current = clampedWidthPx; // Store in px for consistent comparisons
-
-          // Log on larger changes
-          const logThreshold = unit === "rem" ? 1 : 16;
-          if (
-            Math.abs(
-              newWidth - lastLoggedWidth.current / (unit === "rem" ? 16 : 1)
-            ) >= logThreshold
-          ) {
-            // console.log(`[Rail] Width: ${formattedWidth}`);
-            lastLoggedWidth.current = clampedWidthPx;
-          }
-        }
-      }
-    };
-
-    const handleMouseUp = () => {
-      if (!isInteractingWithRail.current) return;
-
-      if (!isDragging.current) {
-        onToggle();
-      }
-
-      isDragging.current = false;
-      isInteractingWithRail.current = false;
-      lastWidth.current = 0;
-      lastLoggedWidth.current = 0;
-      setIsDraggingRail(false);
-    };
-
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-
     return () => {
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+      }
     };
-  }, [
-    onResize,
-    onToggle,
-    isCollapsed,
-    currentWidth,
-    minResizeWidth,
-    maxResizeWidth,
-    persistWidth,
-    setIsDraggingRail,
-  ]);
+  }, [handleMouseMove, handleMouseUp]);
 
   return {
     dragRef,

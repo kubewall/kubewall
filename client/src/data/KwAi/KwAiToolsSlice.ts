@@ -1,4 +1,4 @@
-import { ToolSet, experimental_createMCPClient } from "ai";
+import type { ToolSet, experimental_MCPClient as MCPClient } from "ai";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 import { RawRequestError } from "../kwFetch";
@@ -6,6 +6,18 @@ import { serializeError } from "serialize-error";
 
 // Module-level variable to store the full tools object (including functions)
 let fullTools: ToolSet = {};
+// AiChat mounts a new MCP client every time the panel is opened (or the
+// chat/details view remounts it); without tracking and closing the previous
+// one, each mount leaks another open SSE connection to /api/v1/mcp/sse.
+let currentClient: MCPClient | null = null;
+
+const closeCurrentClient = async () => {
+  if (currentClient) {
+    const client = currentClient;
+    currentClient = null;
+    await client.close().catch(() => {});
+  }
+};
 
 type InitialState = {
   loading: boolean;
@@ -27,6 +39,12 @@ const initialState: InitialState = {
 
 const fetchKwAiTools = createAsyncThunk('kwAiTools', async ({isDev, config, cluster}: FetchKwAiToolsProps, thunkAPI) => {
   try {
+    // Dynamically imported so the redux store (always eager) doesn't pull in
+    // the `ai` runtime at startup - only when this thunk actually runs.
+    const { experimental_createMCPClient } = await import("ai");
+
+    await closeCurrentClient();
+
     const hostName = isDev ? 'http://localhost:7080' : window.location.origin;
     const client = await experimental_createMCPClient({
       transport: {
@@ -34,6 +52,7 @@ const fetchKwAiTools = createAsyncThunk('kwAiTools', async ({isDev, config, clus
         url: `${hostName}/api/v1/mcp/sse?cluster=${cluster}&config=${config}`,
       },
     });
+    currentClient = client;
     const tools = await client.tools();
 
     // Store the full tools object (with functions) outside Redux
@@ -82,6 +101,9 @@ const kwAiToolsSlice = createSlice({
 
 // Export a getter for the full tools object (with functions)
 export const getFullTools = () => fullTools;
+
+// Called when the chat panel unmounts, so the MCP connection doesn't outlive it.
+export const closeKwAiTools = closeCurrentClient;
 
 export default kwAiToolsSlice.reducer;
 export { initialState, fetchKwAiTools };

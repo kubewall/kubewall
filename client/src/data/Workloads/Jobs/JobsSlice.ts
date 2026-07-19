@@ -2,7 +2,7 @@ import { Jobs } from '../../../types';
 import { RawRequestError } from '../../kwFetch';
 import { createSlice } from '@reduxjs/toolkit';
 import { formatJobsResponse } from '@/utils';
-import { resetAllStates } from '@/redux/hooks';
+import { resetAllStates, resetListSlices } from '@/redux/hooks';
 
 type InitialState = {
   loading: boolean;
@@ -27,9 +27,9 @@ const jobsSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(resetAllStates, () => initialState);
+    builder.addCase(resetListSlices, () => initialState);
   },
 });
-
 export default jobsSlice.reducer;
 const { updateJobs } = jobsSlice.actions;
 export { initialState, updateJobs };

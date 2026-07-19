@@ -14,7 +14,7 @@ import { ChatWindow } from '@/components/app/kwAI/Chat';
 import { Configuration } from './Configuration';
 import { TabsContent } from '@radix-ui/react-tabs';
 import { cn } from '@/lib/utils';
-import { fetchKwAiTools } from '@/data/KwAi/KwAiToolsSlice';
+import { closeKwAiTools, fetchKwAiTools } from '@/data/KwAi/KwAiToolsSlice';
 import { useSidebarSize } from '@/hooks/use-get-sidebar-size';
 
 interface AiChatProps {
@@ -61,6 +61,12 @@ export function AiChat({ isFullscreen = false, onToggleFullscreen, customHeight,
     dispatch(fetchKwAiTools({isDev: clusters.version === 'dev', config, cluster}));
     const kwAIStoredModels = JSON.parse(localStorage.getItem('kwAIStoredModels') || '{}') as kwAIStoredModels;
     setKwAIStoredModelsCollection(() => kwAIStoredModels);
+
+    // AiChat mounts a new MCP client every time the panel opens; close it on
+    // unmount so the SSE connection doesn't outlive the panel.
+    return () => {
+      closeKwAiTools();
+    };
   }, []);
 
 

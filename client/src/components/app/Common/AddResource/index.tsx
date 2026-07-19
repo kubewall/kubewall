@@ -2,18 +2,21 @@ import './index.css';
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { resetUpdateYaml, updateYaml } from '@/data/Yaml/YamlUpdateSlice';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
-import Editor from '../../Details/YamlEditor/MonacoWrapper';
 import { FilePlusIcon } from "@radix-ui/react-icons";
 import { Loader } from '../../Loader';
 import { kwList } from '@/routes';
 import { toast } from 'sonner';
 import { useTheme } from '@/components/app/ThemeProvider';
+
+// Monaco is a multi-MB dependency; load it only once the Add Resource dialog
+// actually needs to render an editor instead of paying for it in the main bundle.
+const Editor = lazy(() => import('../../Details/YamlEditor/MonacoWrapper'));
 
 const AddResource = () => {
   const dispatch = useAppDispatch();
@@ -137,19 +140,21 @@ const AddResource = () => {
                   Apply
                 </Button>
               }
-              <Editor
-                className='border rounded-md h-screen'
-                value={value}
-                defaultLanguage='yaml'
-                onChange={onChange}
-                theme={monacoTheme}
-                options={{
-                  minimap: { enabled: false },
-                  automaticLayout: true,
-                }}
-                width={editorDimensions.width}
-                height={editorDimensions.height}
-              />
+              <Suspense fallback={<Loader />}>
+                <Editor
+                  className='border rounded-md h-screen'
+                  value={value}
+                  defaultLanguage='yaml'
+                  onChange={onChange}
+                  theme={monacoTheme}
+                  options={{
+                    minimap: { enabled: false },
+                    automaticLayout: true,
+                  }}
+                  width={editorDimensions.width}
+                  height={editorDimensions.height}
+                />
+              </Suspense>
             </>
           )}
 

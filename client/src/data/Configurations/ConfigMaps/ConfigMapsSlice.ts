@@ -2,7 +2,7 @@ import { ConfigMaps } from '@/types';
 import { RawRequestError } from '@/data/kwFetch';
 import { createSlice } from '@reduxjs/toolkit';
 import { formatConfigMapsResponse } from '@/utils';
-import { resetAllStates } from '@/redux/hooks';
+import { resetAllStates, resetListSlices } from '@/redux/hooks';
 
 type InitialState = {
   loading: boolean;
@@ -27,9 +27,9 @@ const configMapsSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(resetAllStates, () => initialState);
+    builder.addCase(resetListSlices, () => initialState);
   },
 });
-
 export default configMapsSlice.reducer;
 const { updateConfigMapsList } = configMapsSlice.actions;
 export { initialState, updateConfigMapsList };

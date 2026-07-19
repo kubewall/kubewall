@@ -1,18 +1,22 @@
-import { Navigate, createRootRoute, createRoute, createRouter } from '@tanstack/react-router';
+import { Navigate, createRootRoute, createRoute, createRouter, lazyRouteComponent } from '@tanstack/react-router';
 import { kwDetailsSearch, kwListSearch } from '@/types';
 
 import FourOFourError from "@/components/app/Errors/404Error";
 import GenericError from "@/components/app/Errors/GenericError";
-import { KubeConfiguration } from '@/components/app/KubeConfiguration';
 import { KubeWall } from '@/KubeWall';
-import { KwDetails } from '@/components/app/Common/Details';
-import { KwList } from '@/components/app/Common/List';
 
 const AppWrapper = ({ component }: { component: JSX.Element }) => {
   return (
     component
   );
 };
+
+// Each top-level page becomes its own chunk, fetched (and preloaded on link
+// intent, per defaultPreload below) only when a user navigates there instead
+// of all landing in the single startup bundle.
+const KubeConfigurationLazy = lazyRouteComponent(() => import('@/components/app/KubeConfiguration'), 'KubeConfiguration');
+const KwListLazy = lazyRouteComponent(() => import('@/components/app/Common/List'), 'KwList');
+const KwDetailsLazy = lazyRouteComponent(() => import('@/components/app/Common/Details'), 'KwDetails');
 
 const rootRoute = createRootRoute({
   component: () => <KubeWall />
@@ -27,7 +31,7 @@ const indexRoute = createRoute({
 const kwList = createRoute({
   getParentRoute: () => rootRoute,
   path: '/$config/list',
-  component: () => <AppWrapper component={<KwList />} />,
+  component: () => <AppWrapper component={<KwListLazy />} />,
   validateSearch: (search: Record<string, unknown>): kwListSearch => {
     return {
       cluster: String(search.cluster) || '',
@@ -43,7 +47,7 @@ const kwList = createRoute({
 const kwDetails = createRoute({
   getParentRoute: () => rootRoute,
   path: '/$config/details',
-  component: () => <AppWrapper component={<KwDetails />} />,
+  component: () => <AppWrapper component={<KwDetailsLazy />} />,
   validateSearch: (search: Record<string, unknown>): kwDetailsSearch => ({
     cluster: String(search.cluster) || '',
     resourcekind: String(search.resourcekind) || '',
@@ -61,7 +65,7 @@ const kwDetails = createRoute({
 const kubeConfigurationRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/kwconfig',
-  component: KubeConfiguration,
+  component: KubeConfigurationLazy,
 });
 
 const routeTree = rootRoute.addChildren([

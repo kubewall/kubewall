@@ -49,6 +49,7 @@
     "@tanstack/match-sorter-utils": "^8.11.3",
     "@tanstack/react-router": "1.56.3",
     "@tanstack/react-table": "^8.11.2",
+    "@tanstack/react-virtual": "^3.14.6",
     "@types/node": "^20.10.4",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/addon-search": "^0.15.0",
@@ -104,6 +105,7 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
     "typescript": "^5.2.2",
-    "vite": "^5.4.19"
+    "vite": "^5.4.19",
+    "vite-plugin-compression2": "^2.5.3"
   }
 }

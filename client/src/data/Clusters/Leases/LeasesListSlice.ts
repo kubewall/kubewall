@@ -1,6 +1,6 @@
 import { LeasesListHeader } from '@/types';
 import { createSlice } from '@reduxjs/toolkit';
-import { resetAllStates } from '@/redux/hooks';
+import { resetAllStates, resetListSlices } from '@/redux/hooks';
 
 type InitialState = {
   loading: boolean;
@@ -23,9 +23,9 @@ const leasesListSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(resetAllStates, () => initialState);
+    builder.addCase(resetListSlices, () => initialState);
   },
 });
-
 export default leasesListSlice.reducer;
 const { updateLeasesList } = leasesListSlice.actions;
 export { initialState, updateLeasesList };

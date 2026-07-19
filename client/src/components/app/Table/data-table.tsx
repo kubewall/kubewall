@@ -22,13 +22,22 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 
-import { AiChat } from '../kwAI';
 import { DataTableToolbar } from "@/components/app/Table/TableToolbar";
+import { Loader } from '@/components/app/Loader';
 import { RootState } from "@/redux/store";
 import { TableDelete } from './TableDelete';
 import { useAppSelector } from "@/redux/hooks";
+import { useVirtualizer } from "@tanstack/react-virtual";
+
+// Rows are single-line and fairly uniform; this is just a starting estimate -
+// useVirtualizer corrects it per-row once each one is actually measured.
+const ESTIMATED_ROW_HEIGHT = 40;
+
+// kwAI pulls in every LLM provider SDK plus the markdown/highlight pipeline;
+// load it only when the chat panel is actually opened.
+const AiChat = lazy(() => import('../kwAI').then((m) => ({ default: m.AiChat })));
 
 type DataTableProps<TData, TValue> = {
   columns: ColumnDef<TData, TValue>[];
@@ -126,6 +135,20 @@ export function DataTable<TData, TValue>({
     getRowId: row => row?.uid || row?.metadata?.uid,
   });
 
+  const { rows } = table.getRowModel();
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+  const rowVirtualizer = useVirtualizer<HTMLDivElement, HTMLTableRowElement>({
+    count: rows.length,
+    getScrollElement: () => tableContainerRef.current,
+    estimateSize: () => ESTIMATED_ROW_HEIGHT,
+    overscan: 10,
+    getItemKey: (index) => rows[index]?.id ?? index,
+  });
+  const virtualRows = rowVirtualizer.getVirtualItems();
+  const totalSize = rowVirtualizer.getTotalSize();
+  const paddingTop = virtualRows.length > 0 ? virtualRows[0].start : 0;
+  const paddingBottom = virtualRows.length > 0 ? totalSize - virtualRows[virtualRows.length - 1].end : 0;
+
   const getIdAndSetClass = (shouldSetClass: boolean, id: string) => {
     if (shouldSetClass) {
       setTimeout(() => {
@@ -165,7 +188,7 @@ export function DataTable<TData, TValue>({
         {
           !fullScreen &&
           <ResizablePanel id="table" order={1} defaultSize={showChat ? 55 : 100}>
-            <div className={`border border-x-0 overflow-auto ${tableWidthCss} `}>
+            <div ref={tableContainerRef} className={`border border-x-0 overflow-auto ${tableWidthCss} `}>
               {
                 Object.keys(rowSelection).length > 0 &&
                 <TableDelete selectedRows={table.getSelectedRowModel().rows} toggleAllRowsSelected={table.resetRowSelection} />
@@ -191,23 +214,40 @@ export function DataTable<TData, TValue>({
                   ))}
                 </TableHeader>
                 <TableBody>
-                  {table.getRowModel().rows?.length ? (
-                    table.getRowModel().rows.map((row, index) => (
-                      <TableRow
-                        key={index}
-                        id={getIdAndSetClass(row.original.hasUpdated, row.original.name)}
-                        data-state={row.getIsSelected() && 'selected'}
-                      >
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id}>
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext()
-                            )}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))
+                  {rows.length ? (
+                    <>
+                      {paddingTop > 0 && (
+                        <tr>
+                          <td style={{ height: `${paddingTop}px` }} colSpan={columns.length} />
+                        </tr>
+                      )}
+                      {virtualRows.map((virtualRow) => {
+                        const row = rows[virtualRow.index];
+                        return (
+                          <TableRow
+                            key={row.id}
+                            ref={rowVirtualizer.measureElement}
+                            data-index={virtualRow.index}
+                            id={getIdAndSetClass(row.original.hasUpdated, row.original.name)}
+                            data-state={row.getIsSelected() && 'selected'}
+                          >
+                            {row.getVisibleCells().map((cell) => (
+                              <TableCell key={cell.id}>
+                                {flexRender(
+                                  cell.column.columnDef.cell,
+                                  cell.getContext()
+                                )}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        );
+                      })}
+                      {paddingBottom > 0 && (
+                        <tr>
+                          <td style={{ height: `${paddingBottom}px` }} colSpan={columns.length} />
+                        </tr>
+                      )}
+                    </>
                   ) : (
                     <TableRow className={isEventTable ? 'empty-table-events' : 'empty-table'}>
                       <TableCell
@@ -230,10 +270,9 @@ export function DataTable<TData, TValue>({
           <>
             { !fullScreen && <ResizableHandle withHandle/> }
             <ResizablePanel id="ai-chat" order={2} minSize={30} defaultSize={fullScreen ? 100 : 45}>
-              {/* <div className="flex h-full items-center justify-center p-6">
-                <span className="font-semibold">Sidebar</span>
-              </div> */}
-              <AiChat customHeight='chatbot-height' isFullscreen={fullScreen} onClose={onChatClose} onToggleFullscreen={() => setFullScreen(!fullScreen)} />
+              <Suspense fallback={<Loader />}>
+                <AiChat customHeight='chatbot-height' isFullscreen={fullScreen} onClose={onChatClose} onToggleFullscreen={() => setFullScreen(!fullScreen)} />
+              </Suspense>
             </ResizablePanel>
           </>
         }

@@ -1,7 +1,7 @@
 import { PersistentVolumesHeaders } from '@/types';
 import { createSlice } from '@reduxjs/toolkit';
 import { formatPersistentVolumesResponse } from '@/utils';
-import { resetAllStates } from '@/redux/hooks';
+import { resetAllStates, resetListSlices } from '@/redux/hooks';
 
 type InitialState = {
   loading: boolean;
@@ -24,9 +24,9 @@ const persistentVolumesListSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(resetAllStates, () => initialState);
+    builder.addCase(resetListSlices, () => initialState);
   },
 });
-
 export default persistentVolumesListSlice.reducer;
 const { updatePersistentVolumesList } = persistentVolumesListSlice.actions;
 export { initialState, updatePersistentVolumesList };

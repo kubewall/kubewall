@@ -5,7 +5,7 @@ import { ChevronRight, DatabaseIcon, LayersIcon, LayoutGridIcon, NetworkIcon, Sh
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { SidebarContent, SidebarGroup, SidebarGroupLabel, Sidebar as SidebarMainComponent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarRail, useSidebar } from "@/components/ui/sidebar";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { createEventStreamQueryObject, getEventStreamUrl } from "@/utils";
 import { memo, useEffect, useMemo, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
@@ -32,13 +32,18 @@ interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const Sidebar = memo(function ({ className }: SidebarProps) {
   const [activeTab, setActiveTab] = useState('');
-  const router = useRouterState();
+  // Narrow selector (shallow-compared by useStore) so this component only
+  // re-renders when pathname/search actually change, not on every router
+  // state transition (pending, matches, hover-preload, ...).
+  const { pathname, search } = useRouterState({
+    select: (state) => ({ pathname: state.location.pathname, search: state.location.search }),
+  });
   const navigate = useNavigate();
   const routerForce = useRouter();
   const dispatch = useAppDispatch();
   const { isDark } = useTheme();
-  const configName = router.location.pathname.split('/')[1];
-  const queryParams = new URLSearchParams(router.location.search);
+  const configName = pathname.split('/')[1];
+  const queryParams = new URLSearchParams(search);
   const clusterName = queryParams.get('cluster') || '';
   const {
     clusters
@@ -202,20 +207,18 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                                     NAVIGATION_ROUTE[route].map(({ name, route: routeValue }) => {
                                       return (
                                         <SidebarMenuSubItem key={routeValue} className="cursor-pointer">
-                                          <TooltipProvider delayDuration={0}>
-                                            <Tooltip >
-                                              <TooltipTrigger asChild>
-                                                <SidebarMenuSubButton asChild isActive={getActiveNav(routeValue, true)}>
-                                                  <a onClick={() => onNavClick(routeValue)}>
-                                                    <span className="text-gray-600 dark:text-gray-300">{name}</span>
-                                                  </a>
-                                                </SidebarMenuSubButton>
-                                              </TooltipTrigger>
-                                              <TooltipContent side="right">
-                                                <p>{name}</p>
-                                              </TooltipContent>
-                                            </Tooltip>
-                                          </TooltipProvider>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <SidebarMenuSubButton asChild isActive={getActiveNav(routeValue, true)}>
+                                                <a onClick={() => onNavClick(routeValue)}>
+                                                  <span className="text-gray-600 dark:text-gray-300">{name}</span>
+                                                </a>
+                                              </SidebarMenuSubButton>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="right">
+                                              <p>{name}</p>
+                                            </TooltipContent>
+                                          </Tooltip>
                                         </SidebarMenuSubItem>
                                       );
                                     })
@@ -263,21 +266,19 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                   <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden truncate">Custom Resources</SidebarGroupLabel>
                   <SidebarMenu>
                     <SidebarMenuItem className="cursor-pointer">
-                      <TooltipProvider delayDuration={0}>
-                        <Tooltip >
-                          <TooltipTrigger asChild>
-                            <SidebarMenuButton className='group-data-[collapsible=icon]:justify-center' asChild tooltip='Definitions'>
-                              <a onClick={() => onNavClick('customresourcedefinitions')}>
-                                {getResourceIcon('customesources')}
-                                <span className='truncate text-gray-800 dark:text-gray-200 group-data-[collapsible=icon]:hidden'>Definitions</span>
-                              </a>
-                            </SidebarMenuButton>
-                          </TooltipTrigger>
-                          <TooltipContent side="right">
-                            <p>Definitions</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <SidebarMenuButton className='group-data-[collapsible=icon]:justify-center' asChild tooltip='Definitions'>
+                            <a onClick={() => onNavClick('customresourcedefinitions')}>
+                              {getResourceIcon('customesources')}
+                              <span className='truncate text-gray-800 dark:text-gray-200 group-data-[collapsible=icon]:hidden'>Definitions</span>
+                            </a>
+                          </SidebarMenuButton>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">
+                          <p>Definitions</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </SidebarMenuItem>
                     {Object.keys(sortedCustomResources).map((customResourceGroup) => (
                       <Collapsible
@@ -308,20 +309,18 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                               <SidebarMenuSub>
                                 {sortedCustomResources[customResourceGroup].resources.map((customResource) => (
                                   <SidebarMenuSubItem key={customResource.name} className="cursor-pointer">
-                                    <TooltipProvider delayDuration={0}>
-                                      <Tooltip >
-                                        <TooltipTrigger asChild>
-                                          <SidebarMenuSubButton asChild isActive={getActiveNav(customResource.name)}>
-                                            <a onClick={() => onCustomResourcesNavClick(customResource.route, customResource.name)}>
-                                              <span className="text-gray-600 dark:text-gray-300 group-data-[collapsible=icon]:hidden">{customResource.name}</span>
-                                            </a>
-                                          </SidebarMenuSubButton>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="right">
-                                          <p>{customResource.name}</p>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <SidebarMenuSubButton asChild isActive={getActiveNav(customResource.name)}>
+                                          <a onClick={() => onCustomResourcesNavClick(customResource.route, customResource.name)}>
+                                            <span className="text-gray-600 dark:text-gray-300 group-data-[collapsible=icon]:hidden">{customResource.name}</span>
+                                          </a>
+                                        </SidebarMenuSubButton>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="right">
+                                        <p>{customResource.name}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
 
                                   </SidebarMenuSubItem>
                                 ))

@@ -1,7 +1,7 @@
 import { ServiceAccountsListHeader } from '@/types';
 import { createSlice } from '@reduxjs/toolkit';
 import { formatServiceAccountsResponse } from '@/utils';
-import { resetAllStates } from '@/redux/hooks';
+import { resetAllStates, resetListSlices } from '@/redux/hooks';
 
 type InitialState = {
   loading: boolean;
@@ -24,9 +24,9 @@ const serviceAccountsListSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(resetAllStates, () => initialState);
+    builder.addCase(resetListSlices, () => initialState);
   },
 });
-
 export default serviceAccountsListSlice.reducer;
 const { updateServiceAccountsList } = serviceAccountsListSlice.actions;
 export { initialState, updateServiceAccountsList };

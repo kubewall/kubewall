@@ -46,9 +46,13 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
 
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
-  const router = useRouterState();
-  const configName = router.location.pathname.split("/")[1];
-  const queryParams = new URLSearchParams(router.location.search);
+  // Narrow selector (shallow-compared) so this component only re-renders
+  // when pathname/search actually change, not on every router state transition.
+  const { pathname, search } = useRouterState({
+    select: (state) => ({ pathname: state.location.pathname, search: state.location.search }),
+  });
+  const configName = pathname.split("/")[1];
+  const queryParams = new URLSearchParams(search);
   const clusterName = queryParams.get("cluster") || "";
   const { open: isSidebarOpen, openMobile } = useSidebar();
   const isMac = useIsMac();

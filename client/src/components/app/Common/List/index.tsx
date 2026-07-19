@@ -145,7 +145,9 @@ import { updateServiceAccountsList } from "@/data/AccessControls/ServiceAccounts
 import { updateServicesList } from "@/data/Networks/Services/ServicesListSlice";
 import { updateStatefulSets } from "@/data/Workloads/StatefulSets/StatefulSetsSlice";
 import { updateStorageClassesList } from "@/data/Storages/StorageClasses/StorageClassesListSlice";
-import { useAppSelector } from "@/redux/hooks";
+import { resetListSlices, useAppDispatch, useAppSelector } from "@/redux/hooks";
+
+import { useEffect } from "react";
 import { BRAND } from "@/branding.config";
 
 type ArrayElement<ArrayType extends readonly unknown[]> =
@@ -190,6 +192,15 @@ export function KwList() {
   const { cluster, resourcekind, group, kind, resource, version } = kwList.useSearch();
   const commonSearchParams: CommonSearchParams = kwList.useSearch();
   commonSearchParams.config = config;
+
+  const dispatch = useAppDispatch();
+  useEffect(() => {
+    // Without this, every list slice (pods, deployments, ...) stays resident
+    // in the store for the rest of the session just because the user browsed
+    // past it once - each is about to be freshly repopulated by its own SSE
+    // stream anyway if resourcekind lands here again.
+    dispatch(resetListSlices());
+  }, [resourcekind, dispatch]);
 
   const getTableData = (resourcekind: string) => {
     if (resourcekind === LEASES_ENDPOINT) {

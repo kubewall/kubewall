@@ -9,3 +9,8 @@ export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 
 export const resetAllStates = createAction('REVERT_ALL');
 
+// Dispatched by KwList whenever the viewed resourcekind changes, so list
+// slices (pods, deployments, ...) don't all stay resident in the store for
+// the rest of the session just because the user browsed past them once.
+export const resetListSlices = createAction('RESET_LIST_SLICES');
+
