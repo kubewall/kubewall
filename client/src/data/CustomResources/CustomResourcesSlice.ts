@@ -4,7 +4,7 @@ import { formatCustomResources, formatCustomResourcesDefinitionsResponse } from 
 import { RawRequestError } from '../kwFetch';
 import { createSlice } from '@reduxjs/toolkit';
 import isEqual from 'lodash/isEqual';
-import { resetAllStates, resetListSlices } from '@/redux/hooks';
+import { resetAllStates } from '@/redux/hooks';
 
 type InitialState = {
   loading: boolean;
@@ -39,8 +39,11 @@ const customResourcesSlice = createSlice({
     }
   },
   extraReducers: (builder) => {
+    // Intentionally does NOT respond to resetListSlices (unlike other list
+    // slices): customResourcesNavigation backs the always-mounted sidebar's
+    // CRD group, not just this slice's own "Definitions" list page, so it
+    // must survive navigating to any other resourcekind.
     builder.addCase(resetAllStates, () => initialState);
-    builder.addCase(resetListSlices, () => initialState);
   },
 });
 export default customResourcesSlice.reducer;

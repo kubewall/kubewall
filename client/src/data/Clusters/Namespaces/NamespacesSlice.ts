@@ -2,7 +2,7 @@ import { Namespaces } from '../../../types';
 import { RawRequestError } from '../../kwFetch';
 import { createSlice } from '@reduxjs/toolkit';
 import { formatNamespace } from '@/utils';
-import { resetAllStates, resetListSlices } from '@/redux/hooks';
+import { resetAllStates } from '@/redux/hooks';
 
 type InitialState = {
   loading: boolean;
@@ -27,8 +27,11 @@ const namespacesSlice = createSlice({
     }
   },
   extraReducers: (builder) => {
+    // Intentionally does NOT respond to resetListSlices (unlike other list
+    // slices): TableToolbar reads this for the namespace-filter dropdown on
+    // every resource list page, not just a dedicated "Namespaces" page, so
+    // it must survive navigating between resourcekinds.
     builder.addCase(resetAllStates, () => initialState);
-    builder.addCase(resetListSlices, () => initialState);
   },
 });
 export default namespacesSlice.reducer;

@@ -1,7 +1,7 @@
 import { PortForwardingListResponse } from '../../../types';
 import { RawRequestError } from '../../kwFetch';
 import { createSlice } from '@reduxjs/toolkit';
-import { resetAllStates, resetListSlices } from '@/redux/hooks';
+import { resetAllStates } from '@/redux/hooks';
 
 type InitialState = {
   loading: boolean;
@@ -25,8 +25,11 @@ const portForwardingListSlice = createSlice({
     }
   },
   extraReducers: (builder) => {
+    // Intentionally does NOT respond to resetListSlices (unlike other list
+    // slices): KwDetails reads this for a resource's own port-forward
+    // section, not just the dedicated "Port Forwarding" list page, so it
+    // must survive navigating between resourcekinds.
     builder.addCase(resetAllStates, () => initialState);
-    builder.addCase(resetListSlices, () => initialState);
   },
 });
 export default portForwardingListSlice.reducer;
