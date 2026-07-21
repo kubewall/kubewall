@@ -22,7 +22,7 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
-import { Suspense, lazy, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { DataTableToolbar } from "@/components/app/Table/TableToolbar";
 import { Loader } from '@/components/app/Loader';
@@ -137,6 +137,7 @@ export function DataTable<TData, TValue>({
 
   const { rows } = table.getRowModel();
   const tableContainerRef = useRef<HTMLDivElement>(null);
+  const tableElRef = useRef<HTMLTableElement>(null);
   const rowVirtualizer = useVirtualizer<HTMLDivElement, HTMLTableRowElement>({
     count: rows.length,
     getScrollElement: () => tableContainerRef.current,
@@ -148,6 +149,47 @@ export function DataTable<TData, TValue>({
   const totalSize = rowVirtualizer.getTotalSize();
   const paddingTop = virtualRows.length > 0 ? virtualRows[0].start : 0;
   const paddingBottom = virtualRows.length > 0 ? totalSize - virtualRows[virtualRows.length - 1].end : 0;
+
+  // Virtualization only keeps ~40 rows in the DOM at a time, and with the
+  // browser's native "auto" table layout, column widths are computed from
+  // whichever rows currently happen to be there - so they visibly shift as
+  // different rows scroll in. Measure the natural (auto-layout) width of each
+  // column once real data has painted, then lock those widths in and switch
+  // to table-layout: fixed, which (per spec) only reads the first row's
+  // widths and ignores every row after that - so further row swaps can no
+  // longer perturb column boundaries. Cells that end up narrower than their
+  // content already truncate with a title tooltip.
+  //
+  // Tracked by instanceType (a stable per-resourcekind string), not the
+  // `columns` array - GenerateColumns memoizes that on row count among other
+  // things, so it gets a new reference on almost every data update, which
+  // would otherwise force a re-measure (and re-introduce the same jitter)
+  // every time the cluster pushes new data instead of only on navigation.
+  const [columnWidthPercents, setColumnWidthPercents] = useState<number[] | null>(null);
+  const measuredForInstanceTypeRef = useRef<string | null>(null);
+
+  useLayoutEffect(() => {
+    if (measuredForInstanceTypeRef.current !== instanceType) {
+      setColumnWidthPercents(null);
+    }
+  }, [instanceType]);
+
+  useLayoutEffect(() => {
+    if (measuredForInstanceTypeRef.current === instanceType) return;
+    if (loading || rows.length === 0) return;
+
+    const headerCells = tableElRef.current?.querySelectorAll('thead th');
+    if (!headerCells || headerCells.length === 0) return;
+
+    const widths = Array.from(headerCells).map((el) => el.getBoundingClientRect().width);
+    const total = widths.reduce((sum, w) => sum + w, 0);
+    if (total === 0) return;
+
+    measuredForInstanceTypeRef.current = instanceType;
+    setColumnWidthPercents(widths.map((w) => (w / total) * 100));
+  }, [instanceType, loading, rows.length]);
+
+  const lockedColumnWidths = columnWidthPercents?.length === columns.length ? columnWidthPercents : null;
 
   const getIdAndSetClass = (shouldSetClass: boolean, id: string) => {
     if (shouldSetClass) {
@@ -194,13 +236,18 @@ export function DataTable<TData, TValue>({
                 <TableDelete selectedRows={table.getSelectedRowModel().rows} toggleAllRowsSelected={table.resetRowSelection} />
               }
 
-              <Table>
+              <Table ref={tableElRef} style={lockedColumnWidths ? { tableLayout: 'fixed' } : undefined}>
                 <TableHeader className="sticky top-0 z-10 bg-muted">
                   {table.getHeaderGroups().map((headerGroup) => (
                     <TableRow key={headerGroup.id}>
                       {headerGroup.headers.map((header, index) => {
                         return (
-                          <TableHead key={header.id} colSpan={header.colSpan} className={index === 0 ? 'w-px' : ''}>
+                          <TableHead
+                            key={header.id}
+                            colSpan={header.colSpan}
+                            className={index === 0 ? 'w-px' : ''}
+                            style={lockedColumnWidths ? { width: `${lockedColumnWidths[index]}%` } : undefined}
+                          >
                             {header.isPlaceholder
                               ? null
                               : flexRender(
