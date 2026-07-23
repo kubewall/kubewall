@@ -1,6 +1,6 @@
 import { RuntimeClassesHeader } from '@/types';
 import { createSlice } from '@reduxjs/toolkit';
-import { resetAllStates } from '@/redux/hooks';
+import { resetAllStates, resetListSlices } from '@/redux/hooks';
 
 type InitialState = {
   loading: boolean;
@@ -23,9 +23,9 @@ const runtimeClassesListSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(resetAllStates, () => initialState);
+    builder.addCase(resetListSlices, () => initialState);
   },
 });
-
 export default runtimeClassesListSlice.reducer;
 const { updateRuntimeClassesList } = runtimeClassesListSlice.actions;
 export { initialState, updateRuntimeClassesList };

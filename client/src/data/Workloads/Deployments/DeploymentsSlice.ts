@@ -2,7 +2,7 @@ import { Deployments } from '../../../types';
 import { RawRequestError } from '../../kwFetch';
 import { createSlice } from '@reduxjs/toolkit';
 import { formatDeploymentsResponse } from '@/utils';
-import { resetAllStates } from '@/redux/hooks';
+import { resetAllStates, resetListSlices } from '@/redux/hooks';
 
 type InitialState = {
   loading: boolean;
@@ -27,9 +27,9 @@ const deploymentSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(resetAllStates, () => initialState);
+    builder.addCase(resetListSlices, () => initialState);
   },
 });
-
 export default deploymentSlice.reducer;
 const { updateDeployments }  = deploymentSlice.actions;
 export { initialState, updateDeployments };

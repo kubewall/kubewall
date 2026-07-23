@@ -2,7 +2,7 @@ import { DaemonSets } from '../../../types';
 import { RawRequestError } from '../../kwFetch';
 import { createSlice } from '@reduxjs/toolkit';
 import { formatDaemonSetsResponse } from '@/utils';
-import { resetAllStates } from '@/redux/hooks';
+import { resetAllStates, resetListSlices } from '@/redux/hooks';
 
 type InitialState = {
   loading: boolean;
@@ -27,9 +27,9 @@ const daemonSetsSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(resetAllStates, () => initialState);
+    builder.addCase(resetListSlices, () => initialState);
   },
 });
-
 export default daemonSetsSlice.reducer;
 const { updateDaemonSets } = daemonSetsSlice.actions;
 export { initialState, updateDaemonSets };

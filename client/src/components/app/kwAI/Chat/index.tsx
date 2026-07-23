@@ -8,7 +8,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { stepCountIs, streamText } from "ai";
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import Markdown from "react-markdown";
@@ -45,6 +45,8 @@ import remarkRehype from 'remark-rehype';
 import { useAppSelector } from "@/redux/hooks";
 import { useSidebarSize } from '@/hooks/use-get-sidebar-size';
 
+const MAX_STORED_CHATS_PER_CLUSTER = 20;
+
 type ChatWindowProps = {
   currentChatKey: string;
   cluster: string;
@@ -54,10 +56,209 @@ type ChatWindowProps = {
   resetChat: () => void
 }
 
+// Hoisted to module scope: previously recreated (a new array/object/function
+// identity) on every ChatWindow render - and ChatWindow re-renders on every
+// streamed token. Stable references here are what let ChatMessageItem's
+// React.memo below actually skip re-rendering completed messages.
+const MARKDOWN_PLUGINS = [remarkGfm, rehypeFormat, remarkRehype, rehypeSanitize, remarkFrontmatter, remarkMath, remarkParse, remarkRehype, rehypeRaw, rehypeStringify, rehypeHighlight];
+
+/* eslint-disable  @typescript-eslint/no-explicit-any */
+/* eslint-disable  @typescript-eslint/no-unused-vars */
+const MARKDOWN_COMPONENTS = {
+  table: ({ node, ...props }: any) => <div className="w-full overflow-x-auto my-4"><table className="w-full text-sm border-collapse border border-border rounded-lg" {...props} /></div>,
+  thead: ({ node, ...props }: any) => <thead className="[&_tr]:border-b bg-muted/50" {...props} />,
+  tbody: ({ node, ...props }: any) => <tbody className="[&_tr:last-child]:border-0" {...props} />,
+  tr: ({ node, ...props }: any) => <tr className="border-b border-border transition-colors hover:bg-muted/50" {...props} />,
+  th: ({ node, ...props }: any) => <th className="h-10 px-3 text-left align-middle font-medium text-muted-foreground text-xs uppercase tracking-wider" {...props} />,
+  td: ({ node, ...props }: any) => <td className="px-3 py-2 align-middle text-sm" {...props} />,
+  h1: ({ node, ...props }: any) => <h1 className="text-2xl font-semibold text-foreground mt-2 mb-2 first:mt-0" {...props} />,
+  h2: ({ node, ...props }: any) => <h2 className="text-xl font-semibold text-foreground mt-2 mb-2 first:mt-0" {...props} />,
+  h3: ({ node, ...props }: any) => <h3 className="text-lg font-medium text-foreground mt-2 mb-2" {...props} />,
+  h4: ({ node, ...props }: any) => <h4 className="text-base font-medium text-foreground mt-2 mb-2" {...props} />,
+  h5: ({ node, ...props }: any) => <h5 className="text-sm font-medium text-foreground mt-2 mb-1" {...props} />,
+  h6: ({ node, ...props }: any) => <h6 className="text-sm font-medium text-muted-foreground mt-2 mb-1" {...props} />,
+  p: ({ node, ...props }: any) => <p className="leading-7 [&:not(:first-child)]:mt-2" {...props} />,
+  a: ({ node, ...props }: any) => <a className="text-sm text-blue-600 hover:text-blue-800 underline underline-offset-2 transition-colors" {...props} />,
+  ul: ({ node, ...props }: any) => <ul className="my-1 ml-2 space-y-1 text-sm [&>li]:relative [&>li]:pl-4" {...props} />,
+  ol: ({ node, ...props }: any) => <ol className="my-1 ml-2 space-y-1 text-sm list-decimal [&>li]:pl-1" {...props} />,
+  li: ({ node, ...props }: any) => {
+    const isInOrderedList = props.className?.includes("list-decimal");
+    return <li className={`text-sm leading-relaxed ${!isInOrderedList ? 'before:content-["•"] before:absolute before:left-0 before:text-muted-foreground' : ""}`} {...props} />;
+  },
+  code: ({ node, ...props }: any) => {
+    const { inline, children, className } = props;
+    if (inline) {
+      return <code className="relative rounded-md bg-muted px-2 py-0.5 font-mono text-xs text-foreground border">{children}</code>;
+    }
+    return <code className={`${className} font-mono text-xs leading-relaxed `} {...props}>{children}</code>;
+  },
+  pre: ({ node, ...props }: any) => <pre className="my-1 overflow-x-auto rounded-md bg-muted/50 p-4 font-mono text-xs leading-relaxed border" {...props} />,
+  hr: ({ node, ...props }: any) => <hr className="my-4 border-t border-border" {...props} />,
+  img: ({ node, ...props }: any) => <img className="rounded-md border border-border shadow-sm my-1 max-w-full h-auto" {...props} />,
+  strong: ({ node, ...props }: any) => <strong className="font-semibold text-foreground" {...props} />,
+  em: ({ node, ...props }: any) => <em className="italic text-foreground" {...props} />,
+  del: ({ node, ...props }: any) => <del className="line-through text-muted-foreground" {...props} />,
+  blockquote: ({ node, ...props }: any) => <blockquote className="my-1 border-l-4 border-border pl-4 text-sm text-muted-foreground italic" {...props} />,
+};
+/* eslint-enable  @typescript-eslint/no-unused-vars */
+/* eslint-enable  @typescript-eslint/no-explicit-any */
+
+const copyToClipboard = (text: string) => {
+  navigator.clipboard.writeText(text);
+};
+
+const timeAgo = (date: Date | string) => {
+  const now = new Date();
+  const then = new Date(date);
+  const diffMs = now.getTime() - then.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  if (diffSec < 60) return 'just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDay = Math.floor(diffHr / 24);
+  return `${diffDay}d ago`;
+};
+
+// Hoisted out of ChatWindow: a component defined inside a parent's render
+// body gets a new type identity every render, so React unmounts/remounts it
+// (and its own useState/children) instead of updating it - previously tore
+// down every reasoning card's DOM and collapsed state on every streamed token.
+/* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+const IconCollapsibleCard = memo(function IconCollapsibleCard({ icon: Icon, children, isReasoning }: any) {
+  const [copen, setCOpen] = useState(isReasoning);
+  useEffect(() => {
+    if (!isReasoning) {
+      setCOpen(false);
+    }
+  }, [isReasoning]);
+  return (
+    <Collapsible open={copen} onOpenChange={setCOpen}>
+      <CollapsibleTrigger asChild>
+        <Card className={cn("cursor-pointer shadow-none transition-all duration-200 border-dashed rounded-md", copen ? "rounded-b-none" : "rounded-0")}>
+          <CardHeader className="p-3">
+            <div className="flex items-center space-x-3">
+              <Icon className={cn("h-4 w-4 text-primary", isReasoning ? "animate-flashorange" : "text-orange-500")} />
+              <div className="flex-1">
+                <CardTitle className="text-default font-medium tracking-tight">{isReasoning ? "Thinking..." : "Reasoning..."}</CardTitle>
+              </div>
+              <ChevronRight className={`h-4 w-4 transition-transform duration-200 ${copen ? 'rotate-90' : ''}`} />
+            </div>
+          </CardHeader>
+        </Card>
+      </CollapsibleTrigger>
+      <CollapsibleContent className='transition-all duration-200'>
+        <CardContent className="p-3 pt-2 border rounded-b-md border-t-0 border-dashed text-muted-foreground/95">
+          {children}
+        </CardContent>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+});
+
+type ChatMessageItemProps = {
+  message: ChatMessage;
+  isWaiting: boolean;
+};
+
+// Wrapped in memo so a streamed token only re-renders (and re-parses
+// Markdown for) the one message actually being appended to. This only works
+// because the streaming setMessages calls preserve object identity for every
+// message other than the one currently streaming (see generateStreamText).
+const ChatMessageItem = memo(function ChatMessageItem({ message, isWaiting }: ChatMessageItemProps) {
+  const isUser = message.role === "user";
+  const isAssistant = message.role === "assistant";
+
+  return (
+    <div className={cn("flex gap-2.5 py-2", isUser ? "justify-end" : "justify-start")}>
+      <div className={cn("flex flex-col gap-1", isUser ? "items-end max-w-[85%]" : "items-start flex-1 min-w-0")}>
+        {/* Message bubble */}
+        <div className={cn(
+          "text-sm",
+          isUser
+            ? "bg-muted rounded-lg rounded-br-sm px-3.5 py-2.5"
+            : message.error
+              ? "w-full"
+              : "w-full"
+        )}>
+          {isWaiting ? (
+            <div className="flex items-center gap-1 py-1">
+              <span className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce" />
+              <span className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "0.15s" }} />
+              <span className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "0.3s" }} />
+            </div>
+          ) : (
+            <>
+              {message.reasoning && (
+                <IconCollapsibleCard
+                  icon={Lightbulb}
+                  title="General Settings"
+                  description="Configure your app preferences"
+                  isReasoning={message.isReasoning}
+                >
+                  <Markdown
+                    remarkPlugins={MARKDOWN_PLUGINS}
+                    components={MARKDOWN_COMPONENTS}
+                  >
+                    {message.reasoning}
+                  </Markdown>
+                </IconCollapsibleCard>
+              )}
+              {message.error && (
+                <div className="flex items-center gap-2 text-destructive text-xs mb-1.5">
+                  <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
+                  <span>An error occurred</span>
+                </div>
+              )}
+              <div className="overflow-x-auto">
+                <Markdown
+                  remarkPlugins={MARKDOWN_PLUGINS}
+                  components={MARKDOWN_COMPONENTS}
+                >
+                  {message.content}
+                </Markdown>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Message footer: time + tokens + copy */}
+        {!isWaiting && (
+          <div className={cn("flex items-center gap-2 text-[10px] text-muted-foreground/60 px-1 flex-wrap", isUser ? "flex-row-reverse" : "flex-row")}>
+            <TooltipWrapper
+              side="top"
+              tooltipContent={new Date(message.timestamp).toLocaleString()}
+              tooltipString={timeAgo(message.timestamp)}
+            />
+            {isAssistant && message.promptTokens != null && (
+              <TooltipWrapper side="top" tooltipContent="Prompt Tokens" tooltipString={`↑${message.promptTokens}`} />
+            )}
+            {isAssistant && message.completionTokens != null && (
+              <TooltipWrapper side="top" tooltipContent="Completion Tokens" tooltipString={`↓${message.completionTokens}`} />
+            )}
+            {isAssistant && message.totalTokens != null && (
+              <TooltipWrapper side="top" tooltipContent="Total Tokens" tooltipString={`Σ${message.totalTokens}`} />
+            )}
+            {isAssistant && message.content && !message.error && (
+              <button
+                onClick={() => copyToClipboard(message.content)}
+                className="hover:text-foreground transition-opacity p-0.5 rounded"
+                title="Copy"
+              >
+                <Copy className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
+
 const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStoredModels, resetChat }: ChatWindowProps) => {
   const clusterConfigKey = `cluster=${cluster}&config=${config}`;
   const abortControllerRef = useRef<AbortController | null>(null);
-  const kwAIStoredChatHistory = JSON.parse(localStorage.getItem('kwAIStoredChatHistory') || '{}') as kwAIStoredChatHistory;
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [messageLoading, setMessageLoading] = useState(false);
@@ -424,37 +625,69 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
   const storeToChatHistory = (key: string) => {
     try {
       const kwAIStoredChatHistory = localStorage.getItem('kwAIStoredChatHistory') || '{}';
-      let kwAIChatHistory = JSON.parse(kwAIStoredChatHistory) as kwAIStoredChatHistory;
+      const kwAIChatHistory = JSON.parse(kwAIStoredChatHistory) as kwAIStoredChatHistory;
 
-      if (!kwAIChatHistory[clusterConfigKey]) {
-        kwAIChatHistory[clusterConfigKey] = {
-          [key]: {
-            messages: [],
-            provider: selectedProvider
-          }
-        };
-      }
-      kwAIChatHistory = {
-        ...kwAIChatHistory,
-        [clusterConfigKey]: {
-          ...kwAIChatHistory[clusterConfigKey],
-          [key]: {
-            messages: messages,
-            provider: selectedProvider
-          }
+      const forCluster = {
+        ...kwAIChatHistory[clusterConfigKey],
+        [key]: {
+          messages: messages,
+          provider: selectedProvider
         }
       };
+
+      // Cap stored conversations per cluster - keys are epoch-ms timestamps
+      // (see getLatestChat/resetChat), so a plain string sort is also
+      // chronological. Without this, history accumulates forever.
+      const keptKeys = Object.keys(forCluster).sort().slice(-MAX_STORED_CHATS_PER_CLUSTER);
+      const trimmedForCluster: typeof forCluster = {} as typeof forCluster;
+      keptKeys.forEach((k) => { trimmedForCluster[k] = forCluster[k]; });
+
+      kwAIChatHistory[clusterConfigKey] = trimmedForCluster;
       localStorage.setItem('kwAIStoredChatHistory', JSON.stringify(kwAIChatHistory));
     } catch (error) {
       console.log('error', error);
     }
   };
+
+  const historyPersistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     scrollToBottom();
-    currentChatKey && messages.length && storeToChatHistory(currentChatKey);
+    if (!currentChatKey || !messages.length) return;
+
+    // Debounced: this effect fires on every streamed token (each one appends
+    // to `messages`), and persisting does a synchronous localStorage
+    // read + JSON.parse/stringify + write of the whole multi-cluster history.
+    if (historyPersistTimerRef.current) clearTimeout(historyPersistTimerRef.current);
+    historyPersistTimerRef.current = setTimeout(() => {
+      storeToChatHistory(currentChatKey);
+    }, 500);
   }, [messages]);
 
   useEffect(() => {
+    return () => {
+      if (historyPersistTimerRef.current) clearTimeout(historyPersistTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    // Closing the chat panel unmounts ChatWindow; without this, an in-flight
+    // stream (and its tool calls against the cluster, up to 500 steps) keeps
+    // running in the background after the panel is gone.
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
+
+  useEffect(() => {
+    // Switching conversations while a response is streaming would otherwise
+    // leave the previous stream's for-await loop (and its tool calls against
+    // the cluster) running in the background, appending to a conversation
+    // that's no longer shown.
+    abortControllerRef.current?.abort();
+
+    // Read fresh from localStorage only when actually switching conversations,
+    // instead of parsing the whole multi-cluster history on every render.
+    const kwAIStoredChatHistory = JSON.parse(localStorage.getItem('kwAIStoredChatHistory') || '{}') as kwAIStoredChatHistory;
     const currentContext = kwAIStoredChatHistory[clusterConfigKey]?.[currentChatKey];
     if (currentContext?.messages) {
       setMessages(currentContext?.messages);
@@ -470,101 +703,9 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
 
   }, [currentChatKey]);
 
-  /* eslint-disable  @typescript-eslint/no-explicit-any */
-  /* eslint-disable  @typescript-eslint/no-unused-vars */
-  const getOverriddenComponents = () => {
-    return {
-      table: ({ node, ...props }: any) => <div className="w-full overflow-x-auto my-4"><table className="w-full text-sm border-collapse border border-border rounded-lg" {...props} /></div>,
-      thead: ({ node, ...props }: any) => <thead className="[&_tr]:border-b bg-muted/50" {...props} />,
-      tbody: ({ node, ...props }: any) => <tbody className="[&_tr:last-child]:border-0" {...props} />,
-      tr: ({ node, ...props }: any) => <tr className="border-b border-border transition-colors hover:bg-muted/50" {...props} />,
-      th: ({ node, ...props }: any) => <th className="h-10 px-3 text-left align-middle font-medium text-muted-foreground text-xs uppercase tracking-wider" {...props} />,
-      td: ({ node, ...props }: any) => <td className="px-3 py-2 align-middle text-sm" {...props} />,
-      h1: ({ node, ...props }: any) => <h1 className="text-2xl font-semibold text-foreground mt-2 mb-2 first:mt-0" {...props} />,
-      h2: ({ node, ...props }: any) => <h2 className="text-xl font-semibold text-foreground mt-2 mb-2 first:mt-0" {...props} />,
-      h3: ({ node, ...props }: any) => <h3 className="text-lg font-medium text-foreground mt-2 mb-2" {...props} />,
-      h4: ({ node, ...props }: any) => <h4 className="text-base font-medium text-foreground mt-2 mb-2" {...props} />,
-      h5: ({ node, ...props }: any) => <h5 className="text-sm font-medium text-foreground mt-2 mb-1" {...props} />,
-      h6: ({ node, ...props }: any) => <h6 className="text-sm font-medium text-muted-foreground mt-2 mb-1" {...props} />,
-      p: ({ node, ...props }: any) => <p className="leading-7 [&:not(:first-child)]:mt-2" {...props} />,
-      a: ({ node, ...props }: any) => <a className="text-sm text-blue-600 hover:text-blue-800 underline underline-offset-2 transition-colors" {...props} />,
-      ul: ({ node, ...props }: any) => <ul className="my-1 ml-2 space-y-1 text-sm [&>li]:relative [&>li]:pl-4" {...props} />,
-      ol: ({ node, ...props }: any) => <ol className="my-1 ml-2 space-y-1 text-sm list-decimal [&>li]:pl-1" {...props} />,
-      li: ({ node, ...props }: any) => {
-        const isInOrderedList = props.className?.includes("list-decimal");
-        return <li className={`text-sm leading-relaxed ${!isInOrderedList ? 'before:content-["•"] before:absolute before:left-0 before:text-muted-foreground' : ""}`} {...props} />;
-      },
-      code: ({ node, ...props }: any) => {
-        const { inline, children, className } = props;
-        if (inline) {
-          return <code className="relative rounded-md bg-muted px-2 py-0.5 font-mono text-xs text-foreground border">{children}</code>;
-        }
-        return <code className={`${className} font-mono text-xs leading-relaxed `} {...props}>{children}</code>;
-      },
-      pre: ({ node, ...props }: any) => <pre className="my-1 overflow-x-auto rounded-md bg-muted/50 p-4 font-mono text-xs leading-relaxed border" {...props} />,
-      hr: ({ node, ...props }: any) => <hr className="my-4 border-t border-border" {...props} />,
-      img: ({ node, ...props }: any) => <img className="rounded-md border border-border shadow-sm my-1 max-w-full h-auto" {...props} />,
-      strong: ({ node, ...props }: any) => <strong className="font-semibold text-foreground" {...props} />,
-      em: ({ node, ...props }: any) => <em className="italic text-foreground" {...props} />,
-      del: ({ node, ...props }: any) => <del className="line-through text-muted-foreground" {...props} />,
-      blockquote: ({ node, ...props }: any) => <blockquote className="my-1 border-l-4 border-border pl-4 text-sm text-muted-foreground italic" {...props} />,
-    };
-  };
-  /* eslint-enable  @typescript-eslint/no-unused-vars */
-  /* eslint-enable  @typescript-eslint/no-explicit-any */
   const stopStream = () => {
     abortControllerRef.current?.abort();
     setIsLoading(false);
-  };
-
-  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-  const IconCollapsibleCard = ({ icon: Icon, children, isReasoning }: any) => {
-    const [copen, setCOpen] = useState(isReasoning);
-    useEffect(() => {
-      if (!isReasoning) {
-        setCOpen(false);
-      }
-    }, [isReasoning]);
-    return (
-      <Collapsible open={copen} onOpenChange={setCOpen}>
-        <CollapsibleTrigger asChild>
-          <Card className={cn("cursor-pointer shadow-none transition-all duration-200 border-dashed rounded-md", copen ? "rounded-b-none" : "rounded-0")}>
-            <CardHeader className="p-3">
-              <div className="flex items-center space-x-3">
-                <Icon className={cn("h-4 w-4 text-primary", isReasoning ? "animate-flashorange" : "text-orange-500")} />
-                <div className="flex-1">
-                  <CardTitle className="text-default font-medium tracking-tight">{isReasoning ? "Thinking..." : "Reasoning..."}</CardTitle>
-                </div>
-                <ChevronRight className={`h-4 w-4 transition-transform duration-200 ${copen ? 'rotate-90' : ''}`} />
-              </div>
-            </CardHeader>
-          </Card>
-        </CollapsibleTrigger>
-        <CollapsibleContent className='transition-all duration-200'>
-          <CardContent className="p-3 pt-2 border rounded-b-md border-t-0 border-dashed text-muted-foreground/95">
-            {children}
-          </CardContent>
-        </CollapsibleContent>
-      </Collapsible>
-    );
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-  };
-
-  const timeAgo = (date: Date | string) => {
-    const now = new Date();
-    const then = new Date(date);
-    const diffMs = now.getTime() - then.getTime();
-    const diffSec = Math.floor(diffMs / 1000);
-    if (diffSec < 60) return 'just now';
-    const diffMin = Math.floor(diffSec / 60);
-    if (diffMin < 60) return `${diffMin}m ago`;
-    const diffHr = Math.floor(diffMin / 60);
-    if (diffHr < 24) return `${diffHr}h ago`;
-    const diffDay = Math.floor(diffHr / 24);
-    return `${diffDay}d ago`;
   };
 
   return (
@@ -585,94 +726,10 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
             {messages.map((message) => {
               if (message.role === "system" || message.isNotVisible) return null;
 
-              const isUser = message.role === "user";
-              const isAssistant = message.role === "assistant";
               const isWaiting = messageLoading && message.content === "" && !message.reasoning;
 
               return (
-                <div key={message.id} className={cn("flex gap-2.5 py-2", isUser ? "justify-end" : "justify-start")}>
-
-                  <div className={cn("flex flex-col gap-1", isUser ? "items-end max-w-[85%]" : "items-start flex-1 min-w-0")}>
-                    {/* Message bubble */}
-                    <div className={cn(
-                      "text-sm",
-                      isUser
-                        ? "bg-muted rounded-lg rounded-br-sm px-3.5 py-2.5"
-                        : message.error
-                          ? "w-full"
-                          : "w-full"
-                    )}>
-                      {isWaiting ? (
-                        <div className="flex items-center gap-1 py-1">
-                          <span className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce" />
-                          <span className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "0.15s" }} />
-                          <span className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "0.3s" }} />
-                        </div>
-                      ) : (
-                        <>
-                          {message.reasoning && (
-                            <IconCollapsibleCard
-                              icon={Lightbulb}
-                              title="General Settings"
-                              description="Configure your app preferences"
-                              isReasoning={message.isReasoning}
-                            >
-                              <Markdown
-                                remarkPlugins={[remarkGfm, rehypeFormat, remarkRehype, rehypeSanitize, remarkFrontmatter, remarkMath, remarkParse, remarkRehype, rehypeRaw, rehypeStringify, rehypeHighlight]}
-                                components={getOverriddenComponents()}
-                              >
-                                {message.reasoning}
-                              </Markdown>
-                            </IconCollapsibleCard>
-                          )}
-                          {message.error && (
-                            <div className="flex items-center gap-2 text-destructive text-xs mb-1.5">
-                              <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
-                              <span>An error occurred</span>
-                            </div>
-                          )}
-                          <div className="overflow-x-auto">
-                            <Markdown
-                              remarkPlugins={[remarkGfm, rehypeFormat, remarkRehype, rehypeSanitize, remarkFrontmatter, remarkMath, remarkParse, remarkRehype, rehypeRaw, rehypeStringify, rehypeHighlight]}
-                              components={getOverriddenComponents()}
-                            >
-                              {message.content}
-                            </Markdown>
-                          </div>
-                        </>
-                      )}
-                    </div>
-
-                    {/* Message footer: time + tokens + copy */}
-                    {!isWaiting && (
-                      <div className={cn("flex items-center gap-2 text-[10px] text-muted-foreground/60 px-1 flex-wrap", isUser ? "flex-row-reverse" : "flex-row")}>
-                        <TooltipWrapper
-                          side="top"
-                          tooltipContent={new Date(message.timestamp).toLocaleString()}
-                          tooltipString={timeAgo(message.timestamp)}
-                        />
-                        {isAssistant && message.promptTokens != null && (
-                          <TooltipWrapper side="top" tooltipContent="Prompt Tokens" tooltipString={`↑${message.promptTokens}`} />
-                        )}
-                        {isAssistant && message.completionTokens != null && (
-                          <TooltipWrapper side="top" tooltipContent="Completion Tokens" tooltipString={`↓${message.completionTokens}`} />
-                        )}
-                        {isAssistant && message.totalTokens != null && (
-                          <TooltipWrapper side="top" tooltipContent="Total Tokens" tooltipString={`Σ${message.totalTokens}`} />
-                        )}
-                        {isAssistant && message.content && !message.error && (
-                          <button
-                            onClick={() => copyToClipboard(message.content)}
-                            className="hover:text-foreground transition-opacity p-0.5 rounded"
-                            title="Copy"
-                          >
-                            <Copy className="h-3 w-3" />
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <ChatMessageItem key={message.id} message={message} isWaiting={isWaiting} />
               );
             })}
           </div>

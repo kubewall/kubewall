@@ -1,7 +1,7 @@
 import { PersistentVolumeClaimsHeaders } from '@/types';
 import { createSlice } from '@reduxjs/toolkit';
 import { formatPersistentVolumeClaimsResponse } from '@/utils';
-import { resetAllStates } from '@/redux/hooks';
+import { resetAllStates, resetListSlices } from '@/redux/hooks';
 
 type InitialState = {
   loading: boolean;
@@ -24,9 +24,9 @@ const persistentVolumeClaimsListSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(resetAllStates, () => initialState);
+    builder.addCase(resetListSlices, () => initialState);
   },
 });
-
 export default persistentVolumeClaimsListSlice.reducer;
 const { updatePersistentVolumeClaimsList } = persistentVolumeClaimsListSlice.actions;
 export { initialState, updatePersistentVolumeClaimsList };

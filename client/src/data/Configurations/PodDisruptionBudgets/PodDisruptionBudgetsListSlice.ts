@@ -1,7 +1,7 @@
 import { PodDisruptionBudgetsHeader } from '@/types';
 import { createSlice } from '@reduxjs/toolkit';
 import { formatPodDisruptionBudgetsResponse } from '@/utils';
-import { resetAllStates } from '@/redux/hooks';
+import { resetAllStates, resetListSlices } from '@/redux/hooks';
 
 type InitialState = {
   loading: boolean; 
@@ -24,9 +24,9 @@ const podDisruptionBudgetsListSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(resetAllStates, () => initialState);
+    builder.addCase(resetListSlices, () => initialState);
   },
 });
-
 export default podDisruptionBudgetsListSlice.reducer;
 const { updatePodDisruptionBudgetsList } = podDisruptionBudgetsListSlice.actions;
 export { initialState, updatePodDisruptionBudgetsList };

@@ -1,13 +1,13 @@
-import { CustomResources, CustomResourcesDefinitionsHeader, CustomResourcesNavigation } from '../../types';
+import { CustomResourcesDefinitionsHeader, CustomResourcesNavigation } from '../../types';
 import { formatCustomResources, formatCustomResourcesDefinitionsResponse } from '@/utils';
 
 import { RawRequestError } from '../kwFetch';
 import { createSlice } from '@reduxjs/toolkit';
+import isEqual from 'lodash/isEqual';
 import { resetAllStates } from '@/redux/hooks';
 
 type InitialState = {
   loading: boolean;
-  customResources: CustomResources[];
   customResourcesDefinitions: CustomResourcesDefinitionsHeader[];
   customResourcesNavigation: CustomResourcesNavigation;
   error:  RawRequestError | null;
@@ -15,7 +15,6 @@ type InitialState = {
 
 const initialState: InitialState = {
   loading: true,
-  customResources: [] as CustomResources[],
   customResourcesDefinitions: [] as CustomResourcesDefinitionsHeader[],
   customResourcesNavigation: {} as CustomResourcesNavigation,
   error: null,
@@ -26,17 +25,27 @@ const customResourcesSlice = createSlice({
   initialState,
   reducers: {
     updateCustomResources: (state, action) => {
-      state.customResources = action.payload;
+      // The CRD list is fully re-broadcast on every informer event (150ms
+      // batching), so this fires far more often than the navigation tree
+      // actually changes. Skip the assignment when the derived navigation is
+      // unchanged so the sidebar (which memoizes on this field's identity)
+      // doesn't re-sort and re-render every group on unrelated cluster churn.
       state.customResourcesDefinitions = formatCustomResourcesDefinitionsResponse(action.payload);
-      state.customResourcesNavigation = formatCustomResources(action.payload);
+      const nextNavigation = formatCustomResources(action.payload);
+      if (!isEqual(state.customResourcesNavigation, nextNavigation)) {
+        state.customResourcesNavigation = nextNavigation;
+      }
       state.loading = false;
     }
   },
   extraReducers: (builder) => {
+    // Intentionally does NOT respond to resetListSlices (unlike other list
+    // slices): customResourcesNavigation backs the always-mounted sidebar's
+    // CRD group, not just this slice's own "Definitions" list page, so it
+    // must survive navigating to any other resourcekind.
     builder.addCase(resetAllStates, () => initialState);
   },
 });
-
 export default customResourcesSlice.reducer;
 const { updateCustomResources } = customResourcesSlice.actions;
 export { initialState, updateCustomResources };

@@ -57,14 +57,18 @@ function formatTimestamp(raw: string): string {
   }
 }
 
-function matchesTerm(log: string, term: string): boolean {
-  if (!term.trim()) return true;
+// Builds a reusable test function instead of compiling a RegExp per call -
+// this used to run once per line in a filter() loop over up to 50k lines.
+function makeMatcher(term: string): (log: string) => boolean {
+  if (!term.trim()) return () => true;
   try {
     const isRegex = term.startsWith('/') && term.endsWith('/') && term.length > 2;
     const pattern = isRegex ? term.slice(1, -1) : term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return new RegExp(pattern, 'i').test(log);
+    const regex = new RegExp(pattern, 'i');
+    return (log: string) => regex.test(log);
   } catch {
-    return log.toLowerCase().includes(term.toLowerCase());
+    const lower = term.toLowerCase();
+    return (log: string) => log.toLowerCase().includes(lower);
   }
 }
 
@@ -86,7 +90,17 @@ export function SocketLogs({
   const isRenderingRef = useRef(false);
   const pendingLogsRef = useRef<PodSocketResponse[]>([]);
   const isAtBottomRef = useRef(true);
+  const lastColsRef = useRef(0);
+  const matcherCacheRef = useRef<{ term: string; test: (log: string) => boolean } | null>(null);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+  // Recompiles only when the term actually changes, instead of once per line.
+  const getMatcher = (term: string) => {
+    if (matcherCacheRef.current?.term !== term) {
+      matcherCacheRef.current = { term, test: makeMatcher(term) };
+    }
+    return matcherCacheRef.current.test;
+  };
 
   filterModeRef.current = filterMode;
   filterTermRef.current = filterTerm;
@@ -142,7 +156,8 @@ export function SocketLogs({
     if (!xterm.current) return;
     xterm.current.clear();
     rowIndexRef.current = 0;
-    const matched = allLogsRef.current.filter((m) => matchesTerm(m.log, term));
+    const isMatch = getMatcher(term);
+    const matched = allLogsRef.current.filter((m) => isMatch(m.log));
     matched.forEach((m) => {
       renderLine(m, rowIndexRef.current);
       rowIndexRef.current++;
@@ -173,7 +188,8 @@ export function SocketLogs({
     rowIndexRef.current = 0;
 
     if (filterModeRef.current && filterTermRef.current.trim()) {
-      const matched = allLogsRef.current.filter((m) => matchesTerm(m.log, filterTermRef.current));
+      const isMatch = getMatcher(filterTermRef.current);
+      const matched = allLogsRef.current.filter((m) => isMatch(m.log));
       matched.forEach((m) => {
         renderLine(m, rowIndexRef.current);
         rowIndexRef.current++;
@@ -248,15 +264,24 @@ export function SocketLogs({
     let debounceTimer: ReturnType<typeof setTimeout>;
     const handleResize = () => {
       clearTimeout(debounceTimer);
+      // A real debounce (was setTimeout with no delay, i.e. next-tick only -
+      // every resize tick during a drag replayed the full buffer).
       debounceTimer = setTimeout(() => {
+        const term = xterm.current;
+        // Row-only resizes don't need a replay: alt-row padding is computed
+        // from cols alone (see renderLine's `cols` usage above).
+        if (term && term.cols === lastColsRef.current) return;
+        if (term) lastColsRef.current = term.cols;
+
         if (filterModeRef.current && filterTermRef.current.trim()) {
           replayFiltered(filterTermRef.current);
         } else {
           replayAll();
         }
-      });
+      }, 200);
     };
     const term = xterm.current;
+    lastColsRef.current = term?.cols ?? 0;
     const disposable = term?.onResize(handleResize);
     return () => {
       clearTimeout(debounceTimer);
@@ -274,6 +299,10 @@ export function SocketLogs({
 
   const MAX_BUFFER = 50000;
   const TRIM_TO = 45000;
+  // Absolute ceiling that applies even while scrolled up reading old logs
+  // (the MAX_BUFFER trim above is skipped in that case, to avoid yanking the
+  // lines the user is currently looking at out from under them).
+  const HARD_MAX_BUFFER = MAX_BUFFER * 2;
 
   const printLogLine = (message: PodSocketResponse) => {
     if (isRenderingRef.current) {
@@ -285,10 +314,18 @@ export function SocketLogs({
     // Trim oldest logs only when user is following live (at bottom)
     if (isAtBottomRef.current && allLogsRef.current.length > MAX_BUFFER) {
       allLogsRef.current = allLogsRef.current.slice(-TRIM_TO);
+    } else if (allLogsRef.current.length > HARD_MAX_BUFFER) {
+      // Still growing unbounded while scrolled up on a very chatty pod -
+      // trim anyway, but replay with a scroll adjustment so the viewport
+      // doesn't jump (reuses the same mechanism as prepending history).
+      const dropped = allLogsRef.current.length - TRIM_TO;
+      allLogsRef.current = allLogsRef.current.slice(-TRIM_TO);
+      replayWithScrollRestore(-dropped);
+      return;
     }
 
     const total = allLogsRef.current.length;
-    if (filterModeRef.current && !matchesTerm(message.log, filterTermRef.current)) {
+    if (filterModeRef.current && !getMatcher(filterTermRef.current)(message.log)) {
       onCountChange(total, visibleCountRef.current);
       return;
     }

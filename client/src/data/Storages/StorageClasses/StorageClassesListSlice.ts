@@ -1,6 +1,6 @@
 import { StorageClassesHeaders } from '@/types';
 import { createSlice } from '@reduxjs/toolkit';
-import { resetAllStates } from '@/redux/hooks';
+import { resetAllStates, resetListSlices } from '@/redux/hooks';
 
 type InitialState = {
   loading: boolean;
@@ -23,9 +23,9 @@ const storageClassesListSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(resetAllStates, () => initialState);
+    builder.addCase(resetListSlices, () => initialState);
   },
 });
-
 export default storageClassesListSlice.reducer;
 const { updateStorageClassesList } = storageClassesListSlice.actions;
 export { initialState, updateStorageClassesList };

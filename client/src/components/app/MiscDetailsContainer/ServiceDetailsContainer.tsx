@@ -19,10 +19,13 @@ const ServiceDetailsContainer = memo(function () {
     }
   } = useAppSelector((state) => state.serviceDetails);
   const dispatch = useAppDispatch();
-  const router = useRouterState();
-  const pathname = router.location.pathname;
+  // Narrow selector (shallow-compared) so this component only re-renders
+  // when pathname/search actually change, not on every router state transition.
+  const { pathname, search } = useRouterState({
+    select: (state) => ({ pathname: state.location.pathname, search: state.location.search }),
+  });
   const configName = pathname.split('/')[1];
-  const queryParams = new URLSearchParams(router.location.search);
+  const queryParams = new URLSearchParams(search);
   const clusterName = queryParams.get('cluster') || '';
   const sendMessage = (message: PortForwardingListResponse[]) => {
     dispatch(updatePortForwardingList(message));

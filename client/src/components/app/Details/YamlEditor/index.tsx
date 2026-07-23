@@ -1,16 +1,19 @@
+import { Suspense, lazy, memo, useCallback, useEffect, useState } from 'react';
 import { createEventStreamQueryObject, getEventStreamUrl } from '@/utils';
-import { memo, useCallback, useEffect, useState } from 'react';
 import { resetUpdateYaml, updateYaml } from '@/data/Yaml/YamlUpdateSlice';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 
 import { Button } from '@/components/ui/button';
-import Editor from './MonacoWrapper';
 import { Loader } from '../../Loader';
 import { SaveIcon } from "lucide-react";
 import { toast } from "sonner";
 import { updateYamlDetails } from '@/data/Yaml/YamlSlice';
 import { useEventSource } from '../../Common/Hooks/EventSource';
 import { useTheme } from '@/components/app/ThemeProvider';
+
+// Monaco is a multi-MB dependency; load it only once a YAML editor actually
+// needs to render instead of paying for it in the main bundle.
+const Editor = lazy(() => import('./MonacoWrapper'));
 
 type EditorProps = {
   name: string;
@@ -123,13 +126,15 @@ const YamlEditor = memo(function ({ instanceType, name, namespace, clusterName, 
                 Save
               </Button>
             }
-            <Editor
-              value={value}
-              language="yaml"
-              onChange={onChange}
-              className='border rounded-md h-screen'
-              theme={monacoTheme}
-            />
+            <Suspense fallback={<Loader />}>
+              <Editor
+                value={value}
+                language="yaml"
+                onChange={onChange}
+                className='border rounded-md h-screen'
+                theme={monacoTheme}
+              />
+            </Suspense>
           </div>
 
       }

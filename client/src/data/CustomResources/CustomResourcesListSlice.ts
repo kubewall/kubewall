@@ -1,7 +1,7 @@
 import { CustomResourcesList } from '../../types';
 import { RawRequestError } from '../kwFetch';
 import { createSlice } from '@reduxjs/toolkit';
-import { resetAllStates } from '@/redux/hooks';
+import { resetAllStates, resetListSlices } from '@/redux/hooks';
 
 type InitialState = {
   loading: boolean;
@@ -35,9 +35,9 @@ const customResourcesListSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(resetAllStates, () => initialState);
+    builder.addCase(resetListSlices, () => initialState);
   },
 });
-
 export default customResourcesListSlice.reducer;
 const { updateCustomResourcesList, resetCustomResourcesList } = customResourcesListSlice.actions;
 export { initialState, updateCustomResourcesList, resetCustomResourcesList };

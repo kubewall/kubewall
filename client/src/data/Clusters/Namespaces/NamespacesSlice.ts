@@ -27,10 +27,13 @@ const namespacesSlice = createSlice({
     }
   },
   extraReducers: (builder) => {
+    // Intentionally does NOT respond to resetListSlices (unlike other list
+    // slices): TableToolbar reads this for the namespace-filter dropdown on
+    // every resource list page, not just a dedicated "Namespaces" page, so
+    // it must survive navigating between resourcekinds.
     builder.addCase(resetAllStates, () => initialState);
   },
 });
-
 export default namespacesSlice.reducer;
 const { updateNamspaces } = namespacesSlice.actions;
 export { initialState, updateNamspaces };

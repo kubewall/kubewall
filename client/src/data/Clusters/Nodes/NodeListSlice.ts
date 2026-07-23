@@ -2,7 +2,7 @@ import { NodeList } from '../../../types';
 import { RawRequestError } from '../../kwFetch';
 import { createSlice } from '@reduxjs/toolkit';
 import { formatNodeList } from '@/utils';
-import { resetAllStates } from '@/redux/hooks';
+import { resetAllStates, resetListSlices } from '@/redux/hooks';
 
 type InitialState = {
   loading: boolean;
@@ -28,9 +28,9 @@ const nodeListSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(resetAllStates, () => initialState);
+    builder.addCase(resetListSlices, () => initialState);
   },
 });
-
 export default nodeListSlice.reducer;
 const { updateNodesList } = nodeListSlice.actions;
 export { initialState, updateNodesList };

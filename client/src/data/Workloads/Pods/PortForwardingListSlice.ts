@@ -25,10 +25,13 @@ const portForwardingListSlice = createSlice({
     }
   },
   extraReducers: (builder) => {
+    // Intentionally does NOT respond to resetListSlices (unlike other list
+    // slices): KwDetails reads this for a resource's own port-forward
+    // section, not just the dedicated "Port Forwarding" list page, so it
+    // must survive navigating between resourcekinds.
     builder.addCase(resetAllStates, () => initialState);
   },
 });
-
 export default portForwardingListSlice.reducer;
 const { updatePortForwardingList } = portForwardingListSlice.actions;
 export { initialState, updatePortForwardingList };

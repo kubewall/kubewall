@@ -1,15 +1,14 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { PodLogs, PortForwardingDialog, ScaleDeployments } from "../../MiscDetailsContainer";
+import { PortForwardingDialog, ScaleDeployments } from "../../MiscDetailsContainer";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { createEventStreamQueryObject, getEventStreamUrl } from "@/utils";
 import { resetYamlDetails, updateYamlDetails } from "@/data/Yaml/YamlSlice";
 import { useDetailsWrapper, useFetchDataForDetails } from "../Hooks/Details";
-import { useEffect, useState } from "react";
 
-import { AiChat } from "../../kwAI";
 import { CaretLeftIcon } from "@radix-ui/react-icons";
 import { Events } from "../../Details/Events";
 import FourOFourError from "../../Errors/404Error";
@@ -31,6 +30,14 @@ import { useDispatch } from "react-redux";
 import { useEventSource } from "../Hooks/EventSource";
 import { useSidebarSize } from "@/hooks/use-get-sidebar-size";
 import { BRAND } from "@/branding.config";
+
+// kwAI pulls in every LLM provider SDK plus the markdown/highlight pipeline;
+// load it only when the chat panel is actually opened.
+const AiChat = lazy(() => import("../../kwAI").then((m) => ({ default: m.AiChat })));
+// Imported directly from its own module (not the MiscDetailsContainer barrel)
+// so xterm and its addons split into their own chunk, fetched only when the
+// Logs tab is opened.
+const PodLogs = lazy(() => import("../../MiscDetailsContainer/Logs").then((m) => ({ default: m.PodLogs })));
 
 const KwDetails = () => {
   const dispatch = useDispatch();
@@ -266,12 +273,14 @@ const KwDetails = () => {
                         {
                           resourceInitialData.label.toLowerCase() === PODS_ENDPOINT &&
                           <TabsContent className="mt-0 h-full overflow-hidden" value='logs'>
-                            <PodLogs
-                              name={podDetails?.metadata?.name}
-                              configName={config}
-                              clusterName={cluster}
-                              namespace={podDetails?.metadata?.namespace}
-                            />
+                            <Suspense fallback={<Loader />}>
+                              <PodLogs
+                                name={podDetails?.metadata?.name}
+                                configName={config}
+                                clusterName={cluster}
+                                namespace={podDetails?.metadata?.namespace}
+                              />
+                            </Suspense>
                           </TabsContent>
 
                         }
@@ -282,7 +291,9 @@ const KwDetails = () => {
                       <>
                         {!fullScreen && <ResizableHandle withHandle className="mt-2 w-0" />}
                         <ResizablePanel className="border-t border-r border-l rounded-lg" id="ai-chat" order={2} minSize={30} defaultSize={fullScreen ? 100 : 45}>
-                          <AiChat isDetailsPage={true} customHeight="chatbot-details-height" onClose={onChatClose} isFullscreen={fullScreen} onToggleFullscreen={() => setFullScreen(!fullScreen)} />
+                          <Suspense fallback={<Loader />}>
+                            <AiChat isDetailsPage={true} customHeight="chatbot-details-height" onClose={onChatClose} isFullscreen={fullScreen} onToggleFullscreen={() => setFullScreen(!fullScreen)} />
+                          </Suspense>
                         </ResizablePanel>
                       </>
                     }
