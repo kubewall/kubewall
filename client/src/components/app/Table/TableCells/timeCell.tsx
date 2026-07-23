@@ -1,3 +1,5 @@
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
 import { getDisplayTime } from "@/utils";
 import { useNow } from "@/hooks/use-now";
 
@@ -11,9 +13,16 @@ function TimeCell({ cellValue }: TimeCellProps) {
 
   return (
     <div className="px-3">
-      <span title={cellValue} className="text-sm text-gray-700 dark:text-gray-100">
-        {getDisplayTime(now - startMs)}
-      </span>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="text-sm text-gray-700 dark:text-gray-100">
+            {getDisplayTime(now - startMs)}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>
+          {cellValue}
+        </TooltipContent>
+      </Tooltip>
     </div>
   );
 }
