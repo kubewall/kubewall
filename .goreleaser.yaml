@@ -3,10 +3,10 @@ version: 2
 
 before:
   hooks:
-    - sh -c "[ -z \"${GORELEASER_TOKEN}\" ] || [ \"${CI_BUILD}\" != \"true\" ] && exit 0; git config --global url.\"https://x-access-token:${GORELEASER_TOKEN}@github.com/\".insteadOf \"https://github.com/\""
-    - sh -c "[ -z \"${GORELEASER_TOKEN}\" ] || [ \"${CI_BUILD}\" != \"true\" ] && exit 0; cd client && git clone https://github.com/kubewall/enterprise-client enterprise-client && node enterprise-client/scripts/generate-capabilities.js --config enterprise-client/configs/free.json && cd .."
-    - sh -c "[ -z \"${GORELEASER_TOKEN}\" ] && exit 0; yarn --cwd client install && yarn --cwd client run build && rm -rf client/node_modules && rm -rf backend/routes/static && mv client/dist backend/routes/static"
-    - sh -c "[ -z \"${GORELEASER_TOKEN}\" ] || [ \"${CI_BUILD}\" != \"true\" ] && exit 0; cd backend && go mod edit -dropreplace github.com/kubewall/addons && go mod edit -droprequire github.com/kubewall/addons && GOPRIVATE=github.com/kubewall/addons GONOSUMDB=github.com/kubewall/addons go get github.com/kubewall/addons/pod-exec@main && GOPRIVATE=github.com/kubewall/addons GONOSUMDB=github.com/kubewall/addons go mod tidy && cd .."
+    - sh -c "[ \"${CI_BUILD}\" != \"true\" ] && exit 0; git config --global url.\"https://x-access-token:${GORELEASER_TOKEN}@github.com/\".insteadOf \"https://github.com/\""
+    - sh -c "[ \"${CI_BUILD}\" != \"true\" ] && exit 0; cd client && git clone https://github.com/kubewall/enterprise-client enterprise-client && node enterprise-client/scripts/generate-capabilities.js --config enterprise-client/configs/free.json && cd .."
+    - sh -c "yarn --cwd client install && yarn --cwd client run build && rm -rf client/node_modules && rm -rf backend/routes/static && mv client/dist backend/routes/static"
+    - sh -c "[ \"${CI_BUILD}\" != \"true\" ] && exit 0; cd backend && go mod edit -dropreplace github.com/kubewall/addons && go mod edit -droprequire github.com/kubewall/addons && GOPRIVATE=github.com/kubewall/addons GONOSUMDB=github.com/kubewall/addons go get github.com/kubewall/addons/pod-exec@main && GOPRIVATE=github.com/kubewall/addons GONOSUMDB=github.com/kubewall/addons go mod tidy && cd .."
 
 builds:
   - main: .
