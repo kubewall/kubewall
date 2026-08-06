@@ -364,6 +364,18 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
         return createOpenRouter({
           apiKey: providerData.apiKey, baseURL: providerData.url, headers: commonHeaders, ...fetchOption
         });
+      case "orcarouter":
+        // OrcaRouter is an OpenAI-compatible gateway (flat top-level
+        // reasoning_effort, not OpenRouter's nested reasoning block), so it
+        // uses the generic OpenAI-compatible provider like ollama/lmstudio.
+        return createOpenAICompatible({
+          name: 'orcarouter',
+          baseURL: `${providerData.url}/`,
+          apiKey: providerData.apiKey,
+          headers: commonHeaders,
+          includeUsage: true,
+          ...fetchOption
+        });
       default:
         return '';
     }

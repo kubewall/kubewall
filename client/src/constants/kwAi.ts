@@ -117,6 +117,13 @@ const KW_AI_PROVIDERS = [
     providerDefaultUrl: "https://openrouter.ai/api/v1",
     urlHint: "OpenRouter gateway — routes to multiple providers. Default: https://openrouter.ai/api/v1",
     icon: PROVIDER_ICONS.openrouter
+  },
+  {
+    value: "orcarouter",
+    label: "OrcaRouter",
+    providerDefaultUrl: "https://api.orcarouter.ai/v1",
+    urlHint: "OrcaRouter gateway — OpenAI-compatible, routes to multiple providers with gateway-level security. Default: https://api.orcarouter.ai/v1",
+    icon: PROVIDER_ICONS.orcarouter
   }
 ];
 
