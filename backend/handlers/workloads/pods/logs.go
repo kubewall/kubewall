@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"sort"
 	"strconv"
@@ -18,7 +20,26 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-const maxLogLineSize = 1024 * 1024
+const (
+	// maxLogLineSize is how much of a single line is buffered before it is
+	// emitted as a chunk. It bounds memory per line; it is NOT a limit on what
+	// gets delivered -- a longer line is split across consecutive messages
+	// rather than being dropped.
+	maxLogLineSize = 1024 * 1024
+
+	// logReadBufferSize is the read window handed to bufio. ReadSlice returns
+	// ErrBufferFull at this granularity, which is how oversized lines are
+	// chunked instead of aborting the stream.
+	logReadBufferSize = 64 * 1024
+
+	// logTailLines is how much backlog a new follow request replays. The
+	// per-request SSE server sizes its retained event log from this.
+	logTailLines = 100
+
+	// logKeepAliveInterval is how often an idle log stream emits a comment so
+	// proxies do not reap the connection and the client can tell it is alive.
+	logKeepAliveInterval = 15 * time.Second
+)
 
 type LogMessage struct {
 	ContainerName string `json:"containerName"`
@@ -26,8 +47,81 @@ type LogMessage struct {
 	Log           string `json:"log"`
 }
 
-func (h *PodsHandler) fetchLogs(ctx context.Context, namespace, podName, containerName string, logsChannel chan<- LogMessage) {
-	i := int64(100)
+// newLogMessage converts one raw log line into a LogMessage.
+func newLogMessage(raw string, containerName string, lastTS *time.Time) LogMessage {
+	if timestamp, message, ok := strings.Cut(raw, " "); ok {
+		if parsed, err := time.Parse(time.RFC3339Nano, timestamp); err == nil {
+			*lastTS = parsed
+			return LogMessage{
+				ContainerName: containerName,
+				Timestamp:     parsed.Format(timestampLayout),
+				Log:           message,
+			}
+		}
+	}
+
+	fallback := *lastTS
+	if fallback.IsZero() {
+		fallback = time.Now().UTC()
+	}
+	return LogMessage{
+		ContainerName: containerName,
+		Timestamp:     fallback.Format(timestampLayout),
+		Log:           raw,
+	}
+}
+
+// readLogLines reads r to completion, handing every line to emit.
+//
+// It deliberately does not use bufio.Scanner: Scanner fails the whole stream
+// with ErrTooLong the first time a line exceeds its buffer, so a single
+// oversized line silently truncates every log that follows it. Here a long line
+// is emitted in order as consecutive chunks instead, so nothing is lost while
+// memory per line stays bounded.
+//
+// emit returns false to stop early (context cancelled).
+func readLogLines(r io.Reader, emit func(line string) bool) error {
+	reader := bufio.NewReaderSize(r, logReadBufferSize)
+	var pending []byte
+
+	for {
+		chunk, err := reader.ReadSlice('\n')
+		// chunk aliases the reader's buffer, so it must be copied out.
+		pending = append(pending, chunk...)
+
+		if errors.Is(err, bufio.ErrBufferFull) {
+			// Line is still incomplete. Flush once it grows past the cap so a
+			// pathological line cannot pin unbounded memory.
+			if len(pending) >= maxLogLineSize {
+				if !emit(string(pending)) {
+					return nil
+				}
+				pending = pending[:0]
+			}
+			continue
+		}
+
+		if len(pending) > 0 {
+			if !emit(strings.TrimRight(string(pending), "\r\n")) {
+				return nil
+			}
+			pending = pending[:0]
+		}
+
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				return nil
+			}
+			return err
+		}
+	}
+}
+
+// fetchLogs follows one container's logs into logsChannel. The returned error is
+// surfaced to the client by the caller: a silent failure would leave the browser
+// holding an open stream with no logs and no explanation.
+func (h *PodsHandler) fetchLogs(ctx context.Context, namespace, podName, containerName string, logsChannel chan<- LogMessage) error {
+	i := int64(logTailLines)
 	podLogOptions := &v1.PodLogOptions{
 		Container:  containerName,
 		Timestamps: true,
@@ -38,7 +132,7 @@ func (h *PodsHandler) fetchLogs(ctx context.Context, namespace, podName, contain
 	podLogs, err := req.Stream(ctx)
 	if err != nil {
 		log.Error("failed to open log stream", "pod", podName, "container", containerName, "err", err)
-		return
+		return err
 	}
 
 	go func() {
@@ -47,45 +141,62 @@ func (h *PodsHandler) fetchLogs(ctx context.Context, namespace, podName, contain
 	}()
 	defer podLogs.Close()
 
-	scanner := bufio.NewScanner(podLogs)
-	scanner.Buffer(make([]byte, 0, maxLogLineSize), maxLogLineSize)
-
-	for scanner.Scan() {
+	var lastTS time.Time
+	err = readLogLines(podLogs, func(line string) bool {
 		select {
 		case <-ctx.Done():
-			return
+			return false
 		default:
 		}
-		logLine := scanner.Text()
-		timestamp, message, ok := strings.Cut(logLine, " ")
-		if !ok {
-			log.Warn("malformed log line received", "pod", podName, "container", containerName)
-			continue
-		}
-		parseTime, err := time.Parse(time.RFC3339Nano, timestamp)
-		if err != nil {
-			log.Error("failed to parse log timestamp", "pod", podName, "container", containerName, "raw", timestamp, "err", err)
-			continue
-		}
-		msg := LogMessage{
-			ContainerName: containerName,
-			Timestamp:     parseTime.Format("2006-01-02 15:04:05.000Z"),
-			Log:           message,
-		}
 		select {
-		case logsChannel <- msg:
+		case logsChannel <- newLogMessage(line, containerName, &lastTS):
+			return true
 		case <-ctx.Done():
-			return
+			return false
 		}
+	})
+
+	if err != nil && !isBenignStreamClose(ctx, err) {
+		log.Error("log read error", "pod", podName, "container", containerName, "err", err)
+		return err
 	}
-	if err := scanner.Err(); err != nil && !strings.Contains(err.Error(), "http2: response body closed") {
-		log.Error("log scanner error", "pod", podName, "container", containerName, "err", err)
+	return nil
+}
+
+func isBenignStreamClose(ctx context.Context, err error) bool {
+	if ctx.Err() != nil || errors.Is(err, context.Canceled) || errors.Is(err, io.ErrClosedPipe) {
+		return true
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "http2: response body closed") ||
+		strings.Contains(msg, "use of closed network connection") ||
+		strings.Contains(msg, "context canceled")
+}
+
+// noticeMessage renders an out-of-band notice as an ordinary log line so it is
+// visible in the UI. Without this, every failure below looks identical to "this
+// pod has not logged anything": an open stream that never produces data.
+func noticeMessage(containerName, text string) LogMessage {
+	return LogMessage{
+		ContainerName: containerName,
+		Timestamp:     time.Now().UTC().Format(timestampLayout),
+		Log:           text,
 	}
 }
 
 func (h *PodsHandler) publishLogsToSSE(ctx context.Context, name, namespace, container, allContainers, streamKey string, sseServer *sse.Server) (error, bool) {
+	publish := func(msg LogMessage) {
+		j, err := json.Marshal(msg)
+		if err != nil {
+			log.Error("failed to marshal log message", "err", err)
+			return
+		}
+		sseServer.Publish(streamKey, &sse.Event{Data: j})
+	}
+
 	containerNames, err := h.getContainerNames(namespace, name, container, allContainers)
 	if err != nil {
+		publish(noticeMessage(container, fmt.Sprintf("unable to resolve containers for %s/%s: %v", namespace, name, err)))
 		return err, true
 	}
 
@@ -94,10 +205,15 @@ func (h *PodsHandler) publishLogsToSSE(ctx context.Context, name, namespace, con
 	var wg sync.WaitGroup
 	for _, containerName := range containerNames {
 		wg.Add(1)
-		go func() {
+		go func(containerName string) {
 			defer wg.Done()
-			h.fetchLogs(ctx, namespace, name, containerName, logsChannel)
-		}()
+			if err := h.fetchLogs(ctx, namespace, name, containerName, logsChannel); err != nil {
+				select {
+				case logsChannel <- noticeMessage(containerName, fmt.Sprintf("log stream for container %q ended with an error: %v", containerName, err)):
+				case <-ctx.Done():
+				}
+			}
+		}(containerName)
 	}
 	go func() {
 		wg.Wait()
@@ -105,14 +221,11 @@ func (h *PodsHandler) publishLogsToSSE(ctx context.Context, name, namespace, con
 	}()
 
 	for logMsg := range logsChannel {
-		j, err := json.Marshal(logMsg)
-		if err != nil {
-			log.Error("failed to marshal log message", "err", err)
-			continue
-		}
-		sseServer.Publish(streamKey, &sse.Event{
-			Data: j,
-		})
+		publish(logMsg)
+	}
+
+	if ctx.Err() == nil {
+		publish(noticeMessage(container, "log stream ended"))
 	}
 
 	return nil, false
@@ -165,25 +278,15 @@ func (h *PodsHandler) fetchHistoricalLogs(ctx context.Context, namespace, podNam
 	}
 	defer podLogs.Close()
 
-	var result []LogMessage
-	scanner := bufio.NewScanner(podLogs)
-	scanner.Buffer(make([]byte, 0, maxLogLineSize), maxLogLineSize)
-
-	for scanner.Scan() {
-		logLine := scanner.Text()
-		timestamp, message, ok := strings.Cut(logLine, " ")
-		if !ok {
-			continue
-		}
-		parseTime, err := time.Parse(time.RFC3339Nano, timestamp)
-		if err != nil {
-			continue
-		}
-		result = append(result, LogMessage{
-			ContainerName: containerName,
-			Timestamp:     parseTime.Format(timestampLayout),
-			Log:           message,
-		})
+	var (
+		result []LogMessage
+		lastTS time.Time
+	)
+	if err := readLogLines(podLogs, func(line string) bool {
+		result = append(result, newLogMessage(line, containerName, &lastTS))
+		return true
+	}); err != nil && !isBenignStreamClose(ctx, err) {
+		log.Error("historical log read error", "pod", podName, "container", containerName, "err", err)
 	}
 	return result
 }

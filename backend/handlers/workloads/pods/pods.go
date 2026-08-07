@@ -3,6 +3,7 @@ package pods
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/charmbracelet/log"
 	"github.com/kubewall/kubewall/backend/handlers/workloads/replicaset"
@@ -137,7 +138,16 @@ func GetPodsMetricsList(b *base.BaseHandler) *v1beta1.PodMetricsList {
 func (h *PodsHandler) GetLogs(c echo.Context) error {
 	sseServer := sse.New()
 	sseServer.AutoStream = true
+	// No TTL: a log line is never too old to deliver.
 	sseServer.EventTTL = 0
+	sseServer.Headers = map[string]string{
+		"X-Accel-Buffering": "no",
+	}
+	// AutoReplay stays on: it is what delivers lines published between
+	// CreateStream and the subscriber attaching. Size the retained log above the
+	// initial tail burst so trimming can never eat those first lines.
+	sseServer.MaxEventLogEvents = logTailLines * 2
+	sseServer.MaxEventLogBytes = 4 << 20
 	defer sseServer.Close()
 	ctx := c.Request().Context()
 	config := c.QueryParam("config")
@@ -156,8 +166,24 @@ func (h *PodsHandler) GetLogs(c echo.Context) error {
 	// Register before publishing; see BaseHandler.GetList.
 	sseServer.CreateStream(key)
 	go h.publishLogsToSSE(ctx, name, namespace, containerName, allContainers, key, sseServer)
+	go keepAlive(ctx, sseServer, key)
 
 	sseServer.ServeHTTP(key, c.Response(), c.Request())
 
 	return nil
+}
+
+// keepAlive emits an SSE comment periodically until the request ends.
+func keepAlive(ctx context.Context, sseServer *sse.Server, streamKey string) {
+	ticker := time.NewTicker(logKeepAliveInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			sseServer.Publish(streamKey, &sse.Event{Comment: []byte("keepalive")})
+		}
+	}
 }
