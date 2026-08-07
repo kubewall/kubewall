@@ -138,6 +138,7 @@ func (h *PodsHandler) GetLogs(c echo.Context) error {
 	sseServer := sse.New()
 	sseServer.AutoStream = true
 	sseServer.EventTTL = 0
+	defer sseServer.Close()
 	ctx := c.Request().Context()
 	config := c.QueryParam("config")
 	cluster := c.QueryParam("cluster")
@@ -152,6 +153,8 @@ func (h *PodsHandler) GetLogs(c echo.Context) error {
 	} else {
 		key = fmt.Sprintf("%s-%s-%s-%s-logs", config, cluster, name, namespace)
 	}
+	// Register before publishing; see BaseHandler.GetList.
+	sseServer.CreateStream(key)
 	go h.publishLogsToSSE(ctx, name, namespace, containerName, allContainers, key, sseServer)
 
 	sseServer.ServeHTTP(key, c.Response(), c.Request())

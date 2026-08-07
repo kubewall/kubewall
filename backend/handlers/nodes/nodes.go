@@ -90,6 +90,8 @@ func (h *NodeHandler) GetPods(c echo.Context) error {
 	ctx := c.Request().Context()
 	config := c.QueryParam("config")
 	cluster := c.QueryParam("cluster")
+	// Register before publishing; see BaseHandler.GetList.
+	h.BaseHandler.Container.SSE().CreateStream(streamID)
 	go h.loadNodePods(ctx, config, cluster)
 	h.BaseHandler.Container.SSE().ServeHTTP(streamID, c.Response(), c.Request())
 	return nil

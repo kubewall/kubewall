@@ -38,6 +38,7 @@ type BaseHandler struct {
 
 func (h *BaseHandler) GetList(c echo.Context) error {
 	streamID := fmt.Sprintf("%s-%s-%s", h.QueryConfig, h.QueryCluster, h.Kind)
+	h.Container.SSE().CreateStream(streamID)
 	// Handlers are cached across requests, so publish the current list for
 	// this new subscriber instead of relying on construction-time sync.
 	h.Container.EventProcessor().AddEvent(streamID, h.processListEvents(""))
@@ -50,6 +51,7 @@ func (h *BaseHandler) GetDetails(c echo.Context) error {
 	if err != nil {
 		return c.String(http.StatusBadRequest, err.Error())
 	}
+	h.Container.SSE().CreateStream(streamID)
 	go h.Container.SSE().Publish(streamID, &sse.Event{
 		Data: h.marshalDetailData(item, exists),
 	})
@@ -63,16 +65,19 @@ func (h *BaseHandler) GetYaml(c echo.Context) error {
 	if err != nil {
 		return c.String(http.StatusBadRequest, err.Error())
 	}
-	go h.Container.SSE().Publish(fmt.Sprintf("%s-yaml", streamID), &sse.Event{
+	yamlStreamID := fmt.Sprintf("%s-yaml", streamID)
+	h.Container.SSE().CreateStream(yamlStreamID)
+	go h.Container.SSE().Publish(yamlStreamID, &sse.Event{
 		Data: h.marshalYAML(item, exists),
 	})
 
-	h.Container.SSE().ServeHTTP(fmt.Sprintf("%s-yaml", streamID), c.Response(), c.Request())
+	h.Container.SSE().ServeHTTP(yamlStreamID, c.Response(), c.Request())
 	return nil
 }
 
 func (h *BaseHandler) GetEvents(c echo.Context) error {
 	streamID := h.buildEventStreamID(c)
+	h.Container.SSE().CreateStream(streamID)
 	events := h.fetchEvents(c)
 
 	data := h.marshalEvents(events)

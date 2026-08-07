@@ -73,6 +73,8 @@ func (h *PortForwardHandler) ListPortForwarding(c echo.Context) error {
 	cluster := c.QueryParam("cluster")
 
 	streamID := fmt.Sprintf("%s-%s-portForwarder", config, cluster)
+	// Register before publishing; see BaseHandler.GetList.
+	h.container.SSE().CreateStream(streamID)
 	h.publishList(config, cluster)
 
 	h.container.SSE().ServeHTTP(streamID, c.Response(), c.Request())

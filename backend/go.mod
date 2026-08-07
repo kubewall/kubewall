@@ -103,6 +103,6 @@ require (
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.2 // indirect
 )
 
-replace github.com/r3labs/sse/v2 => github.com/kubewall/sse/v2 v2.11.2
+replace github.com/r3labs/sse/v2 => github.com/kubewall/sse/v2 v2.11.3
 
 replace github.com/kubewall/addons => ./stubs/addons

@@ -65,6 +65,8 @@ func NewContainer(env *config.Env, cfg *config.AppConfig) Container {
 	s := sse.New()
 	s.AutoStream = true
 	s.EventTTL = 2 * time.Second
+	s.MaxEventLogEvents = 100
+	s.MaxEventLogBytes = 1 << 20 // 1 MiB per stream
 	s.Headers = map[string]string{
 		"X-Accel-Buffering": "no",
 		// "Cache-Control":"no-cache"
