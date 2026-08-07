@@ -14,6 +14,11 @@ import (
 // informerInitOnce prevents duplicate AddEventHandler registrations.
 var informerInitOnce sync.Map
 
+// informerGuardKey identifies the one-time initialisation of a single informer.
+func informerGuardKey(informerCacheKey, kind string) string {
+	return fmt.Sprintf("%s|%s", informerCacheKey, kind)
+}
+
 type Resource interface {
 	GetName() string
 	GetNamespace() string
@@ -70,7 +75,7 @@ func (h *BaseHandler) StartDynamicInformer(events cache.ResourceEventHandlerFunc
 }
 
 func (h *BaseHandler) baseInformer(events cache.ResourceEventHandlerFuncs) {
-	once, _ := informerInitOnce.LoadOrStore(h.InformerCacheKey, &sync.Once{})
+	once, _ := informerInitOnce.LoadOrStore(informerGuardKey(h.InformerCacheKey, h.Kind), &sync.Once{})
 	once.(*sync.Once).Do(func() {
 		h.Container.Cache().Set(h.InformerCacheKey, true)
 		_ = h.Informer.SetWatchErrorHandler(func(r *cache.Reflector, err error) {

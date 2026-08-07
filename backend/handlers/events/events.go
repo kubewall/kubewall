@@ -51,7 +51,7 @@ func newEventsHandler(ctx context.Context, config, cluster string, container con
 			RestClient:       container.ClientSet(config, cluster).CoreV1().RESTClient(),
 			QueryConfig:      config,
 			QueryCluster:     cluster,
-			InformerCacheKey: fmt.Sprintf("%s-%s-namespaceInformer", config, cluster),
+			InformerCacheKey: fmt.Sprintf("%s-%s-eventInformer", config, cluster),
 			TransformFunc:    transformItems,
 		},
 	}
