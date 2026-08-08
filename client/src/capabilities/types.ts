@@ -14,9 +14,12 @@ export interface TerminalCapabilities {
   sessionTimeoutMinutes: number;
 }
 
+export interface KubeEndOfLifeCapabilities {
+  enabled: boolean;
+}
+
 // Add a new key here for every new feature's capability config.
 export interface CapabilityConfig {
   terminal: TerminalCapabilities;
-  // future: advancedLogs: LogsCapabilities;
-  // future: auditTrail: AuditCapabilities;
+  kubeEndOfLife: KubeEndOfLifeCapabilities;
 }

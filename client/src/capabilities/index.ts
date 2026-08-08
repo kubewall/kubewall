@@ -15,6 +15,9 @@ const capabilities: CapabilityConfig = {
     maxSessions: 1,
     sessionTimeoutMinutes: 30,
   },
+  kubeEndOfLife: {
+    enabled: false,
+  },
 };
 
 export default capabilities;

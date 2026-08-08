@@ -6,6 +6,9 @@ module.exports = {
 		'./components/**/*.{ts,tsx}',
 		'./app/**/*.{ts,tsx}',
 		'./src/**/*.{ts,tsx}',
+		// enterprise-client is cloned in only for private builds; the glob is a
+		// no-op (matches nothing) when the directory is absent, e.g. OSS builds.
+		'./enterprise-client/**/*.{ts,tsx}',
 	],
 	theme: {
 		container: {
