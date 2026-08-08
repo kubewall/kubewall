@@ -233,6 +233,19 @@ func (p *PortForwarder) List(cfg *rest.Config, clientset kubernetes.Interface, q
 	return list
 }
 
+// StopAll tears down every active forward across every cluster.
+func (p *PortForwarder) StopAll() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	for key, inner := range p.active {
+		for _, pf := range inner {
+			close(pf.stopCh)
+		}
+		delete(p.active, key)
+	}
+}
+
 func (p *PortForwarder) Stop(configName, clusterName string, cfg *rest.Config, clientset kubernetes.Interface, id string) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()

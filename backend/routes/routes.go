@@ -87,7 +87,10 @@ func ConfigureRoutes(e *echo.Echo, appContainer container.Container) {
 	e.POST("api/v1/app/config/kubeconfigs", appConfig.Post)
 	e.POST("api/v1/app/config/kubeconfigs-bearer", appConfig.PostBearer)
 	e.POST("api/v1/app/config/kubeconfigs-certificate", appConfig.PostCertificate)
+	// GET is kept because the bundled UI triggers the reset by navigating to it.
+	// POST is the verb API clients should use for a state-changing call.
 	e.GET("api/v1/app/config/reload", appConfig.Reload)
+	e.POST("api/v1/app/config/reload", appConfig.Reload)
 
 	e.DELETE("api/v1/app/config/kubeconfigs/:configId", appConfig.Delete)
 

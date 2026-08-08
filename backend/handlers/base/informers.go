@@ -59,19 +59,25 @@ func ResourceEventHandler[T Resource](handler *BaseHandler, additionalEvents ...
 	}
 }
 
+// stopCh bounds every informer this handler starts to the lifetime of its
+// cluster, so a config reload stops the reflectors instead of orphaning them.
+func (h *BaseHandler) stopCh() <-chan struct{} {
+	return h.Container.ClusterDone(h.QueryConfig, h.QueryCluster)
+}
+
 func (h *BaseHandler) StartInformer(events cache.ResourceEventHandlerFuncs) {
 	h.baseInformer(events)
-	go h.Container.SharedInformerFactory(h.QueryConfig, h.QueryCluster).Start(context.Background().Done())
+	go h.Container.SharedInformerFactory(h.QueryConfig, h.QueryCluster).Start(h.stopCh())
 }
 
 func (h *BaseHandler) StartExtensionInformer(events cache.ResourceEventHandlerFuncs) {
 	h.baseInformer(events)
-	go h.Container.ExtensionSharedFactoryInformer(h.QueryConfig, h.QueryCluster).Start(context.Background().Done())
+	go h.Container.ExtensionSharedFactoryInformer(h.QueryConfig, h.QueryCluster).Start(h.stopCh())
 }
 
 func (h *BaseHandler) StartDynamicInformer(events cache.ResourceEventHandlerFuncs) {
 	h.baseInformer(events)
-	go h.Container.DynamicSharedInformerFactory(h.QueryConfig, h.QueryCluster).Start(context.Background().Done())
+	go h.Container.DynamicSharedInformerFactory(h.QueryConfig, h.QueryCluster).Start(h.stopCh())
 }
 
 func (h *BaseHandler) baseInformer(events cache.ResourceEventHandlerFuncs) {

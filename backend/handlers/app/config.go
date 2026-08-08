@@ -29,9 +29,12 @@ func (h *AppConfigHandler) Get(c echo.Context) error {
 	return c.JSON(http.StatusOK, h.container.Config())
 }
 
+// Reload performs a full application reset: every connection to every cluster
+// is dropped, every cache and cached handler is discarded, and the kubeconfigs
+// are re-read from disk. Clusters reconnect lazily on the next request that
+// selects them.
 func (h *AppConfigHandler) Reload(c echo.Context) error {
-	h.container.Cache().InvalidateAll()
-	h.container.Config().ReloadConfig()
+	resetApp(h.container)
 	return c.Redirect(http.StatusTemporaryRedirect, "/")
 }
 

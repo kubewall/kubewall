@@ -3,9 +3,9 @@ package middleware
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	"github.com/kubewall/kubewall/backend/container"
+	"github.com/kubewall/kubewall/backend/handlers/base"
 	"github.com/kubewall/kubewall/backend/handlers/config/secrets"
 	"github.com/kubewall/kubewall/backend/handlers/helpers"
 	"github.com/kubewall/kubewall/backend/handlers/workloads/deployments"
@@ -43,10 +43,6 @@ import (
 
 const ClusterCache = "cluster-cache"
 
-// clusterInitOnce tracks per-cluster initialization to prevent duplicate
-// informer creation from concurrent requests.
-var clusterInitOnce sync.Map
-
 func ClusterCacheMiddleware(container container.Container) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
@@ -72,9 +68,9 @@ func ClusterCacheMiddleware(container container.Container) echo.MiddlewareFunc {
 				conn.MarkAsConnected()
 			}
 
-			clusterKey := fmt.Sprintf("%s-%s", config, cluster)
-			once, _ := clusterInitOnce.LoadOrStore(clusterKey, &sync.Once{})
-			once.(*sync.Once).Do(func() {
+			// The guard lives in base so a config reload can clear it alongside
+			// the handler registry it gates.
+			base.ClusterInit(fmt.Sprintf("%s-%s", config, cluster), func() {
 				helpers.CacheAllResources(container, config, cluster)
 				loadAllInformerOfCluster(config, cluster, container)
 			})

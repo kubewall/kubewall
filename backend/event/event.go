@@ -85,6 +85,15 @@ func (ec *EventProcessor) processEvents() {
 	}
 }
 
+// Reset drops every queued event without running it.
+func (ec *EventProcessor) Reset() {
+	ec.mu.Lock()
+	defer ec.mu.Unlock()
+
+	ec.events = make(map[string]*list.Element)
+	ec.order.Init()
+}
+
 func (ec *EventProcessor) Stop() {
 	close(ec.done)
 }

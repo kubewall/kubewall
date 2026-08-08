@@ -63,11 +63,32 @@ func (c *AppConfig) LoadAppConfig() {
 	c.loadAppConfigLocked()
 }
 
+// ReloadConfig tears down every loaded cluster and rebuilds the whole config.
 func (c *AppConfig) ReloadConfig() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	c.shutdownClustersLocked()
 	c.KubeConfig = make(map[string]*KubeConfigInfo)
 	c.loadAppConfigLocked()
+}
+
+// shutdownClustersLocked stops the informers of every currently loaded cluster.
+// Caller must hold c.mu.
+func (c *AppConfig) shutdownClustersLocked() {
+	for _, kubeConfig := range c.KubeConfig {
+		shutdownKubeConfig(kubeConfig)
+	}
+}
+
+func shutdownKubeConfig(kubeConfig *KubeConfigInfo) {
+	if kubeConfig == nil {
+		return
+	}
+	for _, cluster := range kubeConfig.Clusters {
+		if cluster != nil {
+			cluster.Shutdown()
+		}
+	}
 }
 
 // loadAppConfigLocked performs the actual config loading. Caller must hold c.mu.
@@ -123,6 +144,7 @@ func readAllFilesInDir(dirPath string) []string {
 func (c *AppConfig) RemoveKubeConfig(configName string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	shutdownKubeConfig(c.KubeConfig[configName])
 	delete(c.KubeConfig, configName)
 	return os.Remove(filepath.Join(homedir.HomeDir(), AppConfigDir, AppKubeConfigDir, configName))
 }
@@ -141,6 +163,7 @@ func (c *AppConfig) SaveKubeConfig(configName string) {
 	filePath := filepath.Join(homedir.HomeDir(), AppConfigDir, AppKubeConfigDir, configName)
 	if clusters, err := LoadK8ConfigFromFile(filePath); err == nil {
 		if len(clusters) > 0 {
+			shutdownKubeConfig(c.KubeConfig[configName])
 			c.KubeConfig[configName] = &KubeConfigInfo{
 				Name:         filePath,
 				AbsolutePath: filePath,

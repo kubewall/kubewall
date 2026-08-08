@@ -36,6 +36,7 @@ type Container interface {
 	SharedInformerFactory(config, cluster string) informers.SharedInformerFactory
 	ExtensionSharedFactoryInformer(config, cluster string) apiextensionsinformers.SharedInformerFactory
 	DynamicSharedInformerFactory(config, cluster string) dynamicinformer.DynamicSharedInformerFactory
+	ClusterDone(config, cluster string) <-chan struct{}
 	Cache() *otter.Cache[string, any]
 	SSE() *sse.Server
 	SocketUpgrader() *websocket.Upgrader
@@ -220,6 +221,19 @@ func (c *container) DynamicSharedInformerFactory(config, cluster string) dynamic
 		return nil
 	}
 	return cfg.GetDynamicSharedInformerFactory()
+}
+
+// ClusterDone returns the stop channel bounding the lifetime of this cluster.
+func (c *container) ClusterDone(config, cluster string) <-chan struct{} {
+	kubeConfig, ok := c.config.GetKubeConfigInfo(config)
+	if !ok || kubeConfig == nil {
+		return nil
+	}
+	cfg, ok := kubeConfig.Clusters[cluster]
+	if !ok || cfg == nil {
+		return nil
+	}
+	return cfg.Done()
 }
 
 func (c *container) SocketUpgrader() *websocket.Upgrader {

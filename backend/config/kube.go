@@ -39,6 +39,33 @@ type Cluster struct {
 	DynamicInformerFactory   dynamicinformer.DynamicSharedInformerFactory `json:"-"`
 	MetricClient             *metricsclient.Clientset                     `json:"-"`
 	mu                       sync.Mutex                                   `json:"-"`
+
+	// stopCh bounds the lifetime of every informer started for this cluster.
+	// Informer factories are started with it instead of a never-closing channel
+	// so a config reload can actually tear the watches down.
+	stopCh   chan struct{}
+	stopOnce sync.Once
+}
+
+// Done returns the channel closed when this cluster is shut down. Informer
+// factories started with it stop their reflectors and drop their watch
+// connections to the API server.
+//
+// A Cluster built outside this package has no stop channel; Done then returns
+// nil, which blocks forever and preserves the run-until-exit behaviour.
+func (c *Cluster) Done() <-chan struct{} {
+	return c.stopCh
+}
+
+// Shutdown stops every informer started for this cluster. It is safe to call
+// more than once and from multiple goroutines.
+func (c *Cluster) Shutdown() {
+	if c.stopCh == nil {
+		return
+	}
+	c.stopOnce.Do(func() {
+		close(c.stopCh)
+	})
 }
 
 func (c *Cluster) GetClientSet() *kubernetes.Clientset {
@@ -135,6 +162,7 @@ func LoadK8ConfigFromFile(path string) (map[string]*Cluster, error) {
 			Name:                     key,
 			Namespace:                cluster.Namespace,
 			AuthInfo:                 cluster.AuthInfo,
+			stopCh:                   make(chan struct{}),
 			RestConfig:               kubeConfig.RestConfig,
 			ClientSet:                kubeConfig.ClientSet,
 			DynamicClient:            kubeConfig.DynamicClient,
@@ -219,6 +247,7 @@ func loadClientConfig(restConfig *rest.Config) (*Cluster, error) {
 	}
 
 	return &Cluster{
+		stopCh:                   make(chan struct{}),
 		RestConfig:               restConfig,
 		ClientSet:                clientSet,
 		DynamicClient:            dynamicClient,

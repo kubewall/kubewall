@@ -117,3 +117,34 @@ func TestEventProcessor_MaxEvents(t *testing.T) {
 		assert.True(t, exists, "event3 should exist")
 	})
 }
+
+func TestEventProcessor_Reset(t *testing.T) {
+	t.Run("drops queued events without running them", func(t *testing.T) {
+		ep := NewEventCounter(10 * time.Millisecond)
+
+		var ran atomic.Int32
+		ep.AddEvent("event1", func() { ran.Add(1) })
+		ep.AddEvent("event2", func() { ran.Add(1) })
+		assert.Len(t, ep.events, 2)
+
+		ep.Reset()
+
+		assert.Empty(t, ep.events)
+		assert.Equal(t, 0, ep.order.Len())
+
+		ep.processEvents()
+		assert.Equal(t, int32(0), ran.Load(), "closures over discarded informers must not fire after a reset")
+	})
+
+	t.Run("leaves the processor usable", func(t *testing.T) {
+		ep := NewEventCounter(10 * time.Millisecond)
+		ep.AddEvent("event1", func() {})
+		ep.Reset()
+
+		var ran atomic.Int32
+		ep.AddEvent("event2", func() { ran.Add(1) })
+		ep.processEvents()
+
+		assert.Equal(t, int32(1), ran.Load())
+	})
+}
