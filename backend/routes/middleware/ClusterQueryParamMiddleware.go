@@ -6,10 +6,12 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+const ClusterQueryParam = "cluster-query-param"
+
 func ClusterQueryParamMiddleware(container container.Container) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			if shouldSkip(c) {
+			if shouldSkip(c, ClusterQueryParam) {
 				return next(c)
 			}
 

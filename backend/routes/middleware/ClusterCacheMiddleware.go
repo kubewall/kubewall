@@ -41,6 +41,8 @@ import (
 	statefulset "github.com/kubewall/kubewall/backend/handlers/workloads/statefulsets"
 )
 
+const ClusterCache = "cluster-cache"
+
 // clusterInitOnce tracks per-cluster initialization to prevent duplicate
 // informer creation from concurrent requests.
 var clusterInitOnce sync.Map
@@ -48,7 +50,7 @@ var clusterInitOnce sync.Map
 func ClusterCacheMiddleware(container container.Container) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			if shouldSkip(c) {
+			if shouldSkip(c, ClusterCache) {
 				return next(c)
 			}
 
