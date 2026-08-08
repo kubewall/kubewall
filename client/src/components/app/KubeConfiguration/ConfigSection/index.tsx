@@ -1,10 +1,16 @@
-import { Fragment } from 'react';
-import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableRow } from '@/components/ui/table';
+
 import { ClustersDetails } from '@/types';
 import { DeleteConfiguration } from '../DeleteConfiguration';
-import { SystemConfigIndicator } from '../SystemConfigIndicator';
-import { StatusCell } from '../../Table/TableCells/statusCell';
 import { FileBox } from "lucide-react";
+import { Fragment } from 'react';
+import { StatusCell } from '../../Table/TableCells/statusCell';
+import { SystemConfigIndicator } from '../SystemConfigIndicator';
+import addons from '@/addons';
+import capabilities from '@/capabilities';
+
+const ClusterEOLBadge = addons.kubeEndOfLife?.ClusterEOLBadge ?? null;
+const eolEnabled = !!capabilities.kubeEndOfLife?.enabled && !!ClusterEOLBadge;
 
 type ConfigSectionProps = {
   title: string;
@@ -36,7 +42,7 @@ export function ConfigSection({ title, subtitle, configs, isSystem, onNavigate }
             <Fragment key={config + index}>
               {/* Config File Row */}
               <TableRow className="group/item">
-                <TableCell colSpan={3} className="bg-muted/30">
+                <TableCell colSpan={eolEnabled ? 4 : 3} className="bg-muted/30">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-1">
                       <FileBox className="h-4 w-4 text-muted-foreground" />
@@ -49,6 +55,14 @@ export function ConfigSection({ title, subtitle, configs, isSystem, onNavigate }
                     )}
                   </div>
                 </TableCell>
+              </TableRow>
+
+              {/* Column Header Row */}
+              <TableRow className="hover:bg-transparent">
+                <TableHead>Name</TableHead>
+                <TableHead>Namespace</TableHead>
+                <TableHead>Status</TableHead>
+                {eolEnabled && <TableHead>Version</TableHead>}
               </TableRow>
 
               {/* Cluster Rows */}
@@ -72,6 +86,11 @@ export function ConfigSection({ title, subtitle, configs, isSystem, onNavigate }
                     <TableCell>
                       {connected ? <StatusCell cellValue='Active' /> : <StatusCell cellValue='InActive' />}
                     </TableCell>
+                    {eolEnabled && ClusterEOLBadge && (
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <ClusterEOLBadge configName={config} clusterName={name} />
+                      </TableCell>
+                    )}
                   </TableRow>
                 );
               })}

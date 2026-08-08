@@ -44,10 +44,17 @@ export interface TerminalAddonDefinition extends AddonDefinition {
   }> | null;
 }
 
+// ─── Kube End-of-Life Addon ───────────────────────────────────────────────────
+export interface KubeEndOfLifeAddonDefinition extends AddonDefinition {
+  ClusterEOLBadge: ComponentType<{
+    configName: string;
+    clusterName: string;
+  }> | null;
+}
+
 // ─── Registry ─────────────────────────────────────────────────────────────────
 // Add a new optional key here for every new addon feature.
 export interface AddonRegistry {
   terminal?: TerminalAddonDefinition;
-  // future: advancedLogs?: LogsAddonDefinition;
-  // future: auditTrail?: AuditAddonDefinition;
+  kubeEndOfLife?: KubeEndOfLifeAddonDefinition;
 }
