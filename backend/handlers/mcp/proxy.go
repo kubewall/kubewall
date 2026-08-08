@@ -163,7 +163,7 @@ func setProviderAuthHeader(req *http.Request, provider, apiKey string) {
 	default:
 		// Standard Bearer token auth used by: openai, xai, groq, deepinfra,
 		// mistral, togetherai, cohere, fireworks, deepseek, cerebras,
-		// openrouter, ollama, lmstudio, and others.
+		// openrouter, requesty, ollama, lmstudio, and others.
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
 	}
 }
