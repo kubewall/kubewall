@@ -17,6 +17,7 @@ type CreateTableProps<T, C extends HeaderList> = {
   loading: boolean;
   headersList: C[];
   instanceType: string;
+  kind?: string;
   count: number;
   data: T[];
   endpoint: string;
@@ -33,6 +34,7 @@ const CreateTable = <T extends ClusterDetails, C extends HeaderList>({
   headersList,
   count,
   instanceType,
+  kind,
   data,
   endpoint,
   queryParmObject,
@@ -78,6 +80,7 @@ const CreateTable = <T extends ClusterDetails, C extends HeaderList>({
           showNamespaceFilter={showNamespaceFilter}
           tableWidthCss={cn('list-table-max-height', 'h-full')}
           instanceType={instanceType}
+          kind={kind}
           loading={loading}
           showChat={showChat}
           setShowChat={setShowChat}

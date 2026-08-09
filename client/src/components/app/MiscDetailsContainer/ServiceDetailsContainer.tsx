@@ -59,7 +59,7 @@ const ServiceDetailsContainer = memo(function () {
                           {
                             Object.keys(item).map((key: string) => {
                               return (
-                                <div className="py-1.5 border-t border-b border-dashed flex flex-row">
+                                <div className="py-1.5 border-t border-b last:border-b-0 border-dashed flex flex-row">
                                   <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">{key}</div>
                                   <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                                     <div className="break-all basis-[97%] ">

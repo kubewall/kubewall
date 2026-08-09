@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { CopyToClipboard } from "@/components/app/Common/CopyToClipboard";
+import { NodeImages } from "./Nodes/NodeImages";
 import { NodePodsList } from "./Nodes/NodePodsList";
 import { defaultOrValue } from "@/utils";
 import { memo } from "react";
@@ -21,66 +22,7 @@ const NodeDetailsContainer = memo(function () {
       <div className="mb-2">
         <NodePodsList />
       </div>
-      {
-        images && <Card className="shadow-none rounded-lg">
-          <CardHeader className="p-4 ">
-            <CardTitle className="text-sm font-medium">Images <span className="text-xs">({images?.length})</span></CardTitle>
-          </CardHeader>
-          <CardContent className="px-4">
-            <div className="items-start gap-6 rounded-lg grid">
-              {
-                images?.map((image) => {
-                  return (
-                    <div key={image?.sizeBytes} className="grid items-start">
-                      <Card className="shadow-none rounded-lg border-dashed">
-                        {/* <CardHeader className="p-5">
-                        <CardTitle className="flex items-center justify-between">
-                          <div className="flex flex-1 items-center">
-                            <div className="text-sm font-normal basis-2/3 break-all">{image?.type}</div>
-                          </div>
-                        </CardTitle>
-                      </CardHeader> */}
-                        <CardContent className="boder p-0">
-                          <div className="py-1.5 border-t border-b border-dashed flex flex-row">
-                            <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Size</div>
-                            <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
-                              <div className="break-all basis-[97%] ">
-                                {defaultOrValue((Number(image?.sizeBytes) / 1048576).toFixed(2))} MB
-                              </div>
-                              <div className="basis-[3%] group/edit invisible group-hover/item:visible flex items-center">
-                                <CopyToClipboard val={defaultOrValue((Number(image?.sizeBytes) / 1048576).toFixed(2)) + ' MB'} />
-                              </div>
-                            </div>
-                          </div>
-                          {
-                            image?.names?.map((imageName) => {
-                              return (
-                                <div className="py-1.5 border-b border-dashed flex flex-row">
-                                  <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Image Name</div>
-                                  <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
-                                    <div className="break-all basis-[97%] ">
-                                      {
-                                        defaultOrValue(imageName)
-                                      }
-                                    </div>
-                                    <div className="basis-[3%] group/edit invisible group-hover/item:visible flex items-center">
-                                      <CopyToClipboard val={defaultOrValue(imageName)} />
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })
-                          }
-                        </CardContent>
-                      </Card>
-                    </div>
-                  );
-                })
-              }
-            </div>
-          </CardContent>
-        </Card>
-      }
+      <NodeImages images={images} />
       {
         conditions && <Card className="mt-2 shadow-none rounded-lg">
           <CardHeader className="p-4 ">
@@ -102,7 +44,7 @@ const NodeDetailsContainer = memo(function () {
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="boder p-0">
-                          <div className="py-1.5 border-t border-b border-dashed flex flex-row">
+                          <div className="py-1.5 border-t border-b last:border-b-0 border-dashed flex flex-row">
                             <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Status</div>
                             <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                               <div className="break-all basis-[97%] ">
@@ -113,7 +55,7 @@ const NodeDetailsContainer = memo(function () {
                               </div>
                             </div>
                           </div>
-                          <div className="py-1.5  border-b border-dashed flex flex-row">
+                          <div className="py-1.5  border-b last:border-b-0 border-dashed flex flex-row">
                             <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Last Heartbeat Time</div>
                             <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                               <div className="break-all basis-[97%] ">
@@ -126,7 +68,7 @@ const NodeDetailsContainer = memo(function () {
                               </div>
                             </div>
                           </div>
-                          <div className="py-1.5  border-b border-dashed flex flex-row">
+                          <div className="py-1.5  border-b last:border-b-0 border-dashed flex flex-row">
                             <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Last Transition Time</div>
                             <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                               <div className="break-all basis-[97%] ">
@@ -139,7 +81,7 @@ const NodeDetailsContainer = memo(function () {
                               </div>
                             </div>
                           </div>
-                          <div className="py-1.5  border-b border-dashed flex flex-row">
+                          <div className="py-1.5  border-b last:border-b-0 border-dashed flex flex-row">
                             <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Reason</div>
                             <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                               <div className="break-all basis-[97%] ">
@@ -152,7 +94,7 @@ const NodeDetailsContainer = memo(function () {
                               </div>
                             </div>
                           </div>
-                          <div className="py-1.5  border-b border-dashed flex flex-row">
+                          <div className="py-1.5  border-b last:border-b-0 border-dashed flex flex-row">
                             <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Message</div>
                             <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                               <div className="break-all basis-[97%] ">

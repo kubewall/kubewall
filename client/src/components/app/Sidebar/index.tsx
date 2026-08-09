@@ -191,7 +191,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                           className="group/collapsible"
                         >
                           <SidebarMenuItem>
-                            <DropdownMenu>
+                            <DropdownMenu key={`${route}-${open}`}>
                               <CollapsibleTrigger asChild onClick={(e) => { toggleMenu(route); e.stopPropagation(); }}>
                                 <DropdownMenuTrigger asChild>
                                   <SidebarMenuButton className='group-data-[collapsible=icon]:justify-center' tooltip={route} showTooltipOnExpanded={true}>
@@ -232,6 +232,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                                   className=" min-w-56 rounded-lg"
                                   align="start"
                                   side={isMobile ? "bottom" : "right"}
+                                  onCloseAutoFocus={(event) => event.preventDefault()}
                                 >
                                   <DropdownMenuLabel className="truncate font-medium text-gray-800 dark:text-gray-200">{route}</DropdownMenuLabel>
                                   <DropdownMenuSeparator />
@@ -288,7 +289,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                         className="group/collapsible"
                       >
                         <SidebarMenuItem>
-                          <DropdownMenu>
+                          <DropdownMenu key={`${customResourceGroup}-${open}`}>
                             <CollapsibleTrigger asChild onClick={() => toggleMenu(customResourceGroup)}>
                               <DropdownMenuTrigger asChild>
                                 <SidebarMenuButton className='group-data-[collapsible=icon]:justify-center' tooltip={customResourceGroup} showTooltipOnExpanded={true}>
@@ -334,6 +335,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                                 className=" min-w-56 rounded-lg"
                                 align="start"
                                 side={isMobile ? "bottom" : "right"}
+                                onCloseAutoFocus={(event) => event.preventDefault()}
                               >
                                 <DropdownMenuLabel className="truncate font-medium text-gray-800 dark:text-gray-200">{customResourceGroup}</DropdownMenuLabel>
                                 <DropdownMenuSeparator />

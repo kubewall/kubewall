@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-import { Badge } from "@/components/ui/badge";
+import { CodeBlock } from "../Common/CodeBlock";
 import { CopyToClipboard } from "../Common/CopyToClipboard";
 import { memo } from "react";
 import { useAppSelector } from "@/redux/hooks";
@@ -26,17 +26,16 @@ const ConfigMapDetailsContainer = memo(function () {
               <CardContent className="boder p-0 ">
                 {
                   data && Object.keys(data).map((key: string) => {
+                    // Multi-line values render as a tall code block, where the key
+                    // belongs beside the first line rather than the middle.
+                    const singleLine = !(data[key] || '').replace(/\n$/, '').includes('\n');
+
                     return (
-                      <div className="py-1.5 border-b border-dashed flex flex-row">
+                      <div key={key} className={`py-1.5 border-b last:border-b-0 border-dashed flex flex-row ${singleLine ? 'items-center' : ''}`}>
                         <div className="pl-4 text-sm basis-1/4">{key}</div>
                         <div className="flex flex-row text-sm font-normal basis-3/4 group/item">
                           <div className="break-all basis-[97%] ">
-                            <Badge variant="secondary" className="text-sm font-normal">
-
-                              <span className="whitespace-pre-wrap">
-                                {data[key]}
-                              </span>
-                            </Badge>
+                            <CodeBlock value={data[key] || ''} fileName={key} />
                           </div>
                           <div className="basis-[3%] group/edit invisible group-hover/item:visible flex items-center">
                             <CopyToClipboard

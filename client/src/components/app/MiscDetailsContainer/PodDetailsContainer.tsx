@@ -89,7 +89,7 @@ const PodDetailsContainer = memo(function () {
                             </CardTitle>
                           </CardHeader>
                           <CardContent className="boder p-0">
-                            <div className="py-1.5 border-t border-b border-dashed flex flex-row">
+                            <div className="py-1.5 border-t border-b last:border-b-0 border-dashed flex flex-row">
                               <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Image</div>
                               <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                                 <div className="break-all basis-[97%] ">
@@ -100,7 +100,7 @@ const PodDetailsContainer = memo(function () {
                                 </div>
                               </div>
                             </div>
-                            <div className="py-1.5  border-b border-dashed flex flex-row">
+                            <div className="py-1.5  border-b last:border-b-0 border-dashed flex flex-row">
                               <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Image ID</div>
                               <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                                 <div className="break-all basis-[97%] ">
@@ -111,7 +111,7 @@ const PodDetailsContainer = memo(function () {
                                 </div>
                               </div>
                             </div>
-                            <div className="py-1.5  border-b border-dashed flex flex-row">
+                            <div className="py-1.5  border-b last:border-b-0 border-dashed flex flex-row">
                               <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Container ID</div>
                               <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                                 <div className="break-all basis-[97%] ">
@@ -122,7 +122,7 @@ const PodDetailsContainer = memo(function () {
                                 </div>
                               </div>
                             </div>
-                            <div className="py-1.5  border-b border-dashed flex flex-row">
+                            <div className="py-1.5  border-b last:border-b-0 border-dashed flex flex-row">
                               <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Command</div>
                               <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                                 <div className="break-all basis-[97%] ">
@@ -133,7 +133,7 @@ const PodDetailsContainer = memo(function () {
                                 </div>
                               </div>
                             </div>
-                            <div className="py-1.5  border-b border-dashed flex flex-row">
+                            <div className="py-1.5  border-b last:border-b-0 border-dashed flex flex-row">
                               <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Image Pull Policy</div>
                               <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                                 <div className="break-all basis-[97%] ">
@@ -144,7 +144,7 @@ const PodDetailsContainer = memo(function () {
                                 </div>
                               </div>
                             </div>
-                            <div className="py-1.5  border-b border-dashed flex flex-row">
+                            <div className="py-1.5  border-b last:border-b-0 border-dashed flex flex-row">
                               <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Restarts</div>
                               <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                                 <div className="break-all basis-[97%] ">
@@ -155,7 +155,7 @@ const PodDetailsContainer = memo(function () {
                                 </div>
                               </div>
                             </div>
-                            <div className="py-1.5  border-b border-dashed flex flex-row">
+                            <div className="py-1.5  border-b last:border-b-0 border-dashed flex flex-row">
                               <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Restart Reason</div>
                               <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                                 <div className="break-all basis-[97%] ">
@@ -166,7 +166,7 @@ const PodDetailsContainer = memo(function () {
                                 </div>
                               </div>
                             </div>
-                            <div className="py-1.5  border-b border-dashed flex flex-row">
+                            <div className="py-1.5  border-b last:border-b-0 border-dashed flex flex-row">
                               <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Last Restart</div>
                               <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                                 <div className="break-all basis-[97%] ">
@@ -240,7 +240,7 @@ const PodDetailsContainer = memo(function () {
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="boder p-0">
-                          <div className="py-1.5 border-t border-b border-dashed flex flex-row">
+                          <div className="py-1.5 border-t border-b last:border-b-0 border-dashed flex flex-row">
                             <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Image</div>
                             <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                               <div className="break-all basis-[97%] ">
@@ -251,7 +251,7 @@ const PodDetailsContainer = memo(function () {
                               </div>
                             </div>
                           </div>
-                          <div className="py-1.5  border-b border-dashed flex flex-row">
+                          <div className="py-1.5  border-b last:border-b-0 border-dashed flex flex-row">
                             <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Image ID</div>
                             <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                               <div className="break-all basis-[97%] ">
@@ -262,7 +262,7 @@ const PodDetailsContainer = memo(function () {
                               </div>
                             </div>
                           </div>
-                          <div className="py-1.5  border-b border-dashed flex flex-row">
+                          <div className="py-1.5  border-b last:border-b-0 border-dashed flex flex-row">
                             <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Container ID</div>
                             <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                               <div className="break-all basis-[97%] ">
@@ -273,7 +273,7 @@ const PodDetailsContainer = memo(function () {
                               </div>
                             </div>
                           </div>
-                          <div className="py-1.5  border-b border-dashed flex flex-row">
+                          <div className="py-1.5  border-b last:border-b-0 border-dashed flex flex-row">
                             <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Command</div>
                             <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                               <div className="break-all basis-[97%] ">
@@ -284,7 +284,7 @@ const PodDetailsContainer = memo(function () {
                               </div>
                             </div>
                           </div>
-                          <div className="py-1.5  border-b border-dashed flex flex-row">
+                          <div className="py-1.5  border-b last:border-b-0 border-dashed flex flex-row">
                             <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Image Pull Policy</div>
                             <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                               <div className="break-all basis-[97%] ">
@@ -295,7 +295,7 @@ const PodDetailsContainer = memo(function () {
                               </div>
                             </div>
                           </div>
-                          <div className="py-1.5  border-b border-dashed flex flex-row">
+                          <div className="py-1.5  border-b last:border-b-0 border-dashed flex flex-row">
                             <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Restarts</div>
                             <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                               <div className="break-all basis-[97%] ">
@@ -306,7 +306,7 @@ const PodDetailsContainer = memo(function () {
                               </div>
                             </div>
                           </div>
-                          <div className="py-1.5  border-b border-dashed flex flex-row">
+                          <div className="py-1.5  border-b last:border-b-0 border-dashed flex flex-row">
                             <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Restart Reason</div>
                             <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                               <div className="break-all basis-[97%] ">
@@ -317,7 +317,7 @@ const PodDetailsContainer = memo(function () {
                               </div>
                             </div>
                           </div>
-                          <div className="py-1.5  border-b border-dashed flex flex-row">
+                          <div className="py-1.5  border-b last:border-b-0 border-dashed flex flex-row">
                             <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Last Restart</div>
                             <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                               <div className="break-all basis-[97%] ">
