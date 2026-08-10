@@ -292,6 +292,7 @@ export function KwList() {
         data={tableData.data as ArrayElement<typeof tableData.data>[]}
         queryParmObject={tableData.queryParams}
         instanceType={tableData.instaceType}
+        kind={kind}
         endpoint={tableData.instaceType}
         dispatchMethod={tableData.dispatchMethod}
         showNamespaceFilter={tableData.showNamespaceFilter}

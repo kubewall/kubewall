@@ -3,6 +3,7 @@ import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
 import { AddResource } from "@/components/app/Common/AddResource";
 import { Button } from "@/components/ui/button";
+import { CUSTOM_RESOURCES_LIST_ENDPOINT } from "@/constants";
 import { Cross2Icon } from "@radix-ui/react-icons";
 import { DataTableFacetedFilter } from "@/components/app/Table/TableFacetedFilter";
 import { DataTableViewOptions } from "@/components/app/Table/TableViewOptions";
@@ -27,7 +28,35 @@ type DataTableToolbarProps<TData> = {
   loading?: boolean;
   showChat: boolean;
   setShowChat: React.Dispatch<React.SetStateAction<boolean>>;
+  instanceType: string;
+  kind?: string;
 }
+
+// The endpoint constants are already the resource's plural name ('pods',
+// 'configmaps'), so the few multi-word ones just need spacing out.
+const SEARCH_LABELS: Record<string, string> = {
+  configmaps: 'config maps',
+  cronjobs: 'cron jobs',
+  customresourcedefinitions: 'custom resource definitions',
+  customresources: 'custom resources',
+  daemonsets: 'daemon sets',
+  horizontalpodautoscalers: 'horizontal pod autoscalers',
+  limitranges: 'limit ranges',
+  persistentvolumeclaims: 'persistent volume claims',
+  persistentvolumes: 'persistent volumes',
+  poddisruptionbudgets: 'pod disruption budgets',
+  portforwards: 'port forwards',
+  priorityclasses: 'priority classes',
+  replicasets: 'replica sets',
+  resourcequotas: 'resource quotas',
+  rolebindings: 'role bindings',
+  runtimeclasses: 'runtime classes',
+  serviceaccounts: 'service accounts',
+  statefulsets: 'stateful sets',
+  storageclasses: 'storage classes',
+  clusterrolebindings: 'cluster role bindings',
+  clusterroles: 'cluster roles'
+};
 
 export function DataTableToolbar<TData>({
   table,
@@ -37,12 +66,17 @@ export function DataTableToolbar<TData>({
   loading = true,
   showChat,
   setShowChat,
+  instanceType,
+  kind,
 }: DataTableToolbarProps<TData>) {
   const {
     namespaces
   } = useAppSelector((state: RootState) => state.namespaces);
   const dispatch = useAppDispatch();
   const isFiltered = table.getState().columnFilters.length > 0;
+  const searchTarget = (instanceType === CUSTOM_RESOURCES_LIST_ENDPOINT && kind)
+    || SEARCH_LABELS[instanceType]
+    || instanceType;
 
   return (
     <div className="flex items-center justify-between px-2 py-2">
@@ -52,7 +86,7 @@ export function DataTableToolbar<TData>({
         <div className="relative w-full basis-7/12">
           <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           <DebouncedInput
-            placeholder="Type / to search..."
+            placeholder={`Type / to search ${searchTarget}...`}
             value={globalFilter ?? ''}
             onChange={(value) => {
               setGlobalFilter(String(value));

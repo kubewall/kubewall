@@ -46,6 +46,7 @@ type DataTableProps<TData, TValue> = {
   tableWidthCss: string;
   showNamespaceFilter: boolean;
   instanceType: string;
+  kind?: string;
   showToolbar?: boolean;
   loading?: boolean;
   isEventTable?: boolean;
@@ -82,6 +83,7 @@ export function DataTable<TData, TValue>({
   tableWidthCss,
   showNamespaceFilter,
   instanceType,
+  kind,
   showToolbar = true,
   loading = false,
   isEventTable = false,
@@ -174,13 +176,13 @@ export function DataTable<TData, TValue>({
     <>
       {
         showToolbar
-        && <DataTableToolbar loading={loading} table={table} globalFilter={globalFilter} setGlobalFilter={setGlobalFilter} showNamespaceFilter={showNamespaceFilter} showChat={showChat} setShowChat={setShowChat} />
+        && <DataTableToolbar loading={loading} table={table} globalFilter={globalFilter} setGlobalFilter={setGlobalFilter} showNamespaceFilter={showNamespaceFilter} showChat={showChat} setShowChat={setShowChat} instanceType={instanceType} kind={kind} />
       }
       {
 
         window.safari !== undefined &&
         <div className='flex bg-red-500 dark:bg-red-900 items-center justify-between text-xs font-light px-2 py-1'>
-          <span className='text-xs text-white'>We detected you are on Safari browser and are using http. For seemless expereince switch over to chrome/firefox. More details <a className='underline' href='https://github.com/kubewall/kubewall/wiki/FAQ#https' target='blank'>here</a></span>
+          <span className='text-xs text-white'>We detected you are on Safari browser and are using http. For seemless expereince switch over to HTTPS or chrome/firefox. More details <a className='underline' href='https://github.com/kubewall/kubewall/wiki/FAQ#https' target='blank'>here</a></span>
         </div>
       }
       <ResizablePanelGroup

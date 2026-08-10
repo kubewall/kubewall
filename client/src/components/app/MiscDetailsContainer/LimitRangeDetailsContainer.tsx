@@ -39,7 +39,7 @@ const LimitRangeDetailsContainer = memo(function () {
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="boder p-0">
-                        <div className="py-1.5 border-t border-b border-dashed flex flex-row">
+                        <div className="py-1.5 border-t border-b last:border-b-0 border-dashed flex flex-row">
                           <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Max</div>
                           <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                             <div className="break-all basis-[97%] ">
@@ -52,7 +52,7 @@ const LimitRangeDetailsContainer = memo(function () {
                             </div>
                           </div>
                         </div>
-                        <div className="py-1.5  border-b border-dashed flex flex-row">
+                        <div className="py-1.5  border-b last:border-b-0 border-dashed flex flex-row">
                           <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Min</div>
                           <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                             <div className="break-all basis-[97%] ">
@@ -65,7 +65,7 @@ const LimitRangeDetailsContainer = memo(function () {
                             </div>
                           </div>
                         </div>
-                        <div className="py-1.5  border-b border-dashed flex flex-row">
+                        <div className="py-1.5  border-b last:border-b-0 border-dashed flex flex-row">
                           <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Default</div>
                           <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                             <div className="break-all basis-[97%] ">
@@ -78,7 +78,7 @@ const LimitRangeDetailsContainer = memo(function () {
                             </div>
                           </div>
                         </div>
-                        <div className="py-1.5  border-b border-dashed flex flex-row">
+                        <div className="py-1.5  border-b last:border-b-0 border-dashed flex flex-row">
                           <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Default Request</div>
                           <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                             <div className="break-all basis-[97%] ">
@@ -91,7 +91,7 @@ const LimitRangeDetailsContainer = memo(function () {
                             </div>
                           </div>
                         </div>
-                        <div className="py-1.5  border-b border-dashed flex flex-row">
+                        <div className="py-1.5  border-b last:border-b-0 border-dashed flex flex-row">
                           <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Max Limit Request Ratio</div>
                           <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                             <div className="break-all basis-[97%] ">
