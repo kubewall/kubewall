@@ -84,7 +84,7 @@ const NodeImages = memo(function ({ images }: NodeImagesProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="px-4">
-        <div className="grid items-start gap-1.5">
+        <div className="grid grid-cols-2 items-start gap-2">
           {
             visible.map((image) => (
               <ImageRow key={image.names[0]} image={image} widestBytes={summaries[0].sizeBytes} />
