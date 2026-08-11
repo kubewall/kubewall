@@ -29,7 +29,7 @@ const MultiValueItem = memo(function ({ value, truncate }: MultiValueItemProps) 
 
 const MultiValueCell = memo(function ({ cellValue, truncate = true }: MultiValueCellProps) {
   return (
-    <div className="min-w-0">
+    <div className="min-w-0 px-3">
       {
         cellValue.split(',').map((value) => (
           <MultiValueItem key={value} value={value} truncate={truncate} />

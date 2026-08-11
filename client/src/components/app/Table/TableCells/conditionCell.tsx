@@ -34,7 +34,7 @@ const ConditionCell = memo(function ({ cellValue }: ConditionCellProps) {
 
   return (
 
-    <span className="px-3 flex flex-wrap gap-1">
+    <span className="px-3 flex flex-wrap items-center gap-1">
     {
       cellValue.split(',').map((val) => <ConditionBadge key={val} value={val} />)
     }

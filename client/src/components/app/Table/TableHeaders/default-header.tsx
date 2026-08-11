@@ -24,7 +24,7 @@ export function DefaultHeader<TData, TValue>({
       <Button
         variant="ghost"
         size="sm"
-        className={cn("h-8", className)}
+        className={cn("h-8 pl-3", className)}
       >
         {title}
       </Button>
@@ -47,7 +47,7 @@ export function DefaultHeader<TData, TValue>({
       <Button
         variant="ghost"
         size="sm"
-        className="h-8 hover:bg-accent"
+        className="h-8 pl-3 hover:bg-accent"
         onClick={handleSort}
       >
         <span>{title}</span>

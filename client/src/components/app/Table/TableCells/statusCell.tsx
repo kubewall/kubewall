@@ -11,7 +11,7 @@ function StatusCell({ cellValue }: StatusCellProps) {
   const [ref, isTruncated] = useIsTruncated<HTMLDivElement>(cellValue);
 
   return (
-    <span className="px-3 flex">
+    <span className="px-3 flex items-center">
       <ConditionalTooltip show={isTruncated} content={cellValue}>
         {
           cellValue === 'Running' || cellValue === 'Active' || cellValue === 'Created' || cellValue === 'True' ?

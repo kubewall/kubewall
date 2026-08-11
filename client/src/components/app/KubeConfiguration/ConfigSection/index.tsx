@@ -61,7 +61,7 @@ export function ConfigSection({ title, subtitle, configs, isSystem, onNavigate }
               <TableRow className="hover:bg-transparent">
                 <TableHead>Name</TableHead>
                 <TableHead>Namespace</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead className="pl-5">Status</TableHead>
                 {eolEnabled && <TableHead>Version</TableHead>}
               </TableRow>
 
