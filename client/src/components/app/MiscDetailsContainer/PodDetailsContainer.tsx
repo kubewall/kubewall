@@ -7,6 +7,7 @@ import { CopyToClipboard } from "@/components/app/Common/CopyToClipboard";
 import { CubeIcon } from "@radix-ui/react-icons";
 import { PORT_FORWARDING_ENDPOINT } from "@/constants";
 import { PortForwardingListResponse } from "@/types";
+import { RelativeTime } from "@/components/app/Common/RelativeTime";
 import addons from "@/addons";
 import { memo } from "react";
 import { updatePortForwardingList } from "@/data/Workloads/Pods/PortForwardingListSlice";
@@ -170,7 +171,7 @@ const PodDetailsContainer = memo(function () {
                               <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Last Restart</div>
                               <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                                 <div className="break-all basis-[97%] ">
-                                  {defaultOrValue(lastRestart)}
+                                  <RelativeTime timestamp={lastRestart} />
                                 </div>
                                 <div className="basis-[3%] group/edit invisible group-hover/item:visible flex items-center">
                                   <CopyToClipboard val={defaultOrValue(lastRestart)} />
@@ -321,7 +322,7 @@ const PodDetailsContainer = memo(function () {
                             <div className="pl-4 text-sm font-medium text-muted-foreground basis-1/3">Last Restart</div>
                             <div className="flex flex-row text-sm font-normal basis-2/3 group/item">
                               <div className="break-all basis-[97%] ">
-                                {defaultOrValue(lastRestart)}
+                                <RelativeTime timestamp={lastRestart} />
                               </div>
                               <div className="basis-[3%] group/edit invisible group-hover/item:visible flex items-center">
                                 <CopyToClipboard val={defaultOrValue(lastRestart)} />
