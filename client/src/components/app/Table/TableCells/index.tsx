@@ -1,13 +1,14 @@
 import { CUSTOM_RESOURCES_LIST_ENDPOINT, ENDPOINTS_ENDPOINT, HPA_ENDPOINT, INGRESSES_ENDPOINT, NODES_ENDPOINT, PORT_FORWARDING_ENDPOINT, ROLE_BINDINGS_ENDPOINT, SECRETS_ENDPOINT, SERVICES_ENDPOINT } from '@/constants';
 import { Row, Table } from '@tanstack/react-table';
 
-import { ClusterDetails } from '@/types';
+import { ClusterDetails, Pods } from '@/types';
 import { ConditionCell } from './conditionCell';
 import { CurrentByDesiredCell } from './currentByDesiredCell';
 import { DefaultCell } from './defaultCell';
 import { IndeterminateCheckbox } from './selectCell';
 import { MultiValueCell } from './multiValueCell';
 import { NameCell } from './nameCell';
+import { PodContainersCell } from './podContainersCell';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusCell } from './statusCell';
 import { TimeCell } from './timeCell';
@@ -94,6 +95,10 @@ const TableCells = <T extends ClusterDetails>({
     return <TimeCell cellValue={value} />;
   }
   if (type === 'Ready' || type === 'Current') {
+    const { containers } = (row.original as unknown as Pods);
+    if (type === 'Ready' && containers?.length) {
+      return <PodContainersCell cellValue={value} containers={containers} />;
+    }
     return <CurrentByDesiredCell cellValue={value} />;
   }
   if (type === 'Status' || type === 'reason' || type === 'Condition Status') {

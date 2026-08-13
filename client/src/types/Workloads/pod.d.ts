@@ -14,8 +14,19 @@ type PodsHeaders = {
   age: string;
 };
 
+type PodContainer = {
+  name: string;
+  init?: boolean;
+  ready: boolean;
+  status: string;
+  restarts: number;
+  cpu: string;
+  memory: string;
+};
+
 type Pods = {
   hasUpdated: boolean;
+  containers: PodContainer[];
 } & PodHeaders;
 
 type PodDetailsMetadata = {
@@ -172,6 +183,7 @@ type PodSocketResponse = {
 
 export {
   ContainerCardProps,
+  PodContainer,
   PodDetails,
   PodDetailsContainer,
   PodDetailsMetadata,

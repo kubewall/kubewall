@@ -1,9 +1,7 @@
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 
 import { CopyToClipboard } from "@/components/app/Common/CopyToClipboard";
-import { TooltipWrapper } from "@/components/app/Common/TooltipWrapper";
-import { getDisplayTime } from "@/utils";
-import { useNow } from "@/hooks/use-now";
+import { RelativeTime } from "@/components/app/Common/RelativeTime";
 
 type CardContainerProps = {
   items: {
@@ -14,18 +12,6 @@ type CardContainerProps = {
 };
 
 const AGE_LABEL = 'Age';
-
-function AgeValue({ timestamp }: { timestamp: string }) {
-  const now = useNow();
-
-  return (
-    <TooltipWrapper
-      side="bottom"
-      tooltipString={getDisplayTime(now - new Date(timestamp).getTime())}
-      tooltipContent={timestamp}
-    />
-  );
-}
 
 export function FixedCard({ items, title }: CardContainerProps) {
   return (
@@ -48,7 +34,7 @@ export function FixedCard({ items, title }: CardContainerProps) {
                       <div className="text-sm font-medium text-muted-foreground basis-1/3">{label}</div>
                       {/* <div className="text-sm font-normal break-all basis-2/3">{value}</div> */}
                       <div className="text-sm font-normal basis-2/3 flex items-center justify-between">
-                        <div className="break-all">{timestamp ? <AgeValue timestamp={timestamp} /> : value}</div>
+                        <div className="break-all">{timestamp ? <RelativeTime timestamp={timestamp} /> : value}</div>
                         <div className="group/edit invisible group-hover/item:visible">
                           <CopyToClipboard val={value}/>
                           {/* <CopyIcon

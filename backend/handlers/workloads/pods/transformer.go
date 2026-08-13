@@ -15,20 +15,29 @@ import (
 )
 
 type PodList struct {
-	UID           types.UID `json:"uid"`
-	Namespace     string    `json:"namespace"`
-	Name          string    `json:"name"`
-	Node          string    `json:"node"`
-	Ready         string    `json:"ready"`
-	Status        string    `json:"status"`
-	CPU           string    `json:"cpu"`
-	Memory        string    `json:"memory"`
-	Restarts      string    `json:"restarts"`
-	LastRestartAt string    `json:"lastRestartAt"`
-	PodIP         string    `json:"podIP"`
-	Qos           string    `json:"qos"`
-	Age           time.Time `json:"age"`
-	HasUpdated    bool      `json:"hasUpdated"`
+	UID           types.UID      `json:"uid"`
+	Namespace     string         `json:"namespace"`
+	Name          string         `json:"name"`
+	Node          string         `json:"node"`
+	Ready         string         `json:"ready"`
+	Status        string         `json:"status"`
+	CPU           string         `json:"cpu"`
+	Memory        string         `json:"memory"`
+	Restarts      string         `json:"restarts"`
+	LastRestartAt string         `json:"lastRestartAt"`
+	PodIP         string         `json:"podIP"`
+	Qos           string         `json:"qos"`
+	Age           time.Time      `json:"age"`
+	HasUpdated    bool           `json:"hasUpdated"`
+	Containers    []PodContainer `json:"containers"`
+}
+
+type PodContainer struct {
+	Name     string `json:"name"`
+	Init     bool   `json:"init,omitempty"`
+	Ready    bool   `json:"ready"`
+	Status   string `json:"status"`
+	Restarts int32  `json:"restarts"`
 }
 
 func TransformPodList(pods []coreV1.Pod, podMetricsList *v1beta1.PodMetricsList) []PodList {
@@ -94,6 +103,68 @@ func TransformPodListItem(pod coreV1.Pod) PodList {
 		PodIP:         pod.Status.PodIP,
 		Age:           pod.CreationTimestamp.Time,
 		HasUpdated:    hasUpdated(pod),
+		Containers:    getPodContainers(pod),
+	}
+}
+
+func getPodContainers(pod coreV1.Pod) []PodContainer {
+	statuses := make(map[string]coreV1.ContainerStatus, len(pod.Status.ContainerStatuses)+len(pod.Status.InitContainerStatuses))
+	for _, containerStatus := range pod.Status.ContainerStatuses {
+		statuses[containerStatus.Name] = containerStatus
+	}
+	for _, containerStatus := range pod.Status.InitContainerStatuses {
+		statuses[containerStatus.Name] = containerStatus
+	}
+
+	containers := make([]PodContainer, 0, len(pod.Spec.Containers)+len(pod.Spec.InitContainers))
+	for _, spec := range pod.Spec.InitContainers {
+		containers = append(containers, buildPodContainer(spec.Name, true, statuses))
+	}
+	for _, spec := range pod.Spec.Containers {
+		containers = append(containers, buildPodContainer(spec.Name, false, statuses))
+	}
+
+	return containers
+}
+
+func buildPodContainer(name string, init bool, statuses map[string]coreV1.ContainerStatus) PodContainer {
+	container := PodContainer{
+		Name:   name,
+		Init:   init,
+		Status: "Pending",
+	}
+
+	containerStatus, exists := statuses[name]
+	if !exists {
+		return container
+	}
+
+	container.Ready = containerStatus.Ready
+	container.Restarts = containerStatus.RestartCount
+	container.Status = containerStateReason(containerStatus.State)
+
+	return container
+}
+
+func containerStateReason(state coreV1.ContainerState) string {
+	switch {
+	case state.Waiting != nil:
+		if state.Waiting.Reason != "" {
+			return state.Waiting.Reason
+		}
+		return "Waiting"
+	case state.Terminated != nil:
+		if state.Terminated.Reason != "" {
+			return state.Terminated.Reason
+		}
+		if state.Terminated.Signal != 0 {
+			return fmt.Sprintf("Signal:%d", state.Terminated.Signal)
+		}
+		return fmt.Sprintf("ExitCode:%d", state.Terminated.ExitCode)
+	case state.Running != nil:
+		return "Running"
+	default:
+		return "Pending"
 	}
 }
 

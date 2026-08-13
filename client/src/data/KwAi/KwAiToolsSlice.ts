@@ -1,4 +1,5 @@
-import type { ToolSet, experimental_MCPClient as MCPClient } from "ai";
+import type { ToolSet } from "ai";
+import type { experimental_MCPClient as MCPClient } from "@ai-sdk/mcp";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 import { RawRequestError } from "../kwFetch";
@@ -40,8 +41,8 @@ const initialState: InitialState = {
 const fetchKwAiTools = createAsyncThunk('kwAiTools', async ({isDev, config, cluster}: FetchKwAiToolsProps, thunkAPI) => {
   try {
     // Dynamically imported so the redux store (always eager) doesn't pull in
-    // the `ai` runtime at startup - only when this thunk actually runs.
-    const { experimental_createMCPClient } = await import("ai");
+    // the MCP client runtime at startup - only when this thunk actually runs.
+    const { experimental_createMCPClient } = await import("@ai-sdk/mcp");
 
     await closeCurrentClient();
 
@@ -86,8 +87,6 @@ const kwAiToolsSlice = createSlice({
     });
     builder.addCase(fetchKwAiTools.fulfilled, (state, action) => {
       state.loading = false;
-      // TODO: fix this type error
-      // @ts-expect-error: action.payload is ToolSet
       state.tools = action.payload;
       state.error = null;
     });
