@@ -42,6 +42,19 @@ export interface TerminalAddonDefinition extends AddonDefinition {
     started: boolean;
     ready: boolean;
   }> | null;
+
+  /**
+   * SSH icon button rendered in the pod details page top bar.
+   * Opens a terminal directly if the pod has one runnable container,
+   * or offers a picker when it has several.
+   */
+  PodSSHTopBarButton: ComponentType<{
+    podName: string;
+    namespace: string;
+    configName: string;
+    clusterName: string;
+    containers: { name: string; started: boolean; ready: boolean }[];
+  }> | null;
 }
 
 // ─── Kube End-of-Life Addon ───────────────────────────────────────────────────

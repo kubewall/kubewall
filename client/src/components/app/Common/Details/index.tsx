@@ -5,7 +5,7 @@ import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { Suspense, lazy, useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { createEventStreamQueryObject, getEventStreamUrl } from "@/utils";
+import { createContainerData, createEventStreamQueryObject, getEventStreamUrl } from "@/utils";
 import { resetYamlDetails, updateYamlDetails } from "@/data/Yaml/YamlSlice";
 import { useDetailsWrapper, useFetchDataForDetails } from "../Hooks/Details";
 
@@ -23,6 +23,8 @@ import { Sparkles } from "lucide-react";
 import { TableDelete } from "../../Table/TableDelete";
 import { ThemeModeSelector } from "../ThemeModeSelector";
 import { YamlEditor } from "../../Details/YamlEditor";
+import addons from "@/addons";
+import capabilities from "@/capabilities";
 import { clearLogs } from "@/data/Workloads/Pods/PodLogsSlice";
 import { kwDetails } from "@/routes";
 import { useAppSelector } from "@/redux/hooks";
@@ -30,6 +32,9 @@ import { useDispatch } from "react-redux";
 import { useEventSource } from "../Hooks/EventSource";
 import { useSidebarSize } from "@/hooks/use-get-sidebar-size";
 import { BRAND } from "@/branding.config";
+
+// Resolved once at module load — null in free build, real component in premium.
+const PodSSHTopBarButton = addons.terminal?.PodSSHTopBarButton ?? null;
 
 // kwAI pulls in every LLM provider SDK plus the markdown/highlight pipeline;
 // load it only when the chat panel is actually opened.
@@ -156,6 +161,18 @@ const KwDetails = () => {
                   {
                     resourcekind === 'pods' &&
                     <>
+                      {capabilities.terminal.enabled && PodSSHTopBarButton && (
+                        <PodSSHTopBarButton
+                          podName={podDetails.metadata.name}
+                          namespace={podDetails.metadata.namespace}
+                          configName={config}
+                          clusterName={cluster}
+                          containers={[
+                            ...createContainerData(podDetails.spec, podDetails.status, "initContainers"),
+                            ...createContainerData(podDetails.spec, podDetails.status, "containers"),
+                          ].map(({ name, started, ready }) => ({ name, started: !!started, ready: !!ready }))}
+                        />
+                      )}
                       <PortForwardingDialog
                         resourcename={resourcename}
                         queryParams={new URLSearchParams(queryParamsObj).toString()}
