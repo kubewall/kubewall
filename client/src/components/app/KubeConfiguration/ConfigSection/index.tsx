@@ -1,10 +1,10 @@
 import { Table, TableBody, TableCell, TableHead, TableRow } from '@/components/ui/table';
 
+import { Badge } from '@/components/ui/badge';
 import { ClustersDetails } from '@/types';
 import { DeleteConfiguration } from '../DeleteConfiguration';
 import { FileBox } from "lucide-react";
 import { Fragment } from 'react';
-import { StatusCell } from '../../Table/TableCells/statusCell';
 import { SystemConfigIndicator } from '../SystemConfigIndicator';
 import addons from '@/addons';
 import capabilities from '@/capabilities';
@@ -36,7 +36,13 @@ export function ConfigSection({ title, subtitle, configs, isSystem, onNavigate }
       </div>
 
       {/* Table */}
-      <Table>
+      <Table className="table-fixed">
+        <colgroup>
+          <col className={eolEnabled ? 'w-[40%]' : 'w-[60%]'} />
+          <col className="w-[20%]" />
+          <col className="w-[20%]" />
+          {eolEnabled && <col className="w-[20%]" />}
+        </colgroup>
         <TableBody>
           {configKeys.map((config, index) => (
             <Fragment key={config + index}>
@@ -74,17 +80,20 @@ export function ConfigSection({ title, subtitle, configs, isSystem, onNavigate }
                     onClick={() => onNavigate(config, name)}
                     key={name}
                   >
-                    <TableCell className="flex items-center space-x-3">
+                    <TableCell className="flex min-w-0 items-center space-x-3">
                       <div className="flex w-12 flex-shrink-0 items-center justify-center bg-primary rounded-md text-sm font-medium text-secondary">
                         {name.substring(0, 2).toUpperCase()}
                       </div>
-                      <span className="font-normal">{name}</span>
+                      <span className="min-w-0 truncate font-normal" title={name}>{name}</span>
                     </TableCell>
                     <TableCell>
-                      <span>{namespace || 'N/A'}</span>
+                      <span className="block truncate" title={namespace || 'N/A'}>{namespace || 'N/A'}</span>
                     </TableCell>
-                    <TableCell>
-                      {connected ? <StatusCell cellValue='Active' /> : <StatusCell cellValue='InActive' />}
+                    <TableCell className="flex">
+                      {connected ?
+                        <Badge className="min-w-0 max-w-full truncate block" variant="default">Active</Badge> :
+                        <Badge className="min-w-0 max-w-full truncate block" variant="outline">Inactive</Badge>
+                      }
                     </TableCell>
                     {eolEnabled && ClusterEOLBadge && (
                       <TableCell onClick={(e) => e.stopPropagation()}>
