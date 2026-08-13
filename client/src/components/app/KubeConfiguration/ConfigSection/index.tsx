@@ -5,7 +5,6 @@ import { ClustersDetails } from '@/types';
 import { DeleteConfiguration } from '../DeleteConfiguration';
 import { FileBox } from "lucide-react";
 import { Fragment } from 'react';
-import { StatusCell } from '../../Table/TableCells/statusCell';
 import { SystemConfigIndicator } from '../SystemConfigIndicator';
 import addons from '@/addons';
 import capabilities from '@/capabilities';
