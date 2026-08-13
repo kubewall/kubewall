@@ -109,10 +109,6 @@ body {
   overflow: hidden;
 }
 
-.empty-table {
-  height: calc(100vh - 90px - var(--terminal-height, 0px));
-}
-
 @keyframes bgColorChange {
   0% {
     background-color: hsl(var(--muted-foreground)/0.2);
