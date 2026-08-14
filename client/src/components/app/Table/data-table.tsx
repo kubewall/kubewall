@@ -286,13 +286,13 @@ export function DataTable<TData, TValue>({
             </div>
             {
               selectedCount > 0 &&
-              <div className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center px-4">
+              <div className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-end px-4">
                 <div className="pointer-events-auto flex items-center gap-2 rounded-xl border bg-background p-1.5 pl-3 shadow-lg">
                   <span className="whitespace-nowrap text-sm tabular-nums">{selectedCount} selected</span>
                   <Separator orientation="vertical" className="h-5" />
                   <TableDelete selectedRows={table.getSelectedRowModel().rows} toggleAllRowsSelected={table.resetRowSelection} />
                   <Button variant="ghost" size="sm" className="h-8 px-3 text-sm" onClick={() => table.resetRowSelection()}>
-                    Clear
+                    Cancel
                   </Button>
                 </div>
               </div>
