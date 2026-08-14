@@ -25,9 +25,11 @@ import {
 } from "@/components/ui/table";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
+import { Button } from '@/components/ui/button';
 import { DataTableToolbar } from "@/components/app/Table/TableToolbar";
 import { Loader } from '@/components/app/Loader';
 import { RootState } from "@/redux/store";
+import { Separator } from '@/components/ui/separator';
 import { TableDelete } from './TableDelete';
 import { useAppSelector } from "@/redux/hooks";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -166,7 +168,23 @@ export function DataTable<TData, TValue>({
   }, [instanceType]);
 
 
+  const selectedCount = Object.keys(rowSelection).length;
   const [fullScreen, setFullScreen] = useState(false);
+
+  useEffect(() => {
+    if (!selectedCount) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      // Let an open dialog/menu (e.g. the delete confirmation) take Escape first,
+      // and don't hijack it from a field that clears on Escape.
+      if (document.querySelector('[data-state="open"][role="dialog"],[data-state="open"][role="menu"]')) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA') return;
+      setRowSelection({});
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [selectedCount]);
   const onChatClose = () => {
     setShowChat(false);
     setFullScreen(false);
@@ -191,12 +209,8 @@ export function DataTable<TData, TValue>({
         {
           !fullScreen &&
           <ResizablePanel id="table" order={1} defaultSize={showChat ? 55 : 100}>
+            <div className="relative h-full">
             <div ref={tableContainerRef} className={`border border-x-0 overflow-auto ${tableWidthCss} `}>
-              {
-                Object.keys(rowSelection).length > 0 &&
-                <TableDelete selectedRows={table.getSelectedRowModel().rows} toggleAllRowsSelected={table.resetRowSelection} />
-              }
-
               <TooltipProvider delayDuration={0}>
               <Table style={{ tableLayout: 'fixed' }}>
                 <TableHeader className="sticky top-0 z-10 bg-muted">
@@ -269,6 +283,20 @@ export function DataTable<TData, TValue>({
                 </TableBody>
               </Table>
               </TooltipProvider>
+            </div>
+            {
+              selectedCount > 0 &&
+              <div className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center px-4">
+                <div className="pointer-events-auto flex items-center gap-2 rounded-xl border bg-background p-1.5 pl-3 shadow-lg">
+                  <span className="whitespace-nowrap text-sm tabular-nums">{selectedCount} selected</span>
+                  <Separator orientation="vertical" className="h-5" />
+                  <TableDelete selectedRows={table.getSelectedRowModel().rows} toggleAllRowsSelected={table.resetRowSelection} />
+                  <Button variant="ghost" size="sm" className="h-8 px-3 text-sm" onClick={() => table.resetRowSelection()}>
+                    Clear
+                  </Button>
+                </div>
+              </div>
+            }
             </div>
           </ResizablePanel>
         }

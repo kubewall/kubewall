@@ -102,18 +102,19 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
         <button
           type="button"
           onClick={() => setOpen((open) => !open)}
-          className="mt-2 h-8 w-full flex items-center justify-between rounded-md border bg-background px-3 text-sm text-muted-foreground shadow-none hover:bg-muted"
+          className="mt-2 flex h-8 w-full items-center gap-2 rounded-md border bg-muted/50 px-2 text-sm text-muted-foreground shadow-none transition-colors hover:bg-muted"
         >
-          <span>Open...</span>
-          <div className="absolute right-1.5 hidden gap-1 sm:flex">
-            <Kbd>{isMac ? "⌘" : "Ctrl"}</Kbd>
-            <Kbd square>K</Kbd>
-          </div>
+          <SearchIcon className="h-4 w-4 shrink-0 opacity-70" />
+          <span className="flex-1 truncate text-left">Search resources...</span>
+          <span className="hidden shrink-0 items-center gap-1 sm:flex">
+            <Kbd className="bg-background">{isMac ? "⌘" : "Ctrl"}</Kbd>
+            <Kbd square className="bg-background">K</Kbd>
+          </span>
         </button >
       ) : (
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="!mt-1 flex items-center justify-center">
+            <div className="!mt-1 mx-auto flex size-8 items-center justify-center">
               <SearchIcon width={16} onClick={() => setOpen((open) => !open)} />
             </div>
           </TooltipTrigger>

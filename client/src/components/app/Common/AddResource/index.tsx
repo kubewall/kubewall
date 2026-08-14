@@ -1,13 +1,13 @@
 import './index.css';
 
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { resetUpdateYaml, updateYaml } from '@/data/Yaml/YamlUpdateSlice';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 
 import { Button } from "@/components/ui/button";
-import { Check } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { FilePlusIcon } from "@radix-ui/react-icons";
 import { Loader } from '../../Loader';
 import { kwList } from '@/routes';
@@ -30,7 +30,6 @@ const AddResource = () => {
     cluster
   }).toString();
 
-  const [yamlUpdated, setYamlUpdated] = useState<boolean>(false);
   const {
     error,
     yamlUpdateResponse,
@@ -39,7 +38,6 @@ const AddResource = () => {
 
 
   const onChange = useCallback((val = '') => {
-    setYamlUpdated(true);
     setValue(val);
   }, []);
 
@@ -57,7 +55,6 @@ const AddResource = () => {
   const onDialogOpenChange = (status: boolean) => {
     setIsDialogOpen(status);
     setValue('');
-    setYamlUpdated(false);
   };
   useEffect(() => {
     if (yamlUpdateResponse.message) {
@@ -114,51 +111,63 @@ const AddResource = () => {
       </TooltipProvider>
 
 
-      <DialogContent onInteractOutside={(event) => event.preventDefault()} className="w-full max-w-screen-lg flex flex-col" style={{ height: '80vh' }}>
-        <DialogHeader>
-          <DialogTitle>YAML/Manifest</DialogTitle>
+      <DialogContent
+        onInteractOutside={(event) => event.preventDefault()}
+        className="flex w-full flex-col gap-0 p-0 sm:max-w-4xl"
+        style={{ height: 'min(80vh, 44rem)' }}
+      >
+        <DialogHeader className="shrink-0 px-6 pb-4 pt-6">
+          <DialogTitle>YAML / Manifest</DialogTitle>
           <DialogDescription>
-            Add your resource’s YAML or manifest, then hit Apply to create it.
+            Paste a resource manifest below, then hit Apply to create it.
           </DialogDescription>
         </DialogHeader>
-        <div ref={editorContainerRef} className="flex-grow border-b rounded-b-sm" style={{ overflow: "hidden" }}>
-          {editorDimensions.width && editorDimensions.height && (
-            <>
-              {
-                yamlUpdated &&
-                <Button
-                  variant="default"
-                  className="absolute bottom-10 right-12 z-10 shadow-none"
-                  onClick={yamlUpdate}
-                  disabled={yamlUpdateLoading}
-                >
-                  {yamlUpdateLoading ? (
-                    <Loader className="w-4 h-4 text-white animate-spin fill-white" />
-                  ) : (
-                    <Check className="w-[14px] h-[14px]" />
-                  )}
-                  Apply
-                </Button>
-              }
-              <Suspense fallback={<Loader />}>
-                <Editor
-                  className='border rounded-md h-screen'
-                  value={value}
-                  defaultLanguage='yaml'
-                  onChange={onChange}
-                  theme={monacoTheme}
-                  options={{
-                    minimap: { enabled: false },
-                    automaticLayout: true,
-                  }}
-                  width={editorDimensions.width}
-                  height={editorDimensions.height}
-                />
-              </Suspense>
-            </>
-          )}
 
+        <div ref={editorContainerRef} className="mx-6 min-h-0 flex-1 overflow-hidden rounded-lg border bg-muted/20">
+          {editorDimensions.width && editorDimensions.height && (
+            <Suspense fallback={<Loader />}>
+              <Editor
+                className="h-full"
+                value={value}
+                defaultLanguage='yaml'
+                onChange={onChange}
+                theme={monacoTheme}
+                options={{
+                  minimap: { enabled: false },
+                  automaticLayout: true,
+                  fontSize: 13,
+                  lineNumbersMinChars: 3,
+                  scrollBeyondLastLine: false,
+                  padding: { top: 12, bottom: 12 },
+                  overviewRulerLanes: 0,
+                  renderLineHighlight: 'none',
+                  scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8 },
+                }}
+                width={editorDimensions.width}
+                height={editorDimensions.height}
+              />
+            </Suspense>
+          )}
         </div>
+
+        <DialogFooter className="shrink-0 items-center px-6 pb-6 pt-4 sm:justify-between">
+          <span className="hidden text-xs text-muted-foreground sm:block">
+            Separate multiple resources with <code className="rounded bg-muted px-1 py-0.5 font-mono">---</code>
+          </span>
+          <div className="flex gap-2">
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button onClick={yamlUpdate} disabled={!value.trim() || yamlUpdateLoading}>
+              {yamlUpdateLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Check className="w-[14px] h-[14px]" />
+              )}
+              Apply
+            </Button>
+          </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog >
   );

@@ -5,7 +5,6 @@ import { ChevronRight, DatabaseIcon, LayersIcon, LayoutGridIcon, NetworkIcon, Sh
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { SidebarContent, SidebarGroup, SidebarGroupLabel, Sidebar as SidebarMainComponent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarRail, useSidebar } from "@/components/ui/sidebar";
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { createEventStreamQueryObject, getEventStreamUrl } from "@/utils";
 import { memo, useEffect, useMemo, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
@@ -159,6 +158,15 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
     return route === (!check ? queryParams.get('kind') : queryParams.get('resourcekind'));
   };
 
+  const resourceKind = queryParams.get('resourcekind') || '';
+
+  // A group is highlighted when the open page is one of its children.
+  const isGroupActive = (group: string) =>
+    NAVIGATION_ROUTE[group].some(({ route }) => route === resourceKind);
+
+  const isCustomResourceGroupActive = (group: string) =>
+    resourceKind.toLowerCase() === 'customresources' && queryParams.get('group') === group;
+
   return (
     <div id="left-sidebar" className={cn("col-span-1", className)}>
       <div className="h-screen space-y-4 py-1">
@@ -194,9 +202,9 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                             <DropdownMenu key={`${route}-${open}`}>
                               <CollapsibleTrigger asChild onClick={(e) => { toggleMenu(route); e.stopPropagation(); }}>
                                 <DropdownMenuTrigger asChild>
-                                  <SidebarMenuButton className='group-data-[collapsible=icon]:justify-center' tooltip={route} showTooltipOnExpanded={true}>
+                                  <SidebarMenuButton className='group-data-[collapsible=icon]:justify-center' isActive={isGroupActive(route)} tooltip={route}>
                                     {getResourceIcon(route.toLowerCase().split(' ').join(''))}
-                                    <span className='truncate text-gray-800 dark:text-gray-200 group-data-[collapsible=icon]:hidden'>{route}</span>
+                                    <span className='truncate group-data-[collapsible=icon]:hidden'>{route}</span>
                                     <ChevronRight size={16} className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 group-data-[collapsible=icon]:hidden" />
                                   </SidebarMenuButton>
                                 </DropdownMenuTrigger>
@@ -207,18 +215,11 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                                     NAVIGATION_ROUTE[route].map(({ name, route: routeValue }) => {
                                       return (
                                         <SidebarMenuSubItem key={routeValue} className="cursor-pointer">
-                                          <Tooltip>
-                                            <TooltipTrigger asChild>
-                                              <SidebarMenuSubButton asChild isActive={getActiveNav(routeValue, true)}>
-                                                <a onClick={() => onNavClick(routeValue)}>
-                                                  <span className="text-gray-600 dark:text-gray-300">{name}</span>
-                                                </a>
-                                              </SidebarMenuSubButton>
-                                            </TooltipTrigger>
-                                            <TooltipContent side="right">
-                                              <p>{name}</p>
-                                            </TooltipContent>
-                                          </Tooltip>
+                                          <SidebarMenuSubButton asChild isActive={getActiveNav(routeValue, true)}>
+                                            <a onClick={() => onNavClick(routeValue)} title={name}>
+                                              <span>{name}</span>
+                                            </a>
+                                          </SidebarMenuSubButton>
                                         </SidebarMenuSubItem>
                                       );
                                     })
@@ -267,19 +268,12 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                   <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden truncate">Custom Resources</SidebarGroupLabel>
                   <SidebarMenu>
                     <SidebarMenuItem className="cursor-pointer">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <SidebarMenuButton className='group-data-[collapsible=icon]:justify-center' asChild tooltip='Definitions'>
-                            <a onClick={() => onNavClick('customresourcedefinitions')}>
-                              {getResourceIcon('customesources')}
-                              <span className='truncate text-gray-800 dark:text-gray-200 group-data-[collapsible=icon]:hidden'>Definitions</span>
-                            </a>
-                          </SidebarMenuButton>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">
-                          <p>Definitions</p>
-                        </TooltipContent>
-                      </Tooltip>
+                      <SidebarMenuButton className='group-data-[collapsible=icon]:justify-center' asChild isActive={resourceKind === 'customresourcedefinitions'} tooltip='Definitions'>
+                        <a onClick={() => onNavClick('customresourcedefinitions')}>
+                          {getResourceIcon('customesources')}
+                          <span className='truncate group-data-[collapsible=icon]:hidden'>Definitions</span>
+                        </a>
+                      </SidebarMenuButton>
                     </SidebarMenuItem>
                     {Object.keys(sortedCustomResources).map((customResourceGroup) => (
                       <Collapsible
@@ -292,15 +286,16 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                           <DropdownMenu key={`${customResourceGroup}-${open}`}>
                             <CollapsibleTrigger asChild onClick={() => toggleMenu(customResourceGroup)}>
                               <DropdownMenuTrigger asChild>
-                                <SidebarMenuButton className='group-data-[collapsible=icon]:justify-center' tooltip={customResourceGroup} showTooltipOnExpanded={true}>
+                                <SidebarMenuButton className='group-data-[collapsible=icon]:justify-center' isActive={isCustomResourceGroupActive(customResourceGroup)} tooltip={customResourceGroup}>
 
-                                  <div>
+                                  <div className="flex size-4 shrink-0 items-center justify-center">
                                     <SvgRenderer
                                       name={customResourcesNavigation[customResourceGroup].resources[0].icon}
+                                      className="size-4 object-contain"
                                       minWidth={16}
                                     />
                                   </div>
-                                  <span className='truncate text-gray-800 dark:text-gray-200 group-data-[collapsible=icon]:hidden'>{customResourceGroup}</span>
+                                  <span className='truncate group-data-[collapsible=icon]:hidden'>{customResourceGroup}</span>
                                   <ChevronRight size={16} className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 group-data-[collapsible=icon]:hidden" />
                                 </SidebarMenuButton>
                               </DropdownMenuTrigger>
@@ -310,19 +305,11 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                               <SidebarMenuSub>
                                 {sortedCustomResources[customResourceGroup].resources.map((customResource) => (
                                   <SidebarMenuSubItem key={customResource.name} className="cursor-pointer">
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <SidebarMenuSubButton asChild isActive={getActiveNav(customResource.name)}>
-                                          <a onClick={() => onCustomResourcesNavClick(customResource.route, customResource.name)}>
-                                            <span className="text-gray-600 dark:text-gray-300 group-data-[collapsible=icon]:hidden">{customResource.name}</span>
-                                          </a>
-                                        </SidebarMenuSubButton>
-                                      </TooltipTrigger>
-                                      <TooltipContent side="right">
-                                        <p>{customResource.name}</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-
+                                    <SidebarMenuSubButton asChild isActive={getActiveNav(customResource.name)}>
+                                      <a onClick={() => onCustomResourcesNavClick(customResource.route, customResource.name)} title={customResource.name}>
+                                        <span className="group-data-[collapsible=icon]:hidden">{customResource.name}</span>
+                                      </a>
+                                    </SidebarMenuSubButton>
                                   </SidebarMenuSubItem>
                                 ))
                                 }

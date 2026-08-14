@@ -53,32 +53,18 @@ const TableDelete = ({ selectedRows, toggleAllRowsSelected, postDeleteCallback }
       toggleAllRowsSelected && toggleAllRowsSelected(true);
       postDeleteCallback && postDeleteCallback();
     } else if (message?.failures?.length > 0) {
-      toast.error(
-        <>
-          {
-            <div className="max-h-[200px] overflow-auto ">
-              <h4 className="font-bold mb-2">{message.failures.length} failed to delete</h4>
-              {
-                message.failures.map(({ name, message }) => (
-                  <div className="space-y-2 max-w-md">
-                    <div className="p-1 rounded-md">
-                      <div className="flex items-start space-x-2">
-                        <span className="">•</span>
-                        <div className="font-medium">
-                          {name}
-                        </div>
-                      </div>
-                      <div className="pl-4 mt-1 font-light">
-                        {message}
-                      </div>
-                    </div>
-                  </div>
-                ))
-              }
-            </div>
-          }
-        </>
-      );
+      toast.error(`${message.failures.length} failed to delete`, {
+        description: (
+          <div className="space-y-1.5">
+            {message.failures.map(({ name, message: reason }) => (
+              <div key={name}>
+                <div className="font-medium text-foreground">{name}</div>
+                <div>{reason}</div>
+              </div>
+            ))}
+          </div>
+        ),
+      });
       dispatch(resetDeleteResource());
     } else if (error) {
       toast.error("Failure", {
@@ -122,15 +108,15 @@ const TableDelete = ({ selectedRows, toggleAllRowsSelected, postDeleteCallback }
             <DialogTrigger asChild>
               <Button
                 variant={isListPage ? 'destructive' : 'ghost'}
-                size="icon"
-                className={`right-0 z-10 border w-8 h-8 ${isListPage && 'absolute mr-10 bottom-12 w-20'}`}
+                size={isListPage ? 'sm' : 'icon'}
+                className={isListPage ? 'h-8 gap-1.5 px-3 text-sm' : 'right-0 z-10 border w-8 h-8'}
                 onClick={() => setModalOpen(true)}
               > {
                   loading ?
                     <Loader className='w-5 h-5 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600' /> :
                     <Trash2Icon className="h-4 w-4" />
                 }
-                {isListPage && <span className='text-xs'>Delete</span>}
+                {isListPage && <span>Delete</span>}
               </Button>
             </DialogTrigger>
           </TooltipTrigger>
@@ -141,11 +127,22 @@ const TableDelete = ({ selectedRows, toggleAllRowsSelected, postDeleteCallback }
       </TooltipProvider>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete Resource</DialogTitle>
+          <DialogTitle>Delete {selectedRows.length > 1 ? `${selectedRows.length} resources` : 'resource'}?</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete {selectedRows.length > 1 ? `${selectedRows.length} resources` : '1 resource'} ?
+            This marks {selectedRows.length > 1 ? 'them' : 'it'} for termination and cannot be undone.
           </DialogDescription>
         </DialogHeader>
+
+        <div className="max-h-56 space-y-1 overflow-y-auto rounded-md border bg-muted/30 p-3">
+          {selectedRows.map(({ id, original }) => (
+            <div key={id} className="flex items-baseline gap-2 text-sm">
+              <span className="truncate font-medium">{original.name || original.metadata?.name || original.id}</span>
+              <span className="shrink-0 text-muted-foreground">
+                {original.namespace || original.metadata?.namespace}
+              </span>
+            </div>
+          ))}
+        </div>
 
         <DialogFooter>
           <DialogClose asChild>

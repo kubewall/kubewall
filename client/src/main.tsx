@@ -15,9 +15,10 @@ const ThemedToaster = () => {
   return (
     <Toaster
       richColors
-      position="top-right"
+      position="bottom-right"
       closeButton
-      duration={10000}
+      duration={8000}
+      visibleToasts={3}
       theme={isDark ? 'dark' : 'light'}
     />
   );
