@@ -32,7 +32,9 @@ const SIDEBAR_WIDTH = "13rem";
 const SIDEBAR_WIDTH_MOBILE = "15rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
-const MIN_SIDEBAR_WIDTH = "14rem";
+// Must stay <= SIDEBAR_WIDTH. It was 14rem against a 13rem default, so the first
+// drag of the rail snapped it wider before it could be narrowed.
+const MIN_SIDEBAR_WIDTH = "12rem";
 const MAX_SIDEBAR_WIDTH = "22rem";
 
 type SidebarContext = {
