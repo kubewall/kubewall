@@ -29,11 +29,11 @@ const CommandDialog = ({ children, ...props }: CommandDialogProps) => {
     <Dialog {...props}>
       <DialogContent
         hideClose
+        motion="fade"
         overlayClassName="bg-foreground/20 backdrop-blur-[3px]"
         className={cn(
           "top-[12vh] w-[min(40rem,calc(100vw-2rem))] max-w-none translate-y-0 gap-0 overflow-hidden rounded-xl border-border/70 p-0 shadow-2xl",
-          // A short drop instead of the dialog's default 48% slide.
-          "duration-150 data-[state=open]:slide-in-from-top-1 data-[state=closed]:slide-out-to-top-1"
+          "duration-150"
         )}
       >
         <Command
