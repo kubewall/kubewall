@@ -31,6 +31,7 @@ import { Loader } from '@/components/app/Loader';
 import { RootState } from "@/redux/store";
 import { Separator } from '@/components/ui/separator';
 import { TableDelete } from './TableDelete';
+import { XIcon } from 'lucide-react';
 import { useAppSelector } from "@/redux/hooks";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
@@ -291,7 +292,8 @@ export function DataTable<TData, TValue>({
                   <span className="whitespace-nowrap text-sm tabular-nums">{selectedCount} selected</span>
                   <Separator orientation="vertical" className="h-5" />
                   <TableDelete selectedRows={table.getSelectedRowModel().rows} toggleAllRowsSelected={table.resetRowSelection} />
-                  <Button variant="ghost" size="sm" className="h-8 px-3 text-sm" onClick={() => table.resetRowSelection()}>
+                  <Button variant="ghost" size="sm" className="h-8 gap-1.5 px-3 text-sm" onClick={() => table.resetRowSelection()}>
+                    <XIcon className="h-4 w-4" />
                     Cancel
                   </Button>
                 </div>
