@@ -9,6 +9,10 @@ type NameCellProps = {
 };
 
 
+// DataTable sizes the Name column to fit the longest name in the list, so the
+// horizontal padding used here is baked into CELL_HORIZONTAL_SPACE in
+// use-fitted-column-widths - keep the two in step. `truncate` is then only reached
+// by names past that hook's maximum width, which is what the tooltip is left for.
 const NameCell = memo(function ({ cellValue, link}: NameCellProps) {
   const [ref, isTruncated] = useIsTruncated<HTMLSpanElement>(cellValue);
 

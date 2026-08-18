@@ -15,6 +15,11 @@ import { useMemo } from 'react';
 // dispatches on (Name/Status/Age/etc.), not by literal column title, since that
 // shape (link, pill, relative time, ...) - not the title - is what determines how
 // much width a column actually needs.
+//
+// Name and Namespace are the exceptions: DataTable measures their longest value in
+// the list and overrides the widths below so identifiers never truncate (see
+// useFittedColumnWidths). NAME_COLUMN_WIDTH stays as their fallback for the loading
+// skeleton and for lists whose values are all empty - and as Node's real width.
 const CHECKBOX_COLUMN_WIDTH = 40;
 const NAME_COLUMN_WIDTH = 280;
 const READY_COLUMN_WIDTH = 70;

@@ -33,6 +33,7 @@ import { Separator } from '@/components/ui/separator';
 import { TableDelete } from './TableDelete';
 import { XIcon } from 'lucide-react';
 import { useAppSelector } from "@/redux/hooks";
+import { useFittedColumnWidths } from "@/hooks/use-fitted-column-widths";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
 // Rows are single-line and fairly uniform; this is just a starting estimate -
@@ -142,6 +143,12 @@ export function DataTable<TData, TValue>({
   });
 
   const { rows } = table.getRowModel();
+
+  // Measured off `data` (the unfiltered list) rather than the filtered rows so these
+  // columns fit every value they can ever show and hold still while searching. Which
+  // columns get fitted is the hook's call; the rest keep their static size.
+  const fittedColumnWidths = useFittedColumnWidths(data, table.getAllLeafColumns());
+
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const rowVirtualizer = useVirtualizer<HTMLDivElement, HTMLTableRowElement>({
     count: rows.length,
@@ -218,11 +225,13 @@ export function DataTable<TData, TValue>({
                   {table.getHeaderGroups().map((headerGroup) => (
                     <TableRow key={headerGroup.id}>
                       {headerGroup.headers.map((header) => {
+                        // table-layout: fixed - the header cell is what sizes the column.
+                        const width = fittedColumnWidths[header.column.id] ?? header.getSize();
                         return (
                           <TableHead
                             key={header.id}
                             colSpan={header.colSpan}
-                            style={{ width: `${header.getSize()}px` }}
+                            style={{ width: `${width}px` }}
                           >
                             {header.isPlaceholder
                               ? null
