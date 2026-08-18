@@ -43,7 +43,9 @@ import namespaceDetailsSlice from '@/data/Clusters/Namespaces/NamespaceDetailsSl
 import namespacesSlice from '@/data/Clusters/Namespaces/NamespacesSlice';
 import nodeDetailsSlice from '@/data/Clusters/Nodes/NodeDetailsSlice';
 import nodeListSlice from '@/data/Clusters/Nodes/NodeListSlice';
+import cronJobJobsSlice from '@/data/Workloads/CronJobs/CronJobJobsSlice';
 import nodePodsSlice from '@/data/Clusters/Nodes/NodePodsSlice';
+import workloadPodsSlice from '@/data/Workloads/WorkloadPodsSlice';
 import persistentVolumeClaimsDetailsSlice from '@/data/Storages/PersistentVolumeClaims/PersistentVolumeClaimDetailsSlice';
 import persistentVolumeClaimsListSlice from '@/data/Storages/PersistentVolumeClaims/PersistentVolumeClaimsListSlice';
 import persistentVolumeDetailsSlice from '@/data/Storages/PersistentVolumes/PersistentVolumeDetailsSlice';
@@ -177,6 +179,8 @@ const store = configureStore({
     portForwarding: portForwardingSlice,
     portForwardingList: portForwardingListSlice,
     nodePods: nodePodsSlice,
+    workloadPods: workloadPodsSlice,
+    cronJobJobs: cronJobJobsSlice,
     ...addonReducers,
   },
 });

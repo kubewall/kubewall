@@ -34,6 +34,7 @@ import { TableDelete } from './TableDelete';
 import { useFittedColumnWidths } from "@/hooks/use-fitted-column-widths";
 import { resetListTableFilter } from "@/data/Misc/ListTableFilterSlice";
 import { X } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
 // Rows are single-line and fairly uniform; this is just a starting estimate -
@@ -222,7 +223,14 @@ export function DataTable<TData, TValue>({
           !fullScreen &&
           <ResizablePanel id="table" order={1} defaultSize={showChat ? 55 : 100}>
             <div className="relative h-full">
-            <div ref={tableContainerRef} className={`border border-x-0 overflow-auto ${tableWidthCss} `}>
+            {/* The empty state is an overlay pinned below the header, so it needs the
+                container to have height. The full-page list sets one; the tables
+                embedded in a details card set width only and would otherwise
+                collapse to the header row, squeezing the message under it. */}
+            <div
+              ref={tableContainerRef}
+              className={cn('border border-x-0 overflow-auto', tableWidthCss, !rows.length && 'min-h-40')}
+            >
               <TooltipProvider delayDuration={0}>
               <Table style={{ tableLayout: 'fixed' }}>
                 <TableHeader className="sticky top-0 z-10 bg-muted">
@@ -304,7 +312,7 @@ export function DataTable<TData, TValue>({
                         </Button>
                       </>
                     ) : (
-                      <p>No {getSearchTarget(instanceType, kind)} found in cluster.</p>
+                      <p className="text-sm text-muted-foreground">No {getSearchTarget(instanceType, kind)} found in cluster.</p>
                     )}
                   </div>
                 </div>

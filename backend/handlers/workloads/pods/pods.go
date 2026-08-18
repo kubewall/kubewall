@@ -34,6 +34,7 @@ type PodsHandler struct {
 	clientSet         *kubernetes.Clientset
 	restConfig        *rest.Config
 	replicasetHandler *replicaset.ReplicaSetHandler
+	ownerStreams      *base.OwnerStreams
 }
 
 func NewPodsRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
@@ -87,6 +88,7 @@ func newPodsHandler(ctx context.Context, config, cluster string, container conta
 		restConfig:        container.RestConfig(config, cluster),
 		clientSet:         clientSet,
 		replicasetHandler: replicaset.NewReplicaSetHandler(ctx, config, cluster, container),
+		ownerStreams:      base.NewOwnerStreams(),
 	}
 
 	additionalEvents := []map[string]func(){
@@ -94,6 +96,7 @@ func newPodsHandler(ctx context.Context, config, cluster string, container conta
 			"pods-deployments": func() {
 				go handler.DeploymentsPods()
 				go handler.NodePods()
+				go handler.OwnerPods()
 			},
 		},
 	}

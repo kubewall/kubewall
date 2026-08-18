@@ -12,6 +12,8 @@ export * from './SecretDetailsContainer';
 export * from './EndpointDetailsContainer';
 export * from './ServiceDetailsContainer';
 export * from './Deployments/DeploymentDetailsContainer';
+export * from './Workloads/WorkloadPodsList';
+export * from './CronJobs/CronJobJobsList';
 export * from './Deployments/ScaleDeployments';
 export * from './PodDetailsContainer';
 export * from './ServiceAccountDetailsContainer';
