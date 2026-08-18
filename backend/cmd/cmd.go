@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/log"
 	"github.com/kubewall/kubewall/backend/config"
@@ -15,6 +16,10 @@ import (
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 )
+
+// serverStartTimeout bounds how long we wait for the listener to bind
+// before giving up on opening the browser.
+const serverStartTimeout = 5 * time.Second
 
 func init() {
 	rootCmd.PersistentFlags().String("certFile", "", "absolute path to certificate file")
@@ -97,26 +102,56 @@ func Serve(cmd *cobra.Command) error {
 	startBanner()
 	routes.ConfigureRoutes(e, c)
 
-	if !noOpen {
-		openDefaultBrowser(c.Config().IsSecure, c.Config().ListenAddr)
-	}
-
 	if !isSecure && !strings.Contains(c.Config().ListenAddr, "[::]:7080") && !strings.Contains(c.Config().ListenAddr, "localhost") {
 		log.Warn("SSE may not work properly without TLS. Use --certFile and --keyFile for HTTPS, or bind to localhost with --listen localhost:7080 to avoid issues.")
 	}
 
+	errCh := make(chan error, 1)
 	if c.Config().IsSecure {
 		e.Pre(middleware.HTTPSRedirect())
-		if err = e.StartTLS(c.Config().ListenAddr, certFile, keyFile); err != nil {
-			return err
-		}
-		return nil
+		go func() {
+			errCh <- e.StartTLS(c.Config().ListenAddr, certFile, keyFile)
+		}()
+	} else {
+		go func() {
+			errCh <- e.Start(c.Config().ListenAddr)
+		}()
 	}
 
-	if err = e.Start(c.Config().ListenAddr); err != nil {
+	if err := waitForServerStart(e, c.Config().IsSecure, errCh); err != nil {
 		return err
 	}
-	return nil
+
+	if !noOpen {
+		openDefaultBrowser(c.Config().IsSecure, c.Config().ListenAddr)
+	}
+
+	return <-errCh
+}
+
+// waitForServerStart blocks until the server's listener has successfully
+// bound to its address, or returns the startup error if it fails to bind.
+func waitForServerStart(e *echo.Echo, isSecure bool, errCh chan error) error {
+	ticker := time.NewTicker(10 * time.Millisecond)
+	defer ticker.Stop()
+	timeout := time.After(serverStartTimeout)
+
+	for {
+		select {
+		case err := <-errCh:
+			return err
+		case <-ticker.C:
+			addr := e.ListenerAddr()
+			if isSecure {
+				addr = e.TLSListenerAddr()
+			}
+			if addr != nil {
+				return nil
+			}
+		case <-timeout:
+			return fmt.Errorf("timed out waiting for server to start listening on %s", e.Server.Addr)
+		}
+	}
 }
 
 func openDefaultBrowser(isSecure bool, listenAddr string) {
