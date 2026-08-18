@@ -1,19 +1,17 @@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { resetAllStates, useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { Fragment, useLayoutEffect, useRef, useState } from "react";
 
 import { BRAND } from "@/branding.config";
-import { Fragment, useState } from "react";
 import { GitHubLogoIcon } from "@radix-ui/react-icons";
 import { Link } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 import { RootState } from "@/redux/store";
 import { cn } from "@/lib/utils";
-import { useSidebarSize } from "@/hooks/use-get-sidebar-size";
 
-const RAIL_LIST_ID = 'cluster-rail-list';
-const TILE_ADVANCE = 36;
-const ADD_TILE_RESERVED = 40;
+const TILE_SIZE_CLASS = 'size-8 shrink-0';
+const SEPARATOR_CLASS = 'my-1 h-px w-4 shrink-0 bg-border';
 
 const getClusterLabel = (name: string) => {
   const arn = name.match(/:cluster\/(.+)$/);
@@ -55,7 +53,6 @@ const ClusterRail = ({ configName, clusterName, selectedResource }: ClusterRailP
   const dispatch = useAppDispatch();
   const { clusters } = useAppSelector((state: RootState) => state.clusters);
   const [overflowOpen, setOverflowOpen] = useState(false);
-  const { height: listHeight } = useSidebarSize(RAIL_LIST_ID);
 
   const groups = Object.keys(clusters.kubeConfigs ?? {})
     .filter((config) => clusters.kubeConfigs[config].fileExists)
@@ -71,24 +68,92 @@ const ClusterRail = ({ configName, clusterName, selectedResource }: ClusterRailP
     configClusters.map(({ name, connected }) => ({ config, configLabel: label, name, connected }))
   );
 
-  const capacity = listHeight
-    ? Math.max(1, Math.floor((listHeight - ADD_TILE_RESERVED) / TILE_ADVANCE))
-    : allClusters.length;
-  const hasOverflow = allClusters.length > capacity;
-  const visibleClusters = hasOverflow ? allClusters.slice(0, Math.max(0, capacity - 1)) : allClusters;
-  const hiddenClusters = hasOverflow ? allClusters.slice(visibleClusters.length) : [];
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const cloneTileRefs = useRef<Array<HTMLElement | null>>([]);
+  const cloneAddRef = useRef<HTMLDivElement | null>(null);
+  const [visibleCount, setVisibleCount] = useState(allClusters.length);
+
+  useLayoutEffect(() => {
+    const container = listRef.current;
+    const cloneAdd = cloneAddRef.current;
+    if (!container || !cloneAdd) return;
+
+    const recompute = () => {
+      const n = allClusters.length;
+      const containerBottom = container.getBoundingClientRect().bottom;
+
+      if (n === 0) {
+        setVisibleCount((prev) => (prev === 0 ? prev : 0));
+        return;
+      }
+
+      // Everything (all clusters + the always-present Add-cluster tile)
+      // fits with nothing hidden - no "+N" tile needed.
+      if (cloneAdd.getBoundingClientRect().bottom <= containerBottom + 0.5) {
+        setVisibleCount((prev) => (prev === n ? prev : n));
+        return;
+      }
+
+      const lastCloneTileBottom = cloneTileRefs.current[n - 1]?.getBoundingClientRect().bottom ?? 0;
+      const rowAdvance =
+        n > 1
+          ? (cloneTileRefs.current[1]?.getBoundingClientRect().top ?? 0) -
+            (cloneTileRefs.current[0]?.getBoundingClientRect().top ?? 0)
+          : 0;
+      const addTileSpan = cloneAdd.getBoundingClientRect().bottom - lastCloneTileBottom;
+
+      let count = 0;
+      for (let k = n - 1; k >= 0; k--) {
+        const priorTileBottom =
+          k > 0 ? cloneTileRefs.current[k - 1]?.getBoundingClientRect().bottom ?? 0 : container.getBoundingClientRect().top;
+        // priorTileBottom + one row for the "+N" tile + the Add-tile's span.
+        const required = priorTileBottom + rowAdvance + addTileSpan;
+        if (required <= containerBottom + 0.5) {
+          count = k;
+          break;
+        }
+      }
+      setVisibleCount((prev) => (prev === count ? prev : count));
+    };
+
+    recompute();
+    const observer = new ResizeObserver(recompute);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [allClusters.length]);
+
+  const visibleClusters = allClusters.slice(0, visibleCount);
+  const hiddenClusters = allClusters.slice(visibleCount);
 
   return (
-    <div className="relative flex w-11 shrink-0 flex-col items-center overflow-hidden border-r bg-muted/40">
+    <div className="relative flex w-11 shrink-0 flex-col items-center overflow-hidden border-r bg-muted/40 pt-1.5">
       <TooltipProvider delayDuration={0}>
-        <div id={RAIL_LIST_ID} className="flex w-full min-h-0 flex-1 flex-col items-center gap-1 py-1.5">
+        <div ref={listRef} className="relative flex w-full min-h-0 flex-1 flex-col items-center gap-1 overflow-hidden">
+          <div aria-hidden className="invisible absolute inset-x-0 top-0 flex flex-col items-center gap-1">
+            {allClusters.map(({ config }, index) => {
+              const showSeparator = index > 0 && config !== allClusters[index - 1].config;
+              return (
+                <Fragment key={`${config}-${index}`}>
+                  {showSeparator && <div className={SEPARATOR_CLASS} />}
+                  <div
+                    ref={(el) => {
+                      cloneTileRefs.current[index] = el;
+                    }}
+                    className={TILE_SIZE_CLASS}
+                  />
+                </Fragment>
+              );
+            })}
+            <div ref={cloneAddRef} className={TILE_SIZE_CLASS} />
+          </div>
+
           {visibleClusters.map(({ config, configLabel, name, connected }, index) => {
             const isActive = config === configName && name === clusterName;
             const showSeparator = index > 0 && config !== visibleClusters[index - 1].config;
 
             return (
               <Fragment key={`${config}::${name}`}>
-                {showSeparator && <div className="my-1 h-px w-4 bg-border" />}
+                {showSeparator && <div className={SEPARATOR_CLASS} />}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Link
@@ -96,7 +161,8 @@ const ClusterRail = ({ configName, clusterName, selectedResource }: ClusterRailP
                       onClick={() => !isActive && dispatch(resetAllStates())}
                       aria-current={isActive ? 'page' : undefined}
                       className={cn(
-                        'relative flex size-8 items-center justify-center rounded-md border text-[11.5px] font-medium',
+                        'relative flex items-center justify-center rounded-md border text-[11.5px] font-medium',
+                        TILE_SIZE_CLASS,
                         'outline-none transition-colors',
                         'focus-visible:ring-1 focus-visible:ring-ring',
                         isActive
@@ -134,7 +200,8 @@ const ClusterRail = ({ configName, clusterName, selectedResource }: ClusterRailP
                   type="button"
                   aria-label={`${hiddenClusters.length} more clusters`}
                   className={cn(
-                    'flex size-8 shrink-0 items-center justify-center rounded-md border text-[11px] font-medium text-muted-foreground',
+                    'flex items-center justify-center rounded-md border text-[11px] font-medium text-muted-foreground',
+                    TILE_SIZE_CLASS,
                     'outline-none transition-colors hover:bg-accent hover:text-accent-foreground',
                     'focus-visible:ring-1 focus-visible:ring-ring'
                   )}
@@ -196,7 +263,8 @@ const ClusterRail = ({ configName, clusterName, selectedResource }: ClusterRailP
               <Link
                 to="/kwconfig"
                 className={cn(
-                  'mt-1 flex size-8 shrink-0 items-center justify-center rounded-md border border-dashed border-border text-muted-foreground',
+                  'flex items-center justify-center rounded-md border border-dashed border-border text-muted-foreground',
+                  TILE_SIZE_CLASS,
                   'outline-none transition-colors hover:border-foreground/30 hover:bg-accent hover:text-foreground',
                   'focus-visible:ring-1 focus-visible:ring-ring'
                 )}
