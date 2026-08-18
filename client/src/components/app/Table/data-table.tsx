@@ -24,16 +24,16 @@ import {
   TableRow
 } from "@/components/ui/table";
 import { TooltipProvider } from "@/components/ui/tooltip";
-
-import { Button } from '@/components/ui/button';
-import { DataTableToolbar } from "@/components/app/Table/TableToolbar";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { Button } from "@/components/ui/button";
+import { DataTableToolbar, getSearchTarget } from "@/components/app/Table/TableToolbar";
 import { Loader } from '@/components/app/Loader';
 import { RootState } from "@/redux/store";
 import { Separator } from '@/components/ui/separator';
 import { TableDelete } from './TableDelete';
-import { XIcon } from 'lucide-react';
-import { useAppSelector } from "@/redux/hooks";
 import { useFittedColumnWidths } from "@/hooks/use-fitted-column-widths";
+import { resetListTableFilter } from "@/data/Misc/ListTableFilterSlice";
+import { X } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
 // Rows are single-line and fairly uniform; this is just a starting estimate -
@@ -53,7 +53,6 @@ type DataTableProps<TData, TValue> = {
   kind?: string;
   showToolbar?: boolean;
   loading?: boolean;
-  isEventTable?: boolean;
   showChat: boolean;
   setShowChat: React.Dispatch<React.SetStateAction<boolean>>;
 }
@@ -90,11 +89,11 @@ export function DataTable<TData, TValue>({
   kind,
   showToolbar = true,
   loading = false,
-  isEventTable = false,
   setShowChat,
   showChat
 }: DataTableProps<TData, TValue>) {
 
+  const dispatch = useAppDispatch();
   const {
     searchString
   } = useAppSelector((state: RootState) => state.listTableFilter);
@@ -198,6 +197,11 @@ export function DataTable<TData, TValue>({
     setFullScreen(false);
   };
 
+  const handleClearSearch = () => {
+    setGlobalFilter('');
+    dispatch(resetListTableFilter());
+  };
+
   return (
     <>
       {
@@ -280,18 +284,31 @@ export function DataTable<TData, TValue>({
                         </tr>
                       )}
                     </>
-                  ) : (
-                    <TableRow className={isEventTable ? 'empty-table-events' : 'empty-table'}>
-                      <TableCell
-                        colSpan={columns.length}
-                        className="text-center"
-                      >
-                        No results.
-                      </TableCell>
-                    </TableRow>
-                  )}
+                  ) : null}
                 </TableBody>
               </Table>
+              {!rows.length && (
+                <div className="absolute inset-x-0 top-10 bottom-0 flex items-center justify-center pointer-events-none">
+                  <div className="flex flex-col items-center gap-2 text-center pointer-events-auto">
+                    {globalFilter ? (
+                      <>
+                        <p>No results found for search term &quot;{globalFilter}&quot;</p>
+                        <p className="text-sm text-muted-foreground">Check the spelling, or try a shorter search term.</p>
+                        <Button
+                          variant="secondary"
+                          onClick={handleClearSearch}
+                          className="mt-1 h-8 gap-1.5 px-3"
+                        >
+                          Clear Search
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </>
+                    ) : (
+                      <p>No {getSearchTarget(instanceType, kind)} found in cluster.</p>
+                    )}
+                  </div>
+                </div>
+              )}
               </TooltipProvider>
             </div>
             {
@@ -302,7 +319,7 @@ export function DataTable<TData, TValue>({
                   <Separator orientation="vertical" className="h-5" />
                   <TableDelete selectedRows={table.getSelectedRowModel().rows} toggleAllRowsSelected={table.resetRowSelection} />
                   <Button variant="ghost" size="sm" className="h-8 gap-1.5 px-3 text-sm" onClick={() => table.resetRowSelection()}>
-                    <XIcon className="h-4 w-4" />
+                    <X className="h-4 w-4" />
                     Cancel
                   </Button>
                 </div>
