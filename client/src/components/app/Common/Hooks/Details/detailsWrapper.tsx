@@ -1,5 +1,5 @@
 import { CLUSTER_ROLES_ENDPOINT, CLUSTER_ROLE_BINDINGS_ENDPOINT, CONFIG_MAPS_ENDPOINT, CRON_JOBS_ENDPOINT, CUSTOM_RESOURCES_ENDPOINT, CUSTOM_RESOURCES_LIST_ENDPOINT, DAEMON_SETS_ENDPOINT, DEPLOYMENT_ENDPOINT, ENDPOINTS_ENDPOINT, HPA_ENDPOINT, INGRESSES_ENDPOINT, JOBS_ENDPOINT, LEASES_ENDPOINT, LIMIT_RANGE_ENDPOINT, NAMESPACES_ENDPOINT, NODES_ENDPOINT, PERSISTENT_VOLUMES_ENDPOINT, PERSISTENT_VOLUME_CLAIMS_ENDPOINT, PODS_ENDPOINT, POD_DISRUPTION_BUDGETS_ENDPOINT, PRIORITY_CLASSES_ENDPOINT, REPLICA_SETS_ENDPOINT, RESOURCE_QUOTAS_ENDPOINT, ROLES_ENDPOINT, ROLE_BINDINGS_ENDPOINT, RUNTIME_CLASSES_ENDPOINT, SECRETS_ENDPOINT, SERVICES_ENDPOINT, SERVICE_ACCOUNTS_ENDPOINT, STATEFUL_SETS_ENDPOINT, STORAGE_CLASSES_ENDPOINT } from "@/constants";
-import { ClusterRoleBindingDetailsContainer, ClusterRoleDetailsContainer, ConfigMapDetailsContainer, CustomResourceDetailsContainer, DeploymentDetailsContainer, EndpointDetailsContainer, LimitRangeDetailsContainer, NamespaceDetailsContainer, NodeDetailsContainer, PodDetailsContainer, PodDisruptionBudgetDetailsContainer, ResourceQuotaDetailsContainer, RoleBindingDetailsContainer, RoleDetailsContainer, RuntimeClassDetailsContainer, SecretDetailsContainer, ServiceAccountDetailsContainer, ServiceDetailsContainer } from "@/components/app/MiscDetailsContainer";
+import { ClusterRoleBindingDetailsContainer, ClusterRoleDetailsContainer, ConfigMapDetailsContainer, CronJobJobsList, CustomResourceDetailsContainer, DeploymentDetailsContainer, EndpointDetailsContainer, LimitRangeDetailsContainer, NamespaceDetailsContainer, NodeDetailsContainer, PodDetailsContainer, PodDisruptionBudgetDetailsContainer, ResourceQuotaDetailsContainer, RoleBindingDetailsContainer, RoleDetailsContainer, RuntimeClassDetailsContainer, SecretDetailsContainer, ServiceAccountDetailsContainer, ServiceDetailsContainer, WorkloadPodsList } from "@/components/app/MiscDetailsContainer";
 import { getClusterRoleBindingDetailsConfig, getClusterRoleDetailsConfig, getConfigMapDetailsConfig, getCronJobsDetailsConfig, getCustomResourceDefinitionsDetailsConfig, getCustomResourceDetailsConfig, getDaemonSetDetailsConfig, getDeploymentDetailsConfig, getEndpointDetailsConfig, getHPADetailsConfig, getIngressDetailsConfig, getJobsDetailsConfig, getLeaseDetailsConfig, getLimitRangeDetailsConfig, getNamespaceDetailsConfig, getNodeDetailsConfig, getPersistentVolumeClaimDetailsConfig, getPersistentVolumeDetailsConfig, getPodDetailsConfig, getPodDisruptionBudgetDetailsConfig, getPriorityClassDetailsConfig, getReplicaSetDetailsConfig, getResourceQuotaDetailsConfig, getRoleBindingDetailsConfig, getRoleDetailsConfig, getRuntimeClassDetailsConfig, getSecretDetailsConfig, getServiceAccountDetailsConfig, getServiceDetailsConfig, getStatefulSetDetailsConfig, getStorageClassDetailsConfig } from "@/utils/DetailType/DetailDefinations";
 
 import { RootState } from "@/redux/store";
@@ -61,19 +61,19 @@ const useDetailsWrapper = ({ loading, resourcekind }: DetailsWapperProps) => {
     return { ...getDeploymentDetailsConfig(deploymentDetails, loading), miscComponent: <DeploymentDetailsContainer/> };
   }
   if (resourcekind === DAEMON_SETS_ENDPOINT) {
-    return { ...getDaemonSetDetailsConfig(daemonSetDetails, loading), miscComponent: <></> };
+    return { ...getDaemonSetDetailsConfig(daemonSetDetails, loading), miscComponent: <WorkloadPodsList endpoint={DAEMON_SETS_ENDPOINT}/> };
   }
   if (resourcekind === STATEFUL_SETS_ENDPOINT) {
-    return { ...getStatefulSetDetailsConfig(statefulSetDetails, loading), miscComponent: <></> };
+    return { ...getStatefulSetDetailsConfig(statefulSetDetails, loading), miscComponent: <WorkloadPodsList endpoint={STATEFUL_SETS_ENDPOINT}/> };
   }
   if (resourcekind === REPLICA_SETS_ENDPOINT) {
-    return { ...getReplicaSetDetailsConfig(replicaSetDetails, loading), miscComponent: <></> };
+    return { ...getReplicaSetDetailsConfig(replicaSetDetails, loading), miscComponent: <WorkloadPodsList endpoint={REPLICA_SETS_ENDPOINT}/> };
   }
   if (resourcekind === JOBS_ENDPOINT) {
-    return { ...getJobsDetailsConfig(jobDetails, loading), miscComponent: <></> };
+    return { ...getJobsDetailsConfig(jobDetails, loading), miscComponent: <WorkloadPodsList endpoint={JOBS_ENDPOINT}/> };
   }
   if (resourcekind === CRON_JOBS_ENDPOINT) {
-    return { ...getCronJobsDetailsConfig(cronJobDetails, loading), miscComponent: <></> };
+    return { ...getCronJobsDetailsConfig(cronJobDetails, loading), miscComponent: <CronJobJobsList/> };
   }
   if (resourcekind === SECRETS_ENDPOINT) {
     return { ...getSecretDetailsConfig(secretsDetails, loading), miscComponent: <SecretDetailsContainer/> };

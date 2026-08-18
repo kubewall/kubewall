@@ -279,6 +279,7 @@ func workloadRoutes(e *echo.Echo, appContainer container.Container) {
 	e.GET("api/v1/daemonsets/:name", daemonsets.NewDaemonSetsRouteHandler(appContainer, base.GetDetails)).Name = "daemonsetsDetails"
 	e.GET("api/v1/daemonsets/:name/yaml", daemonsets.NewDaemonSetsRouteHandler(appContainer, base.GetYaml)).Name = "daemonsetsYaml"
 	e.GET("api/v1/daemonsets/:name/events", daemonsets.NewDaemonSetsRouteHandler(appContainer, base.GetEvents)).Name = "daemonsetsEvents"
+	e.GET("api/v1/daemonsets/:name/pods", pods.NewOwnerPodsRouteHandler(appContainer, pods.DaemonSetsResource)).Name = "daemonsetsPods"
 	e.DELETE("api/v1/daemonsets", daemonsets.NewDaemonSetsRouteHandler(appContainer, base.Delete)).Name = "daemonsetsDelete"
 
 	// ReplicaSets
@@ -286,6 +287,7 @@ func workloadRoutes(e *echo.Echo, appContainer container.Container) {
 	e.GET("api/v1/replicasets/:name", replicaset.NewReplicaSetRouteHandler(appContainer, base.GetDetails)).Name = "replicasetsDetails"
 	e.GET("api/v1/replicasets/:name/yaml", replicaset.NewReplicaSetRouteHandler(appContainer, base.GetYaml)).Name = "replicasetsYaml"
 	e.GET("api/v1/replicasets/:name/events", replicaset.NewReplicaSetRouteHandler(appContainer, base.GetEvents)).Name = "replicasetsEvents"
+	e.GET("api/v1/replicasets/:name/pods", pods.NewOwnerPodsRouteHandler(appContainer, pods.ReplicaSetsResource)).Name = "replicasetsPods"
 	e.DELETE("api/v1/replicasets", replicaset.NewReplicaSetRouteHandler(appContainer, base.Delete)).Name = "replicasetsDelete"
 
 	// StatefulSets
@@ -293,6 +295,7 @@ func workloadRoutes(e *echo.Echo, appContainer container.Container) {
 	e.GET("api/v1/statefulsets/:name", statefulset.NewStatefulSetRouteHandler(appContainer, base.GetDetails)).Name = "statefulsetsDetails"
 	e.GET("api/v1/statefulsets/:name/yaml", statefulset.NewStatefulSetRouteHandler(appContainer, base.GetYaml)).Name = "statefulsetsYaml"
 	e.GET("api/v1/statefulsets/:name/events", statefulset.NewStatefulSetRouteHandler(appContainer, base.GetEvents)).Name = "statefulsetsEvents"
+	e.GET("api/v1/statefulsets/:name/pods", pods.NewOwnerPodsRouteHandler(appContainer, pods.StatefulSetsResource)).Name = "statefulsetsPods"
 	e.DELETE("api/v1/statefulsets", statefulset.NewStatefulSetRouteHandler(appContainer, base.Delete)).Name = "statefulsetsDelete"
 
 	// Jobs
@@ -300,6 +303,7 @@ func workloadRoutes(e *echo.Echo, appContainer container.Container) {
 	e.GET("api/v1/jobs/:name", jobs.NewJobsRouteHandler(appContainer, base.GetDetails)).Name = "jobsDetails"
 	e.GET("api/v1/jobs/:name/yaml", jobs.NewJobsRouteHandler(appContainer, base.GetYaml)).Name = "jobsYaml"
 	e.GET("api/v1/jobs/:name/events", jobs.NewJobsRouteHandler(appContainer, base.GetEvents)).Name = "jobsEvents"
+	e.GET("api/v1/jobs/:name/pods", pods.NewOwnerPodsRouteHandler(appContainer, pods.JobsResource)).Name = "jobsPods"
 	e.DELETE("api/v1/jobs", jobs.NewJobsRouteHandler(appContainer, base.Delete)).Name = "jobsDelete"
 
 	// CronJobs
@@ -307,6 +311,7 @@ func workloadRoutes(e *echo.Echo, appContainer container.Container) {
 	e.GET("api/v1/cronjobs/:name", cronjobs.NewCronJobsRouteHandler(appContainer, base.GetDetails)).Name = "cronjobsDetails"
 	e.GET("api/v1/cronjobs/:name/yaml", cronjobs.NewCronJobsRouteHandler(appContainer, base.GetYaml)).Name = "cronjobsYaml"
 	e.GET("api/v1/cronjobs/:name/events", cronjobs.NewCronJobsRouteHandler(appContainer, base.GetEvents)).Name = "cronjobsEvents"
+	e.GET("api/v1/cronjobs/:name/jobs", cronjobs.NewCronJobsRouteHandler(appContainer, cronjobs.GetJobs)).Name = "cronjobsJobs"
 	e.DELETE("api/v1/cronjobs", cronjobs.NewCronJobsRouteHandler(appContainer, base.Delete)).Name = "cronjobsDelete"
 }
 

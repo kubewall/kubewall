@@ -422,7 +422,7 @@ const deploymentsColumnConfig = (config: string, cluster: string) => ({
   showNamespaceFilter: true
 });
 
-const jobsColumnConfig = (config: string, cluster: string) => ({
+const jobsColumnConfig = (config: string, cluster: string, isSelectable = true) => ({
   headersList: [
     { title: 'Select', accessorKey: 'select', enableSorting: false, },
     { title: 'Namespace', accessorKey: 'namespace', enableGlobalFilter: true },
@@ -431,7 +431,7 @@ const jobsColumnConfig = (config: string, cluster: string) => ({
     { title: 'Conditions', accessorKey: 'conditions' },
     { title: 'Duration', accessorKey: 'duration' },
     { title: 'Age', accessorKey: 'age' }
-  ],
+  ].filter(({ title }) => isSelectable || (!isSelectable && title.toLowerCase() !== 'select')),
   queryParams: { config, cluster },
   showNamespaceFilter: true
 });

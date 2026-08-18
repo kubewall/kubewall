@@ -9,8 +9,13 @@ import (
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/base"
 	"github.com/kubewall/kubewall/backend/handlers/helpers"
+	"github.com/kubewall/kubewall/backend/handlers/workloads/jobs"
 	"github.com/labstack/echo/v4"
 	batchV1 "k8s.io/api/batch/v1"
+)
+
+const (
+	GetJobs base.RouteType = 12
 )
 
 type CronJobsHandler struct {
@@ -32,6 +37,8 @@ func NewCronJobsRouteHandler(container container.Container, routeType base.Route
 			return handler.BaseHandler.GetYaml(c)
 		case base.Delete:
 			return handler.BaseHandler.Delete(c)
+		case GetJobs:
+			return handler.GetJobs(c)
 		default:
 			return echo.NewHTTPError(http.StatusInternalServerError, "Unknown route type")
 		}
@@ -78,4 +85,21 @@ func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 	t := TransformCronJobsList(cronJobList)
 
 	return json.Marshal(t)
+}
+
+// GetJobs streams the jobs a CronJob has spawned to its details view.
+func (h *CronJobsHandler) GetJobs(c echo.Context) error {
+	config := c.QueryParam("config")
+	cluster := c.QueryParam("cluster")
+	namespace := c.QueryParam("namespace")
+	name := c.Param("name")
+
+	streamID := jobs.CronJobJobsStreamID(h.BaseHandler.QueryConfig, h.BaseHandler.QueryCluster, namespace, name)
+	ctx := c.Request().Context()
+	// Register before publishing; see BaseHandler.GetList.
+	h.BaseHandler.Container.SSE().CreateStream(streamID)
+	go jobs.NewJobsHandler(ctx, config, cluster, h.BaseHandler.Container).PublishCronJobJobs(namespace, name)
+	h.BaseHandler.Container.SSE().ServeHTTP(streamID, c.Response(), c.Request())
+
+	return nil
 }

@@ -25,7 +25,7 @@ type TableCellType<T> = {
   queryParams?: string;
 } & ClusterDetails;
 
-const TableCells = <T extends ClusterDetails>({
+const TableCells = <T,>({
   clusterName,
   configName,
   instanceType,

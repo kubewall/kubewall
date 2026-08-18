@@ -1,4 +1,4 @@
-import { ClusterDetails, HeaderList, TableColumns } from '@/types';
+import { HeaderList, TableColumns } from '@/types';
 
 import { ColumnDef } from '@tanstack/react-table';
 import { DefaultHeader } from '@/components/app/Table';
@@ -67,7 +67,11 @@ function getColumnWidth(title: string): number {
   }
 }
 
-function GenerateColumns<T extends ClusterDetails, C extends HeaderList>({
+// T is only ever the row type handed straight back to react-table; the cluster
+// and config names come from the props below, not off the row. Leaving it
+// unconstrained lets real row types be used - the ones that model a list's
+// columns and nothing else.
+function GenerateColumns<T, C extends HeaderList>({
   count,
   clusterName,
   configName,

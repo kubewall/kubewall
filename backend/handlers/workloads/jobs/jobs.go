@@ -14,7 +14,8 @@ import (
 )
 
 type JobsHandler struct {
-	BaseHandler base.BaseHandler
+	BaseHandler  base.BaseHandler
+	ownerStreams *base.OwnerStreams
 }
 
 func NewJobsRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
@@ -60,9 +61,18 @@ func newJobsHandler(ctx context.Context, config, cluster string, container conta
 			InformerCacheKey: fmt.Sprintf("%s-%s-jobsInformer", config, cluster),
 			TransformFunc:    transformItems,
 		},
+		ownerStreams: base.NewOwnerStreams(),
 	}
 
-	cache := base.ResourceEventHandler[*batchV1.Job](&handler.BaseHandler)
+	additionalEvents := []map[string]func(){
+		{
+			"jobs-cronjobs": func() {
+				go handler.CronJobJobs()
+			},
+		},
+	}
+
+	cache := base.ResourceEventHandler[*batchV1.Job](&handler.BaseHandler, additionalEvents...)
 	handler.BaseHandler.StartInformer(cache)
 	handler.BaseHandler.WaitForSync(ctx)
 	return handler
