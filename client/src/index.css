@@ -123,6 +123,26 @@ body {
   animation: bgColorChange 2s ease-in-out;
 }
 
+/* Slim left marker, matching the sidebar's. Inset shadow on the leftmost cell so
+   it costs no layout and leaves row backgrounds untouched. */
+tr[data-state="selected"]>td:first-child {
+  box-shadow: inset 1.5px 0 0 0 hsl(var(--foreground));
+}
+
+.table-row-bg>td:first-child {
+  animation: rowMarkerFade 2s ease-in-out;
+}
+
+@keyframes rowMarkerFade {
+  0% {
+    box-shadow: inset 1.5px 0 0 0 hsl(var(--foreground));
+  }
+
+  100% {
+    box-shadow: inset 1.5px 0 0 0 transparent;
+  }
+}
+
 .overview {
   max-height: calc(100vh - 115px - var(--terminal-height, 0px));
 }

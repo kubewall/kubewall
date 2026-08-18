@@ -8,6 +8,9 @@ type DefaultCellProps = {
 };
 
 
+// Namespace renders through here, and DataTable sizes that column to fit its longest
+// value, so this cell's horizontal padding is baked into CELL_HORIZONTAL_SPACE in
+// use-fitted-column-widths - keep the two in step.
 const DefaultCell = memo(function ({ cellValue, truncate = true }: DefaultCellProps) {
   const [ref, isTruncated] = useIsTruncated<HTMLSpanElement>(cellValue);
 

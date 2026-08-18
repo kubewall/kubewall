@@ -57,9 +57,10 @@ const CreateTable = <T extends ClusterDetails, C extends HeaderList>({
   const leftSize = useSidebarSize("left-sidebar");
   const getMaxWidth = () => {
     if(isMobile) {
-      return 48;
+      return 44;
     } else {
-      return 47 + leftSize.width;
+      // 43 = the 44px cluster rail less its 1px shared border.
+      return 43 + leftSize.width;
     }
   };
 
