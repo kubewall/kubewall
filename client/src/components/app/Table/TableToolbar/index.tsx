@@ -58,6 +58,13 @@ const SEARCH_LABELS: Record<string, string> = {
   clusterroles: 'cluster roles'
 };
 
+// Shared with the empty-state message in DataTable so both refer to the
+// resource the same way.
+export const getSearchTarget = (instanceType: string, kind?: string) =>
+  (instanceType === CUSTOM_RESOURCES_LIST_ENDPOINT && kind)
+  || SEARCH_LABELS[instanceType]
+  || instanceType;
+
 export function DataTableToolbar<TData>({
   table,
   globalFilter,
@@ -74,9 +81,7 @@ export function DataTableToolbar<TData>({
   } = useAppSelector((state: RootState) => state.namespaces);
   const dispatch = useAppDispatch();
   const isFiltered = table.getState().columnFilters.length > 0;
-  const searchTarget = (instanceType === CUSTOM_RESOURCES_LIST_ENDPOINT && kind)
-    || SEARCH_LABELS[instanceType]
-    || instanceType;
+  const searchTarget = getSearchTarget(instanceType, kind);
 
   return (
     <div className="flex items-center justify-between px-2 py-2">

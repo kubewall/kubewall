@@ -59,7 +59,6 @@ export function Events({ instanceType, name, namespace, configName, clusterName,
       tableWidthCss="event-table-max-height rounded-lg"
       instanceType='events'
       showNamespaceFilter={false}
-      isEventTable={true}
       setShowChat={() => { }}
       showChat={false}
     />
