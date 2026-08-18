@@ -1,12 +1,19 @@
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { resetAllStates, useAppDispatch, useAppSelector } from "@/redux/hooks";
 
 import { BRAND } from "@/branding.config";
+import { Fragment, useState } from "react";
 import { GitHubLogoIcon } from "@radix-ui/react-icons";
 import { Link } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 import { RootState } from "@/redux/store";
 import { cn } from "@/lib/utils";
+import { useSidebarSize } from "@/hooks/use-get-sidebar-size";
+
+const RAIL_LIST_ID = 'cluster-rail-list';
+const TILE_ADVANCE = 36;
+const ADD_TILE_RESERVED = 40;
 
 const getClusterLabel = (name: string) => {
   const arn = name.match(/:cluster\/(.+)$/);
@@ -47,6 +54,8 @@ type ClusterRailProps = {
 const ClusterRail = ({ configName, clusterName, selectedResource }: ClusterRailProps) => {
   const dispatch = useAppDispatch();
   const { clusters } = useAppSelector((state: RootState) => state.clusters);
+  const [overflowOpen, setOverflowOpen] = useState(false);
+  const { height: listHeight } = useSidebarSize(RAIL_LIST_ID);
 
   const groups = Object.keys(clusters.kubeConfigs ?? {})
     .filter((config) => clusters.kubeConfigs[config].fileExists)
@@ -58,63 +67,129 @@ const ClusterRail = ({ configName, clusterName, selectedResource }: ClusterRailP
       ),
     }));
 
+  const allClusters = groups.flatMap(({ config, label, clusters: configClusters }) =>
+    configClusters.map(({ name, connected }) => ({ config, configLabel: label, name, connected }))
+  );
+
+  const capacity = listHeight
+    ? Math.max(1, Math.floor((listHeight - ADD_TILE_RESERVED) / TILE_ADVANCE))
+    : allClusters.length;
+  const hasOverflow = allClusters.length > capacity;
+  const visibleClusters = hasOverflow ? allClusters.slice(0, Math.max(0, capacity - 1)) : allClusters;
+  const hiddenClusters = hasOverflow ? allClusters.slice(visibleClusters.length) : [];
+
   return (
     <div className="relative flex w-11 shrink-0 flex-col items-center overflow-hidden border-r bg-muted/40">
       <TooltipProvider delayDuration={0}>
-        <div className="flex w-full flex-1 flex-col items-center gap-1 overflow-y-auto py-1.5">
-          {groups.map(({ config, label, clusters: configClusters }, groupIndex) => (
-            <div key={config} className="flex w-full flex-col items-center gap-1">
-              {/* Separator per kubeconfig: the same cluster name can appear under
-                  several files, and without a break they read as duplicates. */}
-              {groupIndex > 0 && <div className="my-1 h-px w-4 bg-border" />}
-              {configClusters.map(({ name, connected }) => {
-                const isActive = config === configName && name === clusterName;
+        <div id={RAIL_LIST_ID} className="flex w-full min-h-0 flex-1 flex-col items-center gap-1 py-1.5">
+          {visibleClusters.map(({ config, configLabel, name, connected }, index) => {
+            const isActive = config === configName && name === clusterName;
+            const showSeparator = index > 0 && config !== visibleClusters[index - 1].config;
 
-                return (
-                  <Tooltip key={`${config}::${name}`}>
-                    <TooltipTrigger asChild>
+            return (
+              <Fragment key={`${config}::${name}`}>
+                {showSeparator && <div className="my-1 h-px w-4 bg-border" />}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to={`/${config}/list?cluster=${name}&resourcekind=${selectedResource}`}
+                      onClick={() => !isActive && dispatch(resetAllStates())}
+                      aria-current={isActive ? 'page' : undefined}
+                      className={cn(
+                        'relative flex size-8 items-center justify-center rounded-md border text-[11.5px] font-medium',
+                        'outline-none transition-colors',
+                        'focus-visible:ring-1 focus-visible:ring-ring',
+                        isActive
+                          ? 'border-transparent bg-foreground text-background'
+                          : 'text-foreground hover:bg-accent hover:text-accent-foreground'
+                      )}
+                    >
+                      {getInitials(name)}
+                      <span
+                        className={cn(
+                          'absolute -bottom-px -right-px size-[7px] rounded-full ring-2 ring-muted',
+                          connected ? 'bg-emerald-500' : 'bg-muted-foreground/60'
+                        )}
+                        aria-hidden
+                      />
+                      <span className="sr-only">{name}</span>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-xs">
+                    <div className="font-medium">{getClusterLabel(name)}</div>
+                    <div className="mt-0.5 flex items-center gap-1.5 opacity-70">
+                      <span className="truncate">{configLabel}</span>
+                      {!connected && <span>· unreachable</span>}
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </Fragment>
+            );
+          })}
+
+          {hiddenClusters.length > 0 && (
+            <Popover open={overflowOpen} onOpenChange={setOverflowOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={`${hiddenClusters.length} more clusters`}
+                  className={cn(
+                    'flex size-8 shrink-0 items-center justify-center rounded-md border text-[11px] font-medium text-muted-foreground',
+                    'outline-none transition-colors hover:bg-accent hover:text-accent-foreground',
+                    'focus-visible:ring-1 focus-visible:ring-ring'
+                  )}
+                >
+                  +{hiddenClusters.length}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="right" align="end" className="w-64 p-1">
+                <div className="flex max-h-80 flex-col gap-0.5 overflow-y-auto">
+                  {hiddenClusters.map(({ config, configLabel, name, connected }) => {
+                    const isActive = config === configName && name === clusterName;
+
+                    return (
                       <Link
+                        key={`${config}::${name}`}
                         to={`/${config}/list?cluster=${name}&resourcekind=${selectedResource}`}
-                        onClick={() => !isActive && dispatch(resetAllStates())}
+                        onClick={() => {
+                          !isActive && dispatch(resetAllStates());
+                          setOverflowOpen(false);
+                        }}
                         aria-current={isActive ? 'page' : undefined}
                         className={cn(
-                          'relative flex size-8 items-center justify-center rounded-md border text-[11.5px] font-medium',
-                          'outline-none transition-colors',
-                          'focus-visible:ring-1 focus-visible:ring-ring',
-                          // foreground/background rather than primary: in the dark
-                          // theme --primary is a dark green (154 100% 19%), so an
-                          // active tile read as murky green on a near-black rail.
-                          // Inverting the neutral pair gives an unmistakable
-                          // selected state in both themes and stays distinct from
-                          // hover, which already uses accent.
+                          'flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors',
                           isActive
-                            ? 'border-transparent bg-foreground text-background'
-                            : 'text-foreground hover:bg-accent hover:text-accent-foreground'
+                            ? 'bg-accent text-accent-foreground'
+                            : 'hover:bg-accent hover:text-accent-foreground'
                         )}
                       >
-                        {getInitials(name)}
                         <span
                           className={cn(
-                            'absolute -bottom-px -right-px size-[7px] rounded-full ring-2 ring-muted',
+                            'flex size-6 shrink-0 items-center justify-center rounded-md border text-[10px] font-medium',
+                            isActive ? 'border-transparent bg-foreground text-background' : 'text-foreground'
+                          )}
+                          aria-hidden
+                        >
+                          {getInitials(name)}
+                        </span>
+                        <span className="flex min-w-0 flex-1 flex-col">
+                          <span className="truncate">{getClusterLabel(name)}</span>
+                          <span className="truncate text-xs text-muted-foreground">{configLabel}</span>
+                        </span>
+                        <span
+                          className={cn(
+                            'size-1.5 shrink-0 rounded-full',
                             connected ? 'bg-emerald-500' : 'bg-muted-foreground/60'
                           )}
                           aria-hidden
                         />
-                        <span className="sr-only">{name}</span>
                       </Link>
-                    </TooltipTrigger>
-                    <TooltipContent side="right" className="max-w-xs">
-                      <div className="font-medium">{getClusterLabel(name)}</div>
-                      <div className="mt-0.5 flex items-center gap-1.5 opacity-70">
-                        <span className="truncate">{label}</span>
-                        {!connected && <span>· unreachable</span>}
-                      </div>
-                    </TooltipContent>
-                  </Tooltip>
-                );
-              })}
-            </div>
-          ))}
+                    );
+                  })}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
 
           <Tooltip>
             <TooltipTrigger asChild>
