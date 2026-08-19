@@ -119,6 +119,10 @@ const NAVIGATION_ROUTE: NavigationRoutes = {
       route: 'endpoints'
     },
     {
+      name: 'Network Policies',
+      route: 'networkpolicies'
+    },
+    {
       name: 'Port Forwarding',
       route: 'portforwards'
     },
@@ -135,6 +139,18 @@ const NAVIGATION_ROUTE: NavigationRoutes = {
     {
       name: 'Storage Classes',
       route: 'storageclasses'
+    },
+    {
+      name: 'CSI Drivers',
+      route: 'csidrivers'
+    },
+    {
+      name: 'CSI Nodes',
+      route: 'csinodes'
+    },
+    {
+      name: 'Volume Attributes Classes',
+      route: 'volumeattributesclasses'
     }
   ]
 };

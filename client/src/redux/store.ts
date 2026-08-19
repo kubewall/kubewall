@@ -29,6 +29,8 @@ import hpaDetailsSlice from '@/data/Configurations/HPAs/HPADetailsSlice';
 import hpasListSlice from '@/data/Configurations/HPAs/HPAsListSlice';
 import ingressDetailsSlice from '@/data/Networks/Ingresses/IngressDetailsSlice';
 import ingressesListSlice from '@/data/Networks/Ingresses/IngressesListSlice';
+import networkPoliciesListSlice from '@/data/Networks/NetworkPolicies/NetworkPoliciesListSlice';
+import networkPolicyDetailsSlice from '@/data/Networks/NetworkPolicies/NetworkPolicyDetailsSlice';
 import jobDetailsSlice from '@/data/Workloads/Jobs/JobDetailsSlice';
 import jobsSlice from '@/data/Workloads/Jobs/JobsSlice';
 import kwAiModelsSlice from '@/data/KwClusters/kwAiModelsSlice';
@@ -77,8 +79,14 @@ import serviceDetailSlice from '@/data/Networks/Services/ServiceDetailSlice';
 import servicesListSlice from '@/data/Networks/Services/ServicesListSlice';
 import statefulSetDetailsSlice from '@/data/Workloads/StatefulSets/StatefulSetDetailsSlice';
 import statefulSetsSlice from '@/data/Workloads/StatefulSets/StatefulSetsSlice';
+import csiDriverDetailsSlice from '@/data/Storages/CSIDrivers/CSIDriverDetailsSlice';
+import csiDriversListSlice from '@/data/Storages/CSIDrivers/CSIDriversListSlice';
+import csiNodeDetailsSlice from '@/data/Storages/CSINodes/CSINodeDetailsSlice';
+import csiNodesListSlice from '@/data/Storages/CSINodes/CSINodesListSlice';
 import storageClassDetailsSlice from '@/data/Storages/StorageClasses/StorageClassDetailsSlice';
 import storageClassesListSlice from '@/data/Storages/StorageClasses/StorageClassesListSlice';
+import volumeAttributesClassDetailsSlice from '@/data/Storages/VolumeAttributesClasses/VolumeAttributesClassDetailsSlice';
+import volumeAttributesClassesListSlice from '@/data/Storages/VolumeAttributesClasses/VolumeAttributesClassesListSlice';
 import updateYamlSlice from '@/data/Yaml/YamlUpdateSlice';
 import yamlSlice from '@/data/Yaml/YamlSlice';
 import addons from '@/addons';
@@ -149,10 +157,18 @@ const store = configureStore({
     persistentVolumeClaims: persistentVolumeClaimsListSlice,
     storageClasses: storageClassesListSlice,
     storageClassDetails: storageClassDetailsSlice,
+    csiDrivers: csiDriversListSlice,
+    csiDriverDetails: csiDriverDetailsSlice,
+    csiNodes: csiNodesListSlice,
+    csiNodeDetails: csiNodeDetailsSlice,
+    volumeAttributesClasses: volumeAttributesClassesListSlice,
+    volumeAttributesClassDetails: volumeAttributesClassDetailsSlice,
     podDisruptionBudgets: podDisruptionBudgetsListSlice,
     podDisruptionBudgetDetails: podDisruptionBudgetDetailsSlice,
     services: servicesListSlice,
     ingresses: ingressesListSlice,
+    networkPolicies: networkPoliciesListSlice,
+    networkPolicyDetails: networkPolicyDetailsSlice,
     endpoints: endpointListSlice,
     secretsDetails: secretsDetailsSlice,
     configMapDetails: configMapDetailsSlice,

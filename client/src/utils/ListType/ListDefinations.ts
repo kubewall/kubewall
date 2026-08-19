@@ -277,6 +277,19 @@ const ingressesColumnConfig = (config: string, cluster: string) => ({
   showNamespaceFilter: true
 });
 
+const networkPoliciesColumnConfig = (config: string, cluster: string) => ({
+  headersList: [
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Namespace', accessorKey: 'namespace', enableGlobalFilter: true },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
+    { title: 'Pod Selector', accessorKey: 'podSelector', enableGlobalFilter: true },
+    { title: 'Policy Types', accessorKey: 'policyTypes' },
+    { title: 'Age', accessorKey: 'age' }
+  ],
+  queryParams: { config, cluster },
+  showNamespaceFilter: true
+});
+
 const servicesColumnConfig = (config: string, cluster: string) => ({
   headersList: [
     { title: 'Select', accessorKey: 'select', enableSorting: false, },
@@ -348,6 +361,42 @@ const storageClassesColumnConfig = (config: string, cluster: string) => ({
     { title: 'Provisioner', accessorKey: 'provisioner' },
     { title: 'Reclaim Policy', accessorKey: 'reclaimPolicy' },
     { title: 'Volume Binding Mode', accessorKey: 'VolumeBindingMode' },
+    { title: 'Age', accessorKey: 'age' }
+  ],
+  queryParams: { config, cluster },
+  showNamespaceFilter: false
+});
+
+const csiDriversColumnConfig = (config: string, cluster: string) => ({
+  headersList: [
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
+    { title: 'Attach Required', accessorKey: 'attachRequired' },
+    { title: 'Pod Info On Mount', accessorKey: 'podInfoOnMount' },
+    { title: 'Storage Capacity', accessorKey: 'storageCapacity' },
+    { title: 'Modes', accessorKey: 'modes' },
+    { title: 'Age', accessorKey: 'age' }
+  ],
+  queryParams: { config, cluster },
+  showNamespaceFilter: false
+});
+
+const csiNodesColumnConfig = (config: string, cluster: string) => ({
+  headersList: [
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
+    { title: 'Drivers', accessorKey: 'drivers', enableGlobalFilter: true },
+    { title: 'Age', accessorKey: 'age' }
+  ],
+  queryParams: { config, cluster },
+  showNamespaceFilter: false
+});
+
+const volumeAttributesClassesColumnConfig = (config: string, cluster: string) => ({
+  headersList: [
+    { title: 'Select', accessorKey: 'select', enableSorting: false, },
+    { title: 'Name', accessorKey: 'name', enableGlobalFilter: true },
+    { title: 'Driver Name', accessorKey: 'driverName', enableGlobalFilter: true },
     { title: 'Age', accessorKey: 'age' }
   ],
   queryParams: { config, cluster },
@@ -522,11 +571,15 @@ export {
   serviceAccountsColumnConfig,
   endpointsColumnConfig,
   ingressesColumnConfig,
+  networkPoliciesColumnConfig,
   servicesColumnConfig,
   portForwardingColumnConfig,
   persistentVolumeClaimsColumnConfig,
   persistentVolumesColumnConfig,
   storageClassesColumnConfig,
+  csiDriversColumnConfig,
+  csiNodesColumnConfig,
+  volumeAttributesClassesColumnConfig,
   cronJobsColumnConfig,
   daemonSetsColumnConfig,
   deploymentsColumnConfig,

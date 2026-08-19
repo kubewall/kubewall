@@ -24,9 +24,9 @@ export function DefaultHeader<TData, TValue>({
       <Button
         variant="ghost"
         size="sm"
-        className={cn("h-8", className)}
+        className={cn("h-8 min-w-0 max-w-full pl-3 pr-1", className)}
       >
-        {title}
+        <span className="truncate">{title}</span>
       </Button>
     );
   }
@@ -43,20 +43,20 @@ export function DefaultHeader<TData, TValue>({
   };
 
   return (
-    <div className={cn("flex items-center space-x-2", className)}>
+    <div className={cn("flex min-w-0 items-center space-x-2", className)}>
       <Button
         variant="ghost"
         size="sm"
-        className="h-8 hover:bg-accent"
+        className="h-8 min-w-0 max-w-full pl-3 pr-1 hover:bg-accent"
         onClick={handleSort}
       >
-        <span>{title}</span>
+        <span className="truncate">{title}</span>
         {column.getIsSorted() === "desc" ? (
-          <CaretDownIcon className="ml-2 h-4 w-4" />
+          <CaretDownIcon className="ml-2 h-4 w-4 shrink-0" />
         ) : column.getIsSorted() === "asc" ? (
-          <CaretUpIcon className="ml-2 h-4 w-4" />
+          <CaretUpIcon className="ml-2 h-4 w-4 shrink-0" />
         ) : (
-          <CaretSortIcon className="ml-2 h-4 w-4" />
+          <CaretSortIcon className="ml-2 h-4 w-4 shrink-0" />
         )}
       </Button>
     </div>

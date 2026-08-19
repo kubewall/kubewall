@@ -4,7 +4,10 @@ import { API_VERSION } from "@/constants";
 
 const mathFloor = (val = 0) => Math.floor(val);
 
-const defaultOrValue = (value?: string | number | boolean | null) => value || '—';
+// A boolean is a real value, not a missing one: React renders `true` as nothing
+// at all, and `false` would otherwise take the `||` branch and read as unset.
+const defaultOrValue = (value?: string | number | boolean | null) =>
+  typeof value === 'boolean' ? String(value) : value || '—';
 
 const defaultOrValueObject = (value: object | Array<string | null> | string | unknown) => {
   if (Array.isArray(value)) {
