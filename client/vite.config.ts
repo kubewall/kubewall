@@ -58,7 +58,7 @@ function manualChunks(id: string) {
     // into whichever single dynamic importer it considers "unique" to -
     // here, the whole KwDetails route - so every details page (not just a
     // Pod's Logs tab) would pay for it. Pinning it isolates it into its own
-    // async chunk, fetched only when the log/terminal view actually mounts.
+    // async chunk, fetched only when the terminal view actually mounts.
     return 'vendor-xterm';
   }
   if (

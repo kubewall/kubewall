@@ -1,323 +1,338 @@
-import { ChevronDownIcon, ChevronUpIcon, Cross2Icon, DownloadIcon, MagnifyingGlassIcon } from '@radix-ui/react-icons';
-import { useEffect, useRef, useState } from "react";
+import './index.css';
 
-import { CotainerSelector } from "./ContainerSelector";
-import { Filter } from 'lucide-react';
-import { Input } from "@/components/ui/input";
-import { PodSocketResponse } from '@/types';
-import { RootState } from "@/redux/store";
-import { SearchAddon } from '@xterm/addon-search';
-import { SocketLogs } from "./SocketLogs";
-import type { SocketLogsHandle } from "./SocketLogs";
+import { Cross2Icon, DownloadIcon, MagnifyingGlassIcon } from '@radix-ui/react-icons';
+import { LOG_LEVELS, LogLevel, parseQuery } from './logFilter';
+import { SlidersHorizontal, Trash2, WrapText } from 'lucide-react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+
+import { CotainerSelector } from './ContainerSelector';
+import { Input } from '@/components/ui/input';
+import { FontSizeOption, TimestampMode } from './viewOptions';
+import { LogTable } from './LogTable';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { RootState } from '@/redux/store';
 import { cn } from '@/lib/utils';
-import { useAppSelector } from "@/redux/hooks";
-import { useTheme } from "@/components/app/ThemeProvider";
+import { useAppSelector } from '@/redux/hooks';
+import { useLogStore } from './useLogStore';
+import { useLogStream } from './useLogStream';
+import { useTheme } from '@/components/app/ThemeProvider';
 
 type PodLogsProps = {
   namespace: string;
   name: string;
   configName: string;
   clusterName: string;
-}
-
-const SEARCH_DECORATIONS = {
-  matchBackground: '#FFFF00',
-  matchBorder: '#FFFF00',
-  matchOverviewRuler: '#FFFF00',
-  activeMatchBackground: '#FF9632',
-  activeMatchBorder: '#FF9632',
-  activeMatchColorOverviewRuler: '#FF9632',
 };
 
-// Same cap as SocketLogs' own internal buffer - this one exists only to
-// back the download button, so it doesn't need SocketLogs' scroll-position-
-// aware trimming; it can just trim unconditionally.
-const MAX_BUFFER = 50000;
-const TRIM_TO = 45000;
+const LEVEL_STYLE: Record<LogLevel, string> = {
+  error: 'text-red-500',
+  warn: 'text-amber-500',
+  info: 'text-sky-500',
+  debug: 'text-violet-400',
+  trace: 'text-muted-foreground',
+  other: 'text-muted-foreground',
+};
+
+const LEVEL_LABEL: Record<LogLevel, string> = {
+  error: 'Error', warn: 'Warn', info: 'Info', debug: 'Debug', trace: 'Trace', other: 'Other',
+};
+
+const Hint = ({ label, children, className }: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) => (
+  <Tooltip>
+    <TooltipTrigger asChild>{children}</TooltipTrigger>
+    <TooltipContent side="bottom" className={className}>{label}</TooltipContent>
+  </Tooltip>
+);
+
+const FILTER_HELP = [
+  'Show only lines that match everything you type.',
+  '',
+  'error timeout      both words must appear',
+  '"exact phrase"     match the phrase as written',
+  '-healthz           hide lines containing this',
+  '/GET|POST/         regular expression',
+  '',
+  'Press / to jump here, Esc to clear.',
+].join('\n');
+
+type SegmentedProps<T extends string> = {
+  label: string;
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (next: T) => void;
+};
+
+function Segmented<T extends string>({ label, value, options, onChange }: SegmentedProps<T>) {
+  return (
+    <div className="space-y-1.5">
+      <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="flex overflow-hidden rounded border">
+        {options.map((option, i) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            aria-pressed={value === option.value}
+            className={cn(
+              'flex-1 px-2 py-1 text-[11px] transition-colors',
+              i > 0 && 'border-l',
+              value === option.value
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+            )}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterMode, setFilterMode] = useState(false);
-  const [logCounts, setLogCounts] = useState({ total: 0, visible: 0 });
-  const { podDetails } = useAppSelector((state: RootState) => state.podDetails);
-  const [selectedContainer, setSelectedContainer] = useState('');
-  // A ref, not state: this is written on every incoming log line (once per
-  // SSE message) and only ever read on click (download), so it must not
-  // trigger a re-render or copy the array on each message.
-  const logsRef = useRef<PodSocketResponse[]>([]);
-  const searchAddonRef = useRef<SearchAddon | null>(null);
-  const socketLogsRef = useRef<SocketLogsHandle | null>(null);
+  const [rawQuery, setRawQuery] = useState('');
+  const [levels, setLevels] = useState<Set<LogLevel> | null>(null);
+  const [wrap, setWrap] = useState(true);
+  const [tsMode, setTsMode] = useState<TimestampMode>('utc');
+  const [fontSize, setFontSize] = useState<FontSizeOption>('default');
+  // Empty set means every container.
+  const [selectedContainers, setSelectedContainers] = useState<Set<string>>(new Set());
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const logsPanelRef = useRef<HTMLDivElement>(null);
-  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const { podDetails } = useAppSelector((state: RootState) => state.podDetails);
   const { isDark } = useTheme();
 
+  const store = useLogStore();
+  const { isLoadingHistory, hasMore, loadOlder } = useLogStream({
+    pod: name, namespace, configName, clusterName, store,
+  });
+
+  const deferredQuery = useDeferredValue(rawQuery);
+  const query = useMemo(() => parseQuery(deferredQuery), [deferredQuery]);
+
+  const containerFilter = useMemo(
+    () => (selectedContainers.size ? selectedContainers : null),
+    [selectedContainers]
+  );
+
+  const { setFilter } = store;
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    setFilter(query, levels, containerFilter);
+  }, [query, levels, containerFilter, setFilter]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== '/') return;
       const active = document.activeElement;
       if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
       e.preventDefault();
       searchInputRef.current?.focus();
     };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  const runSearch = (term: string, direction: 'next' | 'prev' = 'next') => {
-    const addon = searchAddonRef.current;
-    if (!addon) return;
-    if (!term.trim()) {
-      addon.clearDecorations();
-      return;
-    }
-    const isRegex = term.startsWith('/') && term.endsWith('/') && term.length > 2;
-    const query = isRegex ? term.slice(1, -1) : term;
-    const opts = { regex: isRegex, caseSensitive: false, wholeWord: false, incremental: false, decorations: SEARCH_DECORATIONS };
-    if (direction === 'next') addon.findNext(query, opts);
-    else addon.findPrevious(query, opts);
-  };
-
-  const prevSearchTermRef = useRef('');
-
-  // The buffer-wide work below (replaying up to 50k lines, or an xterm
-  // addon scan with highlightLimit: 50000) is too expensive to run on every
-  // keystroke. Only the input value itself updates synchronously; the
-  // search/replay work is debounced.
-  const applySearch = (val: string) => {
-    const addon = searchAddonRef.current;
-
-    if (!val.trim()) {
-      prevSearchTermRef.current = '';
-      addon?.clearDecorations();
-      if (filterMode) socketLogsRef.current?.replayAll();
-      return;
-    }
-
-    if (filterMode) {
-      socketLogsRef.current?.replayFiltered(val);
-      prevSearchTermRef.current = val;
-      return;
-    }
-
-    const isRegex = val.startsWith('/') && val.endsWith('/') && val.length > 2;
-    const query = isRegex ? val.slice(1, -1) : val;
-    const baseOpts = { regex: isRegex, caseSensitive: false, wholeWord: false, decorations: SEARCH_DECORATIONS };
-
-    const wasEmpty = !prevSearchTermRef.current.trim();
-    prevSearchTermRef.current = val;
-
-    if (wasEmpty) {
-      const term = socketLogsRef.current?.getTerminal();
-      if (term) {
-        const viewportY = term.buffer.active.viewportY;
-        term.selectLines(viewportY, viewportY);
-      }
-      addon?.findNext(query, { ...baseOpts, incremental: true });
-    } else {
-      addon?.findNext(query, { ...baseOpts, incremental: true });
-    }
-  };
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setSearchTerm(val);
-
-    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-    searchDebounceRef.current = setTimeout(() => applySearch(val), 200);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-    };
-  }, []);
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !filterMode) {
-      e.shiftKey ? runSearch(searchTerm, 'prev') : runSearch(searchTerm, 'next');
-    }
-    if (e.key === 'Escape') {
-      // Cancel any pending debounced search so a stale keystroke from before
-      // Escape can't re-apply itself 200ms after this immediate clear.
-      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-      setSearchTerm('');
-      prevSearchTermRef.current = '';
-      searchAddonRef.current?.clearDecorations();
-      if (filterMode) socketLogsRef.current?.replayAll();
-    }
-  };
-
-  const handleClear = () => {
-    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-    setSearchTerm('');
-    prevSearchTermRef.current = '';
-    searchAddonRef.current?.clearDecorations();
-    if (filterMode) socketLogsRef.current?.replayAll();
-  };
-
-  const handleFilterToggle = () => {
-    // Avoid a redundant replay if a debounced search from a just-typed
-    // keystroke is still pending — this immediate replay already covers it.
-    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-    const next = !filterMode;
-    setFilterMode(next);
-    if (next && searchTerm.trim()) {
-      socketLogsRef.current?.replayFiltered(searchTerm);
-    } else {
-      socketLogsRef.current?.replayAll();
-    }
-  };
-
-  const downloadLogs = () => {
-    const a = document.createElement('a');
-    let logString = '';
-    logsRef.current.forEach((log) => {
-      if (log.containerChange) {
-        logString += `── ${log.containerName || 'All Containers'} ──\n`;
+  const toggleLevel = (level: LogLevel) => {
+    setLevels((current) => {
+      const next = new Set(current ?? LOG_LEVELS);
+      if (current === null) {
+        next.clear();
+        next.add(level);
+      } else if (next.has(level)) {
+        next.delete(level);
       } else {
-        // eslint-disable-next-line no-control-regex
-        logString += `${log.containerName ? `${log.containerName}: ` : ''}${log.log.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '')}\n`;
+        next.add(level);
       }
+      if (next.size === 0 || next.size === LOG_LEVELS.length) return null;
+      return next;
     });
-    a.href = `data:text/plain,${encodeURIComponent(logString)}`;
-    a.download = `${podDetails.metadata.name}-logs.txt`;
+  };
+
+  const download = () => {
+    const filtered = !query.isEmpty || levels !== null || containerFilter !== null;
+    const blob = new Blob([store.getText(filtered)], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${podDetails?.metadata?.name ?? name}-logs.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
-  const updateLogs = (currentLog: PodSocketResponse) => {
-    logsRef.current.push(currentLog);
-    if (logsRef.current.length > MAX_BUFFER) {
-      logsRef.current = logsRef.current.slice(-TRIM_TO);
-    }
-  };
-
-  // Called once per incoming SSE log line. Coalesce into at most one state
-  // update (and one PodLogs re-render) per animation frame, instead of one
-  // per line - a bursty pod can otherwise emit far faster than 60/sec.
-  const pendingCountsRef = useRef<{ total: number; visible: number } | null>(null);
-  const countsRafRef = useRef<number | null>(null);
-
-  const handleCountChange = (total: number, visible: number) => {
-    pendingCountsRef.current = { total, visible };
-    if (countsRafRef.current === null) {
-      countsRafRef.current = requestAnimationFrame(() => {
-        countsRafRef.current = null;
-        if (pendingCountsRef.current) {
-          setLogCounts(pendingCountsRef.current);
-        }
-      });
-    }
-  };
-
-  useEffect(() => {
-    return () => {
-      if (countsRafRef.current !== null) cancelAnimationFrame(countsRafRef.current);
-    };
-  }, []);
+  const isFiltered = !query.isEmpty || levels !== null || containerFilter !== null;
 
   return (
-    <div ref={logsPanelRef} className="flex flex-col h-full border rounded-lg overflow-hidden" tabIndex={-1}>
-      <div className="flex items-center h-10 border-b bg-muted/50">
+    <TooltipProvider delayDuration={300}>
+    <div className="flex flex-col h-full border rounded-lg overflow-hidden" tabIndex={-1}>
+      <div className="flex items-center h-10 border-b bg-muted/50 shrink-0">
         <div className="flex items-center flex-1 min-w-0 h-full border-r">
-          <MagnifyingGlassIcon className="h-3.5 w-3.5 shrink-0 ml-3 text-muted-foreground" />
+          <Hint label={FILTER_HELP} className="max-w-none whitespace-pre font-mono text-[11px] leading-relaxed">
+            <span className="ml-3 flex shrink-0 cursor-help items-center text-muted-foreground">
+              <MagnifyingGlassIcon className="h-3.5 w-3.5" />
+            </span>
+          </Hint>
           <Input
             ref={searchInputRef}
-            placeholder="Find logs... (/)"
-            value={searchTerm}
-            onChange={handleSearchChange}
-            onKeyDown={handleKeyDown}
-            className="h-full flex-1 rounded-none border-0 text-xs font-mono shadow-none focus-visible:ring-0 bg-transparent px-2"
+            placeholder='Filter logs — match all words · "phrase" · -exclude · /regex/'
+            value={rawQuery}
+            onChange={(e) => setRawQuery(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Escape') setRawQuery(''); }}
+            spellCheck={false}
+            className={cn(
+              'h-full flex-1 rounded-none border-0 text-xs font-mono shadow-none focus-visible:ring-0 bg-transparent px-2',
+              query.invalid && 'text-red-500'
+            )}
           />
-          {searchTerm && (
-            <button
+          {rawQuery && (
+            <Hint label="Clear filter (Escape)"><button
               type="button"
               className="h-full px-2 flex items-center text-muted-foreground hover:text-foreground transition-colors"
-              title="Clear search (Escape)"
-              onClick={handleClear}
+              onClick={() => setRawQuery('')}
+              aria-label="Clear filter"
             >
               <Cross2Icon className="h-3.5 w-3.5" />
-            </button>
+            </button></Hint>
           )}
-          {!filterMode && (
-            <>
-              <button
-                type="button"
-                className="h-full px-2 flex items-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors border-l"
-                title="Previous match (Shift+Enter)"
-                onClick={() => runSearch(searchTerm, 'prev')}
-              >
-                <ChevronUpIcon className="h-3.5 w-3.5" />
-              </button>
-              <button
-                type="button"
-                className="h-full px-2 flex items-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                title="Next match (Enter)"
-                onClick={() => runSearch(searchTerm, 'next')}
-              >
-                <ChevronDownIcon className="h-3.5 w-3.5" />
-              </button>
-            </>
-          )}
-          <button
-            type="button"
-            className={cn(
-              "h-full px-2.5 flex items-center gap-1.5 text-xs transition-colors border-l",
-              filterMode
-                ? "text-primary bg-primary/10 hover:bg-primary/15"
-                : "text-muted-foreground hover:text-foreground hover:bg-accent"
-            )}
-            title={filterMode ? "Showing matched lines only — click to show all" : "Filter to matched lines only"}
-            onClick={handleFilterToggle}
-          >
-            <Filter className="h-3 w-3" />
-          </button>
         </div>
 
         <div className="flex items-center h-full shrink-0">
-          {logCounts.total > 0 && (
-            <span className="px-3 text-xs text-muted-foreground tabular-nums border-r whitespace-nowrap">
-              {filterMode && logCounts.visible !== logCounts.total
-                ? <>{logCounts.visible.toLocaleString()} <span className="opacity-50">/ {logCounts.total.toLocaleString()}</span></>
-                : logCounts.total.toLocaleString()
-              }
+          {LOG_LEVELS.map((level) => {
+            const count = store.levelCounts[level];
+            if (!count) return null;
+            const active = levels === null || levels.has(level);
+            return (
+              <Hint
+                key={level}
+                label={`${count.toLocaleString()} ${LEVEL_LABEL[level].toLowerCase()} ${count === 1 ? 'line' : 'lines'} — click to ${active && levels !== null ? 'hide' : 'show only'} this level`}
+              >
+                <button
+                  type="button"
+                  onClick={() => toggleLevel(level)}
+                  className={cn(
+                    'h-full px-2 flex items-center gap-1 text-[11px] border-l transition-colors hover:bg-accent',
+                    active ? LEVEL_STYLE[level] : 'text-muted-foreground/40'
+                  )}
+                >
+                  <span>{LEVEL_LABEL[level]}</span>
+                  <span className="tabular-nums opacity-70">{count.toLocaleString()}</span>
+                </button>
+              </Hint>
+            );
+          })}
+
+          <Hint
+            label={
+              isFiltered && store.visible !== store.total
+                ? `${store.visible.toLocaleString()} of ${store.total.toLocaleString()} buffered lines match the current filter`
+                : `${store.total.toLocaleString()} lines in the buffer`
+            }
+          >
+            <span className="px-3 text-xs text-muted-foreground tabular-nums border-l whitespace-nowrap cursor-default">
+              {isFiltered && store.visible !== store.total
+                ? <>{store.visible.toLocaleString()} <span className="opacity-50">/ {store.total.toLocaleString()}</span></>
+                : store.total.toLocaleString()}
               {' lines'}
             </span>
-          )}
+          </Hint>
+
           <CotainerSelector
             podDetailsSpec={podDetails.spec}
-            selectedContainer={selectedContainer}
-            setSelectedContainer={setSelectedContainer}
+            selectedContainers={selectedContainers}
+            setSelectedContainers={setSelectedContainers}
           />
-          <button
-            type="button"
-            className="h-full px-3 flex items-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors border-l"
-            title="Download logs"
-            onClick={downloadLogs}
-          >
-            <DownloadIcon className="h-3.5 w-3.5" />
-          </button>
+
+          <Hint label={wrap ? 'Wrapping long lines — click for single line' : 'Wrap long lines'}>
+            <button
+              type="button"
+              className={cn(
+                'h-full px-2.5 flex items-center transition-colors border-l',
+                wrap ? 'text-primary bg-primary/10 hover:bg-primary/15' : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+              )}
+              onClick={() => setWrap((w) => !w)}
+            >
+              <WrapText className="h-3.5 w-3.5" />
+            </button>
+          </Hint>
+
+          <Popover>
+            <Hint label="View options — timestamp and font size">
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="h-full px-2.5 flex items-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors border-l"
+                >
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
+                </button>
+              </PopoverTrigger>
+            </Hint>
+            <PopoverContent align="end" className="w-[220px] space-y-3 p-3">
+              <Segmented
+                label="Timestamp"
+                value={tsMode}
+                onChange={setTsMode}
+                options={[
+                  { value: 'off', label: 'Off' },
+                  { value: 'utc', label: 'UTC' },
+                  { value: 'local', label: 'Local' },
+                  { value: 'relative', label: 'Ago' },
+                ]}
+              />
+              <Segmented
+                label="Font size"
+                value={fontSize}
+                onChange={setFontSize}
+                options={[
+                  { value: 'small', label: 'Small' },
+                  { value: 'default', label: 'Default' },
+                  { value: 'large', label: 'Large' },
+                ]}
+              />
+            </PopoverContent>
+          </Popover>
+
+          <Hint label="Clear the log buffer">
+            <button
+              type="button"
+              className="h-full px-2.5 flex items-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors border-l"
+              onClick={store.clear}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </Hint>
+
+          <Hint label={isFiltered ? 'Download the filtered lines exactly as sent by the cluster' : 'Download the raw lines exactly as sent by the cluster'}>
+            <button
+              type="button"
+              className="h-full px-3 flex items-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors border-l"
+              onClick={download}
+            >
+              <DownloadIcon className="h-3.5 w-3.5" />
+            </button>
+          </Hint>
         </div>
       </div>
 
-      <SocketLogs
-        containerName={selectedContainer}
-        namespace={namespace}
-        pod={name}
-        configName={configName}
-        clusterName={clusterName}
+      <LogTable
+        store={store}
+        query={query}
         podDetailsSpec={podDetails.spec}
-        updateLogs={updateLogs}
-        onCountChange={handleCountChange}
-        searchAddonRef={searchAddonRef}
-        socketLogsRef={socketLogsRef}
+        wrap={wrap}
         isDark={isDark}
-        filterMode={filterMode}
-        filterTerm={searchTerm}
+        tsMode={tsMode}
+        fontSize={fontSize}
+        isLoadingHistory={isLoadingHistory}
+        hasMore={hasMore}
+        loadOlder={loadOlder}
       />
     </div>
+    </TooltipProvider>
   );
 };
 

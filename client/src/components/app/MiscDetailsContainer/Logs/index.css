@@ -1,0 +1,70 @@
+.kw-logs-scroll {
+  contain: strict;
+  overscroll-behavior: contain;
+}
+
+/* Row striping. Set as plain rules rather than utilities so the alternating
+   colour and the hover colour can't win over each other by class order. */
+.kw-log-row {
+  background-color: transparent;
+}
+
+.kw-log-row[data-alt='1'] {
+  background-color: #f3f4f6;
+}
+
+.kw-log-row:hover {
+  background-color: #eceef1;
+}
+
+.kw-log-row[data-alt='1']:hover {
+  background-color: #e7e9ee;
+}
+
+.dark .kw-log-row {
+  background-color: transparent;
+}
+
+.dark .kw-log-row[data-alt='1'] {
+  background-color: #1c1c1c;
+}
+
+.dark .kw-log-row:hover {
+  background-color: #262626;
+}
+
+.dark .kw-log-row[data-alt='1']:hover {
+  background-color: #2e2e2e;
+}
+
+/* Constant bands behind the timestamp and container columns. They paint over
+   the row's own background, so they stay uniform while rows stripe underneath.
+   The container band is the subtler of the two in both themes: nearer the row
+   colour on light, nearer the page colour on dark. */
+.kw-log-ts {
+  background-color: #ebecef;
+}
+
+.kw-log-ctr {
+  background-color: #f1f2f4;
+}
+
+.dark .kw-log-ts {
+  background-color: #282828;
+}
+
+.dark .kw-log-ctr {
+  background-color: #202020;
+}
+
+.kw-log-hl {
+  background-color: #fde047;
+  color: #111827;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.dark .kw-log-hl {
+  background-color: #b45309;
+  color: #fff7ed;
+}
