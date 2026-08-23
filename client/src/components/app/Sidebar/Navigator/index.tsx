@@ -14,7 +14,7 @@ import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { resetListTableFilter } from "@/data/Misc/ListTableFilterSlice";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 
-import { Archive, ArrowRightLeft, Bell, Box, Boxes, BriefcaseBusiness, CalendarClock, Component, CopyPlus, Cpu, EthernetPort, FileBox, FileClock, FileCog, Gauge, Globe, HardDrive, HeartPulse, IdCard, KeyRound, Layers3, Link2, ListOrdered, LucideIcon, Network, Rocket, Ruler, Server, ShieldCheck, ShieldHalf, ShieldPlus, SquareStack, TrendingUp } from "lucide-react";
+import { Archive, ArrowRightLeft, Bell, Box, Boxes, BriefcaseBusiness, CalendarClock, Component, CopyPlus, Cpu, EthernetPort, FileBox, FileClock, FileCog, Gauge, Globe, HardDrive, HeartPulse, IdCard, KeyRound, Layers3, Link2, ListOrdered, LucideIcon, Network, Plug, Rocket, Ruler, Server, ServerCog, ShieldAlert, ShieldCheck, ShieldHalf, ShieldPlus, SlidersHorizontal, SquareStack, TrendingUp } from "lucide-react";
 import { Kbd } from "@/components/ui/kbd";
 import { NAVIGATION_ROUTE } from "@/constants";
 import { cn } from "@/lib/utils";
@@ -61,11 +61,15 @@ const RESOURCE_ICONS: Record<string, LucideIcon> = {
   services: Network,
   ingresses: Globe,
   endpoints: EthernetPort,
+  networkpolicies: ShieldAlert,
   portforwards: ArrowRightLeft,
   // Storage
   persistentvolumeclaims: FileBox,
   persistentvolumes: HardDrive,
   storageclasses: Archive,
+  csidrivers: Plug,
+  csinodes: ServerCog,
+  volumeattributesclasses: SlidersHorizontal,
 };
 
 const getResourceIcon = (route: string) => RESOURCE_ICONS[route] ?? Component;

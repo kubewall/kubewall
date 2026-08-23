@@ -37,11 +37,14 @@ type DataTableToolbarProps<TData> = {
 const SEARCH_LABELS: Record<string, string> = {
   configmaps: 'config maps',
   cronjobs: 'cron jobs',
+  csidrivers: 'CSI drivers',
+  csinodes: 'CSI nodes',
   customresourcedefinitions: 'custom resource definitions',
   customresources: 'custom resources',
   daemonsets: 'daemon sets',
   horizontalpodautoscalers: 'horizontal pod autoscalers',
   limitranges: 'limit ranges',
+  networkpolicies: 'network policies',
   persistentvolumeclaims: 'persistent volume claims',
   persistentvolumes: 'persistent volumes',
   poddisruptionbudgets: 'pod disruption budgets',
@@ -54,6 +57,7 @@ const SEARCH_LABELS: Record<string, string> = {
   serviceaccounts: 'service accounts',
   statefulsets: 'stateful sets',
   storageclasses: 'storage classes',
+  volumeattributesclasses: 'volume attributes classes',
   clusterrolebindings: 'cluster role bindings',
   clusterroles: 'cluster roles'
 };

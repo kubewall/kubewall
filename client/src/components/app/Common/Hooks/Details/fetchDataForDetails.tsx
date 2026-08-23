@@ -1,4 +1,4 @@
-import { CLUSTER_ROLES_ENDPOINT, CLUSTER_ROLE_BINDINGS_ENDPOINT, CONFIG_MAPS_ENDPOINT, CRON_JOBS_ENDPOINT, CUSTOM_RESOURCES_ENDPOINT, CUSTOM_RESOURCES_LIST_ENDPOINT, DAEMON_SETS_ENDPOINT, DEPLOYMENT_ENDPOINT, ENDPOINTS_ENDPOINT, HPA_ENDPOINT, INGRESSES_ENDPOINT, JOBS_ENDPOINT, LEASES_ENDPOINT, LIMIT_RANGE_ENDPOINT, NAMESPACES_ENDPOINT, NODES_ENDPOINT, PERSISTENT_VOLUMES_ENDPOINT, PERSISTENT_VOLUME_CLAIMS_ENDPOINT, PODS_ENDPOINT, POD_DISRUPTION_BUDGETS_ENDPOINT, PRIORITY_CLASSES_ENDPOINT, REPLICA_SETS_ENDPOINT, RESOURCE_QUOTAS_ENDPOINT, ROLES_ENDPOINT, ROLE_BINDINGS_ENDPOINT, RUNTIME_CLASSES_ENDPOINT, SECRETS_ENDPOINT, SERVICES_ENDPOINT, SERVICE_ACCOUNTS_ENDPOINT, STATEFUL_SETS_ENDPOINT, STORAGE_CLASSES_ENDPOINT } from "@/constants";
+import { CLUSTER_ROLES_ENDPOINT, CLUSTER_ROLE_BINDINGS_ENDPOINT, CONFIG_MAPS_ENDPOINT, CRON_JOBS_ENDPOINT, CSI_DRIVERS_ENDPOINT, CSI_NODES_ENDPOINT, CUSTOM_RESOURCES_ENDPOINT, CUSTOM_RESOURCES_LIST_ENDPOINT, DAEMON_SETS_ENDPOINT, DEPLOYMENT_ENDPOINT, ENDPOINTS_ENDPOINT, HPA_ENDPOINT, INGRESSES_ENDPOINT, JOBS_ENDPOINT, LEASES_ENDPOINT, LIMIT_RANGE_ENDPOINT, NAMESPACES_ENDPOINT, NETWORK_POLICIES_ENDPOINT, NODES_ENDPOINT, PERSISTENT_VOLUMES_ENDPOINT, PERSISTENT_VOLUME_CLAIMS_ENDPOINT, PODS_ENDPOINT, POD_DISRUPTION_BUDGETS_ENDPOINT, PRIORITY_CLASSES_ENDPOINT, REPLICA_SETS_ENDPOINT, RESOURCE_QUOTAS_ENDPOINT, ROLES_ENDPOINT, ROLE_BINDINGS_ENDPOINT, RUNTIME_CLASSES_ENDPOINT, SECRETS_ENDPOINT, SERVICES_ENDPOINT, SERVICE_ACCOUNTS_ENDPOINT, STATEFUL_SETS_ENDPOINT, STORAGE_CLASSES_ENDPOINT, VOLUME_ATTRIBUTES_CLASSES_ENDPOINT } from "@/constants";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
 import { ActionCreatorWithPayload } from "@reduxjs/toolkit";
@@ -15,6 +15,7 @@ import { updateDeploymentsDetails } from "@/data/Workloads/Deployments/Deploymen
 import { updateEndpointDetails } from "@/data/Networks/Endpoint/EndpointDetailsSlice";
 import { updateHPADetails } from "@/data/Configurations/HPAs/HPADetailsSlice";
 import { updateIngressDetails } from "@/data/Networks/Ingresses/IngressDetailsSlice";
+import { updateNetworkPolicyDetails } from "@/data/Networks/NetworkPolicies/NetworkPolicyDetailsSlice";
 import { updateJobDetails } from "@/data/Workloads/Jobs/JobDetailsSlice";
 import { updateLeaseDetails } from "@/data/Clusters/Leases/LeaseDetailsSlice";
 import { updateLimitRangeDetails } from "@/data/Configurations/LimitRange/LimitRangeDetailsSlice";
@@ -34,7 +35,10 @@ import { updateSecretDetails } from "@/data/Configurations/Secrets/SecretsDetail
 import { updateServiceAccountDetails } from "@/data/AccessControls/ServiceAccounts/ServiceAccountDetailsSlice";
 import { updateServiceDetails } from "@/data/Networks/Services/ServiceDetailSlice";
 import { updateStatefulSetDetails } from "@/data/Workloads/StatefulSets/StatefulSetDetailsSlice";
+import { updateCSIDriverDetails } from "@/data/Storages/CSIDrivers/CSIDriverDetailsSlice";
+import { updateCSINodeDetails } from "@/data/Storages/CSINodes/CSINodeDetailsSlice";
 import { updateStorageClassDetails } from "@/data/Storages/StorageClasses/StorageClassDetailsSlice";
+import { updateVolumeAttributesClassDetails } from "@/data/Storages/VolumeAttributesClasses/VolumeAttributesClassDetailsSlice";
 import { useEventSource } from "../EventSource";
 
 type FetchDataForDetailsProps = {
@@ -84,10 +88,14 @@ const useFetchDataForDetails = ({
   const { loading: clusterRoleBindingDetailsLoading } = useAppSelector((state: RootState) => state.clusterRoleBindingDetails);
   const { loading:  serviceDetailsLoading } = useAppSelector((state: RootState) => state.serviceDetails);
   const { loading:  ingressDetailsLoading } = useAppSelector((state: RootState) => state.ingressDetails);
+  const { loading: networkPolicyDetailsLoading } = useAppSelector((state: RootState) => state.networkPolicyDetails);
   const { loading:  endpointDetailsLoading } = useAppSelector((state: RootState) => state.endpointDetails);
   const { loading: persistentVolumeClaimDetailsLoading } = useAppSelector((state: RootState) => state.persistentVolumeClaimDetails);
   const { loading: persistentVolumeDetailsLoading } = useAppSelector((state: RootState) => state.persistentVolumeDetails);
   const { loading: storageClassDetailsLoading } = useAppSelector((state: RootState) => state.storageClassDetails);
+  const { loading: csiDriverDetailsLoading } = useAppSelector((state: RootState) => state.csiDriverDetails);
+  const { loading: csiNodeDetailsLoading } = useAppSelector((state: RootState) => state.csiNodeDetails);
+  const { loading: volumeAttributesClassDetailsLoading } = useAppSelector((state: RootState) => state.volumeAttributesClassDetails);
   const { loading: customResourceDetailsLoading } = useAppSelector((state: RootState) => state.customResourceDetails);
   const { loading: customResourcesDefintionsDetailsLoading } = useAppSelector((state: RootState) => state.customResourcesDefinitionDetails);
   const dispatch = useAppDispatch();
@@ -150,6 +158,8 @@ const useFetchDataForDetails = ({
     data = { label: 'Services', dispatchMethod: updateServiceDetails, loading: serviceDetailsLoading, endpoint: SERVICES_ENDPOINT };
   } else if (resourcekind === INGRESSES_ENDPOINT) {
     data = { label: 'Ingresses', dispatchMethod: updateIngressDetails, loading: ingressDetailsLoading, endpoint: INGRESSES_ENDPOINT };
+  } else if (resourcekind === NETWORK_POLICIES_ENDPOINT) {
+    data = { label: 'Network Policies', dispatchMethod: updateNetworkPolicyDetails, loading: networkPolicyDetailsLoading, endpoint: NETWORK_POLICIES_ENDPOINT };
   } else if (resourcekind === ENDPOINTS_ENDPOINT) {
     data = { label: 'Endpoints', dispatchMethod: updateEndpointDetails, loading: endpointDetailsLoading, endpoint: ENDPOINTS_ENDPOINT };
   } else if (resourcekind === PERSISTENT_VOLUME_CLAIMS_ENDPOINT) {
@@ -158,6 +168,12 @@ const useFetchDataForDetails = ({
     data = { label: 'Persistent Volumes', dispatchMethod: updatePersistentVolumeDetails, loading: persistentVolumeDetailsLoading, endpoint: PERSISTENT_VOLUMES_ENDPOINT };
   } else if (resourcekind === STORAGE_CLASSES_ENDPOINT) {
     data = { label: 'Storage Classes', dispatchMethod: updateStorageClassDetails, loading: storageClassDetailsLoading, endpoint: STORAGE_CLASSES_ENDPOINT };
+  } else if (resourcekind === CSI_DRIVERS_ENDPOINT) {
+    data = { label: 'CSI Drivers', dispatchMethod: updateCSIDriverDetails, loading: csiDriverDetailsLoading, endpoint: CSI_DRIVERS_ENDPOINT };
+  } else if (resourcekind === CSI_NODES_ENDPOINT) {
+    data = { label: 'CSI Nodes', dispatchMethod: updateCSINodeDetails, loading: csiNodeDetailsLoading, endpoint: CSI_NODES_ENDPOINT };
+  } else if (resourcekind === VOLUME_ATTRIBUTES_CLASSES_ENDPOINT) {
+    data = { label: 'Volume Attributes Classes', dispatchMethod: updateVolumeAttributesClassDetails, loading: volumeAttributesClassDetailsLoading, endpoint: VOLUME_ATTRIBUTES_CLASSES_ENDPOINT };
   } else if (resourcekind === CUSTOM_RESOURCES_LIST_ENDPOINT) {
     data = { label: 'Custom Resources', dispatchMethod: updateCustomResourceDetails, loading: customResourceDetailsLoading, endpoint: `${CUSTOM_RESOURCES_LIST_ENDPOINT}${namespace ? `/${namespace}`: ''}` };
   } else if (resourcekind === CUSTOM_RESOURCES_ENDPOINT) {

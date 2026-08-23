@@ -14,18 +14,19 @@ import { useMemo } from 'react';
 // one Map lookup per row - fast enough to stay in a single frame even for very
 // large lists.
 
-// Name and Namespace are identifiers: truncated, they stop being the one thing they
-// exist to convey ("nginx-deployment-7d9..." tells you nothing about which pod).
-// Both also render through the same cell shape, so they share the padding below.
-const FITTED_COLUMN_IDS = ['Name', 'Namespace'];
+// Identifiers: truncated, they stop being the one thing they exist to convey
+// ("nginx-deployment-7d9..." tells you nothing about which pod, and a clipped IPv6
+// address is not an address). All render through the same cell shape, so they share
+// the padding below.
+const FITTED_COLUMN_IDS = ['Name', 'Namespace', 'Node', 'Cluster IP'];
 
 // The class the cell's text renders with, and so the font these widths are measured
 // in (see NameCell / DefaultCell).
 const CELL_TEXT_CLASS = 'text-sm';
 
 // Clears the widest sortable header these columns can have: th `px-2` (16) + button
-// `px-1` (8) + `gap-2` before the caret (8) + the caret itself (16) leave ~102px for
-// a text-xs title, and "Namespace" needs ~60px of that.
+// `pl-3 pr-1` (16) + `gap-2` before the caret (8) + the caret itself (16) leave ~94px
+// for a text-xs title, and "Namespace" needs ~68px of that.
 const MIN_FITTED_COLUMN_WIDTH = 150;
 // A name can legally be 253 characters; past this it would push every other column
 // off-screen, so it stays truncated (with its tooltip) instead.
@@ -85,11 +86,23 @@ function getMeasurer(className: string) {
   return measurer;
 }
 
+// The header renders in text-xs at TableHead's font-medium, and its title is the
+// column id (see GenerateColumns). Select's header is deliberately blank.
+const HEADER_TEXT_CLASS = 'text-xs font-medium';
+// th `px-2` (16) + button `pl-3 pr-1` (16), plus a guard: canvas measurement runs
+// a couple of px under what the browser actually lays out.
+const HEADER_HORIZONTAL_SPACE = 32 + 4;
+// Only a sortable header carries a caret (see DefaultHeader): the button's `gap-2`
+// before it (8) + the caret's own `ml-2` (8) + the caret (16). Reserving this for
+// an unsortable column would widen it past the width its content was given -
+// enough to push Ready/Current from their deliberate 70px to over 100px.
+const HEADER_SORT_CARET_SPACE = 32;
+
 /**
- * Widths (in px) keyed by column id, for the columns that fit their content. A
- * column is left out when there is nothing to measure - it isn't one of the fitted
- * columns, or every value is empty (the loading skeleton, say) - in which case the
- * caller keeps the column's static width.
+ * Widths (in px) keyed by column id, for columns that need more room than their
+ * static size: the identifier columns fit their longest value, and every column is
+ * at least wide enough to show its own header in full rather than trimming it.
+ * A column is left out when its static width already covers both.
  */
 export function useFittedColumnWidths<TData>(
   data: TData[],
@@ -99,7 +112,8 @@ export function useFittedColumnWidths<TData>(
     const fittedWidths: Record<string, number> = {};
 
     const measure = getMeasurer(CELL_TEXT_CLASS);
-    if (!measure) return fittedWidths;
+    const measureHeader = getMeasurer(HEADER_TEXT_CLASS);
+    if (!measure || !measureHeader) return fittedWidths;
 
     const fittedColumns: { id: string; accessorFn: AccessorFn<TData, unknown> }[] = [];
     for (const column of columns) {
@@ -107,8 +121,6 @@ export function useFittedColumnWidths<TData>(
         fittedColumns.push({ id: column.id, accessorFn: column.accessorFn });
       }
     }
-    if (fittedColumns.length === 0) return fittedWidths;
-
     // One pass over the rows for all of them, since reaching the row is the part
     // that scales with list size.
     const widest = new Array<number>(fittedColumns.length).fill(0);
@@ -129,6 +141,15 @@ export function useFittedColumnWidths<TData>(
         MAX_FITTED_COLUMN_WIDTH
       );
     }
+
+    for (const column of columns) {
+      if (column.id === 'Select') continue;
+      const caret = column.getCanSort() ? HEADER_SORT_CARET_SPACE : 0;
+      const header = Math.ceil(measureHeader(column.id)) + HEADER_HORIZONTAL_SPACE + caret;
+      const current = fittedWidths[column.id] ?? column.getSize();
+      if (header > current) fittedWidths[column.id] = header;
+    }
+
     return fittedWidths;
   }, [data, columns]);
 }

@@ -4,6 +4,8 @@ import {
   CLUSTER_ROLE_BINDINGS_ENDPOINT,
   CONFIG_MAPS_ENDPOINT,
   CRON_JOBS_ENDPOINT,
+  CSI_DRIVERS_ENDPOINT,
+  CSI_NODES_ENDPOINT,
   CUSTOM_RESOURCES_ENDPOINT,
   CUSTOM_RESOURCES_LIST_ENDPOINT,
   DAEMON_SETS_ENDPOINT,
@@ -15,6 +17,7 @@ import {
   LEASES_ENDPOINT,
   LIMIT_RANGE_ENDPOINT,
   NAMESPACES_ENDPOINT,
+  NETWORK_POLICIES_ENDPOINT,
   NODES_ENDPOINT,
   PERSISTENT_VOLUMES_ENDPOINT,
   PERSISTENT_VOLUME_CLAIMS_ENDPOINT,
@@ -31,9 +34,12 @@ import {
   SERVICES_ENDPOINT,
   SERVICE_ACCOUNTS_ENDPOINT,
   STATEFUL_SETS_ENDPOINT,
-  STORAGE_CLASSES_ENDPOINT
+  STORAGE_CLASSES_ENDPOINT,
+  VOLUME_ATTRIBUTES_CLASSES_ENDPOINT
 } from "@/constants";
 import {
+  CSIDriversHeaders,
+  CSINodesHeaders,
   ClusterEventsHeaders,
   ClusterRoleBindingsListHeader,
   ClusterRolesListHeader,
@@ -48,6 +54,7 @@ import {
   HPAsListHeader,
   HeaderList,
   IngressesHeaders,
+  NetworkPoliciesHeaders,
   JobsHeader,
   LeasesListHeader,
   LimitRangesListHeader,
@@ -68,7 +75,8 @@ import {
   ServiceAccountsListHeader,
   ServicesListHeaders,
   StatefulSetsHeader,
-  StorageClassesHeaders
+  StorageClassesHeaders,
+  VolumeAttributesClassesHeaders
 } from "@/types";
 import {
   clusterEventsColumnConfig,
@@ -84,6 +92,7 @@ import {
   getTableConfig,
   hpasColumnConfig,
   ingressesColumnConfig,
+  networkPoliciesColumnConfig,
   jobsColumnConfig,
   leasesColumnConfig,
   limitRangesColumnConfig,
@@ -104,7 +113,10 @@ import {
   serviceAccountsColumnConfig,
   servicesColumnConfig,
   stateSetsColumnConfig,
-  storageClassesColumnConfig
+  storageClassesColumnConfig,
+  csiDriversColumnConfig,
+  csiNodesColumnConfig,
+  volumeAttributesClassesColumnConfig
 } from "@/utils/ListType/ListDefinations";
 
 import { CreateTable } from "@/components/app/Common/Hooks/Table";
@@ -124,6 +136,7 @@ import { updateDeployments } from "@/data/Workloads/Deployments/DeploymentsSlice
 import { updateEndpointsList } from "@/data/Networks/Endpoint/EndpointListSlice";
 import { updateHPAsList } from "@/data/Configurations/HPAs/HPAsListSlice";
 import { updateIngressesList } from "@/data/Networks/Ingresses/IngressesListSlice";
+import { updateNetworkPoliciesList } from "@/data/Networks/NetworkPolicies/NetworkPoliciesListSlice";
 import { updateJobs } from "@/data/Workloads/Jobs/JobsSlice";
 import { updateLeasesList } from "@/data/Clusters/Leases/LeasesListSlice";
 import { updateLimitRangesList } from "@/data/Configurations/LimitRange/LimitRangeListSlice";
@@ -144,7 +157,10 @@ import { updateSecretsList } from "@/data/Configurations/Secrets/SecretsListSlic
 import { updateServiceAccountsList } from "@/data/AccessControls/ServiceAccounts/ServiceAccountsListSlice";
 import { updateServicesList } from "@/data/Networks/Services/ServicesListSlice";
 import { updateStatefulSets } from "@/data/Workloads/StatefulSets/StatefulSetsSlice";
+import { updateCSIDriversList } from "@/data/Storages/CSIDrivers/CSIDriversListSlice";
+import { updateCSINodesList } from "@/data/Storages/CSINodes/CSINodesListSlice";
 import { updateStorageClassesList } from "@/data/Storages/StorageClasses/StorageClassesListSlice";
+import { updateVolumeAttributesClassesList } from "@/data/Storages/VolumeAttributesClasses/VolumeAttributesClassesListSlice";
 import { resetListSlices, useAppDispatch, useAppSelector } from "@/redux/hooks";
 
 import { useEffect } from "react";
@@ -172,11 +188,15 @@ export function KwList() {
   const { serviceAccounts, loading: serviceAccountsLoading } = useAppSelector((state: RootState) => state.serviceAccounts);
   const { endpoints, loading: endpointsLoading } = useAppSelector((state: RootState) => state.endpoints);
   const { ingresses, loading: ingressesLoading } = useAppSelector((state: RootState) => state.ingresses);
+  const { networkPolicies, loading: networkPoliciesLoading } = useAppSelector((state: RootState) => state.networkPolicies);
   const { services, loading: servicesLoading } = useAppSelector((state: RootState) => state.services);
   const { portForwardingList, loading: portForwardingLoading } = useAppSelector((state: RootState) => state.portForwardingList);
   const { persistentVolumes, loading: persistentVolumesLoading } = useAppSelector((state: RootState) => state.persistentVolumes);
   const { persistentVolumeClaims, loading: persistentVolumeClaimsLoading } = useAppSelector((state: RootState) => state.persistentVolumeClaims);
   const { storageClasses, loading: storageClassesLoading } = useAppSelector((state: RootState) => state.storageClasses);
+  const { csiDrivers, loading: csiDriversLoading } = useAppSelector((state: RootState) => state.csiDrivers);
+  const { csiNodes, loading: csiNodesLoading } = useAppSelector((state: RootState) => state.csiNodes);
+  const { volumeAttributesClasses, loading: volumeAttributesClassesLoading } = useAppSelector((state: RootState) => state.volumeAttributesClasses);
   const { pods, loading: podsLoading } = useAppSelector((state: RootState) => state.pods);
   const { cronJobs, loading: cronJobsLoading } = useAppSelector((state: RootState) => state.cronJobs);
   const { daemonsets, loading: daemonsetsLoading } = useAppSelector((state: RootState) => state.daemonSets);
@@ -239,6 +259,8 @@ export function KwList() {
       return getTableConfig<EndpointsHeaders>(endpoints, ENDPOINTS_ENDPOINT, updateEndpointsList, endpointsLoading, endpointsColumnConfig(config, cluster));
     } if (resourcekind === INGRESSES_ENDPOINT) {
       return getTableConfig<IngressesHeaders>(ingresses, INGRESSES_ENDPOINT, updateIngressesList, ingressesLoading, ingressesColumnConfig(config, cluster));
+    } if (resourcekind === NETWORK_POLICIES_ENDPOINT) {
+      return getTableConfig<NetworkPoliciesHeaders>(networkPolicies, NETWORK_POLICIES_ENDPOINT, updateNetworkPoliciesList, networkPoliciesLoading, networkPoliciesColumnConfig(config, cluster));
     } if (resourcekind === SERVICES_ENDPOINT) {
       return getTableConfig<ServicesListHeaders>(services, SERVICES_ENDPOINT, updateServicesList, servicesLoading, servicesColumnConfig(config, cluster));
     } if (resourcekind === PORT_FORWARDING_ENDPOINT) {
@@ -249,6 +271,12 @@ export function KwList() {
       return getTableConfig<PersistentVolumeClaimsHeaders>(persistentVolumeClaims, PERSISTENT_VOLUME_CLAIMS_ENDPOINT, updatePersistentVolumeClaimsList, persistentVolumeClaimsLoading, persistentVolumeClaimsColumnConfig(config, cluster));
     } if (resourcekind === STORAGE_CLASSES_ENDPOINT) {
       return getTableConfig<StorageClassesHeaders>(storageClasses, STORAGE_CLASSES_ENDPOINT, updateStorageClassesList, storageClassesLoading, storageClassesColumnConfig(config, cluster));
+    } if (resourcekind === CSI_DRIVERS_ENDPOINT) {
+      return getTableConfig<CSIDriversHeaders>(csiDrivers, CSI_DRIVERS_ENDPOINT, updateCSIDriversList, csiDriversLoading, csiDriversColumnConfig(config, cluster));
+    } if (resourcekind === CSI_NODES_ENDPOINT) {
+      return getTableConfig<CSINodesHeaders>(csiNodes, CSI_NODES_ENDPOINT, updateCSINodesList, csiNodesLoading, csiNodesColumnConfig(config, cluster));
+    } if (resourcekind === VOLUME_ATTRIBUTES_CLASSES_ENDPOINT) {
+      return getTableConfig<VolumeAttributesClassesHeaders>(volumeAttributesClasses, VOLUME_ATTRIBUTES_CLASSES_ENDPOINT, updateVolumeAttributesClassesList, volumeAttributesClassesLoading, volumeAttributesClassesColumnConfig(config, cluster));
     } if (resourcekind === PODS_ENDPOINT) {
       return getTableConfig<PodsHeaders>(pods, PODS_ENDPOINT, updatePodsList, podsLoading, podsColumnConfig(config, cluster));
     } if (resourcekind === CRON_JOBS_ENDPOINT) {

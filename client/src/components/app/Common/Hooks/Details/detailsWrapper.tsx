@@ -1,6 +1,6 @@
-import { CLUSTER_ROLES_ENDPOINT, CLUSTER_ROLE_BINDINGS_ENDPOINT, CONFIG_MAPS_ENDPOINT, CRON_JOBS_ENDPOINT, CUSTOM_RESOURCES_ENDPOINT, CUSTOM_RESOURCES_LIST_ENDPOINT, DAEMON_SETS_ENDPOINT, DEPLOYMENT_ENDPOINT, ENDPOINTS_ENDPOINT, HPA_ENDPOINT, INGRESSES_ENDPOINT, JOBS_ENDPOINT, LEASES_ENDPOINT, LIMIT_RANGE_ENDPOINT, NAMESPACES_ENDPOINT, NODES_ENDPOINT, PERSISTENT_VOLUMES_ENDPOINT, PERSISTENT_VOLUME_CLAIMS_ENDPOINT, PODS_ENDPOINT, POD_DISRUPTION_BUDGETS_ENDPOINT, PRIORITY_CLASSES_ENDPOINT, REPLICA_SETS_ENDPOINT, RESOURCE_QUOTAS_ENDPOINT, ROLES_ENDPOINT, ROLE_BINDINGS_ENDPOINT, RUNTIME_CLASSES_ENDPOINT, SECRETS_ENDPOINT, SERVICES_ENDPOINT, SERVICE_ACCOUNTS_ENDPOINT, STATEFUL_SETS_ENDPOINT, STORAGE_CLASSES_ENDPOINT } from "@/constants";
+import { CLUSTER_ROLES_ENDPOINT, CLUSTER_ROLE_BINDINGS_ENDPOINT, CONFIG_MAPS_ENDPOINT, CRON_JOBS_ENDPOINT, CSI_DRIVERS_ENDPOINT, CSI_NODES_ENDPOINT, CUSTOM_RESOURCES_ENDPOINT, CUSTOM_RESOURCES_LIST_ENDPOINT, DAEMON_SETS_ENDPOINT, DEPLOYMENT_ENDPOINT, ENDPOINTS_ENDPOINT, HPA_ENDPOINT, INGRESSES_ENDPOINT, JOBS_ENDPOINT, LEASES_ENDPOINT, LIMIT_RANGE_ENDPOINT, NAMESPACES_ENDPOINT, NETWORK_POLICIES_ENDPOINT, NODES_ENDPOINT, PERSISTENT_VOLUMES_ENDPOINT, PERSISTENT_VOLUME_CLAIMS_ENDPOINT, PODS_ENDPOINT, POD_DISRUPTION_BUDGETS_ENDPOINT, PRIORITY_CLASSES_ENDPOINT, REPLICA_SETS_ENDPOINT, RESOURCE_QUOTAS_ENDPOINT, ROLES_ENDPOINT, ROLE_BINDINGS_ENDPOINT, RUNTIME_CLASSES_ENDPOINT, SECRETS_ENDPOINT, SERVICES_ENDPOINT, SERVICE_ACCOUNTS_ENDPOINT, STATEFUL_SETS_ENDPOINT, STORAGE_CLASSES_ENDPOINT, VOLUME_ATTRIBUTES_CLASSES_ENDPOINT } from "@/constants";
 import { ClusterRoleBindingDetailsContainer, ClusterRoleDetailsContainer, ConfigMapDetailsContainer, CronJobJobsList, CustomResourceDetailsContainer, DeploymentDetailsContainer, EndpointDetailsContainer, LimitRangeDetailsContainer, NamespaceDetailsContainer, NodeDetailsContainer, PodDetailsContainer, PodDisruptionBudgetDetailsContainer, ResourceQuotaDetailsContainer, RoleBindingDetailsContainer, RoleDetailsContainer, RuntimeClassDetailsContainer, SecretDetailsContainer, ServiceAccountDetailsContainer, ServiceDetailsContainer, WorkloadPodsList } from "@/components/app/MiscDetailsContainer";
-import { getClusterRoleBindingDetailsConfig, getClusterRoleDetailsConfig, getConfigMapDetailsConfig, getCronJobsDetailsConfig, getCustomResourceDefinitionsDetailsConfig, getCustomResourceDetailsConfig, getDaemonSetDetailsConfig, getDeploymentDetailsConfig, getEndpointDetailsConfig, getHPADetailsConfig, getIngressDetailsConfig, getJobsDetailsConfig, getLeaseDetailsConfig, getLimitRangeDetailsConfig, getNamespaceDetailsConfig, getNodeDetailsConfig, getPersistentVolumeClaimDetailsConfig, getPersistentVolumeDetailsConfig, getPodDetailsConfig, getPodDisruptionBudgetDetailsConfig, getPriorityClassDetailsConfig, getReplicaSetDetailsConfig, getResourceQuotaDetailsConfig, getRoleBindingDetailsConfig, getRoleDetailsConfig, getRuntimeClassDetailsConfig, getSecretDetailsConfig, getServiceAccountDetailsConfig, getServiceDetailsConfig, getStatefulSetDetailsConfig, getStorageClassDetailsConfig } from "@/utils/DetailType/DetailDefinations";
+import { getCSIDriverDetailsConfig, getCSINodeDetailsConfig, getClusterRoleBindingDetailsConfig, getClusterRoleDetailsConfig, getConfigMapDetailsConfig, getCronJobsDetailsConfig, getCustomResourceDefinitionsDetailsConfig, getCustomResourceDetailsConfig, getDaemonSetDetailsConfig, getDeploymentDetailsConfig, getEndpointDetailsConfig, getHPADetailsConfig, getIngressDetailsConfig, getJobsDetailsConfig, getLeaseDetailsConfig, getLimitRangeDetailsConfig, getNamespaceDetailsConfig, getNetworkPolicyDetailsConfig, getNodeDetailsConfig, getPersistentVolumeClaimDetailsConfig, getPersistentVolumeDetailsConfig, getPodDetailsConfig, getPodDisruptionBudgetDetailsConfig, getPriorityClassDetailsConfig, getReplicaSetDetailsConfig, getResourceQuotaDetailsConfig, getRoleBindingDetailsConfig, getRoleDetailsConfig, getRuntimeClassDetailsConfig, getSecretDetailsConfig, getServiceAccountDetailsConfig, getServiceDetailsConfig, getStatefulSetDetailsConfig, getStorageClassDetailsConfig, getVolumeAttributesClassDetailsConfig } from "@/utils/DetailType/DetailDefinations";
 
 import { RootState } from "@/redux/store";
 import { useAppSelector } from "@/redux/hooks";
@@ -35,10 +35,14 @@ const useDetailsWrapper = ({ loading, resourcekind }: DetailsWapperProps) => {
   const { clusterRoleBindingDetails } = useAppSelector((state: RootState) => state.clusterRoleBindingDetails);
   const { serviceDetails } = useAppSelector((state: RootState) => state.serviceDetails);
   const { ingressDetails } = useAppSelector((state: RootState) => state.ingressDetails);
+  const { networkPolicyDetails } = useAppSelector((state: RootState) => state.networkPolicyDetails);
   const { endpointDetails } = useAppSelector((state: RootState) => state.endpointDetails);
   const { persistentVolumeClaimDetails } = useAppSelector((state: RootState) => state.persistentVolumeClaimDetails);
   const { persistentVolumeDetails } = useAppSelector((state: RootState) => state.persistentVolumeDetails);
   const { storageClassDetails } = useAppSelector((state: RootState) => state.storageClassDetails);
+  const { csiDriverDetails } = useAppSelector((state: RootState) => state.csiDriverDetails);
+  const { csiNodeDetails } = useAppSelector((state: RootState) => state.csiNodeDetails);
+  const { volumeAttributesClassDetails } = useAppSelector((state: RootState) => state.volumeAttributesClassDetails);
   const { customResourceDetails } = useAppSelector((state: RootState) => state.customResourceDetails);
   const { customResourcesDefinitionDetails } = useAppSelector((state: RootState) => state.customResourcesDefinitionDetails);
 
@@ -120,6 +124,9 @@ const useDetailsWrapper = ({ loading, resourcekind }: DetailsWapperProps) => {
   if (resourcekind === INGRESSES_ENDPOINT) {
     return { ...getIngressDetailsConfig(ingressDetails, loading), miscComponent: <></> };
   }
+  if (resourcekind === NETWORK_POLICIES_ENDPOINT) {
+    return { ...getNetworkPolicyDetailsConfig(networkPolicyDetails, loading), miscComponent: <></> };
+  }
   if (resourcekind === ENDPOINTS_ENDPOINT) {
     return { ...getEndpointDetailsConfig(endpointDetails, loading), miscComponent: <EndpointDetailsContainer/> };
   }
@@ -131,6 +138,15 @@ const useDetailsWrapper = ({ loading, resourcekind }: DetailsWapperProps) => {
   }
   if (resourcekind === STORAGE_CLASSES_ENDPOINT) {
     return { ...getStorageClassDetailsConfig(storageClassDetails, loading), miscComponent: <></> };
+  }
+  if (resourcekind === CSI_DRIVERS_ENDPOINT) {
+    return { ...getCSIDriverDetailsConfig(csiDriverDetails, loading), miscComponent: <></> };
+  }
+  if (resourcekind === CSI_NODES_ENDPOINT) {
+    return { ...getCSINodeDetailsConfig(csiNodeDetails, loading), miscComponent: <></> };
+  }
+  if (resourcekind === VOLUME_ATTRIBUTES_CLASSES_ENDPOINT) {
+    return { ...getVolumeAttributesClassDetailsConfig(volumeAttributesClassDetails, loading), miscComponent: <></> };
   }
   if (resourcekind === CUSTOM_RESOURCES_LIST_ENDPOINT) {
     return { ...getCustomResourceDetailsConfig(customResourceDetails, loading), miscComponent: <CustomResourceDetailsContainer/>};

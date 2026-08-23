@@ -31,12 +31,16 @@ import (
 	"github.com/kubewall/kubewall/backend/handlers/namespaces"
 	"github.com/kubewall/kubewall/backend/handlers/network/endpoints"
 	"github.com/kubewall/kubewall/backend/handlers/network/ingresses"
+	"github.com/kubewall/kubewall/backend/handlers/network/networkpolicies"
 	"github.com/kubewall/kubewall/backend/handlers/network/services"
 	"github.com/kubewall/kubewall/backend/handlers/nodes"
 	"github.com/kubewall/kubewall/backend/handlers/portforward"
+	"github.com/kubewall/kubewall/backend/handlers/storage/csidrivers"
+	"github.com/kubewall/kubewall/backend/handlers/storage/csinodes"
 	"github.com/kubewall/kubewall/backend/handlers/storage/persistentvolumeclaims"
 	"github.com/kubewall/kubewall/backend/handlers/storage/persistentvolumes"
 	"github.com/kubewall/kubewall/backend/handlers/storage/storageclasses"
+	"github.com/kubewall/kubewall/backend/handlers/storage/volumeattributesclasses"
 	cronjobs "github.com/kubewall/kubewall/backend/handlers/workloads/cronJobs"
 	"github.com/kubewall/kubewall/backend/handlers/workloads/daemonsets"
 	"github.com/kubewall/kubewall/backend/handlers/workloads/deployments"
@@ -165,6 +169,13 @@ func servicesRoutes(e *echo.Echo, appContainer container.Container) {
 	e.GET("api/v1/ingresses/:name/yaml", ingresses.NewIngressRouteHandler(appContainer, base.GetYaml)).Name = "ingressesYaml"
 	e.GET("api/v1/ingresses/:name/events", ingresses.NewIngressRouteHandler(appContainer, base.GetEvents)).Name = "ingressesEvents"
 	e.DELETE("api/v1/ingresses", ingresses.NewIngressRouteHandler(appContainer, base.Delete)).Name = "ingressesDelete"
+
+	// NetworkPolicies
+	e.GET("api/v1/networkpolicies", networkpolicies.NewNetworkPolicyRouteHandler(appContainer, base.GetList)).Name = "networkpoliciesList"
+	e.GET("api/v1/networkpolicies/:name", networkpolicies.NewNetworkPolicyRouteHandler(appContainer, base.GetDetails)).Name = "networkpoliciesDetails"
+	e.GET("api/v1/networkpolicies/:name/yaml", networkpolicies.NewNetworkPolicyRouteHandler(appContainer, base.GetYaml)).Name = "networkpoliciesYaml"
+	e.GET("api/v1/networkpolicies/:name/events", networkpolicies.NewNetworkPolicyRouteHandler(appContainer, base.GetEvents)).Name = "networkpoliciesEvents"
+	e.DELETE("api/v1/networkpolicies", networkpolicies.NewNetworkPolicyRouteHandler(appContainer, base.Delete)).Name = "networkpoliciesDelete"
 }
 
 func storageRoutes(e *echo.Echo, appContainer container.Container) {
@@ -188,6 +199,27 @@ func storageRoutes(e *echo.Echo, appContainer container.Container) {
 	e.GET("api/v1/storageclasses/:name/yaml", storageclasses.NewStorageClassRouteHandler(appContainer, base.GetYaml)).Name = "storageclassesYaml"
 	e.GET("api/v1/storageclasses/:name/events", storageclasses.NewStorageClassRouteHandler(appContainer, base.GetEvents)).Name = "storageclassesEvents"
 	e.DELETE("api/v1/storageclasses", storageclasses.NewStorageClassRouteHandler(appContainer, base.Delete)).Name = "storageclassesDelete"
+
+	// CSI Drivers
+	e.GET("api/v1/csidrivers", csidrivers.NewCSIDriverRouteHandler(appContainer, base.GetList)).Name = "csidriversList"
+	e.GET("api/v1/csidrivers/:name", csidrivers.NewCSIDriverRouteHandler(appContainer, base.GetDetails)).Name = "csidriversDetails"
+	e.GET("api/v1/csidrivers/:name/yaml", csidrivers.NewCSIDriverRouteHandler(appContainer, base.GetYaml)).Name = "csidriversYaml"
+	e.GET("api/v1/csidrivers/:name/events", csidrivers.NewCSIDriverRouteHandler(appContainer, base.GetEvents)).Name = "csidriversEvents"
+	e.DELETE("api/v1/csidrivers", csidrivers.NewCSIDriverRouteHandler(appContainer, base.Delete)).Name = "csidriversDelete"
+
+	// CSI Nodes
+	e.GET("api/v1/csinodes", csinodes.NewCSINodeRouteHandler(appContainer, base.GetList)).Name = "csinodesList"
+	e.GET("api/v1/csinodes/:name", csinodes.NewCSINodeRouteHandler(appContainer, base.GetDetails)).Name = "csinodesDetails"
+	e.GET("api/v1/csinodes/:name/yaml", csinodes.NewCSINodeRouteHandler(appContainer, base.GetYaml)).Name = "csinodesYaml"
+	e.GET("api/v1/csinodes/:name/events", csinodes.NewCSINodeRouteHandler(appContainer, base.GetEvents)).Name = "csinodesEvents"
+	e.DELETE("api/v1/csinodes", csinodes.NewCSINodeRouteHandler(appContainer, base.Delete)).Name = "csinodesDelete"
+
+	// VolumeAttributesClasses
+	e.GET("api/v1/volumeattributesclasses", volumeattributesclasses.NewVolumeAttributesClassRouteHandler(appContainer, base.GetList)).Name = "volumeattributesclassesList"
+	e.GET("api/v1/volumeattributesclasses/:name", volumeattributesclasses.NewVolumeAttributesClassRouteHandler(appContainer, base.GetDetails)).Name = "volumeattributesclassesDetails"
+	e.GET("api/v1/volumeattributesclasses/:name/yaml", volumeattributesclasses.NewVolumeAttributesClassRouteHandler(appContainer, base.GetYaml)).Name = "volumeattributesclassesYaml"
+	e.GET("api/v1/volumeattributesclasses/:name/events", volumeattributesclasses.NewVolumeAttributesClassRouteHandler(appContainer, base.GetEvents)).Name = "volumeattributesclassesEvents"
+	e.DELETE("api/v1/volumeattributesclasses", volumeattributesclasses.NewVolumeAttributesClassRouteHandler(appContainer, base.Delete)).Name = "volumeattributesclassesDelete"
 }
 
 func configRoutes(e *echo.Echo, appContainer container.Container) {
