@@ -7,7 +7,9 @@ import (
 	"net/http"
 
 	storageV1 "k8s.io/api/storage/v1"
+	"k8s.io/client-go/tools/cache"
 
+	"github.com/charmbracelet/log"
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/base"
 	"github.com/kubewall/kubewall/backend/handlers/helpers"
@@ -47,14 +49,19 @@ func NewVolumeAttributesClassesHandler(ctx context.Context, config, cluster stri
 }
 
 func newVolumeAttributesClassesHandler(ctx context.Context, config, cluster string, container container.Container) *VolumeAttributesClassesHandler {
-	informer := container.SharedInformerFactory(config, cluster).Storage().V1().VolumeAttributesClasses().Informer()
-	informer.SetTransform(helpers.StripUnusedFields)
+	// storage.k8s.io/v1 VolumeAttributesClass was only introduced in Kubernetes
+	// 1.34, so on an older cluster there is nothing to watch: the handler gets an
+	// inert informer and serves an empty list rather than blocking the request for
+	// WaitForSync's full timeout and then retrying a 404 forever. The verdict is
+	// fixed for the handler's lifetime, which ends at the config reload that would
+	// also refresh discovery.
+	available := helpers.IsKindAvailable(container, config, cluster, "VolumeAttributesClass")
 
 	handler := &VolumeAttributesClassesHandler{
 		BaseHandler: base.BaseHandler{
 			Kind:             "VolumeAttributesClass",
 			Container:        container,
-			Informer:         informer,
+			Informer:         volumeAttributesClassesInformer(available, config, cluster, container),
 			RestClient:       container.ClientSet(config, cluster).StorageV1().RESTClient(),
 			QueryConfig:      config,
 			QueryCluster:     cluster,
@@ -62,10 +69,23 @@ func newVolumeAttributesClassesHandler(ctx context.Context, config, cluster stri
 			TransformFunc:    transformItems,
 		},
 	}
+	if !available {
+		return handler
+	}
 	cache := base.ResourceEventHandler[*storageV1.VolumeAttributesClass](&handler.BaseHandler)
 	handler.BaseHandler.StartInformer(cache)
 	handler.BaseHandler.WaitForSync(ctx)
 	return handler
+}
+
+func volumeAttributesClassesInformer(available bool, config, cluster string, container container.Container) cache.SharedIndexInformer {
+	if !available {
+		log.Info("kind not served by this cluster, serving an empty list", "kind", "VolumeAttributesClass", "cluster", cluster)
+		return helpers.EmptyInformer(&storageV1.VolumeAttributesClass{})
+	}
+	informer := container.SharedInformerFactory(config, cluster).Storage().V1().VolumeAttributesClasses().Informer()
+	informer.SetTransform(helpers.StripUnusedFields)
+	return informer
 }
 
 func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {

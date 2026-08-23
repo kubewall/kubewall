@@ -63,6 +63,28 @@ func RefreshAllResourcesCache(container container.Container, config, cluster str
 	return CacheAllResources(container, config, cluster)
 }
 
+// IsKindAvailable reports whether the cluster's API server serves kind, based on
+// the discovery document cached per cluster before any informer starts (see
+// ClusterCacheMiddleware). Kinds that only exist from a given Kubernetes version
+// need this: starting a reflector against a cluster that does not serve them
+// 404s in a retry loop, and WaitForSync burns its whole timeout on the request
+// goroutine first.
+//
+// When the cache has not been populated there is nothing to check against, so
+// this reports available rather than disabling a resource the cluster may serve.
+func IsKindAvailable(container container.Container, config, cluster, kind string) bool {
+	resources, err := GetAllResourcesFromCache(container, config, cluster)
+	if err != nil {
+		return true
+	}
+	for _, resource := range resources {
+		if strings.EqualFold(kind, resource.Kind) {
+			return true
+		}
+	}
+	return false
+}
+
 func FindResourceByKind(container container.Container, config, cluster, kind string) (Resource, bool) {
 	resources, err := GetAllResourcesFromCache(container, config, cluster)
 	if err != nil {

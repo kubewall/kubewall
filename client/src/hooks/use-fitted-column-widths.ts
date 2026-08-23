@@ -89,10 +89,14 @@ function getMeasurer(className: string) {
 // The header renders in text-xs at TableHead's font-medium, and its title is the
 // column id (see GenerateColumns). Select's header is deliberately blank.
 const HEADER_TEXT_CLASS = 'text-xs font-medium';
-// th `px-2` (16) + button `pl-3 pr-1` (16) + `gap-2` before the caret (8) + the
-// caret's `ml-2` (8) + the caret (16), plus a guard: canvas measurement runs a
-// couple of px under what the browser actually lays out.
-const HEADER_HORIZONTAL_SPACE = 64 + 4;
+// th `px-2` (16) + button `pl-3 pr-1` (16), plus a guard: canvas measurement runs
+// a couple of px under what the browser actually lays out.
+const HEADER_HORIZONTAL_SPACE = 32 + 4;
+// Only a sortable header carries a caret (see DefaultHeader): the button's `gap-2`
+// before it (8) + the caret's own `ml-2` (8) + the caret (16). Reserving this for
+// an unsortable column would widen it past the width its content was given -
+// enough to push Ready/Current from their deliberate 70px to over 100px.
+const HEADER_SORT_CARET_SPACE = 32;
 
 /**
  * Widths (in px) keyed by column id, for columns that need more room than their
@@ -140,7 +144,8 @@ export function useFittedColumnWidths<TData>(
 
     for (const column of columns) {
       if (column.id === 'Select') continue;
-      const header = Math.ceil(measureHeader(column.id)) + HEADER_HORIZONTAL_SPACE;
+      const caret = column.getCanSort() ? HEADER_SORT_CARET_SPACE : 0;
+      const header = Math.ceil(measureHeader(column.id)) + HEADER_HORIZONTAL_SPACE + caret;
       const current = fittedWidths[column.id] ?? column.getSize();
       if (header > current) fittedWidths[column.id] = header;
     }

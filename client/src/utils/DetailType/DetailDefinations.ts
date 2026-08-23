@@ -460,19 +460,19 @@ const getServiceDetailsConfig = (details: ServiceDetails, loading: boolean) => (
 const getNetworkPolicyDetailsConfig = (details: NetworkPolicyDetails, loading: boolean) => ({
   subHeading: !details.metadata ? '' : `${details.metadata.namespace}/${details.metadata.name}`,
   detailCard: [
-    { label: 'Name', value: defaultOrValue(details.metadata.name) },
-    { label: 'Resource Version', value: defaultOrValue(details.metadata.resourceVersion) },
-    { label: 'Namespace', value: defaultOrValue(details.metadata.namespace) },
-    { label: 'UID', value: defaultOrValue(details.metadata.uid) },
-    { label: 'Age', value: defaultOrValue(details.metadata.creationTimestamp) },
-    { label: 'Generate Name', value: defaultOrValue(details.metadata.generateName) },
-    { label: 'Generation', value: defaultOrValue(details.metadata.generation) },
+    { label: 'Name', value: defaultOrValue(details.metadata?.name) },
+    { label: 'Resource Version', value: defaultOrValue(details.metadata?.resourceVersion) },
+    { label: 'Namespace', value: defaultOrValue(details.metadata?.namespace) },
+    { label: 'UID', value: defaultOrValue(details.metadata?.uid) },
+    { label: 'Age', value: defaultOrValue(details.metadata?.creationTimestamp) },
+    { label: 'Generate Name', value: defaultOrValue(details.metadata?.generateName) },
+    { label: 'Generation', value: defaultOrValue(details.metadata?.generation) },
     { label: 'Policy Types', value: defaultOrValueObject(details.spec?.policyTypes ?? []) },
     { label: 'Ingress Rules', value: String(details.spec?.ingress?.length ?? 0) },
     { label: 'Egress Rules', value: String(details.spec?.egress?.length ?? 0) }
   ],
   loading,
-  ...getCommonCardConfig(details.metadata.annotations, details.metadata.labels)
+  ...getCommonCardConfig(details.metadata?.annotations, details.metadata?.labels)
 });
 
 const getIngressDetailsConfig = (details: IngressDetails, loading: boolean) => ({
@@ -580,14 +580,14 @@ const getStorageClassDetailsConfig = (details: StorageClassDetails, loading: boo
 const getCSIDriverDetailsConfig = (details: CSIDriverDetails, loading: boolean) => ({
   subHeading: !details.metadata ? '' : `${details.metadata.name}`,
   detailCard: [
-    { label: 'Name', value: defaultOrValue(details.metadata.name) },
-    { label: 'Resource Version', value: defaultOrValue(details.metadata.resourceVersion) },
-    { label: 'UID', value: defaultOrValue(details.metadata.uid) },
-    { label: 'Age', value: defaultOrValue(details.metadata.creationTimestamp) },
-    { label: 'Generate Name', value: defaultOrValue(details.metadata.generateName) },
-    { label: 'Generation', value: defaultOrValue(details.metadata.generation) },
-    { label: 'Deletion Grace Period Seconds', value: defaultOrValue(details.metadata.deletionGracePeriodSeconds) },
-    { label: 'Deletion Timestamp', value: defaultOrValue(details.metadata.deletionTimestamp) },
+    { label: 'Name', value: defaultOrValue(details.metadata?.name) },
+    { label: 'Resource Version', value: defaultOrValue(details.metadata?.resourceVersion) },
+    { label: 'UID', value: defaultOrValue(details.metadata?.uid) },
+    { label: 'Age', value: defaultOrValue(details.metadata?.creationTimestamp) },
+    { label: 'Generate Name', value: defaultOrValue(details.metadata?.generateName) },
+    { label: 'Generation', value: defaultOrValue(details.metadata?.generation) },
+    { label: 'Deletion Grace Period Seconds', value: defaultOrValue(details.metadata?.deletionGracePeriodSeconds) },
+    { label: 'Deletion Timestamp', value: defaultOrValue(details.metadata?.deletionTimestamp) },
     { label: 'Attach Required', value: defaultOrValue(details.spec?.attachRequired) },
     { label: 'Pod Info On Mount', value: defaultOrValue(details.spec?.podInfoOnMount) },
     { label: 'Storage Capacity', value: defaultOrValue(details.spec?.storageCapacity) },
@@ -597,41 +597,41 @@ const getCSIDriverDetailsConfig = (details: CSIDriverDetails, loading: boolean) 
     { label: 'Volume Lifecycle Modes', value: defaultOrValueObject(details.spec?.volumeLifecycleModes ?? []) }
   ],
   loading,
-  ...getCommonCardConfig(details.metadata.annotations, details.metadata.labels)
+  ...getCommonCardConfig(details.metadata?.annotations, details.metadata?.labels)
 });
 
 const getCSINodeDetailsConfig = (details: CSINodeDetails, loading: boolean) => ({
   subHeading: !details.metadata ? '' : `${details.metadata.name}`,
   detailCard: [
-    { label: 'Name', value: defaultOrValue(details.metadata.name) },
-    { label: 'Resource Version', value: defaultOrValue(details.metadata.resourceVersion) },
-    { label: 'UID', value: defaultOrValue(details.metadata.uid) },
-    { label: 'Age', value: defaultOrValue(details.metadata.creationTimestamp) },
-    { label: 'Generate Name', value: defaultOrValue(details.metadata.generateName) },
-    { label: 'Generation', value: defaultOrValue(details.metadata.generation) },
-    { label: 'Deletion Grace Period Seconds', value: defaultOrValue(details.metadata.deletionGracePeriodSeconds) },
-    { label: 'Deletion Timestamp', value: defaultOrValue(details.metadata.deletionTimestamp) },
+    { label: 'Name', value: defaultOrValue(details.metadata?.name) },
+    { label: 'Resource Version', value: defaultOrValue(details.metadata?.resourceVersion) },
+    { label: 'UID', value: defaultOrValue(details.metadata?.uid) },
+    { label: 'Age', value: defaultOrValue(details.metadata?.creationTimestamp) },
+    { label: 'Generate Name', value: defaultOrValue(details.metadata?.generateName) },
+    { label: 'Generation', value: defaultOrValue(details.metadata?.generation) },
+    { label: 'Deletion Grace Period Seconds', value: defaultOrValue(details.metadata?.deletionGracePeriodSeconds) },
+    { label: 'Deletion Timestamp', value: defaultOrValue(details.metadata?.deletionTimestamp) },
     { label: 'Drivers', value: defaultOrValueObject(details.spec?.drivers?.map((driver) => driver?.name) ?? []) }
   ],
   loading,
-  ...getCommonCardConfig(details.metadata.annotations, details.metadata.labels)
+  ...getCommonCardConfig(details.metadata?.annotations, details.metadata?.labels)
 });
 
 const getVolumeAttributesClassDetailsConfig = (details: VolumeAttributesClassDetails, loading: boolean) => ({
   subHeading: !details.metadata ? '' : `${details.metadata.name}`,
   detailCard: [
-    { label: 'Name', value: defaultOrValue(details.metadata.name) },
-    { label: 'Resource Version', value: defaultOrValue(details.metadata.resourceVersion) },
-    { label: 'UID', value: defaultOrValue(details.metadata.uid) },
-    { label: 'Age', value: defaultOrValue(details.metadata.creationTimestamp) },
-    { label: 'Generate Name', value: defaultOrValue(details.metadata.generateName) },
-    { label: 'Generation', value: defaultOrValue(details.metadata.generation) },
-    { label: 'Deletion Grace Period Seconds', value: defaultOrValue(details.metadata.deletionGracePeriodSeconds) },
-    { label: 'Deletion Timestamp', value: defaultOrValue(details.metadata.deletionTimestamp) },
+    { label: 'Name', value: defaultOrValue(details.metadata?.name) },
+    { label: 'Resource Version', value: defaultOrValue(details.metadata?.resourceVersion) },
+    { label: 'UID', value: defaultOrValue(details.metadata?.uid) },
+    { label: 'Age', value: defaultOrValue(details.metadata?.creationTimestamp) },
+    { label: 'Generate Name', value: defaultOrValue(details.metadata?.generateName) },
+    { label: 'Generation', value: defaultOrValue(details.metadata?.generation) },
+    { label: 'Deletion Grace Period Seconds', value: defaultOrValue(details.metadata?.deletionGracePeriodSeconds) },
+    { label: 'Deletion Timestamp', value: defaultOrValue(details.metadata?.deletionTimestamp) },
     { label: 'Driver Name', value: defaultOrValue(details.driverName) }
   ],
   loading,
-  ...getCommonCardConfig(details.metadata.annotations, details.metadata.labels)
+  ...getCommonCardConfig(details.metadata?.annotations, details.metadata?.labels)
 });
 
 // Custom Resource
