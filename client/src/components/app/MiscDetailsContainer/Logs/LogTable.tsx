@@ -56,6 +56,9 @@ export function LogTable({
   // Counted from line numbers rather than buffer length so trimming can't skew it.
   const [newSinceLeaving, setNewSinceLeaving] = useState(0);
   const tailBaselineRef = useRef<number | null>(null);
+  // Last scroll position we know about, the pins below included. Only a move
+  // *up* from here is the user asking to leave the tail.
+  const lastScrollTopRef = useRef(0);
   // Unwrapped rows are width:max-content, so a short row paints its background
   // only as far as its own text while long rows push the scroll area wider -
   // leaving the alternating stripes cut off once you scroll right. Stretch every
@@ -105,6 +108,9 @@ export function LogTable({
   });
 
   const items = virtualizer.getVirtualItems();
+  // Grows as wrapped rows are measured, which is the whole reason the pin below
+  // has to run more than once.
+  const totalSize = virtualizer.getTotalSize();
 
   // Row heights measured in wrapped mode are meaningless once wrapping is off
   // (and vice versa). Without clearing them the virtualizer keeps spacing rows
@@ -125,6 +131,15 @@ export function LogTable({
     return measured ? measured.start : rows * rowHeight;
   }, [virtualizer, rowHeight, viewRef]);
 
+  const pinToBottom = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el || !followRef.current) return;
+    el.scrollTop = el.scrollHeight;
+    // Record it ourselves: the scroll event this write queues must not read as
+    // the user having moved.
+    lastScrollTopRef.current = el.scrollTop;
+  }, [followRef]);
+
   // Runs after the DOM has the new rows but before paint, so the correction is
   // applied in the same frame. A requestAnimationFrame here would race React's
   // commit and intermittently do nothing.
@@ -139,8 +154,29 @@ export function LogTable({
         return;
       }
     }
-    if (followRef.current) el.scrollTop = el.scrollHeight;
-  }, [version, wrap, followRef, prependRef, shiftFor]);
+    pinToBottom();
+  }, [version, wrap, prependRef, shiftFor, pinToBottom]);
+
+  // Pinning to the tail cannot be a one-shot. Wrapped rows are measured by a
+  // ResizeObserver *after* they paint, and a wrapped line is always taller than
+  // the single-line estimate, so the content keeps growing underneath a pin that
+  // already ran - which is what left a freshly opened tab sitting a screenful or
+  // more short of the newest line. Re-pin on every height change until the
+  // measurements settle.
+  useLayoutEffect(() => {
+    pinToBottom();
+  }, [totalSize, pinToBottom]);
+
+  // A shorter viewport (dragging the panel, opening the AI chat) leaves
+  // scrollTop where it was, which is no longer the bottom - and a resize fires
+  // no scroll event, so nothing else would notice.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => pinToBottom());
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [pinToBottom]);
 
   useLayoutEffect(() => {
     if (wrap) return;
@@ -176,17 +212,26 @@ export function LogTable({
   const onScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
-    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < BOTTOM_THRESHOLD;
-    followRef.current = atBottom;
-    if (atBottom) {
+    const top = el.scrollTop;
+    const wentUp = top < lastScrollTopRef.current;
+    lastScrollTopRef.current = top;
+    const atBottom = el.scrollHeight - top - el.clientHeight < BOTTOM_THRESHOLD;
+    // Not being at the bottom is not enough to stop following: rows measured
+    // after they paint grow the content below us, so this event routinely
+    // reports a position the user never chose. Only an actual upward scroll
+    // leaves the tail; reaching the bottom always rejoins it.
+    if (atBottom) followRef.current = true;
+    else if (wentUp) followRef.current = false;
+    const following = followRef.current;
+    if (following) {
       tailBaselineRef.current = null;
       setNewSinceLeaving(0);
     } else if (tailBaselineRef.current === null) {
       tailBaselineRef.current = maxLineNo;
     }
-    setShowJump(!atBottom);
-    setNearTop(el.scrollTop < NEAR_TOP);
-    if (el.scrollTop < TOP_TRIGGER) queueOlder();
+    setShowJump(!following);
+    setNearTop(top < NEAR_TOP);
+    if (top < TOP_TRIGGER) queueOlder();
   }, [followRef, queueOlder, maxLineNo]);
 
   // With only a screenful of lines there is nothing to scroll, so the
@@ -213,13 +258,11 @@ export function LogTable({
   }, [version, maxLineNo, followRef]);
 
   const jumpToBottom = () => {
-    const el = scrollRef.current;
-    if (!el) return;
     followRef.current = true;
     tailBaselineRef.current = null;
     setNewSinceLeaving(0);
     setShowJump(false);
-    el.scrollTop = el.scrollHeight;
+    pinToBottom();
   };
 
   // Sized to the longest container name this pod actually has, so a short name
@@ -322,7 +365,7 @@ export function LogTable({
             {entries.length === 0 ? 'Waiting for logs…' : 'No lines match the current filter'}
           </div>
         ) : (
-          <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
+          <div className="relative w-full" style={{ height: totalSize }}>
             {items.map((item) => {
               const entry = entries[view[item.index]];
               if (!entry) return null;

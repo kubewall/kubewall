@@ -153,6 +153,9 @@ export function useLogStore(): LogStore {
   const clear = useCallback(() => {
     entriesRef.current = [];
     viewRef.current = [];
+    // Emptying the buffer - switching pod, or the trash button - means there is
+    // nothing left to hold the view in place, so go back to tracking the tail.
+    followRef.current = true;
     countsRef.current = emptyCounts();
     seqRef.current = 0;
     nextUpRef.current = 0;
