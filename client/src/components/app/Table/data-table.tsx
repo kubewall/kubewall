@@ -68,11 +68,25 @@ declare global {
 }
 
 
+// The needle is identical for every cell in a filter pass, so lowercase it once
+// instead of once per cell (rows x columns times).
+let lastNeedle = '';
+let lastNeedleLower = '';
+const lowerNeedle = (value: string) => {
+  if (value !== lastNeedle) {
+    lastNeedle = value;
+    lastNeedleLower = value.toLowerCase();
+  }
+  return lastNeedleLower;
+};
+
 // eslint-disable-next-line  @typescript-eslint/no-explicit-any
 const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
-  const rowValue = row.getValue(columnId) as string;
+  const rowValue = row.getValue(columnId);
+  // Not every column accessor returns a string (counts, timestamps, nulls).
+  const haystack = typeof rowValue === 'string' ? rowValue : String(rowValue ?? '');
 
-  const isMatch = rowValue.toLowerCase().includes(value.toLowerCase());
+  const isMatch = haystack.toLowerCase().includes(lowerNeedle(String(value ?? '')));
 
   addMeta({
     isMatch,

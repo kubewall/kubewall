@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 const DebouncedInput = ({
   value: initialValue,
   onChange,
-  debounce = 250,
+  debounce = 100,
   ...props
 }: {
   value: string | number
