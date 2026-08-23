@@ -65,9 +65,47 @@ export interface KubeEndOfLifeAddonDefinition extends AddonDefinition {
   }> | null;
 }
 
+// ─── Cluster Tags Addon ───────────────────────────────────────────────────────
+export interface ClusterTagsAddonDefinition extends AddonDefinition {
+  /** Self-contained badge + edit-dialog rendered per cluster row/card. */
+  ClusterTagBadge: ComponentType<{
+    configName: string;
+    clusterName: string;
+    /** 'inline' (default, compact, used in the table) or 'footer' (tags left, edit control pinned right and always visible — used in the card view). */
+    layout?: 'inline' | 'footer';
+  }> | null;
+
+  /**
+   * Presentational editor for a cluster's full tag list (label + color per
+   * tag, add/remove rows), reused in the Add Config dialog. The backend's
+   * PUT replaces the whole tags array, so this always manages the complete
+   * list, not a single tag.
+   */
+  ClusterTagListEditor: ComponentType<{
+    value: { label: string; color: string }[];
+    onChange: (value: { label: string; color: string }[]) => void;
+    idPrefix?: string;
+    /** 'stacked' (default) or 'inline' (Tag and Color side by side). */
+    layout?: 'stacked' | 'inline';
+  }> | null;
+
+  /**
+   * Deliberate deviation from the components-and-reducer-only shape above:
+   * base-client code (AddConfiguration) needs to trigger a tag write as a
+   * step in its own submit sequence, not just render an addon-owned
+   * component. Returns a Redux thunk action — dispatch it via the caller's
+   * own useAppDispatch(), e.g.
+   *   dispatch(addons.clusterTags.upsertClusterTags(config, cluster, tags)).unwrap()
+   * Sends the COMPLETE desired tags array (the backend replaces, not merges).
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  upsertClusterTags: ((config: string, cluster: string, tags: { label: string; color: string }[]) => any) | null;
+}
+
 // ─── Registry ─────────────────────────────────────────────────────────────────
 // Add a new optional key here for every new addon feature.
 export interface AddonRegistry {
   terminal?: TerminalAddonDefinition;
   kubeEndOfLife?: KubeEndOfLifeAddonDefinition;
+  clusterTags?: ClusterTagsAddonDefinition;
 }

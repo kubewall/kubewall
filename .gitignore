@@ -61,3 +61,8 @@ resources/views/*/*.go
 
 # Agent directories.
 .agent/
+
+# Backend directories.
+backend/stubs/addons/*
+!backend/stubs/addons/addons.go
+!backend/stubs/addons/go.mod

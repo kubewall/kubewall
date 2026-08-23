@@ -18,8 +18,13 @@ export interface KubeEndOfLifeCapabilities {
   enabled: boolean;
 }
 
+export interface ClusterTagsCapabilities {
+  enabled: boolean;
+}
+
 // Add a new key here for every new feature's capability config.
 export interface CapabilityConfig {
   terminal: TerminalCapabilities;
   kubeEndOfLife: KubeEndOfLifeCapabilities;
+  clusterTags: ClusterTagsCapabilities;
 }
