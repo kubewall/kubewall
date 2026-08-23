@@ -108,7 +108,7 @@ const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => 
   const { isDark } = useTheme();
 
   const store = useLogStore();
-  const { isLoadingHistory, hasMore, loadOlder } = useLogStream({
+  const { isLoadingHistory, hasMore, historyLimit, loadOlder } = useLogStream({
     pod: name, namespace, configName, clusterName, store,
   });
 
@@ -205,7 +205,11 @@ const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => 
         <div className="flex items-center h-full shrink-0">
           {LOG_LEVELS.map((level) => {
             const count = store.levelCounts[level];
-            if (!count) return null;
+            // A level with nothing in the buffer is noise - unless it is one of
+            // the levels being filtered on, where hiding its chip takes away the
+            // only way to undo the filter and leaves "No lines match the current
+            // filter" with nothing on screen to explain it.
+            if (!count && !levels?.has(level)) return null;
             const active = levels === null || levels.has(level);
             return (
               <Hint
@@ -329,6 +333,7 @@ const PodLogs = ({ namespace, name, configName, clusterName }: PodLogsProps) => 
         fontSize={fontSize}
         isLoadingHistory={isLoadingHistory}
         hasMore={hasMore}
+        historyLimit={historyLimit}
         loadOlder={loadOlder}
       />
     </div>

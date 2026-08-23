@@ -57,18 +57,37 @@ function tokenize(raw: string): string[] {
   return out;
 }
 
+// Flags honoured when compiling a `/…/flags` literal.
+const MATCH_FLAGS = 'imsu';
+// Recognised so `/error/g` still reads as a regex, but dropped before compiling:
+// matchesQuery reuses one RegExp per query across every line and calls .test(),
+// which advances lastIndex whenever `g` or `y` is set - so keeping either would
+// skip roughly every other match. Highlighting builds its own `g` copy below.
+const IGNORED_FLAGS = 'gy';
+const REGEX_FLAGS = MATCH_FLAGS + IGNORED_FLAGS;
+
 function asRegex(body: string): RegExp | null {
   const last = body.lastIndexOf('/');
   const source = body.slice(1, last);
-  const flags = body.slice(last + 1);
+  let flags = [...body.slice(last + 1)].filter((f) => MATCH_FLAGS.includes(f)).join('');
+  if (!flags.includes('i')) flags += 'i';
   try {
-    return new RegExp(source, flags.includes('i') ? flags : flags + 'i');
+    return new RegExp(source, flags);
   } catch {
     return null;
   }
 }
 
-const isRegexToken = (t: string) => t.length > 2 && t.startsWith('/') && t.lastIndexOf('/') > 0;
+// `/source/` with an optional flag tail. Requiring the tail to be flags is what
+// keeps a path-like token ("/api/v1/pods") a plain substring: read as a regex its
+// "flags" would be "pods", which fails to compile and drops the token, quietly
+// leaving a one-token query matching every line.
+const REGEX_TOKEN_RE = /^\/(.+)\/([a-zA-Z]*)$/;
+
+const isRegexToken = (t: string) => {
+  const m = REGEX_TOKEN_RE.exec(t);
+  return !!m && [...m[2]].every((f) => REGEX_FLAGS.includes(f));
+};
 
 export function parseQuery(raw: string): LogQuery {
   const trimmed = raw.trim();
@@ -90,7 +109,7 @@ export function parseQuery(raw: string): LogQuery {
       if (negated) q.negRegexes.push(re);
       else {
         q.regexes.push(re);
-        q.hlRegexes.push(new RegExp(re.source, re.flags + 'g'));
+        q.hlRegexes.push(new RegExp(re.source, re.flags.includes('g') ? re.flags : re.flags + 'g'));
       }
       continue;
     }

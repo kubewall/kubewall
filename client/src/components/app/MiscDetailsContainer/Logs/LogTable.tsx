@@ -7,6 +7,7 @@ import { ChevronsDown, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { LogStore } from './useLogStore';
+import { HistoryLimit } from './useLogStream';
 import { PodDetailsSpec } from '@/types';
 import { cn } from '@/lib/utils';
 import { FONT_METRICS, FontSizeOption, TimestampMode, rowPitch } from './viewOptions';
@@ -18,6 +19,19 @@ const TOP_TRIGGER = 12;
 const NEAR_TOP = 240;
 const TOP_DEBOUNCE = 250;
 
+// `view` holds entry indices in ascending order, so the rows sitting below a given
+// entry index are exactly its leading run.
+function viewRowsBelow(view: number[], entryIndex: number): number {
+  let lo = 0;
+  let hi = view.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (view[mid] < entryIndex) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+
 type LogTableProps = {
   store: LogStore;
   query: LogQuery;
@@ -28,11 +42,12 @@ type LogTableProps = {
   fontSize: FontSizeOption;
   isLoadingHistory: boolean;
   hasMore: boolean;
+  historyLimit: HistoryLimit;
   loadOlder: () => Promise<number>;
 };
 
 export function LogTable({
-  store, query, podDetailsSpec, wrap, isDark, tsMode, fontSize, isLoadingHistory, hasMore, loadOlder,
+  store, query, podDetailsSpec, wrap, isDark, tsMode, fontSize, isLoadingHistory, hasMore, historyLimit, loadOlder,
 }: LogTableProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showJump, setShowJump] = useState(false);
@@ -98,12 +113,17 @@ export function LogTable({
     virtualizer.measure();
   }, [wrap, fontSize, tsMode, virtualizer]);
 
-  // Height of the first `count` rows, i.e. how far the existing content just
-  // moved down. Measured where possible so wrapped rows are handled too.
-  const shiftFor = useCallback((count: number) => {
-    const measured = virtualizer.measurementsCache?.[count];
-    return measured ? measured.start : count * rowHeight;
-  }, [virtualizer, rowHeight]);
+  // How far the existing content just moved down, given how many *entries* were
+  // prepended. A filter can hide most of those, and measurements are indexed by
+  // view row, so the entry count has to be converted first - otherwise the
+  // correction is taken from a row thousands of pixels away. Measured where
+  // possible so wrapped rows are handled too.
+  const shiftFor = useCallback((prependedEntries: number) => {
+    const rows = viewRowsBelow(viewRef.current, prependedEntries);
+    if (rows === 0) return 0;
+    const measured = virtualizer.measurementsCache?.[rows];
+    return measured ? measured.start : rows * rowHeight;
+  }, [virtualizer, rowHeight, viewRef]);
 
   // Runs after the DOM has the new rows but before paint, so the correction is
   // applied in the same frame. A requestAnimationFrame here would race React's
@@ -179,8 +199,13 @@ export function LogTable({
     // onScroll can never fire without a scrollbar, so drive nearTop from here.
     setNearTop(scrollable ? el.scrollTop < NEAR_TOP : true);
     if (scrollable || !hasMore) return;
+    // An empty view is the filter hiding what we have, not a shortage of history.
+    // Pulling more could never make it scrollable, so this would walk the entire
+    // backlog HISTORY_BATCH lines at a time. "Load older logs" stays available -
+    // nearTop is true here, so the banner is showing.
+    if (view.length === 0) return;
     queueOlder();
-  }, [version, hasMore, entries.length, queueOlder]);
+  }, [version, hasMore, entries.length, view.length, queueOlder]);
 
   useEffect(() => {
     if (followRef.current || tailBaselineRef.current === null) return;
@@ -231,14 +256,19 @@ export function LogTable({
           ) : hasMore ? (
             <Button
               variant="outline"
-              className="h-6 rounded px-2 text-[11px] shadow-sm bg-background/95"
+              className={cn(
+                'h-6 rounded px-2 text-[11px] shadow-sm bg-background/95',
+                historyLimit === 'error' && 'text-red-500'
+              )}
               onClick={pullOlder}
             >
-              Load older logs
+              {historyLimit === 'error' ? "Couldn't load older logs — retry" : 'Load older logs'}
             </Button>
           ) : (
             <span className="rounded border bg-background/95 px-2 py-0.5 text-[11px] text-muted-foreground shadow-sm">
-              Beginning of available logs
+              {historyLimit === 'buffer'
+                ? 'Buffer full — showing the most recent lines'
+                : 'Beginning of available logs'}
             </span>
           )}
         </div>

@@ -17,9 +17,17 @@ type Params = {
   store: LogStore;
 };
 
+/**
+ * Why no more history is on offer, when it isn't simply that the pod has none:
+ * 'buffer' - the client buffer is full, so we stop paging back regardless.
+ * 'error'  - the last request failed; retrying is still worth it.
+ */
+export type HistoryLimit = 'buffer' | 'error' | null;
+
 export function useLogStream({ pod, namespace, configName, clusterName, store }: Params) {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [historyLimit, setHistoryLimit] = useState<HistoryLimit>(null);
   const loadingRef = useRef(false);
   const hasMoreRef = useRef(true);
   const { append, clear, entriesRef, prependBatch } = store;
@@ -28,17 +36,29 @@ export function useLogStream({ pod, namespace, configName, clusterName, store }:
     clear();
     hasMoreRef.current = true;
     setHasMore(true);
+    setHistoryLimit(null);
     loadingRef.current = false;
     setIsLoadingHistory(false);
   }, [pod, namespace, clusterName, configName, clear]);
 
+  // We will not page back any further, so stop offering it - otherwise "Load
+  // older logs" stays enabled and silently does nothing on every click.
+  const stopHistory = useCallback((reason: HistoryLimit) => {
+    hasMoreRef.current = false;
+    setHasMore(false);
+    setHistoryLimit(reason);
+    return 0;
+  }, []);
+
   const loadOlder = useCallback(async (): Promise<number> => {
     if (loadingRef.current || !hasMoreRef.current) return 0;
     const entries = entriesRef.current;
-    if (!entries.length || entries.length > HISTORY_CEILING) return 0;
+    if (!entries.length) return 0;
+    if (entries.length > HISTORY_CEILING) return stopHistory('buffer');
 
+    // Nothing carries a timestamp, so there is no cursor to page back from.
     const oldest = entries.find((e) => e.timestamp);
-    if (!oldest) return 0;
+    if (!oldest) return stopHistory(null);
 
     loadingRef.current = true;
     setIsLoadingHistory(true);
@@ -56,14 +76,18 @@ export function useLogStream({ pod, namespace, configName, clusterName, store }:
       const older = response?.logs ?? [];
       hasMoreRef.current = older.length > 0 && Boolean(response?.hasMore);
       setHasMore(hasMoreRef.current);
+      setHistoryLimit(null);
       return prependBatch(older);
     } catch {
+      // Likely transient, so hasMore stays put and the button keeps working -
+      // but say something, or the click looks like it did nothing.
+      setHistoryLimit('error');
       return 0;
     } finally {
       loadingRef.current = false;
       setIsLoadingHistory(false);
     }
-  }, [pod, namespace, configName, clusterName, entriesRef, prependBatch]);
+  }, [pod, namespace, configName, clusterName, entriesRef, prependBatch, stopHistory]);
 
   // Every container is streamed; which ones are shown is a filter concern, so
   // changing the selection never tears down the connection.
@@ -82,5 +106,5 @@ export function useLogStream({ pod, namespace, configName, clusterName, store }:
     sendMessage,
   });
 
-  return { isLoadingHistory, hasMore, loadOlder };
+  return { isLoadingHistory, hasMore, historyLimit, loadOlder };
 }
