@@ -9,6 +9,9 @@ import { ConfigGroup, clusterCountLabel } from './types';
 // Rendered bare (card view lays it directly on the page) or inside a table
 // cell — the wrapper differs, the content doesn't.
 export function ConfigGroupHeader({ configKey, details, isSystem }: ConfigGroup) {
+  const clusters = Object.values(details.clusters);
+  const connectedCount = clusters.filter((c) => c.connected).length;
+
   return (
     <div className="flex items-center justify-between gap-3">
       {/* `items-baseline` so the name (text-sm) and the count (text-xs) share a
@@ -25,7 +28,15 @@ export function ConfigGroupHeader({ configKey, details, isSystem }: ConfigGroup)
           {isSystem ? 'System' : 'Added'}
         </Badge>
         <span className="shrink-0 text-xs text-muted-foreground">
-          {clusterCountLabel(Object.keys(details.clusters).length)}
+          {clusterCountLabel(clusters.length)}
+          {connectedCount > 0 && (
+            <>
+              {' · '}
+              <span className="font-medium text-green-600 dark:text-green-500">
+                {connectedCount} connected
+              </span>
+            </>
+          )}
         </span>
       </div>
       <div className="flex shrink-0 items-center gap-2">

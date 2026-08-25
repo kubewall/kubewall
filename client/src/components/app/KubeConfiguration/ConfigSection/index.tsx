@@ -1,11 +1,13 @@
 import { ClusterEOLBadge, ClusterTagBadge, eolEnabled, tagsEnabled } from '../clusterAddonSlots';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
+import { ClusterAvatar } from '../ClusterAvatar';
 import { ClusterStatus } from '../ClusterStatus';
 import { ConfigGroup } from '../types';
 import { ConfigGroupHeader } from '../ConfigGroupHeader';
 import { Fragment } from 'react';
 import { TruncatedText } from '../TruncatedText';
+import { cn } from '@/lib/utils';
 
 // Cluster + Status, plus the optional addon columns.
 const totalColumnCount = 2 + Number(eolEnabled) + Number(tagsEnabled);
@@ -69,26 +71,55 @@ export function ConfigSection({ groups, onNavigate }: ConfigSectionProps) {
               </TableRow>
 
               {/* Cluster Rows */}
-              {Object.keys(group.details.clusters).map((key) => {
+              {Object.keys(group.details.clusters).map((key, clusterIndex, clusterKeys) => {
                 const { name, namespace, connected } = group.details.clusters[key];
+                const isLastCluster = clusterIndex === clusterKeys.length - 1;
                 return (
                   // `group/item` stays — ClusterTagBadge's edit pencil is revealed on row hover.
                   <TableRow className="group/item" key={name}>
-                    <TableCell>
+                    <TableCell className="relative">
+                      {/* Tree guides connecting each cluster to its config header.
+                          Absolutely positioned against the cell's padding box so
+                          the vertical run is flush between rows — a stretched flex
+                          child would break at each cell's padding. The last child
+                          stops at the tick, giving the usual "└" elbow. */}
+                      <span
+                        aria-hidden
+                        className={cn(
+                          'pointer-events-none absolute left-4 border-l border-dashed border-muted-foreground/40',
+                          isLastCluster ? 'top-0 h-1/2' : 'inset-y-0'
+                        )}
+                      />
+                      <span
+                        aria-hidden
+                        className="pointer-events-none absolute left-4 top-1/2 w-2.5 border-t border-dashed border-muted-foreground/40"
+                      />
                       {/* Inner flex wrapper — putting `flex` on the <td> itself
                           breaks table-fixed column sizing. */}
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-primary text-xs font-medium text-secondary">
-                          {name.substring(0, 2).toUpperCase()}
-                        </div>
+                      {/* `group/link` ties the icon and name hover states together —
+                          hovering either underlines the name and dims the icon, so the
+                          two read as one target. */}
+                      <div className="group/link flex min-w-0 items-center gap-3 pl-8">
+                        {/* Same navigation target as the name. Kept out of the tab
+                            order and the a11y tree so the pair is one stop,
+                            announced once, rather than two identical links. */}
+                        <button
+                          type="button"
+                          tabIndex={-1}
+                          aria-hidden
+                          onClick={() => onNavigate(group.configKey, name)}
+                          className="shrink-0 rounded-md transition-opacity group-hover/link:opacity-75"
+                        >
+                          <ClusterAvatar name={name} connected={connected} />
+                        </button>
                         <div className="min-w-0">
-                          {/* Only the name navigates — not the whole row. */}
+                          {/* Only the name (and its icon) navigate — not the whole row. */}
                           <button
                             type="button"
                             onClick={() => onNavigate(group.configKey, name)}
                             className="block min-w-0 max-w-full text-left"
                           >
-                            <TruncatedText value={name} className="block truncate font-medium hover:underline" />
+                            <TruncatedText value={name} className="block truncate font-medium group-hover/link:underline" />
                           </button>
                           <span className="block truncate text-xs text-muted-foreground">ns: {namespace || 'N/A'}</span>
                         </div>
