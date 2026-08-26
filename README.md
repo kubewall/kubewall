@@ -26,7 +26,7 @@ It provides a simple and rich realtime interface to manage and investigate your 
 
 ## :movie_camera: Intro
 
-![kubewall](/media/readme.jpg?v=0.0.2)
+![kubewall](/media/readme.jpg?v=0.0.3)
 
 > [!Important]
 > Please keep in mind that kubewall is still under active development.
