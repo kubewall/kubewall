@@ -18,6 +18,9 @@ const capabilities: CapabilityConfig = {
   kubeEndOfLife: {
     enabled: false,
   },
+  clusterTags: {
+    enabled: false,
+  },
 };
 
 export default capabilities;
