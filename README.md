@@ -24,12 +24,7 @@ It provides a simple and rich realtime interface to manage and investigate your 
 | 📜 **Aggregated Pod Logs** | Stream logs across pods and containers with advanced search and tail options—perfect for monitoring multi-replica applications with ease. |
 | 🖥️ **Clean Resource Management** | Enjoy streamlined views for Deployments, Pods, Services, ConfigMaps, and more scale deployments, restart pods, perform rollout restarts, and apply manifests with a single click for unmatched efficiency. |
 
-## :movie_camera: Intro
 
-![kubewall](/media/readme.jpg?v=0.0.3)
-
-> [!Important]
-> Please keep in mind that kubewall is still under active development.
 
 ## :battery: Install
 
@@ -105,6 +100,10 @@ scoop install kubewall
 > ```
 > $ kubewall --certFile=/path/to/cert.pem --keyFile=/path/to/key.pem
 > ```
+
+## :movie_camera: Intro
+
+![kubewall](/media/readme.jpg?v=0.0.3)
 
 ## :books: Guide
 
