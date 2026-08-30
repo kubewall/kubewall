@@ -31,10 +31,8 @@ It provides a simple and rich realtime interface to manage and investigate your 
 #### 🐳 Docker
 
 ```shell
-docker run -p 7080:7080 -v kubewall:/.kubewall ghcr.io/kubewall/kubewall:latest
+docker run --network host -v kubewall:/.kubewall -v ~/.kube:/.kube ghcr.io/kubewall/kubewall:latest
 ```
-
-> 💡 To access local kind cluster you can use "--network host" docker flag.
 
 #### ⛵ Helm
 
