@@ -25,7 +25,7 @@ const stickyHead =
 
 type ConfigSectionProps = {
   groups: ConfigGroup[];
-  onNavigate: (config: string, name: string) => void;
+  onNavigate: (config: string, name: string, connected: boolean) => void;
 };
 
 export function ConfigSection({ groups, onNavigate }: ConfigSectionProps) {
@@ -102,7 +102,7 @@ export function ConfigSection({ groups, onNavigate }: ConfigSectionProps) {
                     <TableCell
                       className="group/cell relative cursor-pointer transition-colors hover:bg-muted/50"
                       data-uisfx-hover="hover"
-                      onClick={() => onNavigate(group.configKey, name)}
+                      onClick={() => onNavigate(group.configKey, name, connected)}
                     >
                       {/* Tree guides connecting each cluster to its config header.
                           Absolutely positioned against the cell's padding box so

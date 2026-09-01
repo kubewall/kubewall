@@ -17,7 +17,9 @@ export function useSoundEnabled(): [boolean, (value: boolean) => void] {
 
 /**
  * Plays the "level-up" cue once, when a list first finishes loading after the
- * user picked a cluster (see armArrivalCue).
+ * user connected to a cluster for the first time. Whether a selection qualifies
+ * is armArrivalCue's decision, not this hook's — an already-connected cluster
+ * arms nothing and so consumes nothing here.
  *
  * It insists on a real `true -> false` transition rather than just observing
  * `loading === false`. KwList dispatches resetListSlices from an effect on
@@ -26,7 +28,7 @@ export function useSoundEnabled(): [boolean, (value: boolean) => void] {
  * arrived. Waiting for the edge means the cue lands when the list is actually
  * populated.
  */
-export function useArrivalCue(loading: boolean): void {
+export function useArrivalCue(loading: boolean, config: string, cluster: string): void {
   const wasLoading = useRef(false);
 
   useEffect(() => {
@@ -36,9 +38,8 @@ export function useArrivalCue(loading: boolean): void {
     }
     if (!wasLoading.current) return;
     wasLoading.current = false;
-    // Consumed only at the moment it would sound, so a selection whose list
-    // never finishes loading stays armed for the next one rather than being
-    // silently thrown away.
-    if (consumeArrivalCue()) play('level-up');
-  }, [loading]);
+    // Passing the cluster matters: this fires on every list that finishes
+    // loading, and only the one that was armed should sound.
+    if (consumeArrivalCue(config, cluster)) play('level-up');
+  }, [loading, config, cluster]);
 }
