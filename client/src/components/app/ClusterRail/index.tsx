@@ -8,6 +8,7 @@ import { GitHubLogoIcon } from "@radix-ui/react-icons";
 import { Link } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 import { RootState } from "@/redux/store";
+import { armArrivalCue } from "@/lib/sound";
 import { cn } from "@/lib/utils";
 
 const TILE_SIZE_CLASS = 'size-8 shrink-0';
@@ -51,6 +52,21 @@ type ClusterRailProps = {
 
 const ClusterRail = ({ configName, clusterName, selectedResource }: ClusterRailProps) => {
   const dispatch = useAppDispatch();
+
+  // Both the rail tiles and the overflow list route into a cluster, so switching
+  // is defined once here. Clicking the cluster you're already on is not a switch:
+  // it resets nothing and, just as importantly, arms nothing — an armed cue with
+  // no load to consume it would sit there and go off on the next unrelated list
+  // load (a sidebar resource-kind change, say).
+  //
+  // resetAllStates() puts every list slice back to `loading: true`, which is the
+  // edge useArrivalCue waits for; the cue then sounds once, when the new
+  // cluster's list has actually arrived.
+  const selectCluster = (isActive: boolean) => {
+    if (isActive) return;
+    dispatch(resetAllStates());
+    armArrivalCue();
+  };
   const { clusters } = useAppSelector((state: RootState) => state.clusters);
   const [overflowOpen, setOverflowOpen] = useState(false);
 
@@ -158,7 +174,7 @@ const ClusterRail = ({ configName, clusterName, selectedResource }: ClusterRailP
                   <TooltipTrigger asChild>
                     <Link
                       to={`/${config}/list?cluster=${name}&resourcekind=${selectedResource}`}
-                      onClick={() => !isActive && dispatch(resetAllStates())}
+                      onClick={() => selectCluster(isActive)}
                       aria-current={isActive ? 'page' : undefined}
                       className={cn(
                         'relative flex items-center justify-center rounded-md border text-[11.5px] font-medium',
@@ -219,7 +235,7 @@ const ClusterRail = ({ configName, clusterName, selectedResource }: ClusterRailP
                         key={`${config}::${name}`}
                         to={`/${config}/list?cluster=${name}&resourcekind=${selectedResource}`}
                         onClick={() => {
-                          !isActive && dispatch(resetAllStates());
+                          selectCluster(isActive);
                           setOverflowOpen(false);
                         }}
                         aria-current={isActive ? 'page' : undefined}

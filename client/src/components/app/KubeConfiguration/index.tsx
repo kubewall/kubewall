@@ -1,4 +1,4 @@
-import { LayoutGrid, Table as TableIcon } from 'lucide-react';
+import { LayoutGrid, Table as TableIcon, Volume2, VolumeX } from 'lucide-react';
 import { PlusCircledIcon, ReloadIcon } from '@radix-ui/react-icons';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { resetAllStates, useAppDispatch, useAppSelector } from '@/redux/hooks';
@@ -17,9 +17,11 @@ import { Search } from "lucide-react";
 import { fetchClusters } from '@/data/KwClusters/ClustersSlice';
 import kwLogoDark from '@/assets/kw-dark-theme.svg';
 import kwLogoLight from '@/assets/kw-light-theme.svg';
+import { armArrivalCue, play } from '@/lib/sound';
 import { resetDeleteConfig } from '@/data/KwClusters/DeleteConfigSlice';
 import { toast } from "sonner";
 import { useNavigate } from '@tanstack/react-router';
+import { useSoundEnabled } from '@/hooks/use-sound';
 import { useTheme } from '@/components/app/ThemeProvider';
 
 type ViewMode = 'table' | 'card';
@@ -45,6 +47,7 @@ export function KubeConfiguration() {
   const [viewMode, setViewMode] = useState<ViewMode>(
     () => (localStorage.getItem(VIEW_MODE_STORAGE_KEY) as ViewMode) || 'table'
   );
+  const [soundEnabled, setSoundEnabled] = useSoundEnabled();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { isDark } = useTheme();
@@ -153,7 +156,13 @@ export function KubeConfiguration() {
     }
   }, [deleteConfigResponse, error, dispatch]);
 
+  // Every route into a cluster funnels through here — the table's cells and the
+  // card view's name and avatar alike — so it's the one place that knows a
+  // cluster was picked: it sounds the "select" cue and arms the "level-up" cue
+  // for whichever list load lands next (see lib/sound.ts).
   const navigateTo = (config: string, name: string) => {
+    play('select');
+    armArrivalCue();
     navigate({ to: `/${config}/list?cluster=${encodeURIComponent(name)}&resourcekind=pods` });
   };
 
@@ -255,6 +264,33 @@ export function KubeConfiguration() {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Switch to {nextViewMode} view</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip delayDuration={0}>
+                <TooltipTrigger asChild>
+                  {/* Mutes every cue, not just this page's — the preference is
+                      app-wide and the player persists it itself. Turning it on
+                      plays a cue immediately: it confirms the sound actually
+                      reaches the speakers, and the click itself is the user
+                      gesture browsers require before any audio may start, so
+                      the very next hover isn't silently swallowed. */}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    aria-pressed={soundEnabled}
+                    aria-label={soundEnabled ? 'Mute interaction sounds' : 'Unmute interaction sounds'}
+                    onClick={() => {
+                      const next = !soundEnabled;
+                      setSoundEnabled(next);
+                      if (next) play('toggle-on');
+                    }}
+                  >
+                    {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{soundEnabled ? 'Mute sounds' : 'Unmute sounds'}</TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>

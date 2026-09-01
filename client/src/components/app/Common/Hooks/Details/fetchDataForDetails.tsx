@@ -41,6 +41,31 @@ import { updateStorageClassDetails } from "@/data/Storages/StorageClasses/Storag
 import { updateVolumeAttributesClassDetails } from "@/data/Storages/VolumeAttributesClasses/VolumeAttributesClassDetailsSlice";
 import { useEventSource } from "../EventSource";
 
+// The details endpoints publish a bare `{}` whenever the object isn't in the
+// informer's local store — see BaseHandler.marshalDetailData, which returns
+// `{}` both while an informer is still syncing and for an object that is gone,
+// with nothing to tell the two apart.
+//
+// That payload must never reach the store. Dispatching it clears `loading`
+// while the details object is still empty, and every get*DetailsConfig reads
+// `details.metadata.*`, `details.status.*` and `details.spec.*` unguarded (see
+// DetailDefinations.ts, where only `subHeading` checks `!details.metadata`).
+// The next render then throws a TypeError, React unwinds the whole page, and
+// the miscComponent - the only thing that opens the workload's pods stream -
+// is never even constructed. The visible result is a blank page whose most
+// obvious symptom is a request that was never made.
+//
+// Holding the update instead keeps a first load in its loading state until
+// real data arrives, and leaves an already-loaded resource showing what it
+// last had rather than blanking out.
+function isUsableDetail(message: unknown): boolean {
+  // Only plain objects are screened. If a details stream ever sends a list,
+  // that is its own contract and not this guard's business.
+  if (Array.isArray(message)) return true;
+  if (!message || typeof message !== 'object') return false;
+  return 'metadata' in message;
+}
+
 type FetchDataForDetailsProps = {
   config: string;
   cluster: string;
@@ -199,9 +224,9 @@ const useFetchDataForDetails = ({
     };
   }
   const sendMessage = (message: object[]) => {
-    if(data) {
-      dispatch(data.dispatchMethod(message));
-    }
+    if (!data) return;
+    if (!isUsableDetail(message)) return;
+    dispatch(data.dispatchMethod(message));
   };
 
   useEventSource({
