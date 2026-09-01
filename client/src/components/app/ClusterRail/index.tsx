@@ -60,12 +60,13 @@ const ClusterRail = ({ configName, clusterName, selectedResource }: ClusterRailP
   // load (a sidebar resource-kind change, say).
   //
   // resetAllStates() puts every list slice back to `loading: true`, which is the
-  // edge useArrivalCue waits for; the cue then sounds once, when the new
-  // cluster's list has actually arrived.
-  const selectCluster = (isActive: boolean) => {
+  // edge useArrivalCue waits for. armArrivalCue then decides whether this
+  // selection deserves the cue at all: only a cluster that isn't connected yet
+  // does, so hopping between clusters already in the rail stays silent.
+  const selectCluster = (config: string, name: string, connected: boolean, isActive: boolean) => {
     if (isActive) return;
     dispatch(resetAllStates());
-    armArrivalCue();
+    armArrivalCue(config, name, connected);
   };
   const { clusters } = useAppSelector((state: RootState) => state.clusters);
   const [overflowOpen, setOverflowOpen] = useState(false);
@@ -174,7 +175,7 @@ const ClusterRail = ({ configName, clusterName, selectedResource }: ClusterRailP
                   <TooltipTrigger asChild>
                     <Link
                       to={`/${config}/list?cluster=${name}&resourcekind=${selectedResource}`}
-                      onClick={() => selectCluster(isActive)}
+                      onClick={() => selectCluster(config, name, connected, isActive)}
                       aria-current={isActive ? 'page' : undefined}
                       className={cn(
                         'relative flex items-center justify-center rounded-md border text-[11.5px] font-medium',
@@ -235,7 +236,7 @@ const ClusterRail = ({ configName, clusterName, selectedResource }: ClusterRailP
                         key={`${config}::${name}`}
                         to={`/${config}/list?cluster=${name}&resourcekind=${selectedResource}`}
                         onClick={() => {
-                          selectCluster(isActive);
+                          selectCluster(config, name, connected, isActive);
                           setOverflowOpen(false);
                         }}
                         aria-current={isActive ? 'page' : undefined}

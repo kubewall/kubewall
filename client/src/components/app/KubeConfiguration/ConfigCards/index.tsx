@@ -9,7 +9,7 @@ import { TruncatedText } from '../TruncatedText';
 
 type ConfigCardsProps = {
   groups: ConfigGroup[];
-  onNavigate: (config: string, name: string) => void;
+  onNavigate: (config: string, name: string, connected: boolean) => void;
 };
 
 export function ConfigCards({ groups, onNavigate }: ConfigCardsProps) {
@@ -68,7 +68,7 @@ export function ConfigCards({ groups, onNavigate }: ConfigCardsProps) {
                         aria-hidden
                         data-cluster-link
                         data-uisfx-hover="hover"
-                        onClick={() => onNavigate(group.configKey, name)}
+                        onClick={() => onNavigate(group.configKey, name, connected)}
                         className="shrink-0 rounded-md transition-opacity group-has-[[data-cluster-link]:hover]/link:opacity-75"
                       >
                         <ClusterAvatar name={name} connected={connected} size="lg" />
@@ -79,7 +79,7 @@ export function ConfigCards({ groups, onNavigate }: ConfigCardsProps) {
                           type="button"
                           data-cluster-link
                           data-uisfx-hover="hover"
-                          onClick={() => onNavigate(group.configKey, name)}
+                          onClick={() => onNavigate(group.configKey, name, connected)}
                           className="block min-w-0 max-w-full text-left"
                         >
                           <TruncatedText value={name} className="block truncate text-base font-semibold leading-none group-has-[[data-cluster-link]:hover]/link:underline" />

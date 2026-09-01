@@ -158,11 +158,12 @@ export function KubeConfiguration() {
 
   // Every route into a cluster funnels through here — the table's cells and the
   // card view's name and avatar alike — so it's the one place that knows a
-  // cluster was picked: it sounds the "select" cue and arms the "level-up" cue
-  // for whichever list load lands next (see lib/sound.ts).
-  const navigateTo = (config: string, name: string) => {
+  // cluster was picked. "select" sounds on every pick; "level-up" is armed only
+  // when this is a cluster we're connecting to for the first time, and fires
+  // when its list finishes loading (see lib/sound.ts).
+  const navigateTo = (config: string, name: string, connected: boolean) => {
     play('select');
-    armArrivalCue();
+    armArrivalCue(config, name, connected);
     navigate({ to: `/${config}/list?cluster=${encodeURIComponent(name)}&resourcekind=pods` });
   };
 

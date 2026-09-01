@@ -76,26 +76,62 @@ export function subscribeToSoundEnabled(listener: () => void): () => void {
 }
 
 // ─── Arrival cue ─────────────────────────────────────────────────────────────
-// "Level-up" belongs to the act of picking a cluster and getting in, not to the
-// list page as such — the same page reached by switching resource kind in the
-// sidebar, or by a reload, or by a pasted URL, must stay silent.
+// "Level-up" marks getting into a cluster for the first time — the moment a
+// connection is established, not arriving at a list page. So:
 //
-// So the cue is armed at the click and consumed by the first list load that
-// finishes afterwards. A module-level flag (not localStorage) is exactly the
-// right lifetime: it survives the client-side route change, and a full reload
-// wipes it, which is precisely the case that must not sound.
+//   * picking a cluster that isn't connected yet  -> cue, once its list loads
+//   * picking one that's already connected        -> silent, it's plain navigation
+//   * the same list reached by switching resource kind, by a reload, or from a
+//     pasted URL                                  -> silent
+//
+// The cue is armed at the click and consumed by the first list load that
+// finishes afterwards. Module-level state (not localStorage) is the right
+// lifetime: it survives the client-side route change, and a full reload wipes
+// it, which is precisely the case that must not sound.
 
-let arrivalArmed = false;
+/** `config/cluster` of the selection waiting for its list to finish loading. */
+let pendingCluster: string | null = null;
 
-/** Called when the user picks a cluster, arming the next list load's cue. */
-export function armArrivalCue(): void {
-  arrivalArmed = true;
+// Clusters already cued in this session. `connected` alone isn't enough to
+// stand on: the clusters slice opts out of resetAllStates and KubeWall only
+// refetches it when kubeConfigs is missing, so the rail can hold a `connected`
+// that predates a connection we made ourselves — and a stale `false` would
+// replay the cue on every revisit. This is the record of what actually sounded.
+const cuedClusters = new Set<string>();
+
+/** Key used for both of the above. Matches the addons' `config/cluster` form. */
+export function clusterCueKey(config: string, cluster: string): string {
+  return `${config}/${cluster}`;
 }
 
-/** Reads and clears the flag — true at most once per cluster selection. */
-export function consumeArrivalCue(): boolean {
-  const armed = arrivalArmed;
-  arrivalArmed = false;
-  return armed;
+/**
+ * Arms the level-up cue for the cluster just selected, if this is the first
+ * time we're connecting to it. `alreadyConnected` comes from the clusters list.
+ *
+ * Every selection replaces what was pending, including with nothing: a cluster
+ * that never finished connecting leaves its arm behind, and the next selection
+ * is by definition a different cluster whose list must not inherit it.
+ */
+export function armArrivalCue(config: string, cluster: string, alreadyConnected: boolean): void {
+  const key = clusterCueKey(config, cluster);
+  const eligible = !alreadyConnected && !cuedClusters.has(key);
+  pendingCluster = eligible ? key : null;
+}
+
+/**
+ * Fires at most once per cluster, and only for the cluster that was actually
+ * armed — a list load belonging to any other cluster leaves the arm untouched
+ * rather than consuming it. Without that check, selecting a cluster that fails
+ * to connect and then returning to a working one would sound the cue for the
+ * working cluster, which was already connected.
+ *
+ * The cluster is recorded as cued only at the point it sounds, so a selection
+ * whose list never loads stays eligible the next time it's picked.
+ */
+export function consumeArrivalCue(config: string, cluster: string): boolean {
+  if (!pendingCluster || pendingCluster !== clusterCueKey(config, cluster)) return false;
+  cuedClusters.add(pendingCluster);
+  pendingCluster = null;
+  return true;
 }
 
