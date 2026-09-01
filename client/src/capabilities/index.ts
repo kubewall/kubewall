@@ -21,6 +21,9 @@ const capabilities: CapabilityConfig = {
   clusterTags: {
     enabled: false,
   },
+  deploymentRevisions: {
+    enabled: false,
+  },
 };
 
 export default capabilities;

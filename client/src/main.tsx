@@ -7,8 +7,14 @@ import ReactDOM from 'react-dom/client';
 import { RouterProvider } from '@tanstack/react-router';
 import { ThemeProvider, useTheme } from './components/app/ThemeProvider';
 import { Toaster } from './components/ui/sonner';
+import { initSound } from './lib/sound';
 import { router } from './routes';
 import store from './redux/store';
+
+// Creates the uisfx player under the stored sound preference and installs its
+// delegated `data-uisfx-*` listeners before anything renders, so the first hover
+// over a cue-carrying element already sounds.
+initSound();
 
 const ThemedToaster = () => {
   const { isDark } = useTheme();

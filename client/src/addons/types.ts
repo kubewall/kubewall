@@ -102,10 +102,27 @@ export interface ClusterTagsAddonDefinition extends AddonDefinition {
   upsertClusterTags: ((config: string, cluster: string, tags: { label: string; color: string }[]) => any) | null;
 }
 
+// ─── Deployment Revisions Addon ───────────────────────────────────────────────
+export interface DeploymentRevisionsAddonDefinition extends AddonDefinition {
+  /**
+   * Rollout history for one deployment, rendered as the Details page's
+   * "Revisions" tab. Self-contained: it opens its own SSE stream against
+   * `api/v1/deployments/{name}/revisions` (served by the premium backend
+   * addon) and links each revision to its ReplicaSet's details page.
+   */
+  RevisionsTab: ComponentType<{
+    deploymentName: string;
+    namespace: string;
+    configName: string;
+    clusterName: string;
+  }> | null;
+}
+
 // ─── Registry ─────────────────────────────────────────────────────────────────
 // Add a new optional key here for every new addon feature.
 export interface AddonRegistry {
   terminal?: TerminalAddonDefinition;
   kubeEndOfLife?: KubeEndOfLifeAddonDefinition;
   clusterTags?: ClusterTagsAddonDefinition;
+  deploymentRevisions?: DeploymentRevisionsAddonDefinition;
 }

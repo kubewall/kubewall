@@ -120,6 +120,7 @@ import {
 } from "@/utils/ListType/ListDefinations";
 
 import { CreateTable } from "@/components/app/Common/Hooks/Table";
+import { useArrivalCue } from '@/hooks/use-sound';
 import FourOFourError from "@/components/app/Errors/404Error";
 import PageWithTerminal from "@/components/app/Layout/PageWithTerminal";
 import { RootState } from "@/redux/store";
@@ -303,6 +304,11 @@ export function KwList() {
   };
 
   const tableData = getTableData(resourcekind);
+
+  // Above the early return below — hooks can't be called conditionally. An
+  // unknown resourcekind renders a 404 and never loads, so `true` here simply
+  // means "still loading", and the cue stays armed for a real list.
+  useArrivalCue(tableData?.loading ?? true);
 
   if (!tableData) {
     return <FourOFourError />;

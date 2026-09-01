@@ -14,7 +14,7 @@ import { Events } from "../../Details/Events";
 import FourOFourError from "../../Errors/404Error";
 import { Loader } from "../../Loader";
 import { Overview } from "../../Details/Overview";
-import { PODS_ENDPOINT } from "@/constants";
+import { DEPLOYMENT_ENDPOINT, PODS_ENDPOINT } from "@/constants";
 import PageWithTerminal from "../../Layout/PageWithTerminal";
 import { RootState } from "@/redux/store";
 import { Row } from "@tanstack/react-table";
@@ -35,6 +35,13 @@ import { BRAND } from "@/branding.config";
 
 // Resolved once at module load — null in free build, real component in premium.
 const PodSSHTopBarButton = addons.terminal?.PodSSHTopBarButton ?? null;
+
+// Rollout history. The tab only exists when the capability is on AND the addon
+// actually shipped a component: the capability alone isn't enough, because the
+// stream it reads is served by a backend addon that is only compiled into
+// premium builds — a tab that could only ever 404 is worse than no tab.
+const RevisionsTab = addons.deploymentRevisions?.RevisionsTab ?? null;
+const revisionsEnabled = !!capabilities.deploymentRevisions?.enabled && !!RevisionsTab;
 
 // kwAI pulls in every LLM provider SDK plus the markdown/highlight pipeline;
 // load it only when the chat panel is actually opened.
@@ -243,13 +250,29 @@ const KwDetails = () => {
                 </div>
 
               </div>
-              {resourceData &&
-                <Tabs defaultValue='overview' className="flex flex-col flex-1 min-h-0">
+              {/* No resourceData means the details stream has not delivered a
+                  usable payload yet (see useFetchDataForDetails). Render the
+                  loader rather than nothing: this branch used to collapse to an
+                  empty page, which made a pending stream indistinguishable from
+                  a broken one. */}
+              {!resourceData ? <Loader /> :
+                /* `key` forces a fresh Tabs instance per resource. Radix keeps the
+                   selected tab in internal state, and `defaultValue` only applies on
+                   mount - but a details -> details navigation changes nothing but the
+                   search params, so this component never remounts on its own. Without
+                   the key the previous resource's tab stays selected, and any tab that
+                   doesn't exist for the new resource (Revisions, which is deployments
+                   only; Logs, which is pods only) leaves NO panel matching the active
+                   value: the tab strip renders, the body is empty, and the Overview
+                   panel - the only thing that mounts miscComponent, and so the only
+                   thing that opens the workload's pods stream - never renders at all. */
+                <Tabs key={`${resourcekind}/${resourcename}`} defaultValue='overview' className="flex flex-col flex-1 min-h-0">
                   <TabsList className="grid w-full grid-cols-6 md:grid-cols-6 sm:grid-cols-4 mb-2 shrink-0">
                     <TabsTrigger value='overview' autoFocus={true}>Overview</TabsTrigger>
                     <TabsTrigger value='yaml'>YAML</TabsTrigger>
                     <TabsTrigger value='events'>Events</TabsTrigger>
                     {resourceInitialData.label.toLowerCase() === PODS_ENDPOINT && <TabsTrigger value='logs'>Logs</TabsTrigger>}
+                    {revisionsEnabled && resourcekind === DEPLOYMENT_ENDPOINT && <TabsTrigger value='revisions'>Revisions</TabsTrigger>}
                   </TabsList>
 
                   <ResizablePanelGroup
@@ -287,6 +310,17 @@ const KwDetails = () => {
                             namespace={namespace || ''}
                           />
                         </TabsContent>
+                        {
+                          revisionsEnabled && resourcekind === DEPLOYMENT_ENDPOINT && RevisionsTab &&
+                          <TabsContent className="mt-0 h-full overflow-auto overscroll-contain" value='revisions'>
+                            <RevisionsTab
+                              deploymentName={resourcename}
+                              namespace={namespace || ''}
+                              configName={config}
+                              clusterName={cluster}
+                            />
+                          </TabsContent>
+                        }
                         {
                           resourceInitialData.label.toLowerCase() === PODS_ENDPOINT &&
                           <TabsContent className="mt-0 h-full overflow-hidden" value='logs'>

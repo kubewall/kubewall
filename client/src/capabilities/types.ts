@@ -22,9 +22,19 @@ export interface ClusterTagsCapabilities {
   enabled: boolean;
 }
 
+export interface DeploymentRevisionsCapabilities {
+  /**
+   * Whether the Details page shows a deployment's rollout history. Requires
+   * the matching backend addon, which is only compiled into premium builds —
+   * so this is false in the free config and the tab never appears there.
+   */
+  enabled: boolean;
+}
+
 // Add a new key here for every new feature's capability config.
 export interface CapabilityConfig {
   terminal: TerminalCapabilities;
   kubeEndOfLife: KubeEndOfLifeCapabilities;
   clusterTags: ClusterTagsCapabilities;
+  deploymentRevisions: DeploymentRevisionsCapabilities;
 }

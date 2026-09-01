@@ -1,6 +1,7 @@
 import { ClusterEOLBadge, ClusterTagBadge, eolEnabled, tagsEnabled } from '../clusterAddonSlots';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
+import { ChevronsRight } from 'lucide-react';
 import { ClusterAvatar } from '../ClusterAvatar';
 import { ClusterStatus } from '../ClusterStatus';
 import { ConfigGroup } from '../types';
@@ -77,7 +78,32 @@ export function ConfigSection({ groups, onNavigate }: ConfigSectionProps) {
                 return (
                   // `group/item` stays — ClusterTagBadge's edit pencil is revealed on row hover.
                   <TableRow className="group/item" key={name}>
-                    <TableCell className="relative">
+                    {/* The whole cell is one target: it owns the click, the pointer
+                        cursor, the hover tint and — via `group/cell` — the hover state
+                        of everything inside it. The children carry no handler of their
+                        own, so a click anywhere (including Enter/Space on the focused
+                        name button, which bubbles) navigates exactly once.
+
+                        `hover:bg-muted/50` layers over TableRow's identical row-level
+                        hover; a <td> background paints above its <tr>'s, so this cell
+                        composites to ~75% muted while the rest of the row sits at 50%
+                        — the Cluster column reads as the active target without
+                        introducing a second colour.
+
+                        `data-uisfx-hover` is picked up by the delegated listeners
+                        `bindUISFX` installed at startup (see lib/sound.ts): entering
+                        the cell plays the zen pack's "hover" cue and nothing else in
+                        the table sounds. uisfx handles the rest — no cue for touch,
+                        cooled down so sweeping the column doesn't machine-gun, and
+                        skipped when the pointer merely crosses between this cell's own
+                        children. The click cue is not declared here: it belongs to
+                        picking a cluster, which the card view does too, so it lives
+                        with navigateTo in KubeConfiguration instead. */}
+                    <TableCell
+                      className="group/cell relative cursor-pointer transition-colors hover:bg-muted/50"
+                      data-uisfx-hover="hover"
+                      onClick={() => onNavigate(group.configKey, name)}
+                    >
                       {/* Tree guides connecting each cluster to its config header.
                           Absolutely positioned against the cell's padding box so
                           the vertical run is flush between rows — a stretched flex
@@ -96,33 +122,49 @@ export function ConfigSection({ groups, onNavigate }: ConfigSectionProps) {
                       />
                       {/* Inner flex wrapper — putting `flex` on the <td> itself
                           breaks table-fixed column sizing. */}
-                      {/* `group/link` ties the icon and name hover states together —
-                          hovering either underlines the name and dims the icon, so the
-                          two read as one target. */}
-                      <div className="group/link flex min-w-0 items-center gap-3 pl-8">
-                        {/* Same navigation target as the name. Kept out of the tab
-                            order and the a11y tree so the pair is one stop,
-                            announced once, rather than two identical links. */}
-                        <button
-                          type="button"
-                          tabIndex={-1}
+                      <div className="flex min-w-0 items-center gap-3 pl-8">
+                        {/* Decorative: the cell above owns the click, so this is a
+                            plain span rather than a second, identical control. */}
+                        <span
                           aria-hidden
-                          onClick={() => onNavigate(group.configKey, name)}
-                          className="shrink-0 rounded-md transition-opacity group-hover/link:opacity-75"
+                          className="shrink-0 rounded-md transition-opacity group-hover/cell:opacity-75"
                         >
                           <ClusterAvatar name={name} connected={connected} />
-                        </button>
+                        </span>
                         <div className="min-w-0">
-                          {/* Only the name (and its icon) navigate — not the whole row. */}
+                          {/* Kept as a real <button> so the cell is reachable by
+                              keyboard and announced as one actionable name. It needs
+                              no handler: Enter/Space fire a click that bubbles to the
+                              cell, which is the single place navigation happens. */}
                           <button
                             type="button"
-                            onClick={() => onNavigate(group.configKey, name)}
                             className="block min-w-0 max-w-full text-left"
                           >
-                            <TruncatedText value={name} className="block truncate font-medium group-hover/link:underline" />
+                            <TruncatedText value={name} className="block truncate font-medium group-hover/cell:underline" />
                           </button>
                           <span className="block truncate text-xs text-muted-foreground">ns: {namespace || 'N/A'}</span>
                         </div>
+                        {/* Trailing "go" affordance, pinned to the far edge of the
+                            column by `ml-auto`. Muted at rest and stepping up to
+                            `text-foreground` on hover is the app's standard icon pair
+                            (cf. ClusterTagBadge, the terminal's tab controls). It hangs
+                            off the cell's `group/cell` rather than its own `hover:` so
+                            it darkens wherever in the cell the pointer is — the avatar
+                            dims and the name underlines at the same moment, all three
+                            reacting as the one target the cell now is.
+
+                            On hover it also leans right and grows slightly, so the
+                            chevron reads as "this opens" rather than as a static
+                            decoration, and the hovered row's chevron is distinguishable
+                            from the column of resting ones beside it. `translate-x-1`
+                            is 4px — it stays inside the cell's own 8px padding, so the
+                            icon never crosses into the Status column. `transition`
+                            (not `transition-colors`) is needed because the animated
+                            properties now include transform. */}
+                        <ChevronsRight
+                          aria-hidden
+                          className="ml-auto h-4 w-4 shrink-0 text-muted-foreground transition duration-200 group-hover/cell:translate-x-1 group-hover/cell:scale-110 group-hover/cell:text-foreground motion-reduce:transform-none motion-reduce:transition-colors"
+                        />
                       </div>
                     </TableCell>
                     {eolEnabled && ClusterEOLBadge && (
