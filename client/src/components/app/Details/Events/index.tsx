@@ -56,6 +56,7 @@ export function Events({ instanceType, name, namespace, configName, clusterName,
       columns={eventsColumns({ count: events.length, clusterName, configName, loading, instanceType: 'events' })}
       data={events}
       showToolbar={false}
+      emptyMessage={`No events for ${name}.`}
       tableWidthCss="event-table-max-height rounded-lg"
       instanceType='events'
       showNamespaceFilter={false}

@@ -54,6 +54,7 @@ type DataTableProps<TData, TValue> = {
   instanceType: string;
   kind?: string;
   showToolbar?: boolean;
+  emptyMessage?: string;
   loading?: boolean;
   showChat: boolean;
   setShowChat: React.Dispatch<React.SetStateAction<boolean>>;
@@ -110,6 +111,7 @@ export function DataTable<TData, TValue>({
   instanceType,
   kind,
   showToolbar = true,
+  emptyMessage,
   loading = false,
   setShowChat,
   showChat
@@ -260,7 +262,7 @@ export function DataTable<TData, TValue>({
                 collapse to the header row, squeezing the message under it. */}
             <div
               ref={tableContainerRef}
-              className={cn('border border-x-0 overflow-auto', tableWidthCss, !rows.length && 'min-h-40')}
+              className={cn('relative border border-x-0 overflow-auto', tableWidthCss, !rows.length && 'min-h-40')}
             >
               <TooltipProvider delayDuration={0}>
               <Table style={{ tableLayout: 'fixed' }}>
@@ -366,7 +368,7 @@ export function DataTable<TData, TValue>({
                         </div>
                       </>
                     ) : (
-                      <p className="text-sm text-muted-foreground">No {getSearchTarget(instanceType, kind)} found in cluster.</p>
+                      <p className="text-sm text-muted-foreground">{emptyMessage ?? `No ${getSearchTarget(instanceType, kind)} found in cluster.`}</p>
                     )}
                   </div>
                 </div>
