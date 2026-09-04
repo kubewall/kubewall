@@ -1,6 +1,10 @@
+import { OwnerReference } from "../misc";
+
 type CustomResourcesDefinitionDetails = {
   metadata: {
     name: string,
+    namespace?: string,
+    ownerReferences?: (OwnerReference | null)[] | null,
     uid: string,
     resourceVersion: string,
     generation: number,

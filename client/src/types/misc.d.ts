@@ -92,6 +92,7 @@ type CustomResourcesNavigationKeys = {
     icon: string;
     name: string;
     route: string;
+    scope: string;
     additionalPrinterColumns: CustomResourcesPrinterColumns[];
   }[];
 };
@@ -108,9 +109,27 @@ type KeyValueNull = ({
   [key: string]: string | number | null
 } | null);
 
+type OwnerReference = {
+  apiVersion?: string | null;
+  kind: string;
+  name: string;
+  controller?: boolean | null;
+};
+
+type DetailsCardLink = {
+  resourcekind: string;
+  resourcename: string;
+  namespace?: string;
+  customResource?: {
+    group: string;
+    kind: string;
+  };
+};
+
 type DetailsCards = {
   label: string;
   value: string | number | true;
+  link?: DetailsCardLink;
 }[];
 
 type BadgeDetails = {
@@ -151,6 +170,8 @@ export {
   kwDetailsSearch,
   KeyValue,
   KeyValueNull,
+  OwnerReference,
+  DetailsCardLink,
   DetailsCards,
   BadgeDetails,
   CommonSearchParams

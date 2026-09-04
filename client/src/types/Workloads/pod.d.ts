@@ -84,8 +84,12 @@ type PodDetailsSpec = {
   serviceAccountName: string,
   serviceAccount: string,
   nodeName: string,
+  nodeSelector?: {
+    [key: string]: string,
+  },
   schedulerName: string,
   priority: number,
+  priorityClassName?: string,
   enabledServiceLinks: boolean,
   preemptionPolicy: string,
 };
