@@ -1,19 +1,30 @@
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 
 import { CopyToClipboard } from "@/components/app/Common/CopyToClipboard";
+import { DetailsCards } from "@/types";
 import { RelativeTime } from "@/components/app/Common/RelativeTime";
+import { ResourceDetailsLink } from "@/components/app/Common/ResourceDetailsLink";
 
 type CardContainerProps = {
-  items: {
-    label: string,
-    value: string | number | boolean,
-  }[],
+  items: DetailsCards,
   title?: string;
 };
 
 const AGE_LABEL = 'Age';
 
+function DetailValue({ label, value, link }: DetailsCards[number]) {
+  if (link) {
+    return <ResourceDetailsLink link={link} text={String(value)} />;
+  }
+  if (label === AGE_LABEL && typeof value === 'string' && !Number.isNaN(Date.parse(value))) {
+    return <RelativeTime timestamp={value} />;
+  }
+  return <>{value}</>;
+}
+
 export function FixedCard({ items, title }: CardContainerProps) {
+  const rowsPerColumn = Math.ceil(items.length / 2);
+
   return (
     <div className="flex items-center justify-center [&>div]:w-full">
       <Card className="pt-3 shadow-none rounded-lg">
@@ -21,20 +32,19 @@ export function FixedCard({ items, title }: CardContainerProps) {
           title && <CardTitle className="p-4">{title}</CardTitle>
         }
         <CardContent className="grid gap-1 p-4 pt-0">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <div
+            className="grid grid-cols-1 gap-2 md:grid-cols-2 md:grid-flow-col"
+            style={{ gridTemplateRows: `repeat(${rowsPerColumn}, auto)` }}
+          >
             {
-              items.map(({ label, value }) => {
-                const timestamp = label === AGE_LABEL && typeof value === 'string' && !Number.isNaN(Date.parse(value))
-                  ? value
-                  : null;
-
+              items.map(({ label, value, link }) => {
                 return (
                   <div key={label} className="group/item -mx-2 px-3 transition-all">
                     <div className="flex flex-row">
                       <div className="text-sm font-medium text-muted-foreground basis-1/3">{label}</div>
                       {/* <div className="text-sm font-normal break-all basis-2/3">{value}</div> */}
                       <div className="text-sm font-normal basis-2/3 flex items-center justify-between">
-                        <div className="break-all">{timestamp ? <RelativeTime timestamp={timestamp} /> : value}</div>
+                        <div className="break-all"><DetailValue label={label} value={value} link={link} /></div>
                         <div className="group/edit invisible group-hover/item:visible">
                           <CopyToClipboard val={value}/>
                           {/* <CopyIcon

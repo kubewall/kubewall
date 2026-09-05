@@ -1,3 +1,5 @@
+import { OwnerReference } from "../misc";
+
 type CustomResourceDetails = {
   apiVersion: string;
   kind: string;
@@ -9,6 +11,7 @@ type CustomResourceDetails = {
     generation: number;
     name: string;
     namespace: string;
+    ownerReferences?: (OwnerReference | null)[] | null;
     resourceVersion: number;
     uid: string;
     labels?: {

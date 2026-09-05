@@ -1,3 +1,5 @@
+import { OwnerReference } from "../misc";
+
 type NetworkPoliciesHeaders = {
   namespace: string;
   name: string;
@@ -24,6 +26,7 @@ type NetworkPolicyDetailsMetadata = {
   } | null;
   name?: string | null;
   namespace?: string | null;
+  ownerReferences?: (OwnerReference | null)[] | null;
   resourceVersion?: string | null;
   uid?: string | null;
 };

@@ -1,3 +1,5 @@
+import { OwnerReference } from "../misc";
+
 /**
  * The slice of ObjectMeta the storage details cards actually read. The older
  * generated types in this folder each carry a full copy of ObjectMeta; nothing
@@ -16,6 +18,8 @@ type StorageDetailsMetadata = {
     [k: string]: string | null;
   } | null;
   name?: string | null;
+  namespace?: string | null;
+  ownerReferences?: (OwnerReference | null)[] | null;
   resourceVersion?: string | null;
   uid?: string | null;
 };

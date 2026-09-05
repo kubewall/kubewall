@@ -1,17 +1,22 @@
-import { CustomResources, CustomResourcesNavigation, KeyValue, KeyValueNull } from "@/types";
+import { CustomResources, CustomResourcesNavigation, KeyValue, KeyValueNull, OwnerReference } from "@/types";
 
-import { API_VERSION } from "@/constants";
+import { API_VERSION, CRON_JOBS_ENDPOINT, CUSTOM_RESOURCES_LIST_ENDPOINT, DAEMON_SETS_ENDPOINT, DEPLOYMENT_ENDPOINT, JOBS_ENDPOINT, NAMESPACES_ENDPOINT, NODES_ENDPOINT, PERSISTENT_VOLUMES_ENDPOINT, PERSISTENT_VOLUME_CLAIMS_ENDPOINT, PODS_ENDPOINT, REPLICA_SETS_ENDPOINT, SERVICES_ENDPOINT, SERVICE_ACCOUNTS_ENDPOINT, STATEFUL_SETS_ENDPOINT } from "@/constants";
 
 const mathFloor = (val = 0) => Math.floor(val);
+
+const NO_VALUE = '—';
 
 // A boolean is a real value, not a missing one: React renders `true` as nothing
 // at all, and `false` would otherwise take the `||` branch and read as unset.
 const defaultOrValue = (value?: string | number | boolean | null) =>
-  typeof value === 'boolean' ? String(value) : value || '—';
+  typeof value === 'boolean' ? String(value) : value || NO_VALUE;
+
+const defaultOrKeyValuePairs = (pairs?: KeyValue | null) =>
+  defaultOrValue(Object.entries(pairs ?? {}).map(([key, value]) => `${key}=${value}`).join(', '));
 
 const defaultOrValueObject = (value: object | Array<string | null> | string | unknown) => {
   if (Array.isArray(value)) {
-    return value.filter((secretValue) => !!secretValue).toString() || '—';
+    return value.filter((secretValue) => !!secretValue).toString() || NO_VALUE;
   }
   if (typeof value === 'string') {
     return value;
@@ -41,6 +46,7 @@ const formatCustomResources = (customResources: CustomResources[]) => {
         name: item.spec.names.kind,
         icon: item.spec.icon,
         route: item.queryParam,
+        scope: item.scope,
         additionalPrinterColumns: item.additionalPrinterColumns,
       });
     } else {
@@ -49,6 +55,7 @@ const formatCustomResources = (customResources: CustomResources[]) => {
           name: item.spec.names.kind,
           icon: item.spec.icon,
           route: item.queryParam,
+          scope: item.scope,
           additionalPrinterColumns: item.additionalPrinterColumns,
         }]
       };
@@ -77,6 +84,66 @@ const getLabelConditionCardDetails = (labels: null | undefined | KeyValueNull, c
   }
   return null;
 };
+
+const CONTROLLED_BY_LABEL = 'Controlled By';
+
+const detailsRouteByOwnerKind: Record<string, { resourcekind: string, namespaced: boolean }> = {
+  CronJob: { resourcekind: CRON_JOBS_ENDPOINT, namespaced: true },
+  DaemonSet: { resourcekind: DAEMON_SETS_ENDPOINT, namespaced: true },
+  Deployment: { resourcekind: DEPLOYMENT_ENDPOINT, namespaced: true },
+  Job: { resourcekind: JOBS_ENDPOINT, namespaced: true },
+  Namespace: { resourcekind: NAMESPACES_ENDPOINT, namespaced: false },
+  Node: { resourcekind: NODES_ENDPOINT, namespaced: false },
+  PersistentVolume: { resourcekind: PERSISTENT_VOLUMES_ENDPOINT, namespaced: false },
+  PersistentVolumeClaim: { resourcekind: PERSISTENT_VOLUME_CLAIMS_ENDPOINT, namespaced: true },
+  Pod: { resourcekind: PODS_ENDPOINT, namespaced: true },
+  ReplicaSet: { resourcekind: REPLICA_SETS_ENDPOINT, namespaced: true },
+  Service: { resourcekind: SERVICES_ENDPOINT, namespaced: true },
+  ServiceAccount: { resourcekind: SERVICE_ACCOUNTS_ENDPOINT, namespaced: true },
+  StatefulSet: { resourcekind: STATEFUL_SETS_ENDPOINT, namespaced: true }
+};
+
+const getOwnerLink = (owner: OwnerReference, namespace?: string | null) => {
+  const namespaceParam = namespace ? { namespace } : {};
+  const ownerRoute = detailsRouteByOwnerKind[owner.kind];
+  if (ownerRoute) {
+    return {
+      resourcekind: ownerRoute.resourcekind,
+      resourcename: owner.name,
+      ...(ownerRoute.namespaced ? namespaceParam : {})
+    };
+  }
+
+  return {
+    resourcekind: CUSTOM_RESOURCES_LIST_ENDPOINT,
+    resourcename: owner.name,
+    customResource: { group: (owner.apiVersion ?? '').includes('/') ? owner.apiVersion!.split('/')[0] : '', kind: owner.kind },
+    ...namespaceParam
+  };
+};
+
+const getControlledByDetail = (ownerReferences?: (OwnerReference | null)[] | null, namespace?: string | null) => {
+  const controller = ownerReferences?.find((owner) => owner?.controller);
+  if (!controller) {
+    return { label: CONTROLLED_BY_LABEL, value: NO_VALUE };
+  }
+
+  return {
+    label: CONTROLLED_BY_LABEL,
+    value: `${controller.kind}/${controller.name}`,
+    link: getOwnerLink(controller, namespace)
+  };
+};
+
+const getServiceAccountDetail = (serviceAccountName?: string | null, namespace?: string | null) => ({
+  label: 'Service Account',
+  value: defaultOrValue(serviceAccountName),
+  link: serviceAccountName ? {
+    resourcekind: SERVICE_ACCOUNTS_ENDPOINT,
+    resourcename: serviceAccountName,
+    ...(namespace ? { namespace } : {})
+  } : undefined
+});
 
 const getConditionsCardDetails = (conditions: undefined | null | KeyValueNull[]) => {
   return conditions?.reduce(function (result, item) {
@@ -172,6 +239,7 @@ const getDisplayTime = (ts: number): string => {
 
 export {
   createEventStreamQueryObject,
+  defaultOrKeyValuePairs,
   defaultOrValue,
   defaultOrValueObject,
   defaultSkeletonRow,
@@ -180,7 +248,9 @@ export {
   mathFloor,
   getAnnotationCardDetails,
   getConditionsCardDetails,
+  getControlledByDetail,
   getLabelConditionCardDetails,
+  getServiceAccountDetail,
   getSystemTheme,
   isIP,
   toggleValueInCollection,

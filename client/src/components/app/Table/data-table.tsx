@@ -32,6 +32,7 @@ import { RootState } from "@/redux/store";
 import { Separator } from '@/components/ui/separator';
 import { TableDelete } from './TableDelete';
 import { useFittedColumnWidths } from "@/hooks/use-fitted-column-widths";
+import { resetFilterNamespace } from "@/data/Misc/ListTableNamesapceSlice";
 import { resetListTableFilter } from "@/data/Misc/ListTableFilterSlice";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -53,6 +54,7 @@ type DataTableProps<TData, TValue> = {
   instanceType: string;
   kind?: string;
   showToolbar?: boolean;
+  emptyMessage?: string;
   loading?: boolean;
   showChat: boolean;
   setShowChat: React.Dispatch<React.SetStateAction<boolean>>;
@@ -80,6 +82,12 @@ const lowerNeedle = (value: string) => {
   return lastNeedleLower;
 };
 
+const describeNamespaces = (namespaces: string[]) => {
+  if (namespaces.length === 1) return `namespace "${namespaces[0]}"`;
+  if (namespaces.length === 2) return `namespaces "${namespaces[0]}" and "${namespaces[1]}"`;
+  return `${namespaces.length} selected namespaces`;
+};
+
 // eslint-disable-next-line  @typescript-eslint/no-explicit-any
 const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
   const rowValue = row.getValue(columnId);
@@ -103,6 +111,7 @@ export function DataTable<TData, TValue>({
   instanceType,
   kind,
   showToolbar = true,
+  emptyMessage,
   loading = false,
   setShowChat,
   showChat
@@ -116,22 +125,21 @@ export function DataTable<TData, TValue>({
     selectedNamespace
   } = useAppSelector((state: RootState) => state.listTableNamesapce);
 
-  const getDefaultValue = () => {
-    if (selectedNamespace.length > 0) {
-      return [{
-        id: 'Namespace',
-        value: Array.from(selectedNamespace)
-      }];
-    }
-    return [];
-  };
+  const followsToolbarFilters = showToolbar;
+  const initialColumnFilters: ColumnFiltersState =
+    followsToolbarFilters && selectedNamespace.length > 0
+      ? [{ id: 'Namespace', value: [...selectedNamespace] }]
+      : [];
+
   const [rowSelection, setRowSelection] = useState({});
-  const [globalFilter, setGlobalFilter] = useState(searchString);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(getDefaultValue());
+  const [globalFilter, setGlobalFilter] = useState(followsToolbarFilters ? searchString : '');
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(initialColumnFilters);
 
   useEffect(() => {
-    setGlobalFilter(searchString);
-  }, [searchString]);
+    if (followsToolbarFilters) {
+      setGlobalFilter(searchString);
+    }
+  }, [followsToolbarFilters, searchString]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const table = useReactTable({
     data,
@@ -217,6 +225,17 @@ export function DataTable<TData, TValue>({
     dispatch(resetListTableFilter());
   };
 
+  const namespaceColumnFilter = table.getColumn('Namespace')?.getFilterValue();
+  const filteredNamespaces = Array.isArray(namespaceColumnFilter) ? namespaceColumnFilter as string[] : [];
+  const hasSearch = !!globalFilter;
+  const hasNamespaceFilter = filteredNamespaces.length > 0;
+  const emptiedByFilters = data.length > 0 && (hasSearch || hasNamespaceFilter);
+
+  const handleClearNamespaceFilter = () => {
+    table.getColumn('Namespace')?.setFilterValue(undefined);
+    dispatch(resetFilterNamespace());
+  };
+
   return (
     <>
       {
@@ -243,7 +262,7 @@ export function DataTable<TData, TValue>({
                 collapse to the header row, squeezing the message under it. */}
             <div
               ref={tableContainerRef}
-              className={cn('border border-x-0 overflow-auto', tableWidthCss, !rows.length && 'min-h-40')}
+              className={cn('relative border border-x-0 overflow-auto', tableWidthCss, !rows.length && 'min-h-40')}
             >
               <TooltipProvider delayDuration={0}>
               <Table style={{ tableLayout: 'fixed' }}>
@@ -312,21 +331,44 @@ export function DataTable<TData, TValue>({
               {!rows.length && (
                 <div className="absolute inset-x-0 top-10 bottom-0 flex items-center justify-center pointer-events-none">
                   <div className="flex flex-col items-center gap-2 text-center pointer-events-auto">
-                    {globalFilter ? (
+                    {emptiedByFilters ? (
                       <>
-                        <p>No results found for search term &quot;{globalFilter}&quot;</p>
-                        <p className="text-sm text-muted-foreground">Check the spelling, or try a shorter search term.</p>
-                        <Button
-                          variant="secondary"
-                          onClick={handleClearSearch}
-                          className="mt-1 h-8 gap-1.5 px-3"
-                        >
-                          Clear Search
-                          <X className="h-3.5 w-3.5" />
-                        </Button>
+                        {hasSearch
+                          ? <p>No results found for search term &quot;{globalFilter}&quot;{hasNamespaceFilter && ` in ${describeNamespaces(filteredNamespaces)}`}</p>
+                          : <p>No {getSearchTarget(instanceType, kind)} found in {describeNamespaces(filteredNamespaces)}</p>
+                        }
+                        <p className="text-sm text-muted-foreground">
+                          {hasSearch
+                            ? hasNamespaceFilter
+                              ? 'Check the spelling, try a shorter search term, or clear the namespace filter.'
+                              : 'Check the spelling, or try a shorter search term.'
+                            : 'Try selecting a different namespace, or clear the filter.'}
+                        </p>
+                        <div className="mt-1 flex items-center gap-2">
+                          {hasSearch && (
+                            <Button
+                              variant="secondary"
+                              onClick={handleClearSearch}
+                              className="h-8 gap-1.5 px-3"
+                            >
+                              Clear Search
+                              <X className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          {hasNamespaceFilter && (
+                            <Button
+                              variant="secondary"
+                              onClick={handleClearNamespaceFilter}
+                              className="h-8 gap-1.5 px-3"
+                            >
+                              Clear Namespace Filter
+                              <X className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </div>
                       </>
                     ) : (
-                      <p className="text-sm text-muted-foreground">No {getSearchTarget(instanceType, kind)} found in cluster.</p>
+                      <p className="text-sm text-muted-foreground">{emptyMessage ?? `No ${getSearchTarget(instanceType, kind)} found in cluster.`}</p>
                     )}
                   </div>
                 </div>

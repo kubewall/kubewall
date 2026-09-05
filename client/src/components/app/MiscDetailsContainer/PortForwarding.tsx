@@ -1,5 +1,5 @@
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { PlugZap, UnplugIcon, XIcon } from "lucide-react";
+import { Dices, PlugZap, UnplugIcon, XIcon } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { portForwarding, resetPortForwarding } from "@/data/Workloads/Pods/PortForwardingSlice";
@@ -11,6 +11,9 @@ import { Link } from "@tanstack/react-router";
 import { Loader } from "../Loader";
 import { toast } from "sonner";
 import { useAppDispatch } from "@/redux/hooks";
+
+const RANDOM_LOCAL_PORT_MIN = 10000;
+const RANDOM_LOCAL_PORT_MAX = 65535;
 
 type PortForwardingDialogProps = {
   resourcename: string;
@@ -65,6 +68,15 @@ export function PortForwardingDialog({
     }
     if (id === 'localPort') setValue(inputValue);
     else if (id === 'defaultPort') setCustomContainerPort(inputValue);
+  };
+
+  const generateRandomLocalPort = () => {
+    const usedPorts = new Set(portForwardingList.map(({ localPort }) => localPort));
+    let randomPort = 0;
+    do {
+      randomPort = RANDOM_LOCAL_PORT_MIN + Math.floor(Math.random() * (RANDOM_LOCAL_PORT_MAX - RANDOM_LOCAL_PORT_MIN + 1));
+    } while (usedPorts.has(randomPort));
+    setValue(String(randomPort));
   };
 
   const savePortForwarding = () => {
@@ -171,6 +183,23 @@ export function PortForwardingDialog({
               onChange={handleChange}
               value={value}
             />
+            <TooltipProvider>
+              <Tooltip delayDuration={0}>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="h-9 shrink-0 gap-1.5 px-3 text-xs font-normal text-muted-foreground"
+                    onClick={generateRandomLocalPort}
+                  >
+                    <Dices className="h-4 w-4" />
+                    Random
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  Pick a random unused port
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
           <div className="flex items-center gap-2">
             <label className="font-medium text-foreground">
@@ -210,7 +239,7 @@ export function PortForwardingDialog({
             </div>
           )}
           <div className="mt-2 flex items-center gap-2">
-            <span className="text-sm">Set the local port to <strong>0</strong> to allow Kubernetes to assign a random port automatically.</span>
+            <span className="text-sm">Use <strong>Random</strong> to pick an unused port, or set the local port to <strong>0</strong> to let Kubernetes assign one automatically.</span>
           </div>
           {filteredList.length > 0 && (
             <div>
