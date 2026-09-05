@@ -1,19 +1,29 @@
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Dices, PlugZap, UnplugIcon, XIcon } from "lucide-react";
+import { Dices, MoveRight, PlugZap, UnplugIcon, XIcon } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { portForwarding, resetPortForwarding } from "@/data/Workloads/Pods/PortForwardingSlice";
+import { resetStopPortForwarding, stopPortForwarding } from "@/data/Workloads/Pods/StopPortForwardingSlice";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link } from "@tanstack/react-router";
 import { Loader } from "../Loader";
+import { PortForwardingListResponse } from "@/types";
+import { RawRequestError } from "@/data/kwFetch";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { useAppDispatch } from "@/redux/hooks";
 
 const RANDOM_LOCAL_PORT_MIN = 10000;
 const RANDOM_LOCAL_PORT_MAX = 65535;
+
+type PortOption = {
+  value: string;
+  label: string;
+  containerName?: string;
+};
 
 type PortForwardingDialogProps = {
   resourcename: string;
@@ -22,11 +32,11 @@ type PortForwardingDialogProps = {
   cluster: string;
   resourceKind: "pod" | "service";
   details: any; // podDetails or serviceDetails
-  portForwardingList: any[];
+  portForwardingList: PortForwardingListResponse[];
   loading: boolean;
-  error: any;
+  error: RawRequestError | null;
   message: string;
-  getPortOptions: () => { value: string; label: string }[];
+  getPortOptions: () => PortOption[];
   getPortValue: (selected: string, custom?: string) => number;
   showCustomPortInput?: boolean;
 }
@@ -47,17 +57,23 @@ export function PortForwardingDialog({
   showCustomPortInput = false,
 }: PortForwardingDialogProps) {
   const dispatch = useAppDispatch();
+  const { stoppingId, message: stopMessage, error: stopError } = useAppSelector((state) => state.stopPortForwarding);
   const [modalOpen, setModalOpen] = useState(false);
-  const [value, setValue] = useState('');
-  const [containerPort, setContainerPort] = useState('');
+  const [localPort, setLocalPort] = useState('');
+  const [selectedPortOption, setSelectedPortOption] = useState('');
   const [customContainerPort, setCustomContainerPort] = useState('');
   const [isCustomPort, setIsCustomPort] = useState(false);
+  const namespace = details.metadata?.namespace;
+  const portOptions = getPortOptions();
+  const activeForwards = portForwardingList.filter(
+    (forward) => forward.kind.toLowerCase() === resourceKind && forward.name === resourcename && forward.namespace === namespace
+  );
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let inputValue = e.target.value;
     const id = e.target.id;
     if (inputValue === '') {
-      if (id === 'localPort') setValue('');
+      if (id === 'localPort') setLocalPort('');
       else if (id === 'defaultPort') setCustomContainerPort('');
       return;
     }
@@ -66,7 +82,7 @@ export function PortForwardingDialog({
         inputValue = inputValue.replace(/^0+/, '0');
       }
     }
-    if (id === 'localPort') setValue(inputValue);
+    if (id === 'localPort') setLocalPort(inputValue);
     else if (id === 'defaultPort') setCustomContainerPort(inputValue);
   };
 
@@ -76,28 +92,42 @@ export function PortForwardingDialog({
     do {
       randomPort = RANDOM_LOCAL_PORT_MIN + Math.floor(Math.random() * (RANDOM_LOCAL_PORT_MAX - RANDOM_LOCAL_PORT_MIN + 1));
     } while (usedPorts.has(randomPort));
-    setValue(String(randomPort));
+    setLocalPort(String(randomPort));
+  };
+
+  const selectPortOption = (option: string) => {
+    setSelectedPortOption(option);
+    if (showCustomPortInput) {
+      setIsCustomPort(!option.includes(': '));
+    }
   };
 
   const savePortForwarding = () => {
     dispatch(portForwarding({
       queryParams,
       name: details.metadata.name,
-      containerPort: getPortValue(containerPort, customContainerPort),
-      localPort: Number(value),
-      namespace: details.metadata.namespace,
+      containerName: portOptions.find(({ value }) => value === selectedPortOption)?.containerName || '',
+      containerPort: getPortValue(selectedPortOption, customContainerPort),
+      localPort: Number(localPort),
+      namespace,
       kind: resourceKind,
     }));
     setModalOpen(false);
   };
 
   const resetDialog = () => {
-    setValue('');
-    setContainerPort('');
+    setLocalPort('');
+    setSelectedPortOption('');
     setCustomContainerPort('');
     setModalOpen(false);
     setIsCustomPort(false);
   };
+
+  useEffect(() => {
+    if (modalOpen && portOptions.length === 1) {
+      selectPortOption(portOptions[0].value);
+    }
+  }, [modalOpen, portOptions.length]);
 
   useEffect(() => {
     if (message) {
@@ -111,27 +141,20 @@ export function PortForwardingDialog({
     }
   }, [message, error]);
 
-  const setContainerPortSelection = (val: string) => {
-    setContainerPort(val);
-    if (showCustomPortInput) {
-      const currentPort = val.split(': ')[1];
-      if (currentPort) {
-        setIsCustomPort(false);
-      } else {
-        setIsCustomPort(true);
-      }
-      // setIsCustomPort(val === "custom");
+  useEffect(() => {
+    if (stopMessage) {
+      toast.success("Success", { description: stopMessage });
+      dispatch(resetStopPortForwarding());
+    } else if (stopError) {
+      toast.error("Failure", { description: stopError.message });
+      dispatch(resetStopPortForwarding());
     }
-  };
+  }, [stopMessage, stopError]);
 
   const isPortForwardDisabled =
-    !value ||
-    !containerPort ||
+    !localPort ||
+    !selectedPortOption ||
     (showCustomPortInput && isCustomPort && !customContainerPort);
-
-  const filteredList = portForwardingList.filter(
-    item => item.kind.toLowerCase() === resourceKind && item.name === resourcename
-  );
 
   return (
     <Dialog open={modalOpen} onOpenChange={setModalOpen}>
@@ -141,14 +164,14 @@ export function PortForwardingDialog({
             <DialogTrigger asChild>
               <Button
                 disabled={loading}
-                variant='ghost'
+                variant={activeForwards.length > 0 ? 'default' : 'ghost'}
                 size='icon'
                 className='z-10 border w-8 mr-1 h-8'
                 onClick={() => setModalOpen(true)}
               >
                 {loading ? (
                   <Loader className='w-4 h-4 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600' />
-                ) : filteredList.length > 0 ? (
+                ) : activeForwards.length > 0 ? (
                   <PlugZap className='h-4 w-4' />
                 ) : (
                   <UnplugIcon className='h-4 w-4' />
@@ -157,7 +180,7 @@ export function PortForwardingDialog({
             </DialogTrigger>
           </TooltipTrigger>
           <TooltipContent side="bottom">
-            Port Forwarding
+            Port Forwarding{activeForwards.length > 0 && ` (${activeForwards.length} active)`}
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
@@ -165,10 +188,10 @@ export function PortForwardingDialog({
         <DialogHeader>
           <DialogTitle>Port Forwarding</DialogTitle>
           <DialogDescription className="text-sm">
-            Update the port forwarding settings for the {resourceKind}.
+            Forward a local port to this {resourceKind}.
           </DialogDescription>
         </DialogHeader>
-        <div className="mt-3 space-y-4 text-sm text-muted-foreground">
+        <div className="space-y-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <label htmlFor="localPort" className="font-medium text-foreground">
               Local Port:
@@ -181,7 +204,7 @@ export function PortForwardingDialog({
               className="flex-1 rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm "
               placeholder="e.g. 8080"
               onChange={handleChange}
-              value={value}
+              value={localPort}
             />
             <TooltipProvider>
               <Tooltip delayDuration={0}>
@@ -205,19 +228,16 @@ export function PortForwardingDialog({
             <label className="font-medium text-foreground">
               {resourceKind === "pod" ? "Container:" : "Service Port:"}
             </label>
-            <Select onValueChange={setContainerPortSelection} value={containerPort}>
+            <Select onValueChange={selectPortOption} value={selectedPortOption}>
               <SelectTrigger className="text-foreground">
                 <SelectValue placeholder={`Select ${resourceKind === "pod" ? "Container" : "Service Port"}`} />
               </SelectTrigger>
               <SelectContent>
-                {getPortOptions().map(opt => (
+                {portOptions.map(opt => (
                   <SelectItem key={opt.value} value={opt.value}>
                     {opt.label}
                   </SelectItem>
                 ))}
-                {/* {showCustomPortInput && (
-                  <SelectItem value="custom">Custom Port</SelectItem>
-                )} */}
               </SelectContent>
             </Select>
           </div>
@@ -238,15 +258,37 @@ export function PortForwardingDialog({
               />
             </div>
           )}
-          <div className="mt-2 flex items-center gap-2">
-            <span className="text-sm">Use <strong>Random</strong> to pick an unused port, or set the local port to <strong>0</strong> to let Kubernetes assign one automatically.</span>
-          </div>
-          {filteredList.length > 0 && (
-            <div>
-              <span className="text-xs">
-                You have <strong>{filteredList.length}</strong> port forwarding rules for this {resourceKind}.
-                Click <Link className="text-blue-600" to={`/${config}/list?cluster=${cluster}&resourcekind=portforwards`}>here</Link> to view them.
-              </span>
+          <span className="block text-xs">Use <strong>Random</strong> to pick an unused port, or set the local port to <strong>0</strong> to let Kubernetes assign one automatically.</span>
+          {activeForwards.length > 0 && (
+            <div className="space-y-1.5 text-xs">
+              <Separator />
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Active ({activeForwards.length})</span>
+                <Link className="text-blue-600 dark:text-blue-500 hover:underline" to={`/${config}/list?cluster=${cluster}&resourcekind=portforwards`}>
+                  View all
+                </Link>
+              </div>
+              {activeForwards.map(({ id, localPort, containerPort, containerName }) => (
+                <div key={id} className="flex items-center justify-between gap-2 rounded-md border px-2 py-1">
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <span className="text-foreground">localhost:{localPort}</span>
+                    <MoveRight className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{containerName ? `${containerName}:${containerPort}` : containerPort}</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 gap-1 px-1.5 font-normal text-destructive hover:text-destructive [&_svg]:size-3"
+                    disabled={!!stoppingId}
+                    onClick={() => dispatch(stopPortForwarding({ id, queryParams }))}
+                  >
+                    {stoppingId === id
+                      ? <Loader className='w-3 h-3 text-gray-200 animate-spin dark:text-gray-600 fill-red-600' />
+                      : <UnplugIcon />}
+                    Stop
+                  </Button>
+                </div>
+              ))}
             </div>
           )}
         </div>
