@@ -4,6 +4,7 @@ type PortForwardingListHeaders = {
   name: string;
   kind: string;
   pod: string;
+  containerName: string;
   localPort: number;
   containerPort: number;
 };
@@ -14,6 +15,7 @@ type PortForwardingListResponse = {
   pod: string;
   kind: "Pod" | "Service";
   name: string;
+  containerName: string;
   localPort: number;
   containerPort: number;
 }
