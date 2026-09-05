@@ -117,7 +117,7 @@ const getOwnerLink = (owner: OwnerReference, namespace?: string | null) => {
   return {
     resourcekind: CUSTOM_RESOURCES_LIST_ENDPOINT,
     resourcename: owner.name,
-    customResource: { group: (owner.apiVersion ?? '').split('/')[0], kind: owner.kind },
+    customResource: { group: (owner.apiVersion ?? '').includes('/') ? owner.apiVersion!.split('/')[0] : '', kind: owner.kind },
     ...namespaceParam
   };
 };

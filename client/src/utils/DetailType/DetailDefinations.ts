@@ -72,6 +72,7 @@ const getPodDetailsConfig = (details: PodDetails, loading: boolean) => ({
     { label: 'HostIp', value: defaultOrValue(details.status.hostIP) },
     { label: 'QoS Class', value: defaultOrValue(details.status.qosClass) },
     getServiceAccountDetail(details.spec.serviceAccountName, details.metadata.namespace),
+    { label: 'Service Account (deprecated)', value: defaultOrValue(details.spec.serviceAccount) },
     { label: 'Restart Policy', value: defaultOrValue(details.spec.restartPolicy) },
     { label: 'DNS Policy', value: defaultOrValue(details.spec.dnsPolicy) },
     { label: 'Node Selector', value: defaultOrKeyValuePairs(details.spec.nodeSelector) },
