@@ -194,9 +194,11 @@ const KwDetails = () => {
                         getPortOptions={() =>
                           [...(podDetails.spec.initContainers || []), ...(podDetails.spec.containers || [])].map(container => {
                             const portObj = container.ports?.find(p => p.protocol?.toLowerCase() === 'tcp');
+                            const optionLabel = `${container.name}${portObj ? `: ${portObj.containerPort}` : ""}`;
                             return {
-                              value: `${container.name}${portObj ? `: ${portObj.containerPort}` : ""}`,
-                              label: `${container.name}${portObj ? `: ${portObj.containerPort}` : ""}`,
+                              value: optionLabel,
+                              label: optionLabel,
+                              containerName: container.name,
                             };
                           })
                         }

@@ -7,7 +7,7 @@ import { CUSTOM_RESOURCES_LIST_ENDPOINT } from "@/constants";
 import { Cross2Icon } from "@radix-ui/react-icons";
 import { DataTableFacetedFilter } from "@/components/app/Table/TableFacetedFilter";
 import { DataTableViewOptions } from "@/components/app/Table/TableViewOptions";
-import { DebouncedInput } from "@/components/app/Common/DeboucedInput";
+import { SearchInput } from "@/components/app/Common/SearchInput";
 import { Kbd } from "@/components/ui/kbd";
 import { RootState } from "@/redux/store";
 import { Search } from "lucide-react";
@@ -94,12 +94,12 @@ export function DataTableToolbar<TData>({
         <Separator orientation="vertical" className="mr-2 ml-1 data-[orientation=vertical]:h-4" />
         <div className="relative w-full basis-7/12">
           <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-          <DebouncedInput
+          <SearchInput
             placeholder={`Type / to search ${searchTarget}...`}
             value={globalFilter ?? ''}
             onChange={(value) => {
-              setGlobalFilter(String(value));
-              dispatch(updateListTableFilter(String(value)));
+              setGlobalFilter(value);
+              dispatch(updateListTableFilter(value));
             }}
             className="h-8 w-full shadow-none pl-8 pr-10" // add pr-10 to make space for kbd
           />

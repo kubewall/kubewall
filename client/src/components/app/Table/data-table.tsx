@@ -14,7 +14,7 @@ import {
   useReactTable
 } from "@tanstack/react-table";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
-import { Suspense, lazy, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import {
   Table,
   TableBody,
@@ -37,6 +37,7 @@ import { resetListTableFilter } from "@/data/Misc/ListTableFilterSlice";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { buildRowSearchIndex, searchableColumnIds } from "./rowSearchIndex";
 
 // Rows are single-line and fairly uniform; this is just a starting estimate -
 // useVirtualizer corrects it per-row once each one is actually measured.
@@ -70,37 +71,22 @@ declare global {
 }
 
 
-// The needle is identical for every cell in a filter pass, so lowercase it once
-// instead of once per cell (rows x columns times).
+// The needle is identical for every row in a filter pass, so normalize it once
+// instead of once per row.
 let lastNeedle = '';
-let lastNeedleLower = '';
-const lowerNeedle = (value: string) => {
+let lastNormalizedNeedle = '';
+const normalizedNeedle = (value: string) => {
   if (value !== lastNeedle) {
     lastNeedle = value;
-    lastNeedleLower = value.toLowerCase();
+    lastNormalizedNeedle = value.trim().toLowerCase();
   }
-  return lastNeedleLower;
+  return lastNormalizedNeedle;
 };
 
 const describeNamespaces = (namespaces: string[]) => {
   if (namespaces.length === 1) return `namespace "${namespaces[0]}"`;
   if (namespaces.length === 2) return `namespaces "${namespaces[0]}" and "${namespaces[1]}"`;
   return `${namespaces.length} selected namespaces`;
-};
-
-// eslint-disable-next-line  @typescript-eslint/no-explicit-any
-const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
-  const rowValue = row.getValue(columnId);
-  // Not every column accessor returns a string (counts, timestamps, nulls).
-  const haystack = typeof rowValue === 'string' ? rowValue : String(rowValue ?? '');
-
-  const isMatch = haystack.toLowerCase().includes(lowerNeedle(String(value ?? '')));
-
-  addMeta({
-    isMatch,
-  });
-
-  return isMatch;
 };
 
 export function DataTable<TData, TValue>({
@@ -141,6 +127,14 @@ export function DataTable<TData, TValue>({
     }
   }, [followsToolbarFilters, searchString]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+
+  const rowSearchIndex = useMemo(() => buildRowSearchIndex(data, columns), [data, columns]);
+  const searchOncePerRowColumnId = useMemo(() => searchableColumnIds(columns)[0], [columns]);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const matchesSearchIndex: FilterFn<any> = (row, _columnId, searchString) =>
+    (rowSearchIndex.get(row.original) ?? '').includes(normalizedNeedle(String(searchString ?? '')));
+
   const table = useReactTable({
     data,
     state: {
@@ -151,7 +145,8 @@ export function DataTable<TData, TValue>({
     },
     columns,
     enableRowSelection: true,
-    globalFilterFn: fuzzyFilter,
+    globalFilterFn: matchesSearchIndex,
+    getColumnCanGlobalFilter: (column) => column.id === searchOncePerRowColumnId,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
     onGlobalFilterChange: setGlobalFilter,

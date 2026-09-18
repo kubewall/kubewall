@@ -15,6 +15,7 @@ type PortForwardingParams = {
   namespace: string;
   kind: "service" | "pod";
   name: string;
+  containerName: string;
   localPort: number;
   containerPort: number;
   queryParams: string;
@@ -26,11 +27,11 @@ const initialState: InitialState = {
   error: null
 };
 
-const portForwarding = createAsyncThunk('portForwarding', ({containerPort, kind, localPort, name, namespace, queryParams}: PortForwardingParams, thunkAPI) => {
+const portForwarding = createAsyncThunk('portForwarding', ({containerName, containerPort, kind, localPort, name, namespace, queryParams}: PortForwardingParams, thunkAPI) => {
   const url = `${API_VERSION}/portforwards?${queryParams}`;
 
   return kwFetch(url, {
-    body: JSON.stringify({localPort, namespace, name, containerPort, kind}),
+    body: JSON.stringify({localPort, namespace, name, containerName, containerPort, kind}),
     method: 'POST',
     headers: {
       'content-type': 'application/json'
