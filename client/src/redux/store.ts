@@ -78,6 +78,7 @@ import serviceAccountsListSlice from '@/data/AccessControls/ServiceAccounts/Serv
 import serviceDetailSlice from '@/data/Networks/Services/ServiceDetailSlice';
 import servicesListSlice from '@/data/Networks/Services/ServicesListSlice';
 import statefulSetDetailsSlice from '@/data/Workloads/StatefulSets/StatefulSetDetailsSlice';
+import stopPortForwardingSlice from '@/data/Workloads/Pods/StopPortForwardingSlice';
 import statefulSetsSlice from '@/data/Workloads/StatefulSets/StatefulSetsSlice';
 import csiDriverDetailsSlice from '@/data/Storages/CSIDrivers/CSIDriverDetailsSlice';
 import csiDriversListSlice from '@/data/Storages/CSIDrivers/CSIDriversListSlice';
@@ -194,6 +195,7 @@ const store = configureStore({
     kwAiTools: kwAiToolsSlice,
     portForwarding: portForwardingSlice,
     portForwardingList: portForwardingListSlice,
+    stopPortForwarding: stopPortForwardingSlice,
     nodePods: nodePodsSlice,
     workloadPods: workloadPodsSlice,
     cronJobJobs: cronJobJobsSlice,

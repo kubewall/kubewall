@@ -55,7 +55,7 @@ func (h *PortForwardHandler) StartPortForwarding(c echo.Context) error {
 	}
 
 	// Note: Start signature changed to accept config and cluster strings first
-	id, actualLocal, err := h.container.PortForwarder().Start(h.container.RestConfig(config, cluster), h.container.ClientSet(config, cluster), config, cluster, req.Namespace, req.Kind, req.Name, req.LocalPort, req.ContainerPort)
+	id, actualLocal, err := h.container.PortForwarder().Start(h.container.RestConfig(config, cluster), h.container.ClientSet(config, cluster), config, cluster, req.Namespace, req.Kind, req.Name, req.ContainerName, req.LocalPort, req.ContainerPort)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, echo.Map{"message": err.Error()})
 	}
