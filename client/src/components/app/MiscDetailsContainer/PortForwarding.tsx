@@ -278,7 +278,7 @@ export function PortForwardingDialog({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-6 gap-1 px-1.5 font-normal text-destructive hover:text-destructive [&_svg]:size-3"
+                    className="h-6 gap-1 px-1.5 font-normal text-red-600 hover:text-red-600 dark:text-red-400 dark:hover:text-red-400 [&_svg]:size-3"
                     disabled={!!stoppingId}
                     onClick={() => dispatch(stopPortForwarding({ id, queryParams }))}
                   >
