@@ -12,7 +12,7 @@ It provides a simple and rich realtime interface to manage and investigate your 
 | Feature&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Benefit |
 |---|---|
 | 🔗 **Multi-Cluster Management** | Control unlimited Kubernetes clusters from one intuitive interface, saving time on tool-switching and boosting productivity for DevOps teams. |
-| 🤖 **AI-Powered** | Leverage AI (OpenAI / Claude 4 / Gemini / DeepSeek / OpenRouter / Ollama / Qwen / LMStudio) for automated troubleshooting, config optimization, and smart recommendations - a game-changer for complex environments. |
+| 🤖 **AI-Powered** | Leverage AI (OpenAI / Claude 4 / Gemini / DeepSeek / OpenRouter / OrcaRouter / Ollama / Qwen / LMStudio) for automated troubleshooting, config optimization, and smart recommendations - a game-changer for complex environments. |
 | 📊 **Real-Time Monitoring** | Get live views of cluster, pods, services, and metrics, enabling quick issue detection without manual queries. |
 | 🚀 **Single-Binary Deployment** | Install effortlessly as a lightweight binary on Mac, Windows, or Linux - no dependencies, zero config. |
 | 🔍 **In-Depth Resource Views** | Dive into detailed manifests, logs, and configurations through an intuitive dashboard, making debugging a breeze for novices and pros alike. |

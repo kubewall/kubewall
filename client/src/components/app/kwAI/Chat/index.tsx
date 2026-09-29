@@ -364,6 +364,14 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
         return createOpenRouter({
           apiKey: providerData.apiKey, baseURL: providerData.url, headers: commonHeaders, ...fetchOption
         });
+      case "orcarouter":
+        return createOpenAICompatible({
+          name: 'orcarouter',
+          baseURL: providerData.url,
+          headers: commonHeaders,
+          apiKey: providerData.apiKey,
+          ...fetchOption
+        });
       default:
         return '';
     }
