@@ -9,7 +9,7 @@ import (
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/base"
 	"github.com/kubewall/kubewall/backend/handlers/helpers"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	coreV1 "k8s.io/api/core/v1"
 )
 
@@ -18,7 +18,7 @@ type ConfigMapsHandler struct {
 }
 
 func NewConfigMapsRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		handler := NewConfigMapsHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {

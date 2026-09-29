@@ -10,7 +10,7 @@ import (
 	"github.com/kubewall/kubewall/backend/handlers/base"
 	"github.com/kubewall/kubewall/backend/handlers/helpers"
 	"github.com/kubewall/kubewall/backend/handlers/workloads/jobs"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	batchV1 "k8s.io/api/batch/v1"
 )
 
@@ -23,7 +23,7 @@ type CronJobsHandler struct {
 }
 
 func NewCronJobsRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		handler := NewCronJobsHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
@@ -88,7 +88,7 @@ func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 }
 
 // GetJobs streams the jobs a CronJob has spawned to its details view.
-func (h *CronJobsHandler) GetJobs(c echo.Context) error {
+func (h *CronJobsHandler) GetJobs(c *echo.Context) error {
 	config := c.QueryParam("config")
 	cluster := c.QueryParam("cluster")
 	namespace := c.QueryParam("namespace")

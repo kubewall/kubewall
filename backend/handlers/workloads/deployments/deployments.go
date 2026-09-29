@@ -10,7 +10,7 @@ import (
 	"github.com/kubewall/kubewall/backend/handlers/base"
 	"github.com/kubewall/kubewall/backend/handlers/helpers"
 	"github.com/kubewall/kubewall/backend/handlers/workloads/pods"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	v1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,7 +29,7 @@ type DeploymentReplicas struct {
 }
 
 func NewDeploymentRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		handler := NewDeploymentsHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
@@ -98,7 +98,7 @@ func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 	return json.Marshal(t)
 }
 
-func (h *DeploymentsHandler) GetPods(c echo.Context) error {
+func (h *DeploymentsHandler) GetPods(c *echo.Context) error {
 	streamID := fmt.Sprintf("%s-%s-%s-deployments-pods", h.BaseHandler.QueryConfig, h.BaseHandler.QueryCluster, c.Param("name"))
 	ctx := c.Request().Context()
 	config := c.QueryParam("config")
@@ -116,13 +116,13 @@ func (h *DeploymentsHandler) loadDeploymentPods(ctx context.Context, config, clu
 }
 
 // UpdateScale updates the scale of a deployment
-func (h *DeploymentsHandler) UpdateScale(c echo.Context) error {
+func (h *DeploymentsHandler) UpdateScale(c *echo.Context) error {
 	r := new(DeploymentReplicas)
 	if err := c.Bind(r); err != nil {
-		return c.JSON(http.StatusBadRequest, echo.Map{"message": err.Error()})
+		return c.JSON(http.StatusBadRequest, map[string]any{"message": err.Error()})
 	}
 	if r.Replicas < 0 {
-		return c.JSON(http.StatusBadRequest, echo.Map{"message": "replicas, must be greater than or equal to 0"})
+		return c.JSON(http.StatusBadRequest, map[string]any{"message": "replicas, must be greater than or equal to 0"})
 	}
 
 	scale := &autoscalingv1.Scale{
@@ -141,8 +141,8 @@ func (h *DeploymentsHandler) UpdateScale(c echo.Context) error {
 		UpdateScale(c.Request().Context(), c.Param("name"), scale, metav1.UpdateOptions{})
 
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, echo.Map{"message": err.Error()})
+		return c.JSON(http.StatusBadRequest, map[string]any{"message": err.Error()})
 	}
 
-	return c.JSON(http.StatusOK, echo.Map{"success": true})
+	return c.JSON(http.StatusOK, map[string]any{"success": true})
 }

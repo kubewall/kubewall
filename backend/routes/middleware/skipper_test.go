@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/kubewall/kubewall/backend/addons"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 // TestShouldSkip covers the two addon exemption levels: a route may opt out of

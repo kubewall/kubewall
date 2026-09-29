@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/kubewall/kubewall/backend/container"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 func TestRegisterRoutes(t *testing.T) {
@@ -162,7 +162,7 @@ func assertPanics(t *testing.T, what string, fn func()) {
 	fn()
 }
 
-func contextWithPath(path string) echo.Context {
+func contextWithPath(path string) *echo.Context {
 	e := echo.New()
 	c := e.NewContext(httptest.NewRequest(http.MethodGet, "/", nil), httptest.NewRecorder())
 	c.SetPath(path)

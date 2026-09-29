@@ -11,7 +11,7 @@ import (
 	appV1 "k8s.io/api/apps/v1"
 
 	"github.com/kubewall/kubewall/backend/container"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 type StatefulSetHandler struct {
@@ -19,7 +19,7 @@ type StatefulSetHandler struct {
 }
 
 func NewStatefulSetRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		handler := NewSatefulSetHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {

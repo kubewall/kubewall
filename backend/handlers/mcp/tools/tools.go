@@ -9,7 +9,7 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/mcp/helpers"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
@@ -37,10 +37,10 @@ Fetch full details of a specific {{.kindName}}.
 Determine namespace if not provided.
 Check current status of {{.kindName}}.`
 
-func ListTool(c echo.Context, appContainer container.Container) Toolset {
+func ListTool(c *echo.Context, appContainer container.Container) Toolset {
 	var toolset Toolset
 
-	for _, route := range c.Echo().Routes() {
+	for _, route := range c.Echo().Router().Routes() {
 		switch {
 		case strings.Contains(route.Name, "List"):
 			toolset.ReadOnlyTools = append(toolset.ReadOnlyTools, NewListTool(c, route.Name))
@@ -55,7 +55,7 @@ func ListTool(c echo.Context, appContainer container.Container) Toolset {
 	return toolset
 }
 
-func NewListTool(c echo.Context, routeName string) server.ServerTool {
+func NewListTool(c *echo.Context, routeName string) server.ServerTool {
 	kindName := strings.ReplaceAll(routeName, "List", "")
 
 	description, err := parseTemplate(listTemplate, map[string]string{
@@ -85,7 +85,7 @@ func NewListTool(c echo.Context, routeName string) server.ServerTool {
 	return NewServerTool(tool, handler)
 }
 
-func NewYamlDetailsTool(c echo.Context, routeName string) server.ServerTool {
+func NewYamlDetailsTool(c *echo.Context, routeName string) server.ServerTool {
 	// podsYamlDetails
 	toolName := fmt.Sprintf("%sDetails", routeName)
 	// pods

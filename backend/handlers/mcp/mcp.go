@@ -6,7 +6,7 @@ import (
 
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/mcp/tools"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/mark3labs/mcp-go/server"
 )
 
@@ -17,7 +17,7 @@ func Server(e *echo.Echo, appContainer container.Container) {
 	)
 
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			if strings.Contains(c.Path(), "mcp") {
 				toolSet := tools.ListTool(c, appContainer)
 				for _, v := range toolSet.ReadOnlyTools {

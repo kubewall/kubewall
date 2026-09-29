@@ -9,7 +9,7 @@ import (
 	"github.com/kubewall/kubewall/backend/handlers/config/secrets"
 	"github.com/kubewall/kubewall/backend/handlers/helpers"
 	"github.com/kubewall/kubewall/backend/handlers/workloads/deployments"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 
 	"github.com/kubewall/kubewall/backend/handlers/accesscontrol/clusterroles"
 	clusterrolebindings "github.com/kubewall/kubewall/backend/handlers/accesscontrol/clusterrolesbindings"
@@ -45,7 +45,7 @@ const ClusterCache = "cluster-cache"
 
 func ClusterCacheMiddleware(container container.Container) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			if shouldSkip(c, ClusterCache) {
 				return next(c)
 			}

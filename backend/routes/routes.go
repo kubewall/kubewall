@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/charmbracelet/log"
 	"github.com/kubewall/kubewall/backend/addons"
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/accesscontrol/clusterroles"
@@ -49,21 +50,26 @@ import (
 	"github.com/kubewall/kubewall/backend/handlers/workloads/replicaset"
 	statefulset "github.com/kubewall/kubewall/backend/handlers/workloads/statefulsets"
 	appmiddleware "github.com/kubewall/kubewall/backend/routes/middleware"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v5/middleware"
 )
 
 //go:embed static/*
 var embeddedFiles embed.FS
 
 func ConfigureRoutes(e *echo.Echo, appContainer container.Container) {
-	e.HideBanner = true
+	e.IPExtractor = echo.ExtractIPFromXFFHeader()
 	setCORSConfig(e)
 
 	e.Pre(middleware.RemoveTrailingSlash())
-	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
-		Format: "[${time_rfc3339}] ${status} ${method} ${uri} (${remote_ip}) ${error} ${latency_human}\n",
-		Output: e.Logger.Output(),
+	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
+		LogStatus:     true,
+		LogMethod:     true,
+		LogURI:        true,
+		LogRemoteIP:   true,
+		LogLatency:    true,
+		HandleError:   true,
+		LogValuesFunc: logRequest,
 	}))
 	e.Use(middleware.Recover())
 	e.Use(middleware.RequestID())
@@ -73,14 +79,14 @@ func ConfigureRoutes(e *echo.Echo, appContainer container.Container) {
 	e.Use(appmiddleware.ClusterCacheMiddleware(appContainer))
 	e.Use(appmiddleware.PrecompressedStaticMiddleware(embeddedFiles, "static"))
 	e.Use(middleware.StaticWithConfig(middleware.StaticConfig{
-		Skipper: func(c echo.Context) bool {
+		Skipper: func(c *echo.Context) bool {
 			return strings.HasPrefix(c.Request().URL.Path, "/api/")
 		},
 		HTML5:      true,
 		Root:       "static",
-		Filesystem: http.FS(embeddedFiles),
+		Filesystem: embeddedFiles,
 	}))
-	e.GET("/healthz", func(c echo.Context) error {
+	e.GET("/healthz", func(c *echo.Context) error {
 		return c.String(http.StatusOK, "OK")
 	})
 
@@ -99,21 +105,21 @@ func ConfigureRoutes(e *echo.Echo, appContainer container.Container) {
 	e.DELETE("api/v1/app/config/kubeconfigs/:configId", appConfig.Delete)
 
 	// Namespaces
-	e.GET("api/v1/namespaces", namespaces.NewNamespacesRouteHandler(appContainer, base.GetList)).Name = "namespacesList"
-	e.GET("api/v1/namespaces/:name", namespaces.NewNamespacesRouteHandler(appContainer, base.GetDetails)).Name = "namespacesDetails"
-	e.GET("api/v1/namespaces/:name/yaml", namespaces.NewNamespacesRouteHandler(appContainer, base.GetYaml)).Name = "namespacesYaml"
-	e.GET("api/v1/namespaces/:name/events", namespaces.NewNamespacesRouteHandler(appContainer, base.GetEvents)).Name = "namespacesEvents"
-	e.DELETE("api/v1/namespaces", namespaces.NewNamespacesRouteHandler(appContainer, base.Delete)).Name = "namespacesDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/namespaces", "namespacesList", namespaces.NewNamespacesRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/namespaces/:name", "namespacesDetails", namespaces.NewNamespacesRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/namespaces/:name/yaml", "namespacesYaml", namespaces.NewNamespacesRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/namespaces/:name/events", "namespacesEvents", namespaces.NewNamespacesRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodDelete, "api/v1/namespaces", "namespacesDelete", namespaces.NewNamespacesRouteHandler(appContainer, base.Delete))
 
 	// Nodes
-	e.GET("api/v1/nodes", nodes.NewNodeRouteHandler(appContainer, base.GetList)).Name = "nodesList"
-	e.GET("api/v1/nodes/:name", nodes.NewNodeRouteHandler(appContainer, base.GetDetails)).Name = "nodesDetails"
-	e.GET("api/v1/nodes/:name/yaml", nodes.NewNodeRouteHandler(appContainer, base.GetYaml)).Name = "nodesYaml"
-	e.GET("api/v1/nodes/:name/events", nodes.NewNodeRouteHandler(appContainer, base.GetEvents)).Name = "nodesEvents"
-	e.GET("api/v1/nodes/:name/pods", nodes.NewNodeRouteHandler(appContainer, deployments.GetPods)).Name = "nodePods"
+	addNamedRoute(e, http.MethodGet, "api/v1/nodes", "nodesList", nodes.NewNodeRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/nodes/:name", "nodesDetails", nodes.NewNodeRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/nodes/:name/yaml", "nodesYaml", nodes.NewNodeRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/nodes/:name/events", "nodesEvents", nodes.NewNodeRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodGet, "api/v1/nodes/:name/pods", "nodePods", nodes.NewNodeRouteHandler(appContainer, deployments.GetPods))
 
-	e.GET("api/v1/events", events.NewEventsRouteHandler(appContainer, base.GetList)).Name = "eventsList"
-	e.DELETE("api/v1/events", events.NewEventsRouteHandler(appContainer, base.Delete)).Name = "eventsDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/events", "eventsList", events.NewEventsRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodDelete, "api/v1/events", "eventsDelete", events.NewEventsRouteHandler(appContainer, base.Delete))
 
 	e.GET("api/v1/portforwards", portforward.NewPortForwardingHandler(appContainer, base.GetList))
 	e.POST("api/v1/portforwards", portforward.NewPortForwardingHandler(appContainer, base.Create))
@@ -150,245 +156,244 @@ func customResources(e *echo.Echo, appContainer container.Container) {
 
 func servicesRoutes(e *echo.Echo, appContainer container.Container) {
 	// Services
-	e.GET("api/v1/services", services.NewServicesRouteHandler(appContainer, base.GetList)).Name = "servicesList"
-	e.GET("api/v1/services/:name", services.NewServicesRouteHandler(appContainer, base.GetDetails)).Name = "servicesDetails"
-	e.GET("api/v1/services/:name/yaml", services.NewServicesRouteHandler(appContainer, base.GetYaml)).Name = "servicesYaml"
-	e.GET("api/v1/services/:name/events", services.NewServicesRouteHandler(appContainer, base.GetEvents)).Name = "servicesEvents"
-	e.DELETE("api/v1/services", services.NewServicesRouteHandler(appContainer, base.Delete)).Name = "servicesDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/services", "servicesList", services.NewServicesRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/services/:name", "servicesDetails", services.NewServicesRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/services/:name/yaml", "servicesYaml", services.NewServicesRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/services/:name/events", "servicesEvents", services.NewServicesRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodDelete, "api/v1/services", "servicesDelete", services.NewServicesRouteHandler(appContainer, base.Delete))
 
 	// Endpoints
-	e.GET("api/v1/endpoints", endpoints.NewEndpointsRouteHandler(appContainer, base.GetList)).Name = "endpointsList"
-	e.GET("api/v1/endpoints/:name", endpoints.NewEndpointsRouteHandler(appContainer, base.GetDetails)).Name = "endpointsDetails"
-	e.GET("api/v1/endpoints/:name/yaml", endpoints.NewEndpointsRouteHandler(appContainer, base.GetYaml)).Name = "endpointsYaml"
-	e.GET("api/v1/endpoints/:name/events", endpoints.NewEndpointsRouteHandler(appContainer, base.GetEvents)).Name = "endpointsEvents"
-	e.DELETE("api/v1/endpoints", endpoints.NewEndpointsRouteHandler(appContainer, base.Delete)).Name = "endpointsDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/endpoints", "endpointsList", endpoints.NewEndpointsRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/endpoints/:name", "endpointsDetails", endpoints.NewEndpointsRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/endpoints/:name/yaml", "endpointsYaml", endpoints.NewEndpointsRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/endpoints/:name/events", "endpointsEvents", endpoints.NewEndpointsRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodDelete, "api/v1/endpoints", "endpointsDelete", endpoints.NewEndpointsRouteHandler(appContainer, base.Delete))
 
 	// Ingresses
-	e.GET("api/v1/ingresses", ingresses.NewIngressRouteHandler(appContainer, base.GetList)).Name = "ingressesList"
-	e.GET("api/v1/ingresses/:name", ingresses.NewIngressRouteHandler(appContainer, base.GetDetails)).Name = "ingressesDetails"
-	e.GET("api/v1/ingresses/:name/yaml", ingresses.NewIngressRouteHandler(appContainer, base.GetYaml)).Name = "ingressesYaml"
-	e.GET("api/v1/ingresses/:name/events", ingresses.NewIngressRouteHandler(appContainer, base.GetEvents)).Name = "ingressesEvents"
-	e.DELETE("api/v1/ingresses", ingresses.NewIngressRouteHandler(appContainer, base.Delete)).Name = "ingressesDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/ingresses", "ingressesList", ingresses.NewIngressRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/ingresses/:name", "ingressesDetails", ingresses.NewIngressRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/ingresses/:name/yaml", "ingressesYaml", ingresses.NewIngressRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/ingresses/:name/events", "ingressesEvents", ingresses.NewIngressRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodDelete, "api/v1/ingresses", "ingressesDelete", ingresses.NewIngressRouteHandler(appContainer, base.Delete))
 
 	// NetworkPolicies
-	e.GET("api/v1/networkpolicies", networkpolicies.NewNetworkPolicyRouteHandler(appContainer, base.GetList)).Name = "networkpoliciesList"
-	e.GET("api/v1/networkpolicies/:name", networkpolicies.NewNetworkPolicyRouteHandler(appContainer, base.GetDetails)).Name = "networkpoliciesDetails"
-	e.GET("api/v1/networkpolicies/:name/yaml", networkpolicies.NewNetworkPolicyRouteHandler(appContainer, base.GetYaml)).Name = "networkpoliciesYaml"
-	e.GET("api/v1/networkpolicies/:name/events", networkpolicies.NewNetworkPolicyRouteHandler(appContainer, base.GetEvents)).Name = "networkpoliciesEvents"
-	e.DELETE("api/v1/networkpolicies", networkpolicies.NewNetworkPolicyRouteHandler(appContainer, base.Delete)).Name = "networkpoliciesDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/networkpolicies", "networkpoliciesList", networkpolicies.NewNetworkPolicyRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/networkpolicies/:name", "networkpoliciesDetails", networkpolicies.NewNetworkPolicyRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/networkpolicies/:name/yaml", "networkpoliciesYaml", networkpolicies.NewNetworkPolicyRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/networkpolicies/:name/events", "networkpoliciesEvents", networkpolicies.NewNetworkPolicyRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodDelete, "api/v1/networkpolicies", "networkpoliciesDelete", networkpolicies.NewNetworkPolicyRouteHandler(appContainer, base.Delete))
 }
 
 func storageRoutes(e *echo.Echo, appContainer container.Container) {
 	// PersistentVolumes (PV)
-	e.GET("api/v1/persistentvolumes", persistentvolumes.NewPersistentVolumeRouteHandler(appContainer, base.GetList)).Name = "persistentvolumesList"
-	e.GET("api/v1/persistentvolumes/:name", persistentvolumes.NewPersistentVolumeRouteHandler(appContainer, base.GetDetails)).Name = "persistentvolumesDetails"
-	e.GET("api/v1/persistentvolumes/:name/yaml", persistentvolumes.NewPersistentVolumeRouteHandler(appContainer, base.GetYaml)).Name = "persistentvolumesYaml"
-	e.GET("api/v1/persistentvolumes/:name/events", persistentvolumes.NewPersistentVolumeRouteHandler(appContainer, base.GetEvents)).Name = "persistentvolumesEvents"
-	e.DELETE("api/v1/persistentvolumes", persistentvolumes.NewPersistentVolumeRouteHandler(appContainer, base.Delete)).Name = "persistentvolumesDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/persistentvolumes", "persistentvolumesList", persistentvolumes.NewPersistentVolumeRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/persistentvolumes/:name", "persistentvolumesDetails", persistentvolumes.NewPersistentVolumeRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/persistentvolumes/:name/yaml", "persistentvolumesYaml", persistentvolumes.NewPersistentVolumeRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/persistentvolumes/:name/events", "persistentvolumesEvents", persistentvolumes.NewPersistentVolumeRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodDelete, "api/v1/persistentvolumes", "persistentvolumesDelete", persistentvolumes.NewPersistentVolumeRouteHandler(appContainer, base.Delete))
 
 	// PersistentVolumeClaims (PVC)
-	e.GET("api/v1/persistentvolumeclaims", persistentvolumeclaims.NewPersistentVolumeClaimsRouteHandler(appContainer, base.GetList)).Name = "persistentvolumeclaimsList"
-	e.GET("api/v1/persistentvolumeclaims/:name", persistentvolumeclaims.NewPersistentVolumeClaimsRouteHandler(appContainer, base.GetDetails)).Name = "persistentvolumeclaimsDetails"
-	e.GET("api/v1/persistentvolumeclaims/:name/yaml", persistentvolumeclaims.NewPersistentVolumeClaimsRouteHandler(appContainer, base.GetYaml)).Name = "persistentvolumeclaimsYaml"
-	e.GET("api/v1/persistentvolumeclaims/:name/events", persistentvolumeclaims.NewPersistentVolumeClaimsRouteHandler(appContainer, base.GetEvents)).Name = "persistentvolumeclaimsEvents"
-	e.DELETE("api/v1/persistentvolumeclaims", persistentvolumeclaims.NewPersistentVolumeClaimsRouteHandler(appContainer, base.Delete)).Name = "persistentvolumeclaimsDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/persistentvolumeclaims", "persistentvolumeclaimsList", persistentvolumeclaims.NewPersistentVolumeClaimsRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/persistentvolumeclaims/:name", "persistentvolumeclaimsDetails", persistentvolumeclaims.NewPersistentVolumeClaimsRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/persistentvolumeclaims/:name/yaml", "persistentvolumeclaimsYaml", persistentvolumeclaims.NewPersistentVolumeClaimsRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/persistentvolumeclaims/:name/events", "persistentvolumeclaimsEvents", persistentvolumeclaims.NewPersistentVolumeClaimsRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodDelete, "api/v1/persistentvolumeclaims", "persistentvolumeclaimsDelete", persistentvolumeclaims.NewPersistentVolumeClaimsRouteHandler(appContainer, base.Delete))
 
 	// StorageClasses
-	e.GET("api/v1/storageclasses", storageclasses.NewStorageClassRouteHandler(appContainer, base.GetList)).Name = "storageclassesList"
-	e.GET("api/v1/storageclasses/:name", storageclasses.NewStorageClassRouteHandler(appContainer, base.GetDetails)).Name = "storageclassesDetails"
-	e.GET("api/v1/storageclasses/:name/yaml", storageclasses.NewStorageClassRouteHandler(appContainer, base.GetYaml)).Name = "storageclassesYaml"
-	e.GET("api/v1/storageclasses/:name/events", storageclasses.NewStorageClassRouteHandler(appContainer, base.GetEvents)).Name = "storageclassesEvents"
-	e.DELETE("api/v1/storageclasses", storageclasses.NewStorageClassRouteHandler(appContainer, base.Delete)).Name = "storageclassesDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/storageclasses", "storageclassesList", storageclasses.NewStorageClassRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/storageclasses/:name", "storageclassesDetails", storageclasses.NewStorageClassRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/storageclasses/:name/yaml", "storageclassesYaml", storageclasses.NewStorageClassRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/storageclasses/:name/events", "storageclassesEvents", storageclasses.NewStorageClassRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodDelete, "api/v1/storageclasses", "storageclassesDelete", storageclasses.NewStorageClassRouteHandler(appContainer, base.Delete))
 
 	// CSI Drivers
-	e.GET("api/v1/csidrivers", csidrivers.NewCSIDriverRouteHandler(appContainer, base.GetList)).Name = "csidriversList"
-	e.GET("api/v1/csidrivers/:name", csidrivers.NewCSIDriverRouteHandler(appContainer, base.GetDetails)).Name = "csidriversDetails"
-	e.GET("api/v1/csidrivers/:name/yaml", csidrivers.NewCSIDriverRouteHandler(appContainer, base.GetYaml)).Name = "csidriversYaml"
-	e.GET("api/v1/csidrivers/:name/events", csidrivers.NewCSIDriverRouteHandler(appContainer, base.GetEvents)).Name = "csidriversEvents"
-	e.DELETE("api/v1/csidrivers", csidrivers.NewCSIDriverRouteHandler(appContainer, base.Delete)).Name = "csidriversDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/csidrivers", "csidriversList", csidrivers.NewCSIDriverRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/csidrivers/:name", "csidriversDetails", csidrivers.NewCSIDriverRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/csidrivers/:name/yaml", "csidriversYaml", csidrivers.NewCSIDriverRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/csidrivers/:name/events", "csidriversEvents", csidrivers.NewCSIDriverRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodDelete, "api/v1/csidrivers", "csidriversDelete", csidrivers.NewCSIDriverRouteHandler(appContainer, base.Delete))
 
 	// CSI Nodes
-	e.GET("api/v1/csinodes", csinodes.NewCSINodeRouteHandler(appContainer, base.GetList)).Name = "csinodesList"
-	e.GET("api/v1/csinodes/:name", csinodes.NewCSINodeRouteHandler(appContainer, base.GetDetails)).Name = "csinodesDetails"
-	e.GET("api/v1/csinodes/:name/yaml", csinodes.NewCSINodeRouteHandler(appContainer, base.GetYaml)).Name = "csinodesYaml"
-	e.GET("api/v1/csinodes/:name/events", csinodes.NewCSINodeRouteHandler(appContainer, base.GetEvents)).Name = "csinodesEvents"
-	e.DELETE("api/v1/csinodes", csinodes.NewCSINodeRouteHandler(appContainer, base.Delete)).Name = "csinodesDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/csinodes", "csinodesList", csinodes.NewCSINodeRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/csinodes/:name", "csinodesDetails", csinodes.NewCSINodeRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/csinodes/:name/yaml", "csinodesYaml", csinodes.NewCSINodeRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/csinodes/:name/events", "csinodesEvents", csinodes.NewCSINodeRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodDelete, "api/v1/csinodes", "csinodesDelete", csinodes.NewCSINodeRouteHandler(appContainer, base.Delete))
 
 	// VolumeAttributesClasses
-	e.GET("api/v1/volumeattributesclasses", volumeattributesclasses.NewVolumeAttributesClassRouteHandler(appContainer, base.GetList)).Name = "volumeattributesclassesList"
-	e.GET("api/v1/volumeattributesclasses/:name", volumeattributesclasses.NewVolumeAttributesClassRouteHandler(appContainer, base.GetDetails)).Name = "volumeattributesclassesDetails"
-	e.GET("api/v1/volumeattributesclasses/:name/yaml", volumeattributesclasses.NewVolumeAttributesClassRouteHandler(appContainer, base.GetYaml)).Name = "volumeattributesclassesYaml"
-	e.GET("api/v1/volumeattributesclasses/:name/events", volumeattributesclasses.NewVolumeAttributesClassRouteHandler(appContainer, base.GetEvents)).Name = "volumeattributesclassesEvents"
-	e.DELETE("api/v1/volumeattributesclasses", volumeattributesclasses.NewVolumeAttributesClassRouteHandler(appContainer, base.Delete)).Name = "volumeattributesclassesDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/volumeattributesclasses", "volumeattributesclassesList", volumeattributesclasses.NewVolumeAttributesClassRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/volumeattributesclasses/:name", "volumeattributesclassesDetails", volumeattributesclasses.NewVolumeAttributesClassRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/volumeattributesclasses/:name/yaml", "volumeattributesclassesYaml", volumeattributesclasses.NewVolumeAttributesClassRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/volumeattributesclasses/:name/events", "volumeattributesclassesEvents", volumeattributesclasses.NewVolumeAttributesClassRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodDelete, "api/v1/volumeattributesclasses", "volumeattributesclassesDelete", volumeattributesclasses.NewVolumeAttributesClassRouteHandler(appContainer, base.Delete))
 }
 
 func configRoutes(e *echo.Echo, appContainer container.Container) {
 	// ConfigMaps
-	e.GET("api/v1/configmaps", configmaps.NewConfigMapsRouteHandler(appContainer, base.GetList)).Name = "configmapsList"
-	e.GET("api/v1/configmaps/:name", configmaps.NewConfigMapsRouteHandler(appContainer, base.GetDetails)).Name = "configmapsDetails"
-	e.GET("api/v1/configmaps/:name/yaml", configmaps.NewConfigMapsRouteHandler(appContainer, base.GetYaml)).Name = "configmapsYaml"
-	e.GET("api/v1/configmaps/:name/events", configmaps.NewConfigMapsRouteHandler(appContainer, base.GetEvents)).Name = "configmapsEvents"
-	e.DELETE("api/v1/configmaps", configmaps.NewConfigMapsRouteHandler(appContainer, base.Delete)).Name = "configmapsDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/configmaps", "configmapsList", configmaps.NewConfigMapsRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/configmaps/:name", "configmapsDetails", configmaps.NewConfigMapsRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/configmaps/:name/yaml", "configmapsYaml", configmaps.NewConfigMapsRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/configmaps/:name/events", "configmapsEvents", configmaps.NewConfigMapsRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodDelete, "api/v1/configmaps", "configmapsDelete", configmaps.NewConfigMapsRouteHandler(appContainer, base.Delete))
 
 	// Secrets
-	e.GET("api/v1/secrets", secrets.NewSecretsRouteHandler(appContainer, base.GetList)).Name = "secretsList"
-	e.GET("api/v1/secrets/:name", secrets.NewSecretsRouteHandler(appContainer, base.GetDetails)).Name = "secretsDetails"
-	e.GET("api/v1/secrets/:name/yaml", secrets.NewSecretsRouteHandler(appContainer, base.GetYaml)).Name = "secretsYaml"
-	e.GET("api/v1/secrets/:name/events", secrets.NewSecretsRouteHandler(appContainer, base.GetEvents)).Name = "secretsEvents"
-	e.DELETE("api/v1/secrets", secrets.NewSecretsRouteHandler(appContainer, base.Delete)).Name = "secretsDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/secrets", "secretsList", secrets.NewSecretsRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/secrets/:name", "secretsDetails", secrets.NewSecretsRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/secrets/:name/yaml", "secretsYaml", secrets.NewSecretsRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/secrets/:name/events", "secretsEvents", secrets.NewSecretsRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodDelete, "api/v1/secrets", "secretsDelete", secrets.NewSecretsRouteHandler(appContainer, base.Delete))
 
 	// ResourceQuotas
-	e.GET("api/v1/resourcequotas", resourcequotas.NewResourceQuotaRouteHandler(appContainer, base.GetList)).Name = "resourcequotasList"
-	e.GET("api/v1/resourcequotas/:name", resourcequotas.NewResourceQuotaRouteHandler(appContainer, base.GetDetails)).Name = "resourcequotasDetails"
-	e.GET("api/v1/resourcequotas/:name/yaml", resourcequotas.NewResourceQuotaRouteHandler(appContainer, base.GetYaml)).Name = "resourcequotasYaml"
-	e.GET("api/v1/resourcequotas/:name/events", resourcequotas.NewResourceQuotaRouteHandler(appContainer, base.GetEvents)).Name = "resourcequotasEvents"
-	e.DELETE("api/v1/resourcequotas", resourcequotas.NewResourceQuotaRouteHandler(appContainer, base.Delete)).Name = "resourcequotasDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/resourcequotas", "resourcequotasList", resourcequotas.NewResourceQuotaRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/resourcequotas/:name", "resourcequotasDetails", resourcequotas.NewResourceQuotaRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/resourcequotas/:name/yaml", "resourcequotasYaml", resourcequotas.NewResourceQuotaRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/resourcequotas/:name/events", "resourcequotasEvents", resourcequotas.NewResourceQuotaRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodDelete, "api/v1/resourcequotas", "resourcequotasDelete", resourcequotas.NewResourceQuotaRouteHandler(appContainer, base.Delete))
 
 	// LimitRanges
-	e.GET("api/v1/limitranges", limitranges.NewLimitRangesRouteHandler(appContainer, base.GetList)).Name = "limitrangesList"
-	e.GET("api/v1/limitranges/:name", limitranges.NewLimitRangesRouteHandler(appContainer, base.GetDetails)).Name = "limitrangesDetails"
-	e.GET("api/v1/limitranges/:name/yaml", limitranges.NewLimitRangesRouteHandler(appContainer, base.GetYaml)).Name = "limitrangesYaml"
-	e.GET("api/v1/limitranges/:name/events", limitranges.NewLimitRangesRouteHandler(appContainer, base.GetEvents)).Name = "limitrangesEvents"
-	e.DELETE("api/v1/limitranges", limitranges.NewLimitRangesRouteHandler(appContainer, base.Delete)).Name = "limitrangesDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/limitranges", "limitrangesList", limitranges.NewLimitRangesRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/limitranges/:name", "limitrangesDetails", limitranges.NewLimitRangesRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/limitranges/:name/yaml", "limitrangesYaml", limitranges.NewLimitRangesRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/limitranges/:name/events", "limitrangesEvents", limitranges.NewLimitRangesRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodDelete, "api/v1/limitranges", "limitrangesDelete", limitranges.NewLimitRangesRouteHandler(appContainer, base.Delete))
 
 	// HorizontalPodAutoscalers (HPA)
-	e.GET("api/v1/horizontalpodautoscalers", horizontalpodautoscalers.NewHorizontalPodAutoscalersRouteHandler(appContainer, base.GetList)).Name = "horizontalpodautoscalersList"
-	e.GET("api/v1/horizontalpodautoscalers/:name", horizontalpodautoscalers.NewHorizontalPodAutoscalersRouteHandler(appContainer, base.GetDetails)).Name = "horizontalpodautoscalersDetails"
-	e.GET("api/v1/horizontalpodautoscalers/:name/yaml", horizontalpodautoscalers.NewHorizontalPodAutoscalersRouteHandler(appContainer, base.GetYaml)).Name = "horizontalpodautoscalersYaml"
-	e.GET("api/v1/horizontalpodautoscalers/:name/events", horizontalpodautoscalers.NewHorizontalPodAutoscalersRouteHandler(appContainer, base.GetEvents)).Name = "horizontalpodautoscalersEvents"
-	e.DELETE("api/v1/horizontalpodautoscalers", horizontalpodautoscalers.NewHorizontalPodAutoscalersRouteHandler(appContainer, base.Delete)).Name = "horizontalpodautoscalersDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/horizontalpodautoscalers", "horizontalpodautoscalersList", horizontalpodautoscalers.NewHorizontalPodAutoscalersRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/horizontalpodautoscalers/:name", "horizontalpodautoscalersDetails", horizontalpodautoscalers.NewHorizontalPodAutoscalersRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/horizontalpodautoscalers/:name/yaml", "horizontalpodautoscalersYaml", horizontalpodautoscalers.NewHorizontalPodAutoscalersRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/horizontalpodautoscalers/:name/events", "horizontalpodautoscalersEvents", horizontalpodautoscalers.NewHorizontalPodAutoscalersRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodDelete, "api/v1/horizontalpodautoscalers", "horizontalpodautoscalersDelete", horizontalpodautoscalers.NewHorizontalPodAutoscalersRouteHandler(appContainer, base.Delete))
 
 	// PodDisruptionBudgets (PDB)
-	e.GET("api/v1/poddisruptionbudgets", poddisruptionbudgets.NewPodDisruptionBudgetRouteHandler(appContainer, base.GetList)).Name = "poddisruptionbudgetsList"
-	e.GET("api/v1/poddisruptionbudgets/:name", poddisruptionbudgets.NewPodDisruptionBudgetRouteHandler(appContainer, base.GetDetails)).Name = "poddisruptionbudgetsDetails"
-	e.GET("api/v1/poddisruptionbudgets/:name/yaml", poddisruptionbudgets.NewPodDisruptionBudgetRouteHandler(appContainer, base.GetYaml)).Name = "poddisruptionbudgetsYaml"
-	e.GET("api/v1/poddisruptionbudgets/:name/events", poddisruptionbudgets.NewPodDisruptionBudgetRouteHandler(appContainer, base.GetEvents)).Name = "poddisruptionbudgetsEvents"
-	e.DELETE("api/v1/poddisruptionbudgets", poddisruptionbudgets.NewPodDisruptionBudgetRouteHandler(appContainer, base.Delete)).Name = "poddisruptionbudgetsDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/poddisruptionbudgets", "poddisruptionbudgetsList", poddisruptionbudgets.NewPodDisruptionBudgetRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/poddisruptionbudgets/:name", "poddisruptionbudgetsDetails", poddisruptionbudgets.NewPodDisruptionBudgetRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/poddisruptionbudgets/:name/yaml", "poddisruptionbudgetsYaml", poddisruptionbudgets.NewPodDisruptionBudgetRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/poddisruptionbudgets/:name/events", "poddisruptionbudgetsEvents", poddisruptionbudgets.NewPodDisruptionBudgetRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodDelete, "api/v1/poddisruptionbudgets", "poddisruptionbudgetsDelete", poddisruptionbudgets.NewPodDisruptionBudgetRouteHandler(appContainer, base.Delete))
 
 	// PriorityClasses
-	e.GET("api/v1/priorityclasses", priorityclasses.NewPriorityClassRouteHandler(appContainer, base.GetList)).Name = "priorityclassesList"
-	e.GET("api/v1/priorityclasses/:name", priorityclasses.NewPriorityClassRouteHandler(appContainer, base.GetDetails)).Name = "priorityclassesDetails"
-	e.GET("api/v1/priorityclasses/:name/yaml", priorityclasses.NewPriorityClassRouteHandler(appContainer, base.GetYaml)).Name = "priorityclassesYaml"
-	e.GET("api/v1/priorityclasses/:name/events", priorityclasses.NewPriorityClassRouteHandler(appContainer, base.GetEvents)).Name = "priorityclassesEvents"
-	e.DELETE("api/v1/priorityclasses", priorityclasses.NewPriorityClassRouteHandler(appContainer, base.Delete)).Name = "priorityclassesDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/priorityclasses", "priorityclassesList", priorityclasses.NewPriorityClassRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/priorityclasses/:name", "priorityclassesDetails", priorityclasses.NewPriorityClassRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/priorityclasses/:name/yaml", "priorityclassesYaml", priorityclasses.NewPriorityClassRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/priorityclasses/:name/events", "priorityclassesEvents", priorityclasses.NewPriorityClassRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodDelete, "api/v1/priorityclasses", "priorityclassesDelete", priorityclasses.NewPriorityClassRouteHandler(appContainer, base.Delete))
 
 	// RuntimeClasses
-	e.GET("api/v1/runtimeclasses", runtimeclasses.NewRunTimeClassRouteHandler(appContainer, base.GetList)).Name = "runtimeclassesList"
-	e.GET("api/v1/runtimeclasses/:name", runtimeclasses.NewRunTimeClassRouteHandler(appContainer, base.GetDetails)).Name = "runtimeclassesDetails"
-	e.GET("api/v1/runtimeclasses/:name/yaml", runtimeclasses.NewRunTimeClassRouteHandler(appContainer, base.GetYaml)).Name = "runtimeclassesYaml"
-	e.GET("api/v1/runtimeclasses/:name/events", runtimeclasses.NewRunTimeClassRouteHandler(appContainer, base.GetEvents)).Name = "runtimeclassesEvents"
-	e.DELETE("api/v1/runtimeclasses", runtimeclasses.NewRunTimeClassRouteHandler(appContainer, base.Delete)).Name = "runtimeclassesDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/runtimeclasses", "runtimeclassesList", runtimeclasses.NewRunTimeClassRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/runtimeclasses/:name", "runtimeclassesDetails", runtimeclasses.NewRunTimeClassRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/runtimeclasses/:name/yaml", "runtimeclassesYaml", runtimeclasses.NewRunTimeClassRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/runtimeclasses/:name/events", "runtimeclassesEvents", runtimeclasses.NewRunTimeClassRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodDelete, "api/v1/runtimeclasses", "runtimeclassesDelete", runtimeclasses.NewRunTimeClassRouteHandler(appContainer, base.Delete))
 
 	// Leases
-	e.GET("api/v1/leases", leases.NewLeaseRouteHandler(appContainer, base.GetList)).Name = "leasesList"
-	e.GET("api/v1/leases/:name", leases.NewLeaseRouteHandler(appContainer, base.GetDetails)).Name = "leasesDetails"
-	e.GET("api/v1/leases/:name/yaml", leases.NewLeaseRouteHandler(appContainer, base.GetYaml)).Name = "leasesYaml"
-	e.GET("api/v1/leases/:name/events", leases.NewLeaseRouteHandler(appContainer, base.GetEvents)).Name = "leasesEvents"
-	e.DELETE("api/v1/leases", leases.NewLeaseRouteHandler(appContainer, base.Delete)).Name = "leasesDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/leases", "leasesList", leases.NewLeaseRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/leases/:name", "leasesDetails", leases.NewLeaseRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/leases/:name/yaml", "leasesYaml", leases.NewLeaseRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/leases/:name/events", "leasesEvents", leases.NewLeaseRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodDelete, "api/v1/leases", "leasesDelete", leases.NewLeaseRouteHandler(appContainer, base.Delete))
 }
 
 func workloadRoutes(e *echo.Echo, appContainer container.Container) {
 	// Pods
-	e.GET("api/v1/pods", pods.NewPodsRouteHandler(appContainer, base.GetList)).Name = "podsList"
-	e.GET("api/v1/pods/:name", pods.NewPodsRouteHandler(appContainer, base.GetDetails)).Name = "podsDetails"
-	e.GET("api/v1/pods/:name/yaml", pods.NewPodsRouteHandler(appContainer, base.GetYaml)).Name = "podsYaml"
-	e.GET("api/v1/pods/:name/logs", pods.NewPodsRouteHandler(appContainer, base.GetLogs)).Name = "podsLogs"
-	e.GET("api/v1/pods/:name/logs/history", pods.NewPodsRouteHandler(appContainer, pods.GetLogHistory)).Name = "podsLogsHistory"
-	e.GET("api/v1/pods/:name/events", pods.NewPodsRouteHandler(appContainer, base.GetEvents)).Name = "podsEvents"
-	e.DELETE("api/v1/pods", pods.NewPodsRouteHandler(appContainer, base.Delete)).Name = "podsDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/pods", "podsList", pods.NewPodsRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/pods/:name", "podsDetails", pods.NewPodsRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/pods/:name/yaml", "podsYaml", pods.NewPodsRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/pods/:name/logs", "podsLogs", pods.NewPodsRouteHandler(appContainer, base.GetLogs))
+	addNamedRoute(e, http.MethodGet, "api/v1/pods/:name/logs/history", "podsLogsHistory", pods.NewPodsRouteHandler(appContainer, pods.GetLogHistory))
+	addNamedRoute(e, http.MethodGet, "api/v1/pods/:name/events", "podsEvents", pods.NewPodsRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodDelete, "api/v1/pods", "podsDelete", pods.NewPodsRouteHandler(appContainer, base.Delete))
 
 	// Deployments
-	e.GET("api/v1/deployments", deployments.NewDeploymentRouteHandler(appContainer, base.GetList)).Name = "deploymentsList"
-	e.GET("api/v1/deployments/:name", deployments.NewDeploymentRouteHandler(appContainer, base.GetDetails)).Name = "deploymentsDetails"
-	e.GET("api/v1/deployments/:name/yaml", deployments.NewDeploymentRouteHandler(appContainer, base.GetYaml)).Name = "deploymentsYaml"
-	e.GET("api/v1/deployments/:name/events", deployments.NewDeploymentRouteHandler(appContainer, base.GetEvents)).Name = "deploymentsEvents"
-	e.GET("api/v1/deployments/:name/pods", deployments.NewDeploymentRouteHandler(appContainer, deployments.GetPods)).Name = "deploymentsPods"
-	e.DELETE("api/v1/deployments", deployments.NewDeploymentRouteHandler(appContainer, base.Delete)).Name = "deploymentsDelete"
-	e.POST("api/v1/deployments/:name/scale", deployments.NewDeploymentRouteHandler(appContainer, deployments.UpdateScale)).Name = "deploymentsScale"
+	addNamedRoute(e, http.MethodGet, "api/v1/deployments", "deploymentsList", deployments.NewDeploymentRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/deployments/:name", "deploymentsDetails", deployments.NewDeploymentRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/deployments/:name/yaml", "deploymentsYaml", deployments.NewDeploymentRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/deployments/:name/events", "deploymentsEvents", deployments.NewDeploymentRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodGet, "api/v1/deployments/:name/pods", "deploymentsPods", deployments.NewDeploymentRouteHandler(appContainer, deployments.GetPods))
+	addNamedRoute(e, http.MethodDelete, "api/v1/deployments", "deploymentsDelete", deployments.NewDeploymentRouteHandler(appContainer, base.Delete))
+	addNamedRoute(e, http.MethodPost, "api/v1/deployments/:name/scale", "deploymentsScale", deployments.NewDeploymentRouteHandler(appContainer, deployments.UpdateScale))
 
 	// DaemonSets
-	e.GET("api/v1/daemonsets", daemonsets.NewDaemonSetsRouteHandler(appContainer, base.GetList)).Name = "daemonsetsList"
-	e.GET("api/v1/daemonsets/:name", daemonsets.NewDaemonSetsRouteHandler(appContainer, base.GetDetails)).Name = "daemonsetsDetails"
-	e.GET("api/v1/daemonsets/:name/yaml", daemonsets.NewDaemonSetsRouteHandler(appContainer, base.GetYaml)).Name = "daemonsetsYaml"
-	e.GET("api/v1/daemonsets/:name/events", daemonsets.NewDaemonSetsRouteHandler(appContainer, base.GetEvents)).Name = "daemonsetsEvents"
-	e.GET("api/v1/daemonsets/:name/pods", pods.NewOwnerPodsRouteHandler(appContainer, pods.DaemonSetsResource)).Name = "daemonsetsPods"
-	e.DELETE("api/v1/daemonsets", daemonsets.NewDaemonSetsRouteHandler(appContainer, base.Delete)).Name = "daemonsetsDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/daemonsets", "daemonsetsList", daemonsets.NewDaemonSetsRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/daemonsets/:name", "daemonsetsDetails", daemonsets.NewDaemonSetsRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/daemonsets/:name/yaml", "daemonsetsYaml", daemonsets.NewDaemonSetsRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/daemonsets/:name/events", "daemonsetsEvents", daemonsets.NewDaemonSetsRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodGet, "api/v1/daemonsets/:name/pods", "daemonsetsPods", pods.NewOwnerPodsRouteHandler(appContainer, pods.DaemonSetsResource))
+	addNamedRoute(e, http.MethodDelete, "api/v1/daemonsets", "daemonsetsDelete", daemonsets.NewDaemonSetsRouteHandler(appContainer, base.Delete))
 
 	// ReplicaSets
-	e.GET("api/v1/replicasets", replicaset.NewReplicaSetRouteHandler(appContainer, base.GetList)).Name = "replicasetsList"
-	e.GET("api/v1/replicasets/:name", replicaset.NewReplicaSetRouteHandler(appContainer, base.GetDetails)).Name = "replicasetsDetails"
-	e.GET("api/v1/replicasets/:name/yaml", replicaset.NewReplicaSetRouteHandler(appContainer, base.GetYaml)).Name = "replicasetsYaml"
-	e.GET("api/v1/replicasets/:name/events", replicaset.NewReplicaSetRouteHandler(appContainer, base.GetEvents)).Name = "replicasetsEvents"
-	e.GET("api/v1/replicasets/:name/pods", pods.NewOwnerPodsRouteHandler(appContainer, pods.ReplicaSetsResource)).Name = "replicasetsPods"
-	e.DELETE("api/v1/replicasets", replicaset.NewReplicaSetRouteHandler(appContainer, base.Delete)).Name = "replicasetsDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/replicasets", "replicasetsList", replicaset.NewReplicaSetRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/replicasets/:name", "replicasetsDetails", replicaset.NewReplicaSetRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/replicasets/:name/yaml", "replicasetsYaml", replicaset.NewReplicaSetRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/replicasets/:name/events", "replicasetsEvents", replicaset.NewReplicaSetRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodGet, "api/v1/replicasets/:name/pods", "replicasetsPods", pods.NewOwnerPodsRouteHandler(appContainer, pods.ReplicaSetsResource))
+	addNamedRoute(e, http.MethodDelete, "api/v1/replicasets", "replicasetsDelete", replicaset.NewReplicaSetRouteHandler(appContainer, base.Delete))
 
 	// StatefulSets
-	e.GET("api/v1/statefulsets", statefulset.NewStatefulSetRouteHandler(appContainer, base.GetList)).Name = "statefulsetsList"
-	e.GET("api/v1/statefulsets/:name", statefulset.NewStatefulSetRouteHandler(appContainer, base.GetDetails)).Name = "statefulsetsDetails"
-	e.GET("api/v1/statefulsets/:name/yaml", statefulset.NewStatefulSetRouteHandler(appContainer, base.GetYaml)).Name = "statefulsetsYaml"
-	e.GET("api/v1/statefulsets/:name/events", statefulset.NewStatefulSetRouteHandler(appContainer, base.GetEvents)).Name = "statefulsetsEvents"
-	e.GET("api/v1/statefulsets/:name/pods", pods.NewOwnerPodsRouteHandler(appContainer, pods.StatefulSetsResource)).Name = "statefulsetsPods"
-	e.DELETE("api/v1/statefulsets", statefulset.NewStatefulSetRouteHandler(appContainer, base.Delete)).Name = "statefulsetsDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/statefulsets", "statefulsetsList", statefulset.NewStatefulSetRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/statefulsets/:name", "statefulsetsDetails", statefulset.NewStatefulSetRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/statefulsets/:name/yaml", "statefulsetsYaml", statefulset.NewStatefulSetRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/statefulsets/:name/events", "statefulsetsEvents", statefulset.NewStatefulSetRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodGet, "api/v1/statefulsets/:name/pods", "statefulsetsPods", pods.NewOwnerPodsRouteHandler(appContainer, pods.StatefulSetsResource))
+	addNamedRoute(e, http.MethodDelete, "api/v1/statefulsets", "statefulsetsDelete", statefulset.NewStatefulSetRouteHandler(appContainer, base.Delete))
 
 	// Jobs
-	e.GET("api/v1/jobs", jobs.NewJobsRouteHandler(appContainer, base.GetList)).Name = "jobsList"
-	e.GET("api/v1/jobs/:name", jobs.NewJobsRouteHandler(appContainer, base.GetDetails)).Name = "jobsDetails"
-	e.GET("api/v1/jobs/:name/yaml", jobs.NewJobsRouteHandler(appContainer, base.GetYaml)).Name = "jobsYaml"
-	e.GET("api/v1/jobs/:name/events", jobs.NewJobsRouteHandler(appContainer, base.GetEvents)).Name = "jobsEvents"
-	e.GET("api/v1/jobs/:name/pods", pods.NewOwnerPodsRouteHandler(appContainer, pods.JobsResource)).Name = "jobsPods"
-	e.DELETE("api/v1/jobs", jobs.NewJobsRouteHandler(appContainer, base.Delete)).Name = "jobsDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/jobs", "jobsList", jobs.NewJobsRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/jobs/:name", "jobsDetails", jobs.NewJobsRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/jobs/:name/yaml", "jobsYaml", jobs.NewJobsRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/jobs/:name/events", "jobsEvents", jobs.NewJobsRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodGet, "api/v1/jobs/:name/pods", "jobsPods", pods.NewOwnerPodsRouteHandler(appContainer, pods.JobsResource))
+	addNamedRoute(e, http.MethodDelete, "api/v1/jobs", "jobsDelete", jobs.NewJobsRouteHandler(appContainer, base.Delete))
 
 	// CronJobs
-	e.GET("api/v1/cronjobs", cronjobs.NewCronJobsRouteHandler(appContainer, base.GetList)).Name = "cronjobsList"
-	e.GET("api/v1/cronjobs/:name", cronjobs.NewCronJobsRouteHandler(appContainer, base.GetDetails)).Name = "cronjobsDetails"
-	e.GET("api/v1/cronjobs/:name/yaml", cronjobs.NewCronJobsRouteHandler(appContainer, base.GetYaml)).Name = "cronjobsYaml"
-	e.GET("api/v1/cronjobs/:name/events", cronjobs.NewCronJobsRouteHandler(appContainer, base.GetEvents)).Name = "cronjobsEvents"
-	e.GET("api/v1/cronjobs/:name/jobs", cronjobs.NewCronJobsRouteHandler(appContainer, cronjobs.GetJobs)).Name = "cronjobsJobs"
-	e.DELETE("api/v1/cronjobs", cronjobs.NewCronJobsRouteHandler(appContainer, base.Delete)).Name = "cronjobsDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/cronjobs", "cronjobsList", cronjobs.NewCronJobsRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/cronjobs/:name", "cronjobsDetails", cronjobs.NewCronJobsRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/cronjobs/:name/yaml", "cronjobsYaml", cronjobs.NewCronJobsRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/cronjobs/:name/events", "cronjobsEvents", cronjobs.NewCronJobsRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodGet, "api/v1/cronjobs/:name/jobs", "cronjobsJobs", cronjobs.NewCronJobsRouteHandler(appContainer, cronjobs.GetJobs))
+	addNamedRoute(e, http.MethodDelete, "api/v1/cronjobs", "cronjobsDelete", cronjobs.NewCronJobsRouteHandler(appContainer, base.Delete))
 }
 
 func accessControlRoutes(e *echo.Echo, appContainer container.Container) {
 	// ServiceAccounts
-	e.GET("api/v1/serviceaccounts", serviceaccounts.NewServiceAccountsRouteHandler(appContainer, base.GetList)).Name = "serviceaccountsList"
-	e.GET("api/v1/serviceaccounts/:name", serviceaccounts.NewServiceAccountsRouteHandler(appContainer, base.GetDetails)).Name = "serviceaccountsDetails"
-	e.GET("api/v1/serviceaccounts/:name/yaml", serviceaccounts.NewServiceAccountsRouteHandler(appContainer, base.GetYaml)).Name = "serviceaccountsYaml"
-	e.GET("api/v1/serviceaccounts/:name/events", serviceaccounts.NewServiceAccountsRouteHandler(appContainer, base.GetEvents)).Name = "serviceaccountsEvents"
-	e.DELETE("api/v1/serviceaccounts", serviceaccounts.NewServiceAccountsRouteHandler(appContainer, base.Delete)).Name = "serviceaccountsDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/serviceaccounts", "serviceaccountsList", serviceaccounts.NewServiceAccountsRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/serviceaccounts/:name", "serviceaccountsDetails", serviceaccounts.NewServiceAccountsRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/serviceaccounts/:name/yaml", "serviceaccountsYaml", serviceaccounts.NewServiceAccountsRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/serviceaccounts/:name/events", "serviceaccountsEvents", serviceaccounts.NewServiceAccountsRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodDelete, "api/v1/serviceaccounts", "serviceaccountsDelete", serviceaccounts.NewServiceAccountsRouteHandler(appContainer, base.Delete))
 
 	// Roles
-	e.GET("api/v1/roles", roles.NewRoleRouteHandler(appContainer, base.GetList)).Name = "rolesList"
-	e.GET("api/v1/roles/:name", roles.NewRoleRouteHandler(appContainer, base.GetDetails)).Name = "rolesDetails"
-	e.GET("api/v1/roles/:name/yaml", roles.NewRoleRouteHandler(appContainer, base.GetYaml)).Name = "rolesYaml"
-	e.GET("api/v1/roles/:name/events", roles.NewRoleRouteHandler(appContainer, base.GetEvents)).Name = "rolesEvents"
-	e.DELETE("api/v1/roles", roles.NewRoleRouteHandler(appContainer, base.Delete)).Name = "rolesDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/roles", "rolesList", roles.NewRoleRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/roles/:name", "rolesDetails", roles.NewRoleRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/roles/:name/yaml", "rolesYaml", roles.NewRoleRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/roles/:name/events", "rolesEvents", roles.NewRoleRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodDelete, "api/v1/roles", "rolesDelete", roles.NewRoleRouteHandler(appContainer, base.Delete))
 
 	// Role Bindings
-	e.GET("api/v1/rolebindings", rolebindings.NewRoleBindingsRouteHandler(appContainer, base.GetList)).Name = "rolebindingsList"
-	e.GET("api/v1/rolebindings/:name", rolebindings.NewRoleBindingsRouteHandler(appContainer, base.GetDetails)).Name = "rolebindingsDetails"
-	e.GET("api/v1/rolebindings/:name/yaml", rolebindings.NewRoleBindingsRouteHandler(appContainer, base.GetYaml)).Name = "rolebindingsYaml"
-	e.GET("api/v1/rolebindings/:name/events", rolebindings.NewRoleBindingsRouteHandler(appContainer, base.GetEvents)).Name = "rolebindingsEvents"
-	e.DELETE("api/v1/rolebindings", rolebindings.NewRoleBindingsRouteHandler(appContainer, base.Delete)).Name = "rolebindingsDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/rolebindings", "rolebindingsList", rolebindings.NewRoleBindingsRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/rolebindings/:name", "rolebindingsDetails", rolebindings.NewRoleBindingsRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/rolebindings/:name/yaml", "rolebindingsYaml", rolebindings.NewRoleBindingsRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/rolebindings/:name/events", "rolebindingsEvents", rolebindings.NewRoleBindingsRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodDelete, "api/v1/rolebindings", "rolebindingsDelete", rolebindings.NewRoleBindingsRouteHandler(appContainer, base.Delete))
 
 	// Cluster Roles
-	e.GET("api/v1/clusterroles", clusterroles.NewClusterRoleRouteHandler(appContainer, base.GetList)).Name = "clusterrolesList"
-	e.GET("api/v1/clusterroles/:name", clusterroles.NewClusterRoleRouteHandler(appContainer, base.GetDetails)).Name = "clusterrolesDetails"
-	e.GET("api/v1/clusterroles/:name/yaml", clusterroles.NewClusterRoleRouteHandler(appContainer, base.GetYaml)).Name = "clusterrolesYaml"
-	e.GET("api/v1/clusterroles/:name/events", clusterroles.NewClusterRoleRouteHandler(appContainer, base.GetEvents)).Name = "clusterrolesEvents"
-	e.DELETE("api/v1/clusterroles", clusterroles.NewClusterRoleRouteHandler(appContainer, base.Delete)).Name = "clusterrolesDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/clusterroles", "clusterrolesList", clusterroles.NewClusterRoleRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/clusterroles/:name", "clusterrolesDetails", clusterroles.NewClusterRoleRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/clusterroles/:name/yaml", "clusterrolesYaml", clusterroles.NewClusterRoleRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/clusterroles/:name/events", "clusterrolesEvents", clusterroles.NewClusterRoleRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodDelete, "api/v1/clusterroles", "clusterrolesDelete", clusterroles.NewClusterRoleRouteHandler(appContainer, base.Delete))
 
 	// Cluster Role Bindings
-	e.GET("api/v1/clusterrolebindings", clusterrolebindings.NewClusterRoleBindingsRouteHandler(appContainer, base.GetList)).Name = "clusterrolebindingsList"
-	e.GET("api/v1/clusterrolebindings/:name", clusterrolebindings.NewClusterRoleBindingsRouteHandler(appContainer, base.GetDetails)).Name = "clusterrolebindingsDetails"
-	e.GET("api/v1/clusterrolebindings/:name/yaml", clusterrolebindings.NewClusterRoleBindingsRouteHandler(appContainer, base.GetYaml)).Name = "clusterrolebindingsYaml"
-	e.GET("api/v1/clusterrolebindings/:name/events", clusterrolebindings.NewClusterRoleBindingsRouteHandler(appContainer, base.GetEvents)).Name = "clusterrolebindingsEvents"
-	e.DELETE("api/v1/clusterrolebindings", clusterrolebindings.NewClusterRoleBindingsRouteHandler(appContainer, base.Delete)).Name = "clusterrolebindingsDelete"
+	addNamedRoute(e, http.MethodGet, "api/v1/clusterrolebindings", "clusterrolebindingsList", clusterrolebindings.NewClusterRoleBindingsRouteHandler(appContainer, base.GetList))
+	addNamedRoute(e, http.MethodGet, "api/v1/clusterrolebindings/:name", "clusterrolebindingsDetails", clusterrolebindings.NewClusterRoleBindingsRouteHandler(appContainer, base.GetDetails))
+	addNamedRoute(e, http.MethodGet, "api/v1/clusterrolebindings/:name/yaml", "clusterrolebindingsYaml", clusterrolebindings.NewClusterRoleBindingsRouteHandler(appContainer, base.GetYaml))
+	addNamedRoute(e, http.MethodGet, "api/v1/clusterrolebindings/:name/events", "clusterrolebindingsEvents", clusterrolebindings.NewClusterRoleBindingsRouteHandler(appContainer, base.GetEvents))
+	addNamedRoute(e, http.MethodDelete, "api/v1/clusterrolebindings", "clusterrolebindingsDelete", clusterrolebindings.NewClusterRoleBindingsRouteHandler(appContainer, base.Delete))
 }
 
 func setCORSConfig(e *echo.Echo) {
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowCredentials:                         true,
-		UnsafeWildcardOriginWithAllowCredentials: true,
-		AllowOrigins:                             []string{"*"},
+		AllowCredentials:      true,
+		UnsafeAllowOriginFunc: reflectRequestOrigin,
 		AllowHeaders: []string{
 			echo.HeaderConnection,
 			echo.HeaderContentType,
@@ -415,4 +420,26 @@ func setCORSConfig(e *echo.Echo) {
 			http.MethodTrace},
 		MaxAge: 86400,
 	}))
+}
+
+func reflectRequestOrigin(_ *echo.Context, origin string) (string, bool, error) {
+	return origin, true, nil
+}
+
+func logRequest(_ *echo.Context, request middleware.RequestLoggerValues) error {
+	level := log.InfoLevel
+	fields := []any{"status", request.Status, "method", request.Method, "uri", request.URI, "ip", request.RemoteIP, "latency", request.Latency}
+	if request.Error != nil {
+		level = log.ErrorLevel
+		fields = append(fields, "err", request.Error)
+	}
+	log.Log(level, "request", fields...)
+	return nil
+}
+
+func addNamedRoute(e *echo.Echo, method, path, name string, handler echo.HandlerFunc) {
+	route := echo.Route{Method: method, Path: path, Name: name, Handler: handler}
+	if _, err := e.AddRoute(route); err != nil {
+		panic(err)
+	}
 }

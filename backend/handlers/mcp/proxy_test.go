@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -170,8 +170,7 @@ func TestProxyHandler(t *testing.T) {
 
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
-			c.SetParamNames("*")
-			c.SetParamValues(tt.remotePath)
+			c.SetPathValues(echo.PathValues{{Name: "*", Value: tt.remotePath}})
 
 			// Execute handler
 			err := ProxyHandler(c)

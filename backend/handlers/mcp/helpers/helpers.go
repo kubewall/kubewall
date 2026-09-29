@@ -9,11 +9,15 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/log"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
-func BuildURL(c echo.Context, reverse string, name, namespace string, params ...any) string {
-	url := c.Scheme() + "://" + c.Request().Host + c.Echo().Reverse(reverse, name)
+func BuildURL(c *echo.Context, reverse string, name, namespace string, params ...any) string {
+	routePath, err := c.Echo().Router().Routes().Reverse(reverse, name)
+	if err != nil {
+		log.Error("failed to reverse route", "route", reverse, "err", err)
+	}
+	url := c.Scheme() + "://" + c.Request().Host + "/" + strings.TrimPrefix(routePath, "/")
 	if namespace == "" {
 		url = fmt.Sprintf("%s?config=%s&cluster=%s", url, c.QueryParam("config"), c.QueryParam("cluster"))
 	} else {

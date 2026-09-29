@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/kubewall/kubewall/backend/container"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/r3labs/sse/v2"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
@@ -36,7 +36,7 @@ type BaseHandler struct {
 	TransformFunc func([]any, *BaseHandler) ([]byte, error)
 }
 
-func (h *BaseHandler) GetList(c echo.Context) error {
+func (h *BaseHandler) GetList(c *echo.Context) error {
 	streamID := fmt.Sprintf("%s-%s-%s", h.QueryConfig, h.QueryCluster, h.Kind)
 	h.Container.SSE().CreateStream(streamID)
 	// Handlers are cached across requests, so publish the current list for
@@ -46,7 +46,7 @@ func (h *BaseHandler) GetList(c echo.Context) error {
 	return nil
 }
 
-func (h *BaseHandler) GetDetails(c echo.Context) error {
+func (h *BaseHandler) GetDetails(c *echo.Context) error {
 	streamID, item, exists, err := h.getStreamIDAndItem(h.Kind, c.QueryParam("namespace"), c.Param("name"))
 	if err != nil {
 		return c.String(http.StatusBadRequest, err.Error())
@@ -60,7 +60,7 @@ func (h *BaseHandler) GetDetails(c echo.Context) error {
 	return nil
 }
 
-func (h *BaseHandler) GetYaml(c echo.Context) error {
+func (h *BaseHandler) GetYaml(c *echo.Context) error {
 	streamID, item, exists, err := h.getStreamIDAndItem(h.Kind, c.QueryParam("namespace"), c.Param("name"))
 	if err != nil {
 		return c.String(http.StatusBadRequest, err.Error())
@@ -75,7 +75,7 @@ func (h *BaseHandler) GetYaml(c echo.Context) error {
 	return nil
 }
 
-func (h *BaseHandler) GetEvents(c echo.Context) error {
+func (h *BaseHandler) GetEvents(c *echo.Context) error {
 	streamID := h.buildEventStreamID(c)
 	h.Container.SSE().CreateStream(streamID)
 	events := h.fetchEvents(c)
@@ -90,7 +90,7 @@ func (h *BaseHandler) GetEvents(c echo.Context) error {
 	return nil
 }
 
-func (h *BaseHandler) Delete(c echo.Context) error {
+func (h *BaseHandler) Delete(c *echo.Context) error {
 	type InputData struct {
 		Namespace string `json:"namespace"`
 		Name      string `json:"name"`

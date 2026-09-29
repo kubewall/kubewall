@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/labstack/echo/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -109,4 +110,35 @@ func TestReadFirstSSEMessage_OldLimitWouldFail(t *testing.T) {
 	}
 	require.Error(t, scanner.Err(), "expected old default scanner to fail on 128 KiB line")
 	assert.ErrorIs(t, scanner.Err(), bufio.ErrTooLong)
+}
+
+func TestBuildURL(t *testing.T) {
+	e := echo.New()
+	for _, route := range []echo.Route{
+		{Method: http.MethodGet, Path: "api/v1/pods/:name/yaml", Name: "podsYaml"},
+		{Method: http.MethodGet, Path: "/api/v1/nodes", Name: "nodesList"},
+	} {
+		route.Handler = func(c *echo.Context) error { return c.NoContent(http.StatusOK) }
+		_, err := e.AddRoute(route)
+		require.NoError(t, err)
+	}
+
+	tests := []struct {
+		name      string
+		routeName string
+		resource  string
+		namespace string
+		want      string
+	}{
+		{name: "route registered without leading slash", routeName: "podsYaml", resource: "nginx", namespace: "default", want: "http://kubewall.test/api/v1/pods/nginx/yaml?config=local&cluster=kind&namespace=default"},
+		{name: "route registered with leading slash", routeName: "nodesList", want: "http://kubewall.test/api/v1/nodes?config=local&cluster=kind"},
+		{name: "unknown route", routeName: "missingRoute", want: "http://kubewall.test/?config=local&cluster=kind"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			request := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "http://kubewall.test/api/v1/mcp/sse?config=local&cluster=kind", nil)
+			c := e.NewContext(request, httptest.NewRecorder())
+			assert.Equal(t, tt.want, BuildURL(c, tt.routeName, tt.resource, tt.namespace))
+		})
+	}
 }

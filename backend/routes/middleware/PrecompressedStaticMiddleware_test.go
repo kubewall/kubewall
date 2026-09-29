@@ -6,7 +6,7 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,7 +32,7 @@ func runMiddleware(t *testing.T, fsys fstest.MapFS, method, path, acceptEncoding
 	c := e.NewContext(req, rec)
 
 	nextCalled := false
-	next := func(c echo.Context) error {
+	next := func(c *echo.Context) error {
 		nextCalled = true
 		return c.String(http.StatusNotFound, "next handler")
 	}

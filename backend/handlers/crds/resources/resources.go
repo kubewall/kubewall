@@ -11,7 +11,7 @@ import (
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/base"
 	"github.com/kubewall/kubewall/backend/handlers/helpers"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/maruel/natural"
 	"github.com/r3labs/sse/v2"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -35,7 +35,7 @@ type UnstructuredHandler struct {
 }
 
 func NewUnstructuredRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		handler := NewUnstructuredHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), c.QueryParam("kind"), c.QueryParam("group"), c.QueryParam("version"), c.QueryParam("resource"), container)
 
 		switch routeType {
@@ -85,7 +85,7 @@ func newUnstructuredHandler(ctx context.Context, config, cluster, kind, group, v
 	return handler
 }
 
-func (h *UnstructuredHandler) Get(c echo.Context) error {
+func (h *UnstructuredHandler) Get(c *echo.Context) error {
 	itemKey := fmt.Sprintf("%s/%s", c.Param("namespace"), c.Param("name"))
 	if len(c.Param("namespace")) == 0 {
 		itemKey = c.Param("name")
@@ -117,7 +117,7 @@ func (h *UnstructuredHandler) ProcessDetails(itemKey, steamKey string) func() {
 	}
 }
 
-func (h *UnstructuredHandler) Delete(c echo.Context) error {
+func (h *UnstructuredHandler) Delete(c *echo.Context) error {
 	group := c.QueryParam("group")
 	version := c.QueryParam("version")
 	resource := c.QueryParam("resource")

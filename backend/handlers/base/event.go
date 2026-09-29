@@ -6,18 +6,18 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/r3labs/sse/v2"
 	coreV1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 )
 
-func (h *BaseHandler) buildEventStreamID(c echo.Context) string {
+func (h *BaseHandler) buildEventStreamID(c *echo.Context) string {
 	return fmt.Sprintf("%s-%s-%s-%s-events", h.QueryConfig, h.QueryCluster, c.QueryParam("namespace"), c.Param("name"))
 }
 
-func (h *BaseHandler) fetchEvents(c echo.Context) []coreV1.Event {
+func (h *BaseHandler) fetchEvents(c *echo.Context) []coreV1.Event {
 	ctx, cancel := context.WithTimeout(c.Request().Context(), 60*time.Second)
 	defer cancel()
 
@@ -62,7 +62,7 @@ func (h *BaseHandler) publishEvents(streamID string, data []byte) {
 	})
 }
 
-func (h *BaseHandler) startEventTicker(ctx context.Context, c echo.Context, streamID string) *time.Ticker {
+func (h *BaseHandler) startEventTicker(ctx context.Context, c *echo.Context, streamID string) *time.Ticker {
 	ticker := time.NewTicker(time.Second)
 
 	go func() {

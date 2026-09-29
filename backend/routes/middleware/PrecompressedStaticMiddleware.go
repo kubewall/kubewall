@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 // precompressedVariants is ordered by preference: brotli compresses better
@@ -30,7 +30,7 @@ var precompressedVariants = []struct {
 // middleware adds no runtime compression CPU cost - it only picks a file.
 func PrecompressedStaticMiddleware(staticFiles fs.FS, root string) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			req := c.Request()
 			if req.Method != http.MethodGet && req.Method != http.MethodHead {
 				return next(c)

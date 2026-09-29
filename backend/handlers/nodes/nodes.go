@@ -10,7 +10,7 @@ import (
 	"github.com/kubewall/kubewall/backend/handlers/base"
 	"github.com/kubewall/kubewall/backend/handlers/helpers"
 	"github.com/kubewall/kubewall/backend/handlers/workloads/pods"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	coreV1 "k8s.io/api/core/v1"
 )
 
@@ -23,7 +23,7 @@ type NodeHandler struct {
 }
 
 func NewNodeRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		handler := NewNodeHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
@@ -85,7 +85,7 @@ func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 	return json.Marshal(t)
 }
 
-func (h *NodeHandler) GetPods(c echo.Context) error {
+func (h *NodeHandler) GetPods(c *echo.Context) error {
 	streamID := fmt.Sprintf("%s-%s-%s-node-pods", h.BaseHandler.QueryConfig, h.BaseHandler.QueryCluster, c.Param("name"))
 	ctx := c.Request().Context()
 	config := c.QueryParam("config")

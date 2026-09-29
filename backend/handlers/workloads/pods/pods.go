@@ -20,7 +20,7 @@ import (
 	"net/http"
 
 	"github.com/kubewall/kubewall/backend/container"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/json"
 )
@@ -38,7 +38,7 @@ type PodsHandler struct {
 }
 
 func NewPodsRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		handler := NewPodsHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
@@ -138,7 +138,7 @@ func GetPodsMetricsList(b *base.BaseHandler) *v1beta1.PodMetricsList {
 	return podMetrics
 }
 
-func (h *PodsHandler) GetLogs(c echo.Context) error {
+func (h *PodsHandler) GetLogs(c *echo.Context) error {
 	sseServer := sse.New()
 	sseServer.AutoStream = true
 	// No TTL: a log line is never too old to deliver.

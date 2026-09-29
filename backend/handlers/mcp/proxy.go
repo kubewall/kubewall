@@ -12,10 +12,10 @@ import (
 	"time"
 
 	"github.com/charmbracelet/log"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
-func ProxyHandler(c echo.Context) error {
+func ProxyHandler(c *echo.Context) error {
 	remoteURLPart := c.Param("*")
 
 	if remoteURLPart == "" {
@@ -120,7 +120,7 @@ func ProxyHandler(c echo.Context) error {
 
 	c.Response().WriteHeader(resp.StatusCode)
 
-	_, err = io.Copy(c.Response().Writer, resp.Body)
+	_, err = io.Copy(c.Response(), resp.Body)
 	if err != nil {
 		log.Error("Error copying response body", "err", err)
 		return c.String(http.StatusInternalServerError, err.Error())

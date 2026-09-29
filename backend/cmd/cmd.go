@@ -1,25 +1,22 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"log/slog"
 	"net"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/charmbracelet/log"
 	"github.com/kubewall/kubewall/backend/config"
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/routes"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v5/middleware"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 )
-
-// serverStartTimeout bounds how long we wait for the listener to bind
-// before giving up on opening the browser.
-const serverStartTimeout = 5 * time.Second
 
 func init() {
 	rootCmd.PersistentFlags().String("certFile", "", "absolute path to certificate file")
@@ -98,7 +95,7 @@ func Serve(cmd *cobra.Command) error {
 	cfg.LoadAppConfig()
 
 	c := container.NewContainer(env, cfg)
-	e := echo.New()
+	e := echo.NewWithConfig(echo.Config{Logger: slog.New(log.Default())})
 	startBanner()
 	routes.ConfigureRoutes(e, c)
 
@@ -106,19 +103,26 @@ func Serve(cmd *cobra.Command) error {
 		log.Warn("SSE may not work properly without TLS. Use --certFile and --keyFile for HTTPS, or bind to localhost with --listen localhost:7080 to avoid issues.")
 	}
 
+	listening := make(chan struct{})
+	startConfig := echo.StartConfig{
+		Address:          c.Config().ListenAddr,
+		HideBanner:       true,
+		ListenerAddrFunc: func(net.Addr) { close(listening) },
+	}
+
 	errCh := make(chan error, 1)
 	if c.Config().IsSecure {
 		e.Pre(middleware.HTTPSRedirect())
 		go func() {
-			errCh <- e.StartTLS(c.Config().ListenAddr, certFile, keyFile)
+			errCh <- startTLS(cmd.Context(), e, startConfig, certFile, keyFile)
 		}()
 	} else {
 		go func() {
-			errCh <- e.Start(c.Config().ListenAddr)
+			errCh <- startConfig.Start(cmd.Context(), e)
 		}()
 	}
 
-	if err := waitForServerStart(e, c.Config().IsSecure, errCh); err != nil {
+	if err := waitForServerStart(listening, errCh); err != nil {
 		return err
 	}
 
@@ -131,27 +135,25 @@ func Serve(cmd *cobra.Command) error {
 
 // waitForServerStart blocks until the server's listener has successfully
 // bound to its address, or returns the startup error if it fails to bind.
-func waitForServerStart(e *echo.Echo, isSecure bool, errCh chan error) error {
-	ticker := time.NewTicker(10 * time.Millisecond)
-	defer ticker.Stop()
-	timeout := time.After(serverStartTimeout)
-
-	for {
-		select {
-		case err := <-errCh:
-			return err
-		case <-ticker.C:
-			addr := e.ListenerAddr()
-			if isSecure {
-				addr = e.TLSListenerAddr()
-			}
-			if addr != nil {
-				return nil
-			}
-		case <-timeout:
-			return fmt.Errorf("timed out waiting for server to start listening on %s", e.Server.Addr)
-		}
+func waitForServerStart(listening <-chan struct{}, errCh <-chan error) error {
+	select {
+	case err := <-errCh:
+		return err
+	case <-listening:
+		return nil
 	}
+}
+
+func startTLS(ctx context.Context, e *echo.Echo, startConfig echo.StartConfig, certFile, keyFile string) error {
+	certificate, err := os.ReadFile(certFile)
+	if err != nil {
+		return err
+	}
+	key, err := os.ReadFile(keyFile)
+	if err != nil {
+		return err
+	}
+	return startConfig.StartTLS(ctx, e, certificate, key)
 }
 
 func openDefaultBrowser(isSecure bool, listenAddr string) {

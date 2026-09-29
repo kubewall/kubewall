@@ -5,7 +5,7 @@ import (
 
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/base"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 const POSTApply = 8
@@ -15,7 +15,7 @@ type ApplyHandler struct {
 }
 
 func NewApplyHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		config := c.QueryParam("config")
 		cluster := c.QueryParam("cluster")
 
@@ -36,7 +36,7 @@ func NewApplyHandler(container container.Container, routeType base.RouteType) ec
 	}
 }
 
-func (h *ApplyHandler) PostApply(c echo.Context) error {
+func (h *ApplyHandler) PostApply(c *echo.Context) error {
 	dynamicClient := h.BaseHandler.Container.DynamicClient(h.BaseHandler.QueryConfig, h.BaseHandler.QueryCluster)
 	discoveryClient := h.BaseHandler.Container.DiscoveryClient(h.BaseHandler.QueryConfig, h.BaseHandler.QueryCluster)
 
@@ -58,7 +58,7 @@ func (h *ApplyHandler) PostApply(c echo.Context) error {
 		if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
-		return c.JSON(http.StatusOK, echo.Map{
+		return c.JSON(http.StatusOK, map[string]any{
 			"success": output,
 		})
 	}
@@ -68,7 +68,7 @@ func (h *ApplyHandler) PostApply(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
-	return c.JSON(http.StatusOK, echo.Map{
+	return c.JSON(http.StatusOK, map[string]any{
 		"success": true,
 	})
 }

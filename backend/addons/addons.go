@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/kubewall/kubewall/backend/container"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 type SkipRule struct {
@@ -89,7 +89,14 @@ func RegisterRoutes(e *echo.Echo, appContainer container.Container) {
 	}
 }
 
-func ShouldSkip(c echo.Context, middleware string) bool {
+func AddNamedRoute(e *echo.Echo, method, path, name string, handler echo.HandlerFunc, middlewares ...echo.MiddlewareFunc) {
+	route := echo.Route{Method: method, Path: path, Name: name, Handler: handler, Middlewares: middlewares}
+	if _, err := e.AddRoute(route); err != nil {
+		panic(err)
+	}
+}
+
+func ShouldSkip(c *echo.Context, middleware string) bool {
 	path := normalizePath(c.Path())
 	if path == "" {
 		return false

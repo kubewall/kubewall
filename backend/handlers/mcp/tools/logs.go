@@ -13,7 +13,7 @@ import (
 
 	"github.com/charmbracelet/log"
 	"github.com/kubewall/kubewall/backend/handlers/mcp/helpers"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
@@ -32,7 +32,7 @@ type LogEntry struct {
 	Log           string `json:"log"`
 }
 
-func NewLogsTool(c echo.Context) server.ServerTool {
+func NewLogsTool(c *echo.Context) server.ServerTool {
 	tool := mcp.NewTool("podsLogs",
 		mcp.WithDescription(postLogsTemplate),
 		mcp.WithToolAnnotation(mcp.ToolAnnotation{ReadOnlyHint: mcp.ToBoolPtr(true)}),

@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/log"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/r3labs/sse/v2"
 	v1 "k8s.io/api/core/v1"
 )
@@ -291,7 +291,7 @@ func (h *PodsHandler) fetchHistoricalLogs(ctx context.Context, namespace, podNam
 	return result
 }
 
-func (h *PodsHandler) GetLogHistory(c echo.Context) error {
+func (h *PodsHandler) GetLogHistory(c *echo.Context) error {
 	ctx := c.Request().Context()
 	name := c.Param("name")
 	namespace := c.QueryParam("namespace")

@@ -9,7 +9,7 @@ import (
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/base"
 	"github.com/kubewall/kubewall/backend/handlers/helpers"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
 
@@ -18,7 +18,7 @@ type CRDHandler struct {
 }
 
 func NewCRDRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		handler := NewCRDHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {
@@ -83,7 +83,7 @@ func transformItems(items []any, b *base.BaseHandler) ([]byte, error) {
 	return json.Marshal(t)
 }
 
-func (h *CRDHandler) Delete(c echo.Context) error {
+func (h *CRDHandler) Delete(c *echo.Context) error {
 	type InputData struct {
 		Name string `json:"name"`
 	}

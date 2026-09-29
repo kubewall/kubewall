@@ -11,7 +11,7 @@ import (
 
 	"github.com/kubewall/kubewall/backend/config"
 	"github.com/kubewall/kubewall/backend/container"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -25,7 +25,7 @@ func NewAppConfigHandler(container container.Container) *AppConfigHandler {
 	return &AppConfigHandler{container: container}
 }
 
-func (h *AppConfigHandler) Get(c echo.Context) error {
+func (h *AppConfigHandler) Get(c *echo.Context) error {
 	return c.JSON(http.StatusOK, h.container.Config())
 }
 
@@ -33,12 +33,12 @@ func (h *AppConfigHandler) Get(c echo.Context) error {
 // is dropped, every cache and cached handler is discarded, and the kubeconfigs
 // are re-read from disk. Clusters reconnect lazily on the next request that
 // selects them.
-func (h *AppConfigHandler) Reload(c echo.Context) error {
+func (h *AppConfigHandler) Reload(c *echo.Context) error {
 	resetApp(h.container)
 	return c.Redirect(http.StatusTemporaryRedirect, "/")
 }
 
-func (h *AppConfigHandler) Post(c echo.Context) error {
+func (h *AppConfigHandler) Post(c *echo.Context) error {
 	kubeconfig := c.FormValue("file")
 	if strings.TrimSpace(kubeconfig) == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "kubeconfig is empty")
@@ -65,14 +65,14 @@ func (h *AppConfigHandler) Post(c echo.Context) error {
 	}
 	if err := validateKubeconfigFile(path); err != nil {
 		defer os.Remove(path)
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid kubeconfig").SetInternal(err)
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid kubeconfig").Wrap(err)
 	}
 
 	h.container.Config().SaveKubeConfig(configName)
-	return c.JSON(http.StatusOK, echo.Map{"success": true, "configId": configName})
+	return c.JSON(http.StatusOK, map[string]any{"success": true, "configId": configName})
 }
 
-func (h *AppConfigHandler) PostBearer(c echo.Context) error {
+func (h *AppConfigHandler) PostBearer(c *echo.Context) error {
 	serverIP := strings.TrimSpace(c.FormValue("serverIP"))
 	name := strings.TrimSpace(c.FormValue("name"))
 	token := strings.TrimSpace(c.FormValue("token"))
@@ -103,14 +103,14 @@ func (h *AppConfigHandler) PostBearer(c echo.Context) error {
 	}
 	if err := validateKubeconfigFile(path); err != nil {
 		defer os.Remove(path)
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid kubeconfig").SetInternal(err)
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid kubeconfig").Wrap(err)
 	}
 
 	h.container.Config().SaveKubeConfig(configName)
-	return c.JSON(http.StatusOK, echo.Map{"success": true, "configId": configName})
+	return c.JSON(http.StatusOK, map[string]any{"success": true, "configId": configName})
 }
 
-func (h *AppConfigHandler) PostCertificate(c echo.Context) error {
+func (h *AppConfigHandler) PostCertificate(c *echo.Context) error {
 	serverIP := strings.TrimSpace(c.FormValue("serverIP"))
 	name := strings.TrimSpace(c.FormValue("name"))
 	cert := strings.TrimSpace(c.FormValue("clientCertData"))
@@ -163,18 +163,18 @@ func (h *AppConfigHandler) PostCertificate(c echo.Context) error {
 
 	if err := validateKubeconfigFile(path); err != nil {
 		defer os.Remove(path)
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid kubeconfig").SetInternal(err)
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid kubeconfig").Wrap(err)
 	}
 
 	h.container.Config().SaveKubeConfig(configName)
-	return c.JSON(http.StatusOK, echo.Map{"success": true, "configId": configName})
+	return c.JSON(http.StatusOK, map[string]any{"success": true, "configId": configName})
 }
 
-func (h *AppConfigHandler) Delete(c echo.Context) error {
+func (h *AppConfigHandler) Delete(c *echo.Context) error {
 	if err := h.container.Config().RemoveKubeConfig(c.Param("configId")); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to remove kubeconfig").SetInternal(err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to remove kubeconfig").Wrap(err)
 	}
-	return c.JSON(http.StatusOK, echo.Map{"success": true})
+	return c.JSON(http.StatusOK, map[string]any{"success": true})
 }
 
 // ---------- Helper Functions Below ----------
@@ -188,10 +188,10 @@ func homeDir() string {
 func writeKubeconfigToFile(path, content string) error {
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create directory").SetInternal(err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create directory").Wrap(err)
 	}
 	if err := os.WriteFile(path, []byte(content), 0600); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to write kubeconfig").SetInternal(err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to write kubeconfig").Wrap(err)
 	}
 	return nil
 }

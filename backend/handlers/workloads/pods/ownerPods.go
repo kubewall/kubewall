@@ -7,7 +7,7 @@ import (
 	"sort"
 
 	"github.com/kubewall/kubewall/backend/container"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/r3labs/sse/v2"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/metrics/pkg/apis/metrics/v1beta1"
@@ -50,7 +50,7 @@ func OwnerPodsStreamID(config, cluster, resource, namespace, name string) string
 // pods already imports replicaset to walk pod -> ReplicaSet -> Deployment, so a
 // ReplicaSet handler could not import it back.
 func NewOwnerPodsRouteHandler(container container.Container, resource string) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		handler := NewPodsHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 		return handler.ServeOwnerPods(c, resource)
 	}
@@ -58,7 +58,7 @@ func NewOwnerPodsRouteHandler(container container.Container, resource string) ec
 
 // ServeOwnerPods streams one workload's pods to a details view, on the same
 // stream OwnerPods publishes to.
-func (h *PodsHandler) ServeOwnerPods(c echo.Context, resource string) error {
+func (h *PodsHandler) ServeOwnerPods(c *echo.Context, resource string) error {
 	namespace := c.QueryParam("namespace")
 	name := c.Param("name")
 

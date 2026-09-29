@@ -9,7 +9,7 @@ import (
 	"github.com/kubewall/kubewall/backend/container"
 	"github.com/kubewall/kubewall/backend/handlers/base"
 	"github.com/kubewall/kubewall/backend/handlers/helpers"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -18,7 +18,7 @@ type EventsHandler struct {
 }
 
 func NewEventsRouteHandler(container container.Container, routeType base.RouteType) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		handler := NewEventsHandler(c.Request().Context(), c.QueryParam("config"), c.QueryParam("cluster"), container)
 
 		switch routeType {

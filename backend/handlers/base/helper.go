@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/kubewall/kubewall/backend/handlers/helpers"
-	"github.com/labstack/echo/v4"
 	"sigs.k8s.io/yaml"
 )
 
@@ -40,7 +39,7 @@ func (h *BaseHandler) marshalYAML(item any, exists bool) []byte {
 	if err != nil {
 		return []byte("{}")
 	}
-	b, err := json.Marshal(echo.Map{
+	b, err := json.Marshal(map[string]any{
 		"data": y,
 	})
 	if err != nil {

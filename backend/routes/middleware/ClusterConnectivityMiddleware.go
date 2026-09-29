@@ -6,14 +6,14 @@ import (
 
 	"github.com/charmbracelet/log"
 	"github.com/kubewall/kubewall/backend/container"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 const ClusterConnectivity = "cluster-connectivity"
 
 func ClusterConnectivityMiddleware(container container.Container) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			if shouldSkip(c, ClusterConnectivity) {
 				return next(c)
 			}
