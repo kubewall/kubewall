@@ -117,6 +117,13 @@ const KW_AI_PROVIDERS = [
     providerDefaultUrl: "https://openrouter.ai/api/v1",
     urlHint: "OpenRouter gateway — routes to multiple providers. Default: https://openrouter.ai/api/v1",
     icon: PROVIDER_ICONS.openrouter
+  },
+  {
+    value: "atlascloud",
+    label: "Atlas Cloud",
+    providerDefaultUrl: "https://api.atlascloud.ai/v1",
+    urlHint: "Atlas Cloud gateway — DeepSeek, Z.ai, Moonshot, Qwen and more behind one key. Default: https://api.atlascloud.ai/v1",
+    icon: PROVIDER_ICONS.atlascloud
   }
 ];
 
