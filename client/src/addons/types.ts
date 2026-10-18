@@ -118,6 +118,40 @@ export interface DeploymentRevisionsAddonDefinition extends AddonDefinition {
   }> | null;
 }
 
+// ─── Topology Addon ────────────────────────────────────────────────────────────
+export interface TopologyAddonDefinition extends AddonDefinition {
+  /**
+   * Full-page Topology view (sidebar entry above Cluster). Renders the
+   * resource graph for the config/cluster the router resolved, backed by
+   * the premium backend addon's `GET api/v1/topology` SSE stream.
+   */
+  TopologyView: ComponentType<{
+    configName: string;
+    clusterName: string;
+  }> | null;
+
+  /**
+   * A single resource's own topology neighborhood, rendered as the Details
+   * page's "Topology" tab. Self-contained: it opens its own subscription
+   * against the premium backend addon's dedicated per-resource route
+   * (`GET api/v1/{resourceKind}/{resourceName}/topology`), separate from
+   * TopologyView's whole-cluster stream. Only offer this tab (check
+   * `resourceTopologyKinds.has(resourcekind)` first) for a kind the backend
+   * actually routes — notably not Custom Resources, which have no such
+   * route at all.
+   */
+  ResourceTopologyTab: ComponentType<{
+    resourceKind: string;
+    resourceName: string;
+    namespace?: string;
+    configName: string;
+    clusterName: string;
+  }> | null;
+
+  /** Every `resourcekind` URL slug the backend has a topology route for — see ResourceTopologyTab. */
+  resourceTopologyKinds: ReadonlySet<string> | null;
+}
+
 // ─── Registry ─────────────────────────────────────────────────────────────────
 // Add a new optional key here for every new addon feature.
 export interface AddonRegistry {
@@ -125,4 +159,5 @@ export interface AddonRegistry {
   kubeEndOfLife?: KubeEndOfLifeAddonDefinition;
   clusterTags?: ClusterTagsAddonDefinition;
   deploymentRevisions?: DeploymentRevisionsAddonDefinition;
+  topology?: TopologyAddonDefinition;
 }
