@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Check, Loader2 } from "lucide-react";
 import { FilePlusIcon } from "@radix-ui/react-icons";
 import { Loader } from '../../Loader';
-import { kwList } from '@/routes';
 import { toast } from 'sonner';
 import { useTheme } from '@/components/app/ThemeProvider';
 
@@ -18,11 +17,18 @@ import { useTheme } from '@/components/app/ThemeProvider';
 // actually needs to render an editor instead of paying for it in the main bundle.
 const Editor = lazy(() => import('../../Details/YamlEditor/MonacoWrapper'));
 
-const AddResource = () => {
+type AddResourceProps = {
+  config: string;
+  cluster: string;
+};
+
+// config/cluster come in as props rather than this component reading them
+// itself off kwList's route hooks — those throw outside the /list route, and
+// this button is also used from pages (e.g. the Topology addon) that aren't
+// on it. Each call site reads them however fits its own route.
+const AddResource = ({ config, cluster }: AddResourceProps) => {
   const dispatch = useAppDispatch();
   const [value, setValue] = useState('');
-  const { config } = kwList.useParams();
-  const { cluster } = kwList.useSearch();
   const { monacoTheme } = useTheme();
 
   const queryParams = new URLSearchParams({

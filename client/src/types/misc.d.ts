@@ -33,6 +33,10 @@ type kwDetailsSearch = {
   namespace?: string;
 };
 
+type kwTopologySearch = {
+  cluster: string;
+};
+
 type CustomResoucesListSearch = {
   group: string;
   version: string;
@@ -168,6 +172,7 @@ export {
   TableColumns,
   kwListSearch,
   kwDetailsSearch,
+  kwTopologySearch,
   KeyValue,
   KeyValueNull,
   OwnerReference,

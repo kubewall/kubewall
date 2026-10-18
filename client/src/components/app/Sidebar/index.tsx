@@ -1,7 +1,7 @@
 import './index.css';
 
 import { CUSTOM_RESOURCES_ENDPOINT, NAVIGATION_ROUTE } from "@/constants";
-import { ChevronRight, DatabaseIcon, LayersIcon, LayoutGridIcon, NetworkIcon, ShieldHalf, SlidersHorizontalIcon, UngroupIcon } from "lucide-react";
+import { ChevronRight, DatabaseIcon, LayersIcon, LayoutGridIcon, NetworkIcon, ShieldHalf, SlidersHorizontalIcon, UngroupIcon, Workflow } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { SidebarContent, SidebarGroup, SidebarGroupLabel, Sidebar as SidebarMainComponent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarRail, useSidebar } from "@/components/ui/sidebar";
@@ -24,9 +24,16 @@ import { updateCustomResources } from "@/data/CustomResources/CustomResourcesSli
 import { useEventSource } from "../Common/Hooks/EventSource";
 import { useTheme } from "@/components/app/ThemeProvider";
 import { BRAND } from "@/branding.config";
+import addons from "@/addons";
+import capabilities from "@/capabilities";
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
 }
+
+// Resolved once at module load, same pattern as every other addon slot (see
+// Common/Details/index.tsx) — free builds have no enterprise-client
+// submodule, so this is null and the nav entry below never renders.
+const topologyNavEnabled = !!capabilities.topology?.enabled && !!addons.topology?.TopologyView;
 
 
 const Sidebar = memo(function ({ className }: SidebarProps) {
@@ -101,6 +108,12 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
   const onNavClick = (routeValue: string) => {
     setActiveTab(routeValue);
     navigate({ to: `/${configName}/list?cluster=${encodeURIComponent(clusterName)}&resourcekind=${routeValue}` });
+    routerForce.invalidate();
+  };
+
+  const onTopologyNavClick = () => {
+    setActiveTab('topology');
+    navigate({ to: `/${configName}/topology?cluster=${encodeURIComponent(clusterName)}` });
     routerForce.invalidate();
   };
 
@@ -190,6 +203,23 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                       </SidebarMenuButton>
                       <SidebarNavigator setOpenMenus={setOpenMenus} />
                     </SidebarMenuItem>
+                    {
+                      topologyNavEnabled && (
+                        <SidebarMenuItem className="cursor-pointer">
+                          <SidebarMenuButton
+                            asChild
+                            className="group-data-[collapsible=icon]:justify-center"
+                            isActive={pathname.endsWith('/topology')}
+                            tooltip="Topology"
+                          >
+                            <a onClick={onTopologyNavClick}>
+                              <Workflow size={16} />
+                              <span className="truncate group-data-[collapsible=icon]:hidden">Topology</span>
+                            </a>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      )
+                    }
                     {
                       Object.keys(NAVIGATION_ROUTE).map((route) => (
                         <Collapsible

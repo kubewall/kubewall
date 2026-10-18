@@ -16,6 +16,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Sparkles } from "lucide-react";
 import { Table } from "@tanstack/react-table";
 import { ThemeModeSelector } from "@/components/app/Common/ThemeModeSelector";
+import { kwList } from '@/routes';
 import { namespacesFilter } from "@/utils";
 import { resetFilterNamespace } from "@/data/Misc/ListTableNamesapceSlice";
 import { updateListTableFilter } from "@/data/Misc/ListTableFilterSlice";
@@ -86,6 +87,8 @@ export function DataTableToolbar<TData>({
   const dispatch = useAppDispatch();
   const isFiltered = table.getState().columnFilters.length > 0;
   const searchTarget = getSearchTarget(instanceType, kind);
+  const { config } = kwList.useParams();
+  const { cluster } = kwList.useSearch();
 
   return (
     <div className="flex items-center justify-between px-2 py-2">
@@ -140,7 +143,7 @@ export function DataTableToolbar<TData>({
         }
       </div>
       <DataTableViewOptions table={table} />
-      <AddResource />
+      <AddResource config={config} cluster={cluster} />
       <ThemeModeSelector />
 
       <TooltipProvider>

@@ -43,6 +43,17 @@ const PodSSHTopBarButton = addons.terminal?.PodSSHTopBarButton ?? null;
 const RevisionsTab = addons.deploymentRevisions?.RevisionsTab ?? null;
 const revisionsEnabled = !!capabilities.deploymentRevisions?.enabled && !!RevisionsTab;
 
+// Per-resource topology focus view. `resourceTopologyKinds` is the precise
+// set of `resourcekind` slugs the premium backend addon actually has a
+// topology route for (see ResourceTopologyTab's addon type comment). It
+// excludes Custom Resources and plain Endpoints (neither has a backend
+// route) but, notably, does NOT exclude Custom Resource Definitions
+// themselves, which do have one — check the set rather than guessing from
+// the label.
+const ResourceTopologyTab = addons.topology?.ResourceTopologyTab ?? null;
+const topologyKinds = addons.topology?.resourceTopologyKinds ?? null;
+const topologyTabEnabled = !!capabilities.topology?.enabled && !!ResourceTopologyTab && !!topologyKinds;
+
 // kwAI pulls in every LLM provider SDK plus the markdown/highlight pipeline;
 // load it only when the chat panel is actually opened.
 const AiChat = lazy(() => import("../../kwAI").then((m) => ({ default: m.AiChat })));
@@ -275,6 +286,7 @@ const KwDetails = () => {
                     <TabsTrigger value='events'>Events</TabsTrigger>
                     {resourceInitialData.label.toLowerCase() === PODS_ENDPOINT && <TabsTrigger value='logs'>Logs</TabsTrigger>}
                     {revisionsEnabled && resourcekind === DEPLOYMENT_ENDPOINT && <TabsTrigger value='revisions'>Revisions</TabsTrigger>}
+                    {topologyTabEnabled && topologyKinds?.has(resourcekind) && <TabsTrigger value='topology'>Topology</TabsTrigger>}
                   </TabsList>
 
                   <ResizablePanelGroup
@@ -336,6 +348,18 @@ const KwDetails = () => {
                             </Suspense>
                           </TabsContent>
 
+                        }
+                        {
+                          topologyTabEnabled && ResourceTopologyTab && topologyKinds?.has(resourcekind) &&
+                          <TabsContent className="mt-0 h-full overflow-hidden" value='topology'>
+                            <ResourceTopologyTab
+                              resourceKind={resourcekind}
+                              resourceName={resourcename}
+                              namespace={namespace || ''}
+                              configName={config}
+                              clusterName={cluster}
+                            />
+                          </TabsContent>
                         }
                       </ResizablePanel>
                     }

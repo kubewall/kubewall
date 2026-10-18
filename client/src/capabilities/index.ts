@@ -24,6 +24,9 @@ const capabilities: CapabilityConfig = {
   deploymentRevisions: {
     enabled: false,
   },
+  topology: {
+    enabled: false,
+  },
 };
 
 export default capabilities;

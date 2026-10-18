@@ -31,10 +31,16 @@ export interface DeploymentRevisionsCapabilities {
   enabled: boolean;
 }
 
+export interface TopologyCapabilities {
+  /** Whether the Topology sidebar entry and its backend addon are available. */
+  enabled: boolean;
+}
+
 // Add a new key here for every new feature's capability config.
 export interface CapabilityConfig {
   terminal: TerminalCapabilities;
   kubeEndOfLife: KubeEndOfLifeCapabilities;
   clusterTags: ClusterTagsCapabilities;
   deploymentRevisions: DeploymentRevisionsCapabilities;
+  topology: TopologyCapabilities;
 }

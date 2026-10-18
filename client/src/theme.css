@@ -60,6 +60,15 @@
     --sidebar-accent-foreground: 222.2 47.4% 11.2%;
     --sidebar-border: 214.3 31.8% 91.4%;
     --sidebar-ring: 222.2 84% 4.9%;
+
+    /* Topology view (premium): plain hex, referenced directly as var(--topo-*)
+       rather than decomposed into HSL triples like the tokens above, since
+       nothing here composes with Tailwind's hsl(var(--x)) opacity pattern. */
+    --topo-edge: #b1b1b7;
+    --topo-frame: rgba(2, 8, 23, 0.025);
+    --topo-ok: #10b981;
+    --topo-warn: #d97706;
+    --topo-err: #dc2626;
   }
 
   .dark {
@@ -115,5 +124,12 @@
     --sidebar-accent-foreground: 0 0% 98.0392%;
     --sidebar-border: 0 0% 16.0784%;
     --sidebar-ring: 141.8919 69.1589% 58.0392%;
+
+    /* Topology view (premium) */
+    --topo-edge: #4b4b4b;
+    --topo-frame: rgba(255, 255, 255, 0.025);
+    --topo-ok: #10b981;
+    --topo-warn: #f59e0b;
+    --topo-err: #ef4444;
   }
 }
