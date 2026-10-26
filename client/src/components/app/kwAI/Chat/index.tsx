@@ -364,6 +364,14 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
         return createOpenRouter({
           apiKey: providerData.apiKey, baseURL: providerData.url, headers: commonHeaders, ...fetchOption
         });
+      case "atlascloud":
+        return createOpenAICompatible({
+          name: 'atlascloud',
+          baseURL: `${providerData.url}/`,
+          fetch: proxyFetch,
+          apiKey: providerData.apiKey,
+          includeUsage: true
+        });
       default:
         return '';
     }
