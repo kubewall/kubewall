@@ -1,5 +1,5 @@
 import { Navigate, createRootRoute, createRoute, createRouter, lazyRouteComponent } from '@tanstack/react-router';
-import { kwDetailsSearch, kwListSearch, kwTopologySearch } from '@/types';
+import { kwDashboardSearch, kwDetailsSearch, kwListSearch, kwTopologySearch } from '@/types';
 
 import FourOFourError from "@/components/app/Errors/404Error";
 import GenericError from "@/components/app/Errors/GenericError";
@@ -18,6 +18,7 @@ const KubeConfigurationLazy = lazyRouteComponent(() => import('@/components/app/
 const KwListLazy = lazyRouteComponent(() => import('@/components/app/Common/List'), 'KwList');
 const KwDetailsLazy = lazyRouteComponent(() => import('@/components/app/Common/Details'), 'KwDetails');
 const TopologyLazy = lazyRouteComponent(() => import('@/components/app/Topology'), 'Topology');
+const DashboardLazy = lazyRouteComponent(() => import('@/components/app/Dashboard'), 'Dashboard');
 
 const rootRoute = createRootRoute({
   component: () => <KubeWall />
@@ -72,6 +73,16 @@ const kwTopology = createRoute({
   }),
 });
 
+const kwDashboard = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/$config/dashboard',
+  component: () => <AppWrapper component={<DashboardLazy />} />,
+  validateSearch: (search: Record<string, unknown>): kwDashboardSearch => ({
+    cluster: String(search.cluster) || '',
+    ...(search.namespace ? { namespace: String(search.namespace) } : {}),
+  }),
+});
+
 const kubeConfigurationRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/kwconfig',
@@ -83,7 +94,8 @@ const routeTree = rootRoute.addChildren([
   kubeConfigurationRoute,
   kwList,
   kwDetails,
-  kwTopology
+  kwTopology,
+  kwDashboard
 ]);
 
 const router = createRouter({
@@ -105,5 +117,6 @@ export {
   router,
   kwList,
   kwDetails,
-  kwTopology
+  kwTopology,
+  kwDashboard
 };
