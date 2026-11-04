@@ -101,6 +101,14 @@ const OpenRouterIcon: ComponentType<IconProps> = (props) => (
   </svg>
 );
 
+// Neutral placeholder glyph for Requesty (generic router/gateway nodes).
+// Not the official Requesty brand mark — swap in the real logo when available.
+const RequestyIcon: ComponentType<IconProps> = (props) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" fillRule="evenodd" {...props}>
+    <path d="M5 3a2 2 0 100 4 2 2 0 000-4zm0 14a2 2 0 100 4 2 2 0 000-4zm14-7a2 2 0 100 4 2 2 0 000-4zM6.83 5.5h6.67a4 4 0 014 4V11h-1.5V9.5a2.5 2.5 0 00-2.5-2.5H6.83v-1.5zm10.67 8v1.5a2.5 2.5 0 01-2.5 2.5H6.83V16h8.17a1 1 0 001-1v-1.5h1.5z" />
+  </svg>
+);
+
 const PROVIDER_ICONS: Record<string, ComponentType<IconProps>> = {
   xai: XaiIcon,
   openai: OpenAIIcon,
@@ -117,6 +125,7 @@ const PROVIDER_ICONS: Record<string, ComponentType<IconProps>> = {
   ollama: OllamaIcon,
   lmstudio: LMStudioIcon,
   openrouter: OpenRouterIcon,
+  requesty: RequestyIcon,
 };
 
 export { PROVIDER_ICONS };
