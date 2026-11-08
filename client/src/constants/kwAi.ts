@@ -98,6 +98,13 @@ const KW_AI_PROVIDERS = [
     icon: PROVIDER_ICONS.cerebras
   },
   {
+    value: "runcrate",
+    label: "Runcrate",
+    providerDefaultUrl: "https://api.runcrate.ai/v1",
+    urlHint: "Runcrate's OpenAI-compatible API for open models. Default: https://api.runcrate.ai/v1",
+    icon: PROVIDER_ICONS.runcrate
+  },
+  {
     value: "ollama",
     label: "Ollama",
     providerDefaultUrl: "http://127.0.0.1:11434/v1",

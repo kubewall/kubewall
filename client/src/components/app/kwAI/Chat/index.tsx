@@ -345,6 +345,11 @@ const ChatWindow = ({ currentChatKey, cluster, config, isDetailsPage, kwAIStored
         return createCerebras({
           apiKey: providerData.apiKey, baseURL: providerData.url, headers: commonHeaders, ...fetchOption
         });
+      case "runcrate":
+        return createOpenAICompatible({
+          name: 'runcrate',
+          apiKey: providerData.apiKey, baseURL: providerData.url, headers: commonHeaders, includeUsage: true, ...fetchOption
+        });
       case "ollama":
         return createOpenAICompatible({
           name: 'ollama',
