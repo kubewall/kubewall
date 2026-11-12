@@ -1,7 +1,7 @@
 import './index.css';
 
 import { CUSTOM_RESOURCES_ENDPOINT, NAVIGATION_ROUTE } from "@/constants";
-import { ChevronRight, DatabaseIcon, LayersIcon, LayoutGridIcon, NetworkIcon, ShieldHalf, SlidersHorizontalIcon, UngroupIcon, Workflow } from "lucide-react";
+import { ChevronRight, DatabaseIcon, LayersIcon, LayoutDashboard, LayoutGridIcon, NetworkIcon, ShieldHalf, SlidersHorizontalIcon, UngroupIcon, Workflow } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { SidebarContent, SidebarGroup, SidebarGroupLabel, Sidebar as SidebarMainComponent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarRail, useSidebar } from "@/components/ui/sidebar";
@@ -34,6 +34,7 @@ interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
 // Common/Details/index.tsx) — free builds have no enterprise-client
 // submodule, so this is null and the nav entry below never renders.
 const topologyNavEnabled = !!capabilities.topology?.enabled && !!addons.topology?.TopologyView;
+const dashboardNavEnabled = !!capabilities.dashboard?.enabled && !!addons.dashboard?.DashboardView;
 
 
 const Sidebar = memo(function ({ className }: SidebarProps) {
@@ -108,6 +109,12 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
   const onNavClick = (routeValue: string) => {
     setActiveTab(routeValue);
     navigate({ to: `/${configName}/list?cluster=${encodeURIComponent(clusterName)}&resourcekind=${routeValue}` });
+    routerForce.invalidate();
+  };
+
+  const onDashboardNavClick = () => {
+    setActiveTab('dashboard');
+    navigate({ to: `/${configName}/dashboard?cluster=${encodeURIComponent(clusterName)}` });
     routerForce.invalidate();
   };
 
@@ -203,6 +210,23 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                       </SidebarMenuButton>
                       <SidebarNavigator setOpenMenus={setOpenMenus} />
                     </SidebarMenuItem>
+                    {
+                      dashboardNavEnabled && (
+                        <SidebarMenuItem className="cursor-pointer">
+                          <SidebarMenuButton
+                            asChild
+                            className="group-data-[collapsible=icon]:justify-center"
+                            isActive={pathname.endsWith('/dashboard')}
+                            tooltip="Dashboard"
+                          >
+                            <a onClick={onDashboardNavClick}>
+                              <LayoutDashboard size={16} />
+                              <span className="truncate group-data-[collapsible=icon]:hidden">Dashboard</span>
+                            </a>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      )
+                    }
                     {
                       topologyNavEnabled && (
                         <SidebarMenuItem className="cursor-pointer">

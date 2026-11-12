@@ -27,6 +27,9 @@ const capabilities: CapabilityConfig = {
   topology: {
     enabled: false,
   },
+  dashboard: {
+    enabled: false,
+  },
 };
 
 export default capabilities;

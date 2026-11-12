@@ -36,6 +36,11 @@ export interface TopologyCapabilities {
   enabled: boolean;
 }
 
+export interface DashboardCapabilities {
+  /** Whether the Dashboard sidebar entry and its backend addon are available. */
+  enabled: boolean;
+}
+
 // Add a new key here for every new feature's capability config.
 export interface CapabilityConfig {
   terminal: TerminalCapabilities;
@@ -43,4 +48,5 @@ export interface CapabilityConfig {
   clusterTags: ClusterTagsCapabilities;
   deploymentRevisions: DeploymentRevisionsCapabilities;
   topology: TopologyCapabilities;
+  dashboard: DashboardCapabilities;
 }

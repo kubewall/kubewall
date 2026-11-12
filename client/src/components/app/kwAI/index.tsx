@@ -23,9 +23,13 @@ interface AiChatProps {
   customHeight: string
   isDetailsPage?: boolean
   onClose?: () => void
+  // Pages outside the list and details routes (e.g. the dashboard addon) pass
+  // their own config and cluster instead of reading them from the route.
+  config?: string
+  cluster?: string
 }
 
-export function AiChat({ isFullscreen = false, onToggleFullscreen, customHeight, onClose, isDetailsPage = false }: AiChatProps) {
+export function AiChat({ isFullscreen = false, onToggleFullscreen, customHeight, onClose, isDetailsPage = false, config: configProp, cluster: clusterProp }: AiChatProps) {
   const [activeView, setActiveView] = useState("chat");
   const kwAiChatWindow = useSidebarSize("kwai-chat");
   const [kwAIStoredModelsCollection, setKwAIStoredModelsCollection] = useState<kwAIStoredModels>({} as kwAIStoredModels);
@@ -33,7 +37,10 @@ export function AiChat({ isFullscreen = false, onToggleFullscreen, customHeight,
   const dispatch = useAppDispatch();
   let config = '';
   let cluster = '';
-  if (!isDetailsPage) {
+  if (configProp !== undefined && clusterProp !== undefined) {
+    config = configProp;
+    cluster = clusterProp;
+  } else if (!isDetailsPage) {
     config = kwList.useParams().config;
     cluster = kwList.useSearch().cluster;
   } else {

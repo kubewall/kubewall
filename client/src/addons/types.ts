@@ -152,6 +152,20 @@ export interface TopologyAddonDefinition extends AddonDefinition {
   resourceTopologyKinds: ReadonlySet<string> | null;
 }
 
+// ─── Dashboard Addon ───────────────────────────────────────────────────────────
+export interface DashboardAddonDefinition extends AddonDefinition {
+  /**
+   * Full-page cluster dashboard (sidebar entry above Topology). Renders the
+   * live overview for the config/cluster the router resolved, backed by the
+   * premium backend addon's `GET api/v1/dashboard` SSE stream. Reads the
+   * optional `namespace` search param itself.
+   */
+  DashboardView: ComponentType<{
+    configName: string;
+    clusterName: string;
+  }> | null;
+}
+
 // ─── Registry ─────────────────────────────────────────────────────────────────
 // Add a new optional key here for every new addon feature.
 export interface AddonRegistry {
@@ -160,4 +174,5 @@ export interface AddonRegistry {
   clusterTags?: ClusterTagsAddonDefinition;
   deploymentRevisions?: DeploymentRevisionsAddonDefinition;
   topology?: TopologyAddonDefinition;
+  dashboard?: DashboardAddonDefinition;
 }
