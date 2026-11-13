@@ -2,7 +2,9 @@ package routes
 
 import (
 	"embed"
+	"net"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/charmbracelet/log"
@@ -393,7 +395,7 @@ func accessControlRoutes(e *echo.Echo, appContainer container.Container) {
 func setCORSConfig(e *echo.Echo) {
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowCredentials:      true,
-		UnsafeAllowOriginFunc: reflectRequestOrigin,
+		UnsafeAllowOriginFunc: allowLoopbackOrigin,
 		AllowHeaders: []string{
 			echo.HeaderConnection,
 			echo.HeaderContentType,
@@ -422,8 +424,33 @@ func setCORSConfig(e *echo.Echo) {
 	}))
 }
 
-func reflectRequestOrigin(_ *echo.Context, origin string) (string, bool, error) {
-	return origin, true, nil
+// allowLoopbackOrigin decides which cross-origin browser requests may read API
+// responses. Reflecting an arbitrary Origin together with AllowCredentials let
+// any website a user visited read cross-origin responses from kubewall,
+// including Secret values and kubeconfigs. Cross-origin access is restricted to
+// loopback origins; the bundled UI is served same-origin and is unaffected.
+func allowLoopbackOrigin(_ *echo.Context, origin string) (string, bool, error) {
+	if isLoopbackOrigin(origin) {
+		return origin, true, nil
+	}
+	return "", false, nil
+}
+
+// isLoopbackOrigin reports whether origin is a well-formed URL whose host is
+// localhost or a loopback IP address.
+func isLoopbackOrigin(origin string) bool {
+	u, err := url.Parse(origin)
+	if err != nil || u.Host == "" {
+		return false
+	}
+	host := u.Hostname()
+	if host == "localhost" {
+		return true
+	}
+	if ip := net.ParseIP(host); ip != nil {
+		return ip.IsLoopback()
+	}
+	return false
 }
 
 func logRequest(_ *echo.Context, request middleware.RequestLoggerValues) error {
