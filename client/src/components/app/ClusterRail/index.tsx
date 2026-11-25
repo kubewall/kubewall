@@ -8,6 +8,7 @@ import { GitHubLogoIcon } from "@radix-ui/react-icons";
 import { Link } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 import { RootState } from "@/redux/store";
+import { AccountButton, useIsAdmin } from "@/addons/extensions";
 import { armArrivalCue } from "@/lib/sound";
 import { cn } from "@/lib/utils";
 
@@ -69,6 +70,7 @@ const ClusterRail = ({ configName, clusterName, selectedResource }: ClusterRailP
     armArrivalCue(config, name, connected);
   };
   const { clusters } = useAppSelector((state: RootState) => state.clusters);
+  const canAddCluster = useIsAdmin();
   const [overflowOpen, setOverflowOpen] = useState(false);
 
   const groups = Object.keys(clusters.kubeConfigs ?? {})
@@ -275,24 +277,28 @@ const ClusterRail = ({ configName, clusterName, selectedResource }: ClusterRailP
             </Popover>
           )}
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Link
-                to="/kwconfig"
-                className={cn(
-                  'flex items-center justify-center rounded-md border border-dashed border-border text-muted-foreground',
-                  TILE_SIZE_CLASS,
-                  'outline-none transition-colors hover:border-foreground/30 hover:bg-accent hover:text-foreground',
-                  'focus-visible:ring-1 focus-visible:ring-ring'
-                )}
-              >
-                <PlusIcon className="size-3.5" />
-                <span className="sr-only">Add cluster</span>
-              </Link>
-            </TooltipTrigger>
-            <TooltipContent side="right">Add cluster</TooltipContent>
-          </Tooltip>
+          {canAddCluster && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link
+                  to="/kwconfig"
+                  className={cn(
+                    'flex items-center justify-center rounded-md border border-dashed border-border text-muted-foreground',
+                    TILE_SIZE_CLASS,
+                    'outline-none transition-colors hover:border-foreground/30 hover:bg-accent hover:text-foreground',
+                    'focus-visible:ring-1 focus-visible:ring-ring'
+                  )}
+                >
+                  <PlusIcon className="size-3.5" />
+                  <span className="sr-only">Add cluster</span>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="right">Add cluster</TooltipContent>
+            </Tooltip>
+          )}
         </div>
+
+        <AccountButton placement="rail" />
 
         {BRAND.showGithubLink && (
           <div className="flex w-full shrink-0 justify-center border-t bg-muted/40 py-1.5">

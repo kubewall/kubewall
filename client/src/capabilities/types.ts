@@ -41,6 +41,11 @@ export interface DashboardCapabilities {
   enabled: boolean;
 }
 
+export interface SsoCapabilities {
+  /** The addon's own pages and account menu are used; free builds have neither. */
+  enabled: boolean;
+}
+
 // Add a new key here for every new feature's capability config.
 export interface CapabilityConfig {
   terminal: TerminalCapabilities;
@@ -49,4 +54,5 @@ export interface CapabilityConfig {
   deploymentRevisions: DeploymentRevisionsCapabilities;
   topology: TopologyCapabilities;
   dashboard: DashboardCapabilities;
+  sso: SsoCapabilities;
 }

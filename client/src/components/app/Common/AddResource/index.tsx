@@ -11,6 +11,7 @@ import { Check, Loader2 } from "lucide-react";
 import { FilePlusIcon } from "@radix-ui/react-icons";
 import { Loader } from '../../Loader';
 import { toast } from 'sonner';
+import { toastActionError } from "@/lib/action-error-toast";
 import { useTheme } from '@/components/app/ThemeProvider';
 
 // Monaco is a multi-MB dependency; load it only once the Add Resource dialog
@@ -70,13 +71,11 @@ const AddResource = ({ config, cluster }: AddResourceProps) => {
       setIsDialogOpen(false);
       dispatch(resetUpdateYaml());
     } else if (error) {
-      toast.error("Failure", {
-        description: error.message,
-      });
+      toastActionError(error);
       setIsDialogOpen(false);
       dispatch(resetUpdateYaml());
     }
-  }, [yamlUpdateResponse, error]);
+  }, [yamlUpdateResponse, error, dispatch]);
 
   useEffect(() => {
     const resizeEditor = () => {

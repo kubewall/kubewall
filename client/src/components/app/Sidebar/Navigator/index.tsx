@@ -16,13 +16,13 @@ import { useNavigate, useRouterState } from "@tanstack/react-router";
 
 import { Archive, ArrowRightLeft, Bell, Box, Boxes, BriefcaseBusiness, CalendarClock, Component, CopyPlus, Cpu, EthernetPort, FileBox, FileClock, FileCog, Gauge, Globe, HardDrive, HeartPulse, IdCard, KeyRound, Layers3, Link2, ListOrdered, LucideIcon, Network, Plug, Rocket, Ruler, Server, ServerCog, ShieldAlert, ShieldCheck, ShieldHalf, ShieldPlus, SlidersHorizontal, SquareStack, TrendingUp } from "lucide-react";
 import { Kbd } from "@/components/ui/kbd";
-import { NAVIGATION_ROUTE } from "@/constants";
 import { cn } from "@/lib/utils";
 import { RootState } from "@/redux/store";
 import { SearchIcon } from "lucide-react";
 import { SvgRenderer } from '../../Common/SvgRenderer';
 import { useIsMac } from "@/hooks/use-is-mac";
 import { useSidebar } from "@/components/ui/sidebar";
+import { useVisibleNavigation } from "@/addons/extensions";
 
 // One icon per resource kind, not per group. The palette previously reused the
 // group's glyph for every row inside it, so seven Workloads entries all showed
@@ -116,6 +116,7 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
   const activeResourceKind = queryParams.get("resourcekind") || "";
   const { open: isSidebarOpen, openMobile } = useSidebar();
   const isMac = useIsMac();
+  const { navigation: NAVIGATION_ROUTE, isCustomResourceVisible } = useVisibleNavigation(configName, clusterName);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -217,7 +218,7 @@ const SidebarNavigator = memo(function SidebarNavigator({ setOpenMenus }: Sideba
           {Object.keys(customResourcesNavigation).length > 0 && (
             <CommandGroup heading="Custom Resources">
               {Object.keys(customResourcesNavigation).map((customResourceGroup) =>
-                customResourcesNavigation[customResourceGroup].resources.map((customResource) => (
+                customResourcesNavigation[customResourceGroup].resources.filter(({ route }) => isCustomResourceVisible(route)).map((customResource) => (
                   <CommandItem
                     key={`${customResourceGroup}::${customResource.name}`}
                     value={`${customResource.name} ${customResourceGroup}`}

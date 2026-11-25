@@ -2,6 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { FileBox } from 'lucide-react';
 import { DeleteConfiguration } from './DeleteConfiguration';
 import { SystemConfigIndicator } from './SystemConfigIndicator';
+import { useIsAdmin } from '@/addons/extensions';
 import { ConfigGroup, clusterCountLabel } from './types';
 
 // Inner content of a per-kubeconfig group header: name, System/Added pill,
@@ -11,6 +12,7 @@ import { ConfigGroup, clusterCountLabel } from './types';
 export function ConfigGroupHeader({ configKey, details, isSystem }: ConfigGroup) {
   const clusters = Object.values(details.clusters);
   const connectedCount = clusters.filter((c) => c.connected).length;
+  const isAdmin = useIsAdmin();
 
   return (
     <div className="flex items-center justify-between gap-3">
@@ -46,7 +48,7 @@ export function ConfigGroupHeader({ configKey, details, isSystem }: ConfigGroup)
         >
           {details.absolutePath}
         </span>
-        {isSystem ? <SystemConfigIndicator /> : <DeleteConfiguration configId={configKey} />}
+        {isSystem ? <SystemConfigIndicator /> : isAdmin && <DeleteConfiguration configId={configKey} />}
       </div>
     </div>
   );

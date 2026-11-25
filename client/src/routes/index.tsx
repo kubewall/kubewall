@@ -1,10 +1,15 @@
-import { Navigate, createRootRoute, createRoute, createRouter, lazyRouteComponent } from '@tanstack/react-router';
+import { AnyRoute, Navigate, createRootRoute, createRoute, createRouter, lazyRouteComponent, redirect } from '@tanstack/react-router';
+import { AddonPage } from '@/addons/AddonPage';
+import { AppProvider, addonRoutes } from '@/addons/extensions';
 import { kwDashboardSearch, kwDetailsSearch, kwListSearch, kwTopologySearch } from '@/types';
 
 import FourOFourError from "@/components/app/Errors/404Error";
 import GenericError from "@/components/app/Errors/GenericError";
 import { KubeWall } from '@/KubeWall';
 
+// A pass-through used only by the route definitions below; it never changes,
+// so fast refresh losing state here doesn't matter.
+// eslint-disable-next-line react-refresh/only-export-components
 const AppWrapper = ({ component }: { component: JSX.Element }) => {
   return (
     component
@@ -21,7 +26,7 @@ const TopologyLazy = lazyRouteComponent(() => import('@/components/app/Topology'
 const DashboardLazy = lazyRouteComponent(() => import('@/components/app/Dashboard'), 'Dashboard');
 
 const rootRoute = createRootRoute({
-  component: () => <KubeWall />
+  component: () => <AppProvider><KubeWall /></AppProvider>
 });
 
 const indexRoute = createRoute({
@@ -83,6 +88,16 @@ const kwDashboard = createRoute({
   }),
 });
 
+// Typed loosely so their search params don't widen the typed search of the routes above.
+const addonPageRoutes: AnyRoute[] = addonRoutes.map((route) => createRoute({
+  getParentRoute: () => rootRoute,
+  path: route.path,
+  validateSearch: route.validateSearch,
+  ...(route.redirectTo
+    ? { beforeLoad: () => { throw redirect({ to: route.redirectTo, replace: true }); } }
+    : { component: () => <AddonPage route={route} /> }),
+}));
+
 const kubeConfigurationRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/kwconfig',
@@ -92,6 +107,7 @@ const kubeConfigurationRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   indexRoute,
   kubeConfigurationRoute,
+  ...addonPageRoutes,
   kwList,
   kwDetails,
   kwTopology,

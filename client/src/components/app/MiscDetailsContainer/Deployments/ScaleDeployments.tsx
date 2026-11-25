@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Loader } from "../../Loader";
 import { RootState } from "@/redux/store";
 import { toast } from "sonner";
+import { toastActionError } from "@/lib/action-error-toast";
 
 type ScaleDeploymentsProps = {
   resourcename: string;
@@ -77,13 +78,11 @@ const ScaleDeployments = ({ resourcename, queryParams }: ScaleDeploymentsProps) 
       dispatch(resetDeploymentScale());
       resetDialog();
     } else if (error) {
-      toast.error("Failure", {
-        description: error.message,
-      });
+      toastActionError(error);
       dispatch(resetDeploymentScale());
       resetDialog();
     }
-  }, [message, error]);
+  }, [message, error, dispatch]);
 
 
   return (

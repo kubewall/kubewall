@@ -61,6 +61,12 @@
     --sidebar-border: 214.3 31.8% 91.4%;
     --sidebar-ring: 222.2 84% 4.9%;
 
+    /* Status tones in the light theme (the dark theme defines all five):
+       healthy, info and warning, darkened to stay readable on white. */
+    --chart-1: 142 71% 35%;
+    --chart-2: 213 80% 45%;
+    --chart-4: 35 92% 40%;
+
     /* Topology view (premium): plain hex, referenced directly as var(--topo-*)
        rather than decomposed into HSL triples like the tokens above, since
        nothing here composes with Tailwind's hsl(var(--x)) opacity pattern. */

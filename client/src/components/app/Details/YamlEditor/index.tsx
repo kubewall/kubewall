@@ -5,8 +5,10 @@ import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 
 import { Button } from '@/components/ui/button';
 import { Loader } from '../../Loader';
+import { PermissionGate } from '@/addons/extensions';
 import { SaveIcon } from "lucide-react";
 import { toast } from "sonner";
+import { toastActionError } from "@/lib/action-error-toast";
 import { updateYamlDetails } from '@/data/Yaml/YamlSlice';
 import { useEventSource } from '../../Common/Hooks/EventSource';
 import { useTheme } from '@/components/app/ThemeProvider';
@@ -15,6 +17,8 @@ import { useTheme } from '@/components/app/ThemeProvider';
 // needs to render instead of paying for it in the main bundle.
 const Editor = lazy(() => import('./MonacoWrapper'));
 
+const READ_ONLY_OPTIONS = { readOnly: true };
+
 type EditorProps = {
   name: string;
   instanceType: string;
@@ -22,9 +26,12 @@ type EditorProps = {
   configName: string;
   clusterName: string;
   extraQuery?: string;
+  // Set when the person may not change this object: the editor turns read only
+  // and Save is disabled with this reason.
+  readOnlyReason?: string | null;
 }
 
-const YamlEditor = memo(function ({ instanceType, name, namespace, clusterName, configName, extraQuery }: EditorProps) {
+const YamlEditor = memo(function ({ instanceType, name, namespace, clusterName, configName, extraQuery, readOnlyReason }: EditorProps) {
   const {
     error,
     yamlUpdateResponse,
@@ -70,13 +77,11 @@ const YamlEditor = memo(function ({ instanceType, name, namespace, clusterName, 
       dispatch(resetUpdateYaml());
       setYamlUpdated(false);
     } else if (error) {
-      toast.error("Failure", {
-        description: error.message,
-      });
+      toastActionError(error);
       dispatch(resetUpdateYaml());
       setYamlUpdated(false);
     }
-  }, [yamlUpdateResponse, error]);
+  }, [yamlUpdateResponse, error, dispatch]);
 
 
 
@@ -111,20 +116,23 @@ const YamlEditor = memo(function ({ instanceType, name, namespace, clusterName, 
           </div>
           : <div className='relative'>
             {
-              yamlUpdated &&
-              <Button
-                variant="default"
-                className="absolute bottom-32 right-12 z-10"
-                onClick={yamlUpdate}
-              >
-                {
-                  yamlUpdateLoading ? (
-                    <Loader className="w-4 h-4 text-white animate-spin fill-white" />
-                  ) : (
-                    <SaveIcon className="w-[14px] h-[14px]" />
-                  )}
-                Save
-              </Button>
+              (yamlUpdated || readOnlyReason) &&
+              <div className="absolute bottom-32 right-12 z-10 flex">
+                <PermissionGate deniedReason={readOnlyReason}>
+                  <Button
+                    variant="default"
+                    onClick={yamlUpdate}
+                  >
+                    {
+                      yamlUpdateLoading ? (
+                        <Loader className="w-4 h-4 text-white animate-spin fill-white" />
+                      ) : (
+                        <SaveIcon className="w-[14px] h-[14px]" />
+                      )}
+                    Save
+                  </Button>
+                </PermissionGate>
+              </div>
             }
             <Suspense fallback={<Loader />}>
               <Editor
@@ -133,6 +141,7 @@ const YamlEditor = memo(function ({ instanceType, name, namespace, clusterName, 
                 onChange={onChange}
                 className='border rounded-md h-screen'
                 theme={monacoTheme}
+                options={readOnlyReason ? READ_ONLY_OPTIONS : undefined}
               />
             </Suspense>
           </div>

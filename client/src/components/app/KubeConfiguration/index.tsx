@@ -14,12 +14,15 @@ import { ConfigSection } from './ConfigSection';
 import { ConfigSidebar } from './ConfigSidebar';
 import { Input } from '@/components/ui/input';
 import { Search } from "lucide-react";
+import { AccountButton, ClusterGate, useIsAdmin } from '@/addons/extensions';
+import { ClusterRail } from '@/components/app/ClusterRail';
 import { fetchClusters } from '@/data/KwClusters/ClustersSlice';
 import kwLogoDark from '@/assets/kw-dark-theme.svg';
 import kwLogoLight from '@/assets/kw-light-theme.svg';
 import { armArrivalCue, play } from '@/lib/sound';
 import { resetDeleteConfig } from '@/data/KwClusters/DeleteConfigSlice';
 import { toast } from "sonner";
+import { toastActionError } from "@/lib/action-error-toast";
 import { useNavigate } from '@tanstack/react-router';
 import { useSoundEnabled } from '@/hooks/use-sound';
 import { useTheme } from '@/components/app/ThemeProvider';
@@ -51,6 +54,7 @@ export function KubeConfiguration() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { isDark } = useTheme();
+  const isAdmin = useIsAdmin();
 
   useEffect(() => {
     dispatch(fetchClusters());
@@ -142,9 +146,7 @@ export function KubeConfiguration() {
 
   useEffect(() => {
     if (error) {
-      toast.error("Failure", {
-        description: error.message,
-      });
+      toastActionError(error);
       dispatch(fetchClusters());
       dispatch(resetDeleteConfig());
     } else if (deleteConfigResponse.message) {
@@ -182,7 +184,7 @@ export function KubeConfiguration() {
     ? clusterCountLabel(Object.keys(clusters.kubeConfigs?.[selectedConfig]?.clusters ?? {}).length)
     : `${clusterCountLabel(totalClusters)} across ${configCountLabel(totalConfigs)}`;
 
-  return (
+  const page = (
     // Two stacked regions rather than two full-height columns: the top region
     // holds the logo beside the page title, so the sidebar below it starts at
     // exactly the same y as the search row it sits next to.
@@ -199,6 +201,7 @@ export function KubeConfiguration() {
           <p className="text-xs text-muted-foreground">{stats}</p>
           <h1 className="truncate text-2xl font-semibold" title={heading}>{heading}</h1>
         </div>
+        <AccountButton placement="header" />
       </div>
 
       {/* Bottom region — sidebar | (search row + content). The sidebar's top
@@ -227,29 +230,33 @@ export function KubeConfiguration() {
             {/* Labelled rather than icon-only, so no Tooltip is needed — which
                 also sidesteps AddConfig's root being a Radix Dialog, which
                 renders no DOM node for TooltipTrigger's `asChild` to ref. */}
-            <AddConfig
-              trigger={
-                <Button variant="outline" className="h-8 shrink-0 gap-1.5 px-3">
-                  <PlusCircledIcon className="h-4 w-4" />
-                  Add config
-                </Button>
-              }
-            />
-            <TooltipProvider>
-              <Tooltip delayDuration={0}>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 shrink-0"
-                    onClick={() => window.location.href = '/api/v1/app/config/reload'}
-                  >
-                    <ReloadIcon className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Refresh Clusters</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            {isAdmin && (
+              <>
+                <AddConfig
+                  trigger={
+                    <Button variant="outline" className="h-8 shrink-0 gap-1.5 px-3">
+                      <PlusCircledIcon className="h-4 w-4" />
+                      Add config
+                    </Button>
+                  }
+                />
+                <TooltipProvider>
+                  <Tooltip delayDuration={0}>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 shrink-0"
+                        onClick={() => window.location.href = '/api/v1/app/config/reload'}
+                      >
+                        <ReloadIcon className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Refresh Clusters</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </>
+            )}
             <TooltipProvider>
               <Tooltip delayDuration={0}>
                 <TooltipTrigger asChild>
@@ -316,5 +323,14 @@ export function KubeConfiguration() {
         </div>
       </div>
     </div>
+  );
+
+  return (
+    <ClusterGate
+      clusterCount={clusters.kubeConfigs ? totalClusters : null}
+      rail={<ClusterRail configName="" clusterName="" selectedResource="" />}
+    >
+      {page}
+    </ClusterGate>
   );
 }

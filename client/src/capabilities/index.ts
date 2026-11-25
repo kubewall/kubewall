@@ -30,6 +30,9 @@ const capabilities: CapabilityConfig = {
   dashboard: {
     enabled: false,
   },
+  sso: {
+    enabled: false,
+  },
 };
 
 export default capabilities;
