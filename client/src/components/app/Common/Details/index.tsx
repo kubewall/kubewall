@@ -32,9 +32,15 @@ import { useDispatch } from "react-redux";
 import { useEventSource } from "../Hooks/EventSource";
 import { useSidebarSize } from "@/hooks/use-get-sidebar-size";
 import { BRAND } from "@/branding.config";
+import { PermissionGate, useDenied, useIsAdmin, withPermissionGate } from "@/addons/extensions";
 
 // Resolved once at module load — null in free build, real component in premium.
 const PodSSHTopBarButton = addons.terminal?.PodSSHTopBarButton ?? null;
+
+const GatedSSHTopBarButton = PodSSHTopBarButton && withPermissionGate(PodSSHTopBarButton);
+const GatedScaleDeployments = withPermissionGate(ScaleDeployments);
+const GatedPortForwardingDialog = withPermissionGate(PortForwardingDialog);
+const GatedTableDelete = withPermissionGate(TableDelete);
 
 // Rollout history. The tab only exists when the capability is on AND the addon
 // actually shipped a component: the capability alone isn't enough, because the
@@ -78,10 +84,14 @@ const KwDetails = () => {
   const queryParamsObj: Record<string, string> = { config, cluster, namespace: namespace || '' };
   const resourceInitialData = useFetchDataForDetails({ cluster, config, group, kind, namespace, resource, resourcekind, resourcename, version });
   const resourceData = useDetailsWrapper({ loading: !!resourceInitialData?.loading, resourcekind });
+  const isAdmin = useIsAdmin();
+  const denied = useDenied(config, cluster, namespace || '');
+  const deny = (verb: string, sub?: string) => denied(verb, { kind: resourcekind, group, resource, kindName: kind, sub });
+  const logsDenied = deny('get', 'log');
   useEffect(() => {
     dispatch(resetYamlDetails());
     dispatch(clearLogs());
-  }, []);
+  }, [dispatch]);
 
   // Fetch yaml for kwAi
   const sendMessage = (message: Event[]) => {
@@ -174,13 +184,14 @@ const KwDetails = () => {
                 <div className="ml-auto">
                   {
                     resourcekind === 'deployments' &&
-                    <ScaleDeployments resourcename={resourcename} queryParams={new URLSearchParams(queryParamsObj).toString()} />
+                    <GatedScaleDeployments deniedReason={deny('update', 'scale')} resourcename={resourcename} queryParams={new URLSearchParams(queryParamsObj).toString()} />
                   }
                   {
                     resourcekind === 'pods' &&
                     <>
-                      {capabilities.terminal.enabled && PodSSHTopBarButton && (
-                        <PodSSHTopBarButton
+                      {capabilities.terminal.enabled && GatedSSHTopBarButton && (
+                        <GatedSSHTopBarButton
+                          deniedReason={deny('create', 'exec')}
                           podName={podDetails.metadata.name}
                           namespace={podDetails.metadata.namespace}
                           configName={config}
@@ -191,7 +202,8 @@ const KwDetails = () => {
                           ].map(({ name, started, ready }) => ({ name, started: !!started, ready: !!ready }))}
                         />
                       )}
-                      <PortForwardingDialog
+                      <GatedPortForwardingDialog
+                        deniedReason={deny('create', 'portforward')}
                         resourcename={resourcename}
                         queryParams={new URLSearchParams(queryParamsObj).toString()}
                         config={config}
@@ -222,7 +234,8 @@ const KwDetails = () => {
                   }
                   {
                     resourcekind === 'services' &&
-                    <PortForwardingDialog
+                    <GatedPortForwardingDialog
+                        deniedReason={deny('create', 'portforward')}
                       resourcename={resourcename}
                       queryParams={new URLSearchParams(queryParamsObj).toString()}
                       config={config}
@@ -242,24 +255,26 @@ const KwDetails = () => {
                       getPortValue={selected => Number(selected.split('/')[1])}
                     />
                   }
-                  <TableDelete selectedRows={selectedRows} postDeleteCallback={redirectToListPage} />
+                  <GatedTableDelete deniedReason={deny('delete')} selectedRows={selectedRows} postDeleteCallback={redirectToListPage} />
                   <ThemeModeSelector />
-                  <TooltipProvider>
-                    <Tooltip delayDuration={0}>
-                      <TooltipTrigger asChild>
-                        <div className="ml-2 relative inline-block cursor-pointer" onClick={() => setShowChat(!showChat)}>
-                          <div className="absolute inset-0 bg-gradient-to-r from-pink-500 via-purple-600 to-blue-500 rounded-sm blur-[3px] animate-pulse"></div>
-                          <div className="relative inline-flex i gap-[0.125rem] w-12 h-8 bg-background rounded-md flex items-center justify-center border border-gray-200 dark:border-none shadow-sm  hover:bg-accent hover:text-accent-foreground">
-                            <Sparkles className="w-4 h-4" />
-                            <span className='text-xs'>AI</span>
+                  {isAdmin &&
+                    <TooltipProvider>
+                      <Tooltip delayDuration={0}>
+                        <TooltipTrigger asChild>
+                          <div className="ml-2 relative inline-block cursor-pointer" onClick={() => setShowChat(!showChat)}>
+                            <div className="absolute inset-0 bg-gradient-to-r from-pink-500 via-purple-600 to-blue-500 rounded-sm blur-[3px] animate-pulse"></div>
+                            <div className="relative inline-flex i gap-[0.125rem] w-12 h-8 bg-background rounded-md flex items-center justify-center border border-gray-200 dark:border-none shadow-sm  hover:bg-accent hover:text-accent-foreground">
+                              <Sparkles className="w-4 h-4" />
+                              <span className='text-xs'>AI</span>
+                            </div>
                           </div>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom">
-                        kwAI Chat
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                          kwAI Chat
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  }
                 </div>
 
               </div>
@@ -284,7 +299,11 @@ const KwDetails = () => {
                     <TabsTrigger value='overview' autoFocus={true}>Overview</TabsTrigger>
                     <TabsTrigger value='yaml'>YAML</TabsTrigger>
                     <TabsTrigger value='events'>Events</TabsTrigger>
-                    {resourceInitialData.label.toLowerCase() === PODS_ENDPOINT && <TabsTrigger value='logs'>Logs</TabsTrigger>}
+                    {resourceInitialData.label.toLowerCase() === PODS_ENDPOINT && (
+                      <PermissionGate deniedReason={logsDenied} className="w-full [&_fieldset]:w-full">
+                        <TabsTrigger value='logs' className="w-full" disabled={!!logsDenied}>Logs</TabsTrigger>
+                      </PermissionGate>
+                    )}
                     {revisionsEnabled && resourcekind === DEPLOYMENT_ENDPOINT && <TabsTrigger value='revisions'>Revisions</TabsTrigger>}
                     {topologyTabEnabled && topologyKinds?.has(resourcekind) && <TabsTrigger value='topology'>Topology</TabsTrigger>}
                   </TabsList>
@@ -313,6 +332,7 @@ const KwDetails = () => {
                             instanceType={`${resourcekind}${resourceInitialData.label === 'Custom Resources' && namespace ? '/' + namespace : ''}`}
                             namespace={namespace || ''}
                             extraQuery={resourceInitialData.label === 'Custom Resources' ? '&' + new URLSearchParams({ group, kind, resource, version }).toString() : ''}
+                            readOnlyReason={deny('patch')}
                           />
                         </TabsContent>
                         <TabsContent className="mt-0 h-full overflow-auto overscroll-contain" value='events'>

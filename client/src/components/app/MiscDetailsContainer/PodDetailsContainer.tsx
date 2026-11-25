@@ -9,6 +9,7 @@ import { PORT_FORWARDING_ENDPOINT } from "@/constants";
 import { PortForwardingListResponse } from "@/types";
 import { RelativeTime } from "@/components/app/Common/RelativeTime";
 import addons from "@/addons";
+import { useDenied, withPermissionGate } from "@/addons/extensions";
 import { memo } from "react";
 import { updatePortForwardingList } from "@/data/Workloads/Pods/PortForwardingListSlice";
 import { useEventSource } from "../Common/Hooks/EventSource";
@@ -16,6 +17,7 @@ import { useRouterState } from "@tanstack/react-router";
 
 // Resolved once at module load — null in free build, real component in premium.
 const PodSSHButton = addons.terminal?.PodSSHButton ?? null;
+const GatedSSHButton = PodSSHButton && withPermissionGate(PodSSHButton);
 
 const PodDetailsContainer = memo(function () {
   // Narrow selector (shallow-compared) so this component only re-renders
@@ -32,6 +34,7 @@ const PodDetailsContainer = memo(function () {
   } = useAppSelector((state) => state.podDetails);
   const containerCards = createContainerData(podDetails.spec, podDetails.status, "containers");
   const initContainerCards = createContainerData(podDetails.spec, podDetails.status, "initContainers");
+  const execDenied = useDenied(configName, clusterName, podDetails?.metadata?.namespace || '')('create', { kind: 'pods', sub: 'exec' });
   const sendMessage = (message: PortForwardingListResponse[]) => {
     dispatch(updatePortForwardingList(message));
   };
@@ -67,8 +70,9 @@ const PodDetailsContainer = memo(function () {
                               <div className="flex flex-1 items-center">
                                 <CubeIcon className="mr-2 h-3.5 w-3.5" />
                                 <div className="text-sm font-normal break-all mr-1 shrink min-w-0">{name}</div>
-                                {PodSSHButton && (
-                                  <PodSSHButton
+                                {GatedSSHButton && (
+                                  <GatedSSHButton
+                                    deniedReason={execDenied}
                                     podName={podDetails.metadata.name}
                                     namespace={podDetails.metadata.namespace}
                                     containerName={name}
@@ -218,8 +222,9 @@ const PodDetailsContainer = memo(function () {
                             <div className="flex flex-1 items-center">
                               <CubeIcon className="mr-2 h-3.5 w-3.5" />
                               <div className="text-sm font-normal break-all mr-1 shrink min-w-0">{name}</div>
-                              {PodSSHButton && (
-                                <PodSSHButton
+                              {GatedSSHButton && (
+                                <GatedSSHButton
+                                  deniedReason={execDenied}
                                   podName={podDetails.metadata.name}
                                   namespace={podDetails.metadata.namespace}
                                   containerName={name}

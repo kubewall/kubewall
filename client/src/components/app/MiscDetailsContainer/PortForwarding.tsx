@@ -15,6 +15,7 @@ import { PortForwardingListResponse } from "@/types";
 import { RawRequestError } from "@/data/kwFetch";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { toastActionError } from "@/lib/action-error-toast";
 
 const RANDOM_LOCAL_PORT_MIN = 10000;
 const RANDOM_LOCAL_PORT_MAX = 65535;
@@ -31,7 +32,8 @@ type PortForwardingDialogProps = {
   config: string;
   cluster: string;
   resourceKind: "pod" | "service";
-  details: any; // podDetails or serviceDetails
+  // podDetails or serviceDetails; only the object's name and namespace are read.
+  details: { metadata: { name?: string | null; namespace?: string | null } };
   portForwardingList: PortForwardingListResponse[];
   loading: boolean;
   error: RawRequestError | null;
@@ -63,7 +65,7 @@ export function PortForwardingDialog({
   const [selectedPortOption, setSelectedPortOption] = useState('');
   const [customContainerPort, setCustomContainerPort] = useState('');
   const [isCustomPort, setIsCustomPort] = useState(false);
-  const namespace = details.metadata?.namespace;
+  const namespace = details.metadata?.namespace ?? undefined;
   const portOptions = getPortOptions();
   const activeForwards = portForwardingList.filter(
     (forward) => forward.kind.toLowerCase() === resourceKind && forward.name === resourcename && forward.namespace === namespace
@@ -105,11 +107,11 @@ export function PortForwardingDialog({
   const savePortForwarding = () => {
     dispatch(portForwarding({
       queryParams,
-      name: details.metadata.name,
+      name: details.metadata.name ?? resourcename,
       containerName: portOptions.find(({ value }) => value === selectedPortOption)?.containerName || '',
       containerPort: getPortValue(selectedPortOption, customContainerPort),
       localPort: Number(localPort),
-      namespace,
+      namespace: namespace ?? '',
       kind: resourceKind,
     }));
     setModalOpen(false);
@@ -127,6 +129,8 @@ export function PortForwardingDialog({
     if (modalOpen && portOptions.length === 1) {
       selectPortOption(portOptions[0].value);
     }
+  // Picks the only port when the dialog opens; re-running on every new portOptions array would undo a manual choice.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modalOpen, portOptions.length]);
 
   useEffect(() => {
@@ -135,21 +139,21 @@ export function PortForwardingDialog({
       dispatch(resetPortForwarding());
       resetDialog();
     } else if (error) {
-      toast.error("Failure", { description: error.message });
+      toastActionError(error);
       dispatch(resetPortForwarding());
       resetDialog();
     }
-  }, [message, error]);
+  }, [message, error, dispatch]);
 
   useEffect(() => {
     if (stopMessage) {
       toast.success("Success", { description: stopMessage });
       dispatch(resetStopPortForwarding());
     } else if (stopError) {
-      toast.error("Failure", { description: stopError.message });
+      toastActionError(stopError);
       dispatch(resetStopPortForwarding());
     }
-  }, [stopMessage, stopError]);
+  }, [stopMessage, stopError, dispatch]);
 
   const isPortForwardDisabled =
     !localPort ||

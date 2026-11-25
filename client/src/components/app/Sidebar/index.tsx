@@ -1,6 +1,6 @@
 import './index.css';
 
-import { CUSTOM_RESOURCES_ENDPOINT, NAVIGATION_ROUTE } from "@/constants";
+import { NAVIGATION_ROUTE as ALL_NAVIGATION_ROUTES, CUSTOM_RESOURCES_ENDPOINT } from "@/constants";
 import { ChevronRight, DatabaseIcon, LayersIcon, LayoutDashboard, LayoutGridIcon, NetworkIcon, ShieldHalf, SlidersHorizontalIcon, UngroupIcon, Workflow } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -24,6 +24,7 @@ import { updateCustomResources } from "@/data/CustomResources/CustomResourcesSli
 import { useEventSource } from "../Common/Hooks/EventSource";
 import { useTheme } from "@/components/app/ThemeProvider";
 import { BRAND } from "@/branding.config";
+import { useVisibleNavigation } from "@/addons/extensions";
 import addons from "@/addons";
 import capabilities from "@/capabilities";
 
@@ -59,6 +60,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
     customResourcesNavigation
   } = useAppSelector((state) => state.customResources);
   const { open, isMobile, openMobile } = useSidebar();
+  const { navigation: NAVIGATION_ROUTE, isCustomResourceVisible } = useVisibleNavigation(configName, clusterName);
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
 
   const sortedCustomResources = useMemo(() => {
@@ -66,15 +68,19 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
 
     for (const group of Object.keys(customResourcesNavigation)) {
       const { resources, ...rest } = customResourcesNavigation[group];
+      const visible = resources.filter(({ route }) => isCustomResourceVisible(route));
+      if (visible.length === 0) {
+        continue;
+      }
 
       result[group] = {
         ...rest,
-        resources: [...resources].sort((a, b) => a.name.localeCompare(b.name)),
+        resources: visible.sort((a, b) => a.name.localeCompare(b.name)),
       };
     }
 
     return result;
-  }, [customResourcesNavigation]);
+  }, [customResourcesNavigation, isCustomResourceVisible]);
 
   useEffect(() => {
     const currentRoute = new URL(location.href).searchParams.get('resourcekind') || '';
@@ -87,8 +93,8 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
       }
     }
     else if (currentRoute.toLowerCase() !== 'customresourcedefinitions') {
-      Object.keys(NAVIGATION_ROUTE).forEach((category) => {
-        if (NAVIGATION_ROUTE[category].some(({ route }) => route === currentRoute)) {
+      Object.keys(ALL_NAVIGATION_ROUTES).forEach((category) => {
+        if (ALL_NAVIGATION_ROUTES[category].some(({ route }) => route === currentRoute)) {
           setOpenMenus(() => ({
             [category]: true,
           }));
@@ -96,6 +102,8 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
         }
       });
     }
+  // Opens the menu of the current route once, on mount.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
 
@@ -382,8 +390,7 @@ const Sidebar = memo(function ({ className }: SidebarProps) {
                                 <DropdownMenuSeparator />
                                 <DropdownMenuGroup className='overflow-auto max-h-64'>
                                   {
-                                    [...customResourcesNavigation[customResourceGroup].resources]
-                                      .sort((a, b) => a.name.localeCompare(b.name))
+                                    sortedCustomResources[customResourceGroup].resources
                                       .map((customResource) => (
                                         <DropdownMenuItem
                                           key={customResource.name}

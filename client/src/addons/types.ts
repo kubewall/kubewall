@@ -1,4 +1,5 @@
-import { ComponentType } from 'react';
+import { ComponentType, ReactNode } from 'react';
+import { NavigationRoutes } from '@/types';
 import { Reducer } from '@reduxjs/toolkit';
 
 // ─── Addon API Version ────────────────────────────────────────────────────────
@@ -166,6 +167,41 @@ export interface DashboardAddonDefinition extends AddonDefinition {
   }> | null;
 }
 
+// ─── SSO Addon ─────────────────────────────────────────────────────────────────
+// Neutral extension points; the behaviour behind each one lives in the addon.
+
+/** A page the addon adds to the router. `bare`: standalone (no cluster rail, no cluster list); `rail`: beside the rail, no resource sidebar. */
+export interface AddonRoute {
+  path: string;
+  layout?: 'bare' | 'rail';
+  component?: ComponentType<{ params: Record<string, string>; search: Record<string, unknown> }>;
+  /** Sends this path to another one instead of rendering a component. */
+  redirectTo?: string;
+  validateSearch?: (search: Record<string, unknown>) => Record<string, string>;
+}
+
+/** What a control acts on; `sub` is a subresource: scale, exec, portforward or log. */
+export type CanTarget = { kind: string; group?: string; resource?: string; kindName?: string; sub?: string };
+/** The reason an action is refused, or null when it is allowed or unknown. */
+export type DeniedCheck = (verb: string, target: CanTarget) => string | null;
+export type VisibleNavigation = { navigation: NavigationRoutes; isCustomResourceVisible: (route: string) => boolean };
+
+export interface SsoAddonDefinition extends AddonDefinition {
+  routes?: AddonRoute[];
+  /** Wraps the whole app, e.g. to load state before any page renders. */
+  AppProvider?: ComponentType<{ children: ReactNode }>;
+  /** Bottom of the cluster rail, and the overview page's header. */
+  AccountButton?: ComponentType<{ placement: 'rail' | 'header' }>;
+  /** Switches the wrapped control off with a reason; untouched without one. */
+  PermissionGate?: ComponentType<{ deniedReason?: string | null; className?: string; children: ReactNode }>;
+  /** Replaces the overview page when the person can reach no cluster (`clusterCount` 0). */
+  ClusterGate?: ComponentType<{ clusterCount: number | null; rail: ReactNode; children: ReactNode }>;
+  // Hooks, called unconditionally by the host; the registry is static per build.
+  useIsAdmin?: () => boolean;
+  useDenied?: (config: string, cluster: string, namespace?: string) => DeniedCheck;
+  useVisibleNavigation?: (config: string, cluster: string) => VisibleNavigation;
+}
+
 // ─── Registry ─────────────────────────────────────────────────────────────────
 // Add a new optional key here for every new addon feature.
 export interface AddonRegistry {
@@ -175,4 +211,5 @@ export interface AddonRegistry {
   deploymentRevisions?: DeploymentRevisionsAddonDefinition;
   topology?: TopologyAddonDefinition;
   dashboard?: DashboardAddonDefinition;
+  sso?: SsoAddonDefinition;
 }

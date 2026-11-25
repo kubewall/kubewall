@@ -15,6 +15,7 @@ import { PlusCircledIcon } from "@radix-ui/react-icons";
 import { Textarea } from "@/components/ui/textarea";
 import { fetchClusters } from "@/data/KwClusters/ClustersSlice";
 import { toast } from "sonner";
+import { toastActionError } from "@/lib/action-error-toast";
 import addons from "@/addons";
 import capabilities from "@/capabilities";
 
@@ -74,9 +75,7 @@ const AddConfig = ({ trigger }: AddConfigProps) => {
 
   useEffect(() => {
     if (error) {
-      toast.error("Failure", {
-        description: error.message,
-      });
+      toastActionError(error);
       dispatch(fetchClusters());
       dispatch(resetAddConfig());
       setStatesToDefault(false);

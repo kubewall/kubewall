@@ -25,11 +25,19 @@ class ApiRequestError extends Error implements RawRequestError {
   }
 }
 
- 
+// Set by an addon that wants to react to a 401 (for example to redirect).
+let onUnauthorized: (() => void) | undefined;
+const setUnauthorizedHandler = (handler: () => void) => {
+  onUnauthorized = handler;
+};
+
 const kwFetch = (url: string, options?: RequestInit) => fetch(url, {...options })
   .then(async (response: Response) => {
     const contentType = response.headers?.get('Content-Type');
     if (!response.ok) {
+      if (response.status === 401) {
+        onUnauthorized?.();
+      }
       if (contentType && contentType.includes('application/json')) {
         // handle JSON error response
         const errorResult = await response.json();
@@ -39,7 +47,9 @@ const kwFetch = (url: string, options?: RequestInit) => fetch(url, {...options }
 
         throw new ApiRequestError(errorResult);
       }
-      throw new ApiRequestError();
+      // Keep the server's reason (for example a 403) rather than an empty message.
+      const text = await response.text().catch(() => '');
+      throw new ApiRequestError({ message: text.trim() || response.statusText, code: response.status });
     }
     if(contentType && contentType.includes('text/plain')) {
       return (await response.blob()).text();
@@ -50,6 +60,6 @@ const kwFetch = (url: string, options?: RequestInit) => fetch(url, {...options }
     return response.json();
   });
 
-export { ApiRequestError };
+export { ApiRequestError, setUnauthorizedHandler };
 export type { RawRequestError };
 export default kwFetch;

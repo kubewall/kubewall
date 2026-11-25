@@ -13,6 +13,7 @@ import { PORT_FORWARDING_ENDPOINT } from "@/constants";
 import { RootState } from "@/redux/store";
 import { Row } from "@tanstack/react-table";
 import { toast } from "sonner";
+import { toastActionError } from "@/lib/action-error-toast";
 
 type TableDeleteProps = {
   // eslint-disable-next-line  @typescript-eslint/no-explicit-any
@@ -67,11 +68,13 @@ const TableDelete = ({ selectedRows, toggleAllRowsSelected, postDeleteCallback }
       });
       dispatch(resetDeleteResource());
     } else if (error) {
-      toast.error("Failure", {
-        description: error.message,
-      });
+      // Close the confirm dialog so its overlay doesn't cover the refusal toast.
+      setModalOpen(false);
+      toastActionError(error);
       dispatch(resetDeleteResource());
     }
+  // Acts once per delete answer; the callbacks are new on every render of the table.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [message, error]);
 
   const deleteResource = () => {

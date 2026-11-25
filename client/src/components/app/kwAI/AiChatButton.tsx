@@ -1,6 +1,7 @@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 import { Sparkles } from "lucide-react";
+import { useIsAdmin } from "@/addons/extensions";
 
 type AiChatButtonProps = {
   showChat: boolean;
@@ -8,6 +9,9 @@ type AiChatButtonProps = {
 }
 
 export function AiChatButton({ showChat, setShowChat }: AiChatButtonProps) {
+  if (!useIsAdmin()) {
+    return null;
+  }
   return (
     <TooltipProvider>
       <Tooltip delayDuration={0}>

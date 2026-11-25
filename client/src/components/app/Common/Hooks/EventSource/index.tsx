@@ -1,5 +1,6 @@
 import { KwEventSource } from "@/types";
 import { isIP } from "@/utils";
+import { notifyStreamError, registerStream } from "@/lib/streams";
 import { useEffect } from "react";
 
 const INITIAL_RECONNECT_DELAY_MS = 1000;
@@ -44,6 +45,7 @@ const useEventSource = ({url, sendMessage} : KwEventSource) => {
       // CLOSED once the browser has given up entirely (e.g. a non-2xx
       // response) - without this, the view is silently frozen forever.
       eventSource.onerror = () => {
+        if (!stopped) notifyStreamError();
         if (stopped || eventSource?.readyState !== EventSource.CLOSED) return;
         eventSource.close();
         reconnectTimer = setTimeout(() => {
@@ -53,14 +55,22 @@ const useEventSource = ({url, sendMessage} : KwEventSource) => {
       };
     };
 
-    connect();
-
-    // terminating the connection on component unmount
-    return () => {
+    const stop = () => {
       stopped = true;
       if (reconnectTimer) clearTimeout(reconnectTimer);
       eventSource?.close();
     };
+
+    connect();
+    const unregister = registerStream(stop);
+
+    // terminating the connection on component unmount
+    return () => {
+      unregister();
+      stop();
+    };
+  // Reconnects only when the URL changes; a new sendMessage on every render must not reopen the stream.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url]);
 };
 
